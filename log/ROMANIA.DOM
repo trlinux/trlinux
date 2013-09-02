@@ -1,0 +1,108 @@
+Domestic multipliers for YO-DX Contest
+By: SM3CER (Original by DL2ZAV)
+Date: 08-Aug-2000
+Version: 1.0
+
+The remaining mult list looks like this:
+
+YO2: ar cs hd tm           YO6: bv cv hr ms sb
+YO3: bu if                 YO7: ag dj gj mh ot vl
+YO4: br ct gl tl vn        YO8: bc bt is nt sv vs
+YO5: ab bh bn cj mm sj sm  YO9: bz cl db gr il ph tr
+
+
+
+YO2: = dummy
+Arad           >  ar   =   AR,Arad
+CarasS         >  cs   =   CS,Caras-Severin,CAR
+Hunedo         >  hd   =   HD,Hunedoara,HU
+Timis          >  tm   =   TM,Timis,TI
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+
+YO6: = dummy
+Brasov         >  bv   =   BV,Brasov,BRAS
+Covasn         >  cv   =   CV,Covasna,COV
+Harght         >  hr   =   HR,Harghita,HA
+Mures          >  ms   =   MS,Mures,MU
+Sibiu          >  sb   =   SB,Sibiu,SI
+ = dummy
+ = dummy
+ = dummy
+
+YO3: = dummy
+Bucrst         >  bu   =   BU,Bucuresti
+Ilfov          >  if   =   IF,Ilfov,ILF
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+
+YO7: = dummy
+Arges          >  ag   =   AG,Arges,ARG
+Dolj           >  dj   =   DJ,Dolj,DO
+Gorj           >  gj   =   GJ,Gorj,GO
+Mehedn         >  mh   =   MH,Mehedinti,ME
+Olt            >  ot   =   OT,Olt,O
+Vilcea         >  vl   =   VL,Vilcea,VI
+
+YO4: = dummy
+Braila         >  br   =   BR,Braila
+Constn         >  ct   =   CT,Constanta,CON
+Galati         >  gl   =   GL,Galati,GA
+Tulcea         >  tl   =   TL,Tulcea,TU
+Vrance         >  vn   =   VN,Vrancea,VR
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+ = dummy
+
+YO8: = dummy
+Bacau          >  bc   =   BC,Bacau,BA
+Botosn         >  bt   =   BT,Botosani,BO
+Iasi           >  is   =   IS,Iasi,IAS
+Neamt          >  nt   =   NT,Neamt,NE
+Suceav         >  sv   =   SV,Suceava,SUC
+Vaslui         >  vs   =   VS,Vaslui,VA
+
+YO5: = dummy
+Alba           >  ab   =   AB,Alba,AL
+Bihor          >  bh   =   BH,Bihor,BIH
+Bistri         >  bn   =   BN,Bistrita-Nasaud,BIS
+Cluj           >  cj   =   CJ,Cluj,CLU
+Maramr         >  mm   =   MM,Maramures,MA
+Salaj          >  sj   =   SJ,Salaj,SAL
+SatuMa         >  sm   =   SM,SatuMare,SAT
+ = dummy
+
+YO9: = dummy
+Buzau          >  bz   =   BZ,Buzau,BUZ
+Calars         >  cl   =   CL,Calarasi,CAL
+Dimbov         >  db   =   DB,Dimbovita,DI
+Giurgi         >  gr   =   GR,Giurgiu,GI
+Ialomt         >  il   =   IL,Ialomita,IAL
+Prahov         >  ph   =   PH,Prahova,PR
+Teleor         >  tr   =   TR,Teleorman,TE

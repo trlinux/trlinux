@@ -1,0 +1,69 @@
+SRC=\
+   xkb.pas\
+   beep.pas\
+   foot.pas\
+   keyers.pas\
+   radio.pas\
+   cfgcmd.pas\
+   cfgdef.pas\
+   colorcfg.pas\
+   country9.pas\
+   fcontest.pas\
+   k1eanet.pas\
+   logcfg.pas\
+   logcw.pas\
+   logddx.pas\
+   logdom.pas\
+   logdupe.pas\
+   logdvp.pas\
+   loggrid.pas\
+   loghelp.pas\
+   loghp.pas\
+   logk1ea.pas\
+   logmenu.pas\
+   logname.pas\
+   logpack.pas\
+   logprom.pas\
+   logscp.pas\
+   logsort.pas\
+   logstuff.pas\
+   logwae.pas\
+   logwind.pas\
+   post.pas\
+   postcab.pas\
+   postcfg.pas\
+   postlog.pas\
+   postmult.pas\
+   postqsl.pas\
+   postrpt.pas\
+   postscp.pas\
+   postsubs.pas\
+   postutl.pas\
+   remmults.pas\
+   slowtree.pas\
+   tree.pas\
+   linuxsound.pas\
+   zonecont.pas\
+   portname.pas\
+   datetimec.pas
+
+
+post: $(SRC) dupe.o dt.o findports.o
+	fpc -B -Mtp -g post -k-lX11
+	cp post ../log
+
+clean:
+	rm -f *\.o *\.ppu
+
+distclean:
+	rm -f *\.o *\.ppu post trlog
+
+dupe.o:dupe.c
+	gcc -c dupe.c
+
+findports.o:findports.c
+	gcc -c findports.c
+
+tar:
+	rm -f *\.o *\.ppu post trlog
+	tar -cjf ../post.tar.bz2 .

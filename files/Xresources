@@ -1,0 +1,22 @@
+!reload with
+!xrdb -load ~/.Xresources
+
+!Use:
+!xterm -class DosTerm
+DosTerm*faceName: Lucida
+DosTerm*faceSize: 14
+DosTerm*renderFont: true
+DosTerm*VT100*background: black
+DosTerm*VT100*foreground: white
+DosTerm*VT100*geometry: 80x25
+DosTerm*eightBitInput: false
+
+!Use:
+!xterm -class BigDosTerm
+BigDosTerm*faceName: Liberation Mono
+BigDosTerm*faceSize: 12
+BigDosTerm*renderFont: true
+BigDosTerm*VT100*background: black
+BigDosTerm*VT100*foreground: white
+BigDosTerm*VT100*geometry: 80x50
+BigDosTerm*eightBitInput: false
