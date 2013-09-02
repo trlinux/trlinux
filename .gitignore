@@ -1,0 +1,7 @@
+*.o
+*.ppu
+src/trlog
+src/post
+src/sndfile.pp
+log/trlog
+log/post
