@@ -6,7 +6,8 @@ UNIT LogK1EA;
 
 INTERFACE
 
-USES LogGrid, Dos, trCrt, SlowTree, Tree, communication, beep, foot, radio,keyers;
+USES LogGrid, Dos, trCrt, SlowTree, Tree, communication, beep, foot, radio,
+   keyerk1ea,keyerwin,keyers;
 
 CONST
     RadioCommandBufferSize = 100;

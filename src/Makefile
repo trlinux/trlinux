@@ -3,6 +3,9 @@ SRC=\
    beep.pas\
    foot.pas\
    keyers.pas\
+   keyerk1ea.pas\
+   keyerwin.pas\
+   keyeryccc.pas\
    radio.pas\
    cfgcmd.pas\
    cfgdef.pas\
