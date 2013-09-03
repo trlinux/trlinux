@@ -1,4 +1,3 @@
-////$Id: keyers.pas,v 1.9 2013/05/29 15:37:45 schmidt Exp $
 unit keyerwin;
 {$mode objfpc}
 
@@ -165,6 +164,7 @@ begin
    Weight := 50;
    PTTFootSwitch := False;
    TuningWithDits := False;
+   TuneWithDits := False;
    FsCwGrant := False;
    WinkeyerPort := nil;
    PTTEnable := false;

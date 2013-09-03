@@ -1,4 +1,3 @@
-////$Id: keyers.pas,v 1.9 2013/05/29 15:37:45 schmidt Exp $
 unit keyerk1ea;
 {$mode objfpc}
 
@@ -178,6 +177,7 @@ begin
     PortBeingUsed := nil;
     PTTFootSwitch := False;
     TuningWithDits := False;
+    TuneWithDits := False;
     FsCwGrant := False;
     contactstate := 0;
 end;
