@@ -1488,6 +1488,13 @@ VAR Result,tempint: INTEGER;
         Exit;
         END;
 
+    IF (ID = 'YCCC SO2R BOX ENABLE') AND (UpCase (CMD [1]) = 'T') THEN
+        BEGIN
+        ActiveKeyer := YcccKey;
+        ProcessConfigInstructions2 := true;
+        Exit;
+        END;
+
     IF ID = 'KEYER OUTPUT PORT' THEN
         BEGIN
         tempport := nil;

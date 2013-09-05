@@ -194,9 +194,8 @@ begin
    PTTEnable := false;
    swappaddles := false;
    keyer_config.val := 0; //zero all bits
-   if CurtMode = ModeA then keyer_config.timing_a := 1;
-   if CurtMode = Ultimatic then keyer_config.keyer_type := 1;
-   if swappaddles then keyer_config.paddle_rev := 1;
+   CurtMode := ModeB;
+   so2r_state.val := 0;
 end;
 
 Procedure YcccKeyer.InitializeKeyer;
@@ -253,7 +252,6 @@ writeln(stderr,'set_nonblocking return code ',rc);
    sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
    keyer_control.val := 0;
    sendcmd(CMD_KEYER_CONTROL,keyer_control.val);
-   so2r_state.val := 0;
    sendcmd(CMD_SO2R_STATE,so2r_state.val);
    so2r_config.val:= 0;
    so2r_config.relays := 1; //maybe change with mode later
@@ -304,7 +302,6 @@ end;
 
 Procedure YcccKeyer.SetActiveRadio(r: RadioType);
 begin
-   flushcwbuffer; //probably not necessary
    case r of
       RadioOne:
       begin
@@ -318,6 +315,7 @@ begin
    end;
    if KeyerInitialized then 
    begin
+      flushcwbuffer; //probably not necessary
       sendcmd(CMD_SO2R_STATE,so2r_state.val);
    end;
 end;
@@ -358,10 +356,10 @@ end;
 procedure YcccKeyer.SetSwapPaddles(on: boolean);
 begin
    SwapPaddles := on;
+   if Swappaddles then keyer_config.paddle_rev := 1;
    if KeyerInitialized then 
    begin
       flushcwbuffer;
-      if Swappaddles then keyer_config.paddle_rev := 1;
       sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
    end;
 end;
@@ -374,16 +372,15 @@ end;
 procedure YcccKeyer.SetCurtisMode(m: CurtisMode);
 begin
    CurtMode := m;
+   if CurtMode = ModeA then keyer_config.timing_a := 1;
+
+   if CurtMode = Ultimatic then
+      keyer_config.keyer_type := 1
+   else
+      keyer_config.keyer_type := 0;
    if KeyerInitialized then 
    begin
       flushcwbuffer;
-      if CurtMode = ModeA then keyer_config.timing_a := 1;
-
-      if CurtMode = Ultimatic then
-         keyer_config.keyer_type := 1
-      else
-         keyer_config.keyer_type := 0;
-
       sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
    end;
 end;
@@ -568,6 +565,9 @@ procedure YcccKeyer.UninitializeKeyer;
 begin
    if KeyerInitialized then 
    begin
+      KeyerInitialized := false;
+      hid_close(hiddev);
+      hid_exit;
    end;
 end;
 

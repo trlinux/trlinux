@@ -157,18 +157,20 @@ end;
 PROCEDURE SetUpCWStuff;
 
 VAR TypeKey, InvKey, PaddleKey, CWKey, PortKey: CHAR;
-   Winkey: boolean;
+   Winkey,Yccc: boolean;
 
     BEGIN
     Winkey := false;
+    Yccc := false;
     ClearScreenAndTitle ('SET UP CW OUTPUT PORTS');
 
     WriteLn ('If you are going to send CW from the program, you will need to tell the ');
-    WriteLn ('program which port to use for each radio.  The ports can be serial or ');
-    WriteLn ('parallel or a Winkeyer port.  If you are using a serial port, you can ');
-    WriteLn ('optionally invert the signal which make it easier to interface to a ');
-    WriteLn ('negative voltage radio.  If you select a parallel port, you can also ');
-    WriteLn ('specify the port to have a paddle connected to it.');
+    WriteLn ('program which port to use for each radio.  The ports can be serial,');
+    WriteLn ('parallel , a Winkeyer port, or a YCCC SO2R box.  If you are using');
+    WriteLn ('a serial port, you can optionally invert the signal which makes ');
+    WriteLn ('it easier to interface to a negative voltage radio.  If you');
+    WriteLn ('select a parallel port, you can also specify the port to have');
+    WriteLn (' a paddle connected to it.');
 
     WriteLn;
 
@@ -181,9 +183,9 @@ VAR TypeKey, InvKey, PaddleKey, CWKey, PortKey: CHAR;
     IF CWKey = 'N' THEN Exit;
 
     REPEAT
-        TypeKey := UpCase (GetKey ('Serial, parallel or Winkeyer CW port for radio one? (S/P/W) : '));
+        TypeKey := UpCase (GetKey ('Serial, parallel Winkeyer or YCCC box CW port for radio one? (S/P/W/Y) : '));
         If TypeKey = EscapeKey THEN Exit;
-    UNTIL (TypeKey = 'S') OR (TypeKey = 'P') OR (TypeKey = 'W');
+    UNTIL (TypeKey = 'S') OR (TypeKey = 'P') OR (TypeKey = 'W') OR (TypeKey = 'Y');
     WriteLn;
 
     Case TypeKey of
@@ -214,11 +216,16 @@ VAR TypeKey, InvKey, PaddleKey, CWKey, PortKey: CHAR;
          Winkey := true;
          ChooseSerialPort('WINKEYER PORT = SERIAL ','');
          end;
+
+     'Y':begin
+         Yccc := true;
+         writeln(FileWrite,'YCCC SO2R BOX ENABLE = TRUE');
+         end;
     end;
 
     WriteLn;
 
-    if winkey then exit; //both radio's set up
+    if winkey or yccc then exit; //both radio's set up
     REPEAT
         CWKey := UpCase (GetKey ('Do you want to set up a port to send CW with on the second radio? (Y/N) : '));
         IF CWKey = EscapeKey THEN Exit;

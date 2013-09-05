@@ -5,3 +5,4 @@ src/post
 src/sndfile.pp
 log/trlog
 log/post
+test/

@@ -1715,6 +1715,7 @@ PROCEDURE InitializeKeyer;
     ActiveKeyer.SetActiveRadio(RadioOne);
     TimerInit;
     ActiveKeyer.InitializeKeyer;
+    ActiveKeyer.SetActiveRadio(RadioOne); // for yccc box
     END;
 
 
