@@ -3,39 +3,47 @@ unit keyeryccc;
 
 INTERFACE
 
-USES trcrt,communication,beep,foot,radio,keyers,so2r;
+USES trcrt,communication,beep,foot,radio,keyers,so2r,ycccprotocol;
 
 CONST
     CWBufferSize = 1024;
+    ResponseBufferSize = 1024;
     MAX_STR = 255;
     DATA_SIZE = 3;
 
 TYPE
      YcccKeyerBuffer = Array [0..CWBufferSize-1] of Char;
+     YcccResponse_t = record
+        cmd: byte;
+        val: byte;
+     end;
 
      YcccKeyer = class(keyer,so2rinterface)
      private
         hiddev: Pointer;
         keyer_config: keyer_config_t;
-        keyer_status: keyer_status_t;
         keyer_control: keyer_control_t;
         so2r_state: so2r_state_t;
         so2r_config: so2r_config_t;
 
         snddata: array[0..DATA_SIZE] of byte;
         rcvdata: array[0..DATA_SIZE] of byte;
+        responsebuffer: array [0..ResponseBufferSize-1] of YcccResponse_t;
+        responsebufferstart: integer;
+        responsebufferend: integer;
+        idle: boolean;
+        
         CodeSpeed:        INTEGER;
+        Delta: integer;
         curtmode: CurtisMode;
         KeyerInitialized: BOOLEAN;
         PaddleBug:               BOOLEAN;
-        PaddleMonitorTone:      INTEGER;
         PaddleSpeed:            INTEGER;
         SwapPaddles:              BOOLEAN;
 
         CountsSinceLastCW: LONGINT;
         PTTEnable:              BOOLEAN;
         PTTTurnOnDelay:         INTEGER;
-        RememberCodeSpeed:        INTEGER;
         TuningWithDits:           BOOLEAN;
         Tuning:             BOOLEAN;
         TuneWithDits:       BOOLEAN;
@@ -49,10 +57,12 @@ TYPE
                                to be on. }
         DoingPaddle:  BOOLEAN;
         LastFootSwitchStatus: BOOLEAN;
-        SendStatus:           SendStatusType;
         FsCwGrant: Boolean;
         Footsw: FootSwitchx;
-        mirror: char;
+        mirror: byte;
+        procedure sendcmd(cmd: integer; val: integer);
+        procedure flushLocal;
+        procedure readresponses;
         
     public
 
@@ -111,15 +121,15 @@ TYPE
 
         procedure setrcvfocus;
         procedure setxmtfocus;
-        procedure setrig1band;
-        procedure setrig2band;
+        procedure setrig1band(band: integer);
+        procedure setrig2band(band: integer);
         function getrcvfocus:integer;
         function getxmtfocus:integer;
      end;
 
 IMPLEMENTATION
 
-Uses keycode,linuxsound,xkb,sysutils,cwstring,hidp,ycccprotocol;
+Uses keycode,linuxsound,xkb,sysutils,cwstring,hidp;
 
 
 procedure YcccKeyer.setrcvfocus;
@@ -130,12 +140,28 @@ procedure YcccKeyer.setxmtfocus;
 begin
 end;
 
-procedure YcccKeyer.setrig1band;
+procedure YcccKeyer.setrig1band(band: integer);
+var aux_info: aux_info_t;
+    i: integer;
 begin
+   if not KeyerInitialized then exit;
+   aux_info.val := 0;
+   aux_info.update := 1;
+   aux_info.aux:= band;
+   i := aux_info.val;
+   sendcmd(CMD_AUX_PORT1,i);
 end;
 
-procedure YcccKeyer.setrig2band;
+procedure YcccKeyer.setrig2band(band: integer);
+var aux_info: aux_info_t;
+    i: integer;
 begin
+   if not KeyerInitialized then exit;
+   aux_info.val := 0;
+   aux_info.update := 1;
+   aux_info.aux:= band;
+   i := aux_info.val;
+   sendcmd(CMD_AUX_PORT2,i);
 end;
 
 function YcccKeyer.getrcvfocus:integer;
@@ -153,10 +179,11 @@ begin
    LastFootSwitchStatus := false;
    CountsSinceLastCW := 0;
    CodeSpeed := 35;
+   Delta := 0;
+   idle := true;
+   Doingpaddle := false;
    PaddleBug := false;
    KeyerInitialized := False;
-   MonitorTone := 700;
-   PaddleMonitorTone := 700;
    Tuning := False;
    Weight := 50;
    PTTFootSwitch := False;
@@ -182,9 +209,9 @@ begin
    if rc <> 0 then
    begin
       clrscr;
-      writeln("Human interface device routines not working");
-      writeln("These are needed for the YCCC SO2R box");
-      writeln("return code ",rc);
+      writeln('Human interface device routines not initializing');
+      writeln('These are needed for the YCCC SO2R box');
+      writeln('return code ',rc);
       halt;
    end;
    hiddev := hid_open(VENDOR_ID,PRODUCT_ID);
@@ -216,11 +243,11 @@ snddata[2] := CMD_QUERY;
 rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
 writeln(stderr,'return code ',rc);
 rc := hid_read(hiddev,@rcvdata[0],DATA_SIZE);
-ifirm1 = rcvdata[2] and $0f;
-ifirm2 = (rcvdata[2] shr 4) and $0f;
+ifirm1 := rcvdata[2] and $0f;
+ifirm2 := (rcvdata[2] shr 4) and $0f;
 writeln(stderr,'Firmware version  = ',ifirm2,'.',ifirm1);
 
-   rc := hid_set_nonblocking(hiddev;1);
+   rc := hid_set_nonblocking(hiddev,1);
 writeln(stderr,'set_nonblocking return code ',rc);
    
    sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
@@ -236,7 +263,9 @@ writeln(stderr,'set_nonblocking return code ',rc);
 
    CWBufferStart := 0;
    CWBufferEnd := 0;
-   mirror := Ord(0);
+   mirror := 0;
+   responsebufferstart := 0;
+   responsebufferend := 0;
    PTTAsserted := False;
    KeyerInitialized := True;
 end;
@@ -273,7 +302,7 @@ begin
    GetPTTTurnOnDelay := Round(10.0*real(PTTTurnOnDelay)/1.7);
 end;
 
-Procedure WinKeyer.SetActiveRadio(r: RadioType);
+Procedure YcccKeyer.SetActiveRadio(r: RadioType);
 begin
    flushcwbuffer; //probably not necessary
    case r of
@@ -321,7 +350,7 @@ begin
    end;
 end;
 
-function WinKeyer.GetSpeed:integer;
+function YcccKeyer.GetSpeed:integer;
 begin
    GetSpeed := CodeSpeed;
 end;
@@ -378,7 +407,7 @@ begin
    GetKeyerInitialized := KeyerInitialized;
 end;
 
-procedure WinKeyer.AddCharacterToBuffer (Character: char);
+procedure YcccKeyer.AddCharacterToBuffer (Character: char);
 var c: char;
 begin
    c := upcase(Character);
@@ -521,12 +550,12 @@ Procedure YcccKeyer.SetPTTEnable(on: boolean);
 begin
    PTTEnable := on;
    if PTTEnable then
-      keyer_config.ptt := 1;
+      keyer_config.ptt := 1
    else
       keyer_config.ptt := 0;
    if KeyerInitialized then 
    begin
-      sndcmd(CMD_KEYER_CONFIG,keyer_config.val);
+      sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
    end;
 end;
 
@@ -569,7 +598,6 @@ end;
 
 procedure YcccKeyer.SetFarnsworthEnable(on: boolean);
 begin
-   FarnsworthEnable := false;
 end;
 
 procedure YcccKeyer.SetFarnsworthSpeed(speed: integer);
@@ -637,16 +665,17 @@ end;
 
 procedure YcccKeyer.Timer;
 var
-    c,c1,c2,c3: char;
     i: integer;
+    cs: integer;
+    abortreason: keyer_abort_t;
 begin
    if not KeyerInitialized then exit;
-   if ctrlshift then /yccc keyer can't tune with dits
+   if ctrlshift then //yccc keyer can't tune with dits
    begin
       if not tuning then
       begin
          tuning := true;
-         keyer_control.val = 0;
+         keyer_control.val := 0;
          keyer_control.tune_on := 1;
          sendcmd(CMD_KEYER_CONTROL,keyer_control.val);
       end;
@@ -654,160 +683,123 @@ begin
    else if tuning then
    begin
       tuning := false;
-      keyer_control.val = 0;
+      keyer_control.val := 0;
       keyer_control.tune_off := 1;
       sendcmd(CMD_KEYER_CONTROL,keyer_control.val);
    end;
 
-   rdcmd;
-   while cmdbufstart <> cmdbufend do
-   while hid_read(hiddev,@rcvdata[0],3) > 0 do
+   readresponses;
+   while responsebufferstart <> responsebufferend do
    begin
-//Keyer_Event
-//Keyer Abort
-//Keyer Overwrite
-//Keyer Character
-//Keyer Status
-//Keyer Configuration?
+      case responsebuffer[responsebufferstart].cmd of
 
-
-      if (Integer(c) and $c0) = $c0 then
-      begin
-         if (Integer(c) and $c8) = $c0 then
+         CMD_KEYER_ABORT:
          begin
-            status := Integer(c);
-            xoff := (Integer(c) and $01) = $01;
-            breakin := (Integer(c) and $02) = $02;
-            busy := (Integer(c) and $04) = $04;
-            wait := (Integer(c) and $10) = $10;
-            if breakin then flushlocal;
-         end
-         else
-         begin
+            abortreason.val := responsebuffer[responsebufferstart].val;
+            if (abortreason.command <> 0) then flushlocal;
          end;
-      end
-      else
-      begin
-         if (Integer(c) and $c0) = $80 then
+
+         CMD_KEYER_EVENT:
          begin
-           // speed pot
-         end
-         else
-         begin
-            //echo back?
-            if (mirrorstart <> mirrorend) then
-            begin
-               if (c = mirror[mirrorstart]) then
+            case responsebuffer[responsebufferstart].val of
+               KEYER_EVENT_END_CHAR:
                begin
-                  mirrorstart := (mirrorstart+1) mod 128;
-               end
-               else
+                  idle := false;
+                  doingpaddle := false;
+                  mirror := 0;
+               end;
+
+               KEYER_EVENT_IDLE:
                begin
-                  flushcwbuffer;
+                  idle := true;
+                  doingpaddle := false;
+                  mirror := 0;
+               end;
+
+               KEYER_EVENT_CLEAR:
+               begin
+                  idle := true;
+                  doingpaddle := false;
+                  mirror := 0;
+               end;
+
+               KEYER_EVENT_PADDLE:
+               begin
+                  idle := false;
+                  doingpaddle := true;
+                  flushlocal;
                end;
             end;
          end;
       end;
+      responsebufferstart := (responsebufferstart+1) mod ResponseBufferSize;
    end;
 
-   if (cwbufferend <> cwbufferstart) and (not xoff) then
+   while (mirror = 0) and (not doingpaddle)
+       and (cwbufferstart <> cwbufferend) do
    begin
       i := Integer(cwbuffer[cwbufferstart]);
       case i of
-
-         $18..$1a,$1d:
-         begin
-            c1 := Char(i);
-            cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
-            if (cwbufferend <> cwbufferstart) then
-            begin
-               c2 := cwbuffer[cwbufferstart];
-               cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
-               WinkeyerPort.putchar(c1);
-               WinkeyerPort.putchar(c2);
-            end;
-         end;
-
-         $1b:
-         begin
-            c1 := Char(i);
-            cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
-            if (cwbufferend <> cwbufferstart) then
-            begin
-               c2 := cwbuffer[cwbufferstart];
-               cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
-               if (cwbufferend <> cwbufferstart) then
-               begin
-                  c3 := cwbuffer[cwbufferstart];
-                  cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
-                  WinkeyerPort.putchar(c1);
-                  WinkeyerPort.putchar(c2);
-                  WinkeyerPort.putchar(c3);
-               end
-           end;
-         end;
-
-         $1e,$1f,Integer('|'):
-         begin
-            c1 := Char(i);
-            cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
-            WinkeyerPort.putchar(c1);
-         end;
-
          $06:
          begin
-            inc(CodeSpeed);
-            if CodeSpeed > 25 then inc(CodeSpeed);
-            if CodeSpeed > 35 then inc(CodeSpeed);
-            if CodeSpeed > 45 then inc(CodeSpeed);
-            if CodeSpeed > 99 then CodeSpeed := 99;
-            WinkeyerPort.putchar(Char($1c));
-            WinkeyerPort.putchar(Char(CodeSpeed));
+            cs := CodeSpeed+delta;
+            inc(cs);
+            if cs > 25 then inc(cs);
+            if cs > 35 then inc(cs);
+            if cs > 45 then inc(cs);
+            if cs > 99 then cs := 99;
+            delta := cs-CodeSpeed;
+            sendcmd(CMD_KEYER_DELTA,delta);
             cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
          end;
 
          $13:
          begin
-            if CodeSpeed > 49 then Dec (CodeSpeed);
-            if CodeSpeed > 38 then Dec (CodeSpeed);
-            if CodeSpeed > 27 then Dec (CodeSpeed);
-            if CodeSpeed > 6 then Dec (CodeSpeed);
-            WinkeyerPort.putchar(Char($1c));
-            WinkeyerPort.putchar(Char(CodeSpeed));
+            cs := CodeSpeed+delta;
+            if cs > 49 then Dec (cs);
+            if cs > 38 then Dec (cs);
+            if cs > 27 then Dec (cs);
+            if cs > 6 then Dec (cs);
+            delta := cs-Codespeed;
+            sendcmd(CMD_KEYER_DELTA,delta);
             cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
          end;
 
          else
          begin
-            c1 := Char(i);
             cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
-            mirror[mirrorend] := c1;
-            mirrorend := (mirrorend+1) mod 128;
-            WinkeyerPort.putchar(c1);
+            mirror := i;
+            idle := false;
+            sendcmd(CMD_KEYER_CHAR,i);
          end;
 
       end;
 
    end;
 
-   if status = $c0 then
+   if idle then
    begin
       if countssincelastcw = 0 then countssincelastcw := 1;
+      if (delta <> 0) then
+      begin
+         delta := 0;
+         sendcmd(CMD_KEYER_DELTA,0);
+      end;
    end
    else
       countssincelastcw := 0;
 
-   pttasserted := pttenable and (not (status = $c0));
+   pttasserted := pttenable and (not idle);
 end;
 
-function WinKeyer.CWStillBeingSent:boolean;
+function YcccKeyer.CWStillBeingSent:boolean;
 begin
-   CWStillBeingSent := (status <> $c0) or not bufferempty;
+   CWStillBeingSent := (not idle) or (not bufferempty);
 end;
 
 function YcccKeyer.BufferEmpty:boolean;
 begin
-   BufferEmpty := (cwbufferstart = cwbufferend) and mirror = 0;
+   BufferEmpty := (cwbufferstart = cwbufferend) and (mirror = 0);
 end;
 
 procedure YcccKeyer.AddStringToBuffer (Msg: String; Tone: INTEGER);
@@ -830,7 +822,7 @@ begin
    DeleteLastCharacter := (mirror <> 0);
    if DeleteLastCharacter then
    begin
-      sndcmd(CMD_KEYER_OVERWRITE,0);
+      sendcmd(CMD_KEYER_OVERWRITE,0);
       mirror := 0;
    end;
 end;
@@ -840,14 +832,58 @@ begin
    cwbufferstart := 0;
    cwbufferend := 0;
    mirror := 0;
-   sndcmd(CMD_KEYER_ABORT,0);
+   sendcmd(CMD_KEYER_ABORT,0);
+   delta := 0;
+   sendcmd(CMD_KEYER_DELTA,0);
 end;
 
 procedure YcccKeyer.flushLocal;
 begin
    cwbufferstart := 0;
    cwbufferend := 0;
+   mirror := 0;
+   delta := 0;
+   sendcmd(CMD_KEYER_DELTA,0);
 end;
 
+procedure YcccKeyer.sendcmd(cmd: integer; val: integer);
+var rc: integer;
+begin
+   snddata[0] := 0;
+   snddata[1] := cmd;
+   snddata[2] := val;
+   rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
+
+if (rc <> 3) then
+writeln(stderr,'sndcmd ',cmd,' ',val,' wrote ',rc,' bytes');
+
+end;
+
+procedure YcccKeyer.readresponses;
+var n: integer;
+begin
+   while true do
+   begin
+      n := hid_read(hiddev,@rcvdata[0],3);
+      if (n <= 0) then exit;
+      if (n <> 3) then
+      begin
+         writeln(stderr,'read only ',n,' bytes from yccc box');
+         halt;
+      end;
+      if (rcvdata[0] <> 0) then
+      begin
+         writeln(stderr,'first byte not zero from yccc box');
+         halt;
+      end;
+      responsebuffer[responsebufferend].cmd := rcvdata[1];
+      responsebuffer[responsebufferend].val := rcvdata[2];
+      responsebufferend := (responsebufferend + 1) mod ResponseBufferSize;
+   end;
+end;
+
+Procedure YcccKeyer.SetPort(port: serialportx);
+begin
+end;
 
 END.

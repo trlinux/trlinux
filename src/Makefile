@@ -45,14 +45,16 @@ SRC=\
    linuxsound.pas\
    communication.pas\
    ieee1284.pas\
+   so2r.pas\
    timer.pas\
    trcrt.pas\
+   ycccprotocol.pas\
    zonecont.pas\
    portname.pas\
    datetimec.pas
 
 
-trlog: $(SRC) dupe.o dt.o findports.o
+trlog: $(SRC) hidapi.h hid.o dupe.o dt.o findports.o
 #	fpc -Xt -B -Mtp -g -otrlog tr\
              -k-logg -k-lvorbis -k-lFLAC -k-lvorbisenc -k-lm
 #	fpc -dBUSYWAIT -B -Mtp -g -otrlog tr -k-rpath=\$$ORIGIN/lib -k'-z origin' -k-lX11
@@ -70,6 +72,9 @@ distclean:
 
 dupe.o:dupe.c
 	gcc -c dupe.c
+
+hid.o:hid.c
+	gcc -c hid.c
 
 findports.o:findports.c
 	gcc -c findports.c

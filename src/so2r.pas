@@ -5,8 +5,8 @@ type
    so2rinterface = interface
       procedure setrcvfocus;
       procedure setxmtfocus;
-      procedure setrig1band;
-      procedure setrig2band;
+      procedure setrig1band(band: integer);
+      procedure setrig2band(band: integer);
       function getrcvfocus:integer;
       function getxmtfocus:integer;
    end;

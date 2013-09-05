@@ -7,7 +7,7 @@ UNIT LogK1EA;
 INTERFACE
 
 USES LogGrid, Dos, trCrt, SlowTree, Tree, communication, beep, foot, radio,
-   keyerk1ea,keyerwin,keyers;
+   keyerk1ea,keyerwin,keyers,so2r,keyeryccc;
 
 CONST
     RadioCommandBufferSize = 100;
@@ -145,7 +145,9 @@ VAR ActiveDVKPort:     parallelportx;
 
     CPUKeyer:          K1EAKeyer;
     WinKey:            WinKeyer;
+    YcccKey:           YcccKeyer;
     ActiveKeyer:       Keyer;
+    so2rbox:           so2rinterface;
 
     CQRITEnabled:      BOOLEAN;
 
@@ -893,26 +895,87 @@ PROCEDURE OutputBandInfo (Radio: RadioType; Band: BandType);
 
 VAR Image: BYTE;
     PortNumber: PortType;
+    data: integer;
 {KK1L: Note I can create personized freq range output by calling BandOutputFreqLimits proc (to be created)}
 {           Using frequency should be okay, since if no radio connected then can use TR band data}
 
     BEGIN
     CASE Band OF
-        Band160:  Image := $01;
-        Band80:   Image := $20;
-        Band40:   Image := $21;
-        Band30:   Image := $40;
-        Band20:   Image := $41;
-        Band17:   Image := $60;
-        Band15:   Image := $61;
-        Band12:   Image := $80;
-        Band10:   Image := $81;
-        Band6:    Image := $A0;
-        Band2:    Image := $A1;
-        Band222:  Image := $C0;
-        Band432:  Image := $C1;
-        Band902:  Image := $E0;
-        Band1296: Image := $E1;
+        Band160:
+        begin
+           Image := $01;
+           data := 1;
+        end;
+        Band80:
+        begin
+           Image := $20;
+           data := 2;
+        end;
+        Band40:
+        begin
+           Image := $21;
+           data := 3;
+        end;
+        Band30:
+        begin
+           Image := $40;
+           data := 4;
+        end;
+        Band20:
+        begin
+           Image := $41;
+           data := 5;
+        end;
+        Band17:
+        begin
+           Image := $60;
+           data := 6;
+        end;
+        Band15:
+        begin
+           Image := $61;
+           data := 7;
+        end;
+        Band12:
+        begin
+           Image := $80;
+           data := 8;
+        end;
+        Band10:
+        begin
+           Image := $81;
+           data := 9;
+        end;
+        Band6:
+        begin
+           Image := $A0;
+           data := 10;
+        end;
+        Band2:
+        begin
+           Image := $A1;
+           data := 11;
+        end;
+        Band222:
+        begin
+           Image := $C0;
+           data := 12;
+        end;
+        Band432:
+        begin
+           Image := $C1;
+           data := 13;
+        end;
+        Band902:
+        begin
+           Image := $E0;
+           data := 14;
+        end;
+        Band1296:
+        begin
+           Image := $E1;
+           data := 15;
+        end;
         ELSE      Image := $00;
         END;
 
@@ -921,14 +984,17 @@ VAR Image: BYTE;
         IF Band = RadioOneBandOutputStatus THEN Exit;
         RadioOneBandOutputStatus := Band;
 
+        so2rbox.setrig1band(data);
         IF Radio1BandOutputPort <> nil THEN
             Radio1BandOutputPort.writedata($e1,Image);
         END
+       
     ELSE
         BEGIN
         IF Band = RadioTwoBandOutputStatus THEN Exit;
         RadioTwoBandOutputStatus := Band;
 
+        so2rbox.setrig2band(data);
         IF Radio2BandOutputPort <> nil THEN
            Radio2BandOutputPort.writedata($e1,Image);
         END;
@@ -3346,6 +3412,8 @@ PROCEDURE K1EAInit;
     BEGIN
     CPUKeyer := K1EAKeyer.create;
     WinKey := WinKeyer.create;
+    YcccKey := YcccKeyer.create;
+    so2rbox := so2rinterface(YcccKey);
     Tone := Beeper.create;
     CPUKeyer.SetBeeper(Tone);
     CPUKeyer.SetFootSwitch(Footsw);
