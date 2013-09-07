@@ -25,6 +25,8 @@ TYPE
         keyer_control: keyer_control_t;
         so2r_state: so2r_state_t;
         so2r_config: so2r_config_t;
+        hidbytes: Array [0..2] of byte;
+        nbytes: integer;
 
         snddata: array[0..DATA_SIZE] of byte;
         rcvdata: array[0..DATA_SIZE] of byte;
@@ -145,6 +147,7 @@ var aux_info: aux_info_t;
     i: integer;
 begin
    if not KeyerInitialized then exit;
+writeln(stderr,'setting rig1 band',band);
    aux_info.val := 0;
    aux_info.update := 1;
    aux_info.aux:= band;
@@ -196,6 +199,8 @@ begin
    keyer_config.val := 0; //zero all bits
    CurtMode := ModeB;
    so2r_state.val := 0;
+   so2r_state.stereo := 1;
+   nbytes := 0;
 end;
 
 Procedure YcccKeyer.InitializeKeyer;
@@ -229,28 +234,29 @@ writeln(stderr,' manufacturer = ',UCS4StringToUnicodeString(tempstring));
 rc := hid_get_product_string(hiddev,@tempstring[0],MAX_STR);
 writeln(stderr,' return code ',rc);
 writeln(stderr,' product = ',UCS4StringToUnicodeString(tempstring));
-rc := hid_get_serial_number_string(hiddev,@tempstring[0],MAX_STR);
-writeln(stderr,' return code ',rc);
-writeln(stderr,' serial = ',UCS4StringToUnicodeString(tempstring));
+//rc := hid_get_serial_number_string(hiddev,@tempstring[0],MAX_STR);
+//writeln(stderr,' return code ',rc);
+//writeln(stderr,' serial = ',UCS4StringToUnicodeString(tempstring));
 tempstring := nil;
 
 // get firmware version -- this needs to be done more intelligently
 // in case the box sends unsolicited stuff.
-snddata[0] := $00;
-snddata[1] := CMD_QUERY;
-snddata[2] := CMD_QUERY;
-rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
-writeln(stderr,'return code ',rc);
-rc := hid_read(hiddev,@rcvdata[0],DATA_SIZE);
-ifirm1 := rcvdata[2] and $0f;
-ifirm2 := (rcvdata[2] shr 4) and $0f;
-writeln(stderr,'Firmware version  = ',ifirm2,'.',ifirm1);
+//snddata[0] := $00;
+//snddata[1] := CMD_QUERY;
+//snddata[2] := CMD_QUERY;
+//rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
+//writeln(stderr,'return code ',rc);
+//rc := hid_read(hiddev,@rcvdata[0],DATA_SIZE);
+//ifirm1 := rcvdata[2] and $0f;
+//ifirm2 := (rcvdata[2] shr 4) and $0f;
+//writeln(stderr,'Firmware version  = ',ifirm2,'.',ifirm1);
 
    rc := hid_set_nonblocking(hiddev,1);
 writeln(stderr,'set_nonblocking return code ',rc);
    
    sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
    keyer_control.val := 0;
+   keyer_control.pot_off := 1;
    sendcmd(CMD_KEYER_CONTROL,keyer_control.val);
    sendcmd(CMD_SO2R_STATE,so2r_state.val);
    so2r_config.val:= 0;
@@ -356,7 +362,8 @@ end;
 procedure YcccKeyer.SetSwapPaddles(on: boolean);
 begin
    SwapPaddles := on;
-   if Swappaddles then keyer_config.paddle_rev := 1;
+   if Swappaddles then keyer_config.paddle_rev := 1
+      else keyer_config.paddle_rev := 0;
    if KeyerInitialized then 
    begin
       flushcwbuffer;
@@ -696,7 +703,7 @@ begin
          CMD_KEYER_ABORT:
          begin
             abortreason.val := responsebuffer[responsebufferstart].val;
-            if (abortreason.command <> 0) then flushlocal;
+            if (abortreason.command = M_KEYER_ABORT_PADDLE) then flushlocal;
          end;
 
          CMD_KEYER_EVENT:
@@ -854,31 +861,37 @@ begin
    snddata[2] := val;
    rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
 
+writeln(stderr,'sndcmd ',Inttohex(cmd,2),' ',Inttohex(val,2));
 if (rc <> 3) then
 writeln(stderr,'sndcmd ',cmd,' ',val,' wrote ',rc,' bytes');
 
 end;
 
 procedure YcccKeyer.readresponses;
-var n: integer;
+var n,i: integer;
+var i1,i2,i3: integer;
 begin
    while true do
    begin
       n := hid_read(hiddev,@rcvdata[0],3);
       if (n <= 0) then exit;
-      if (n <> 3) then
+if (n <> 2 ) then writeln(stderr,n,' bytes read');
+      for i := 0 to n-1 do
       begin
-         writeln(stderr,'read only ',n,' bytes from yccc box');
-         halt;
+         hidbytes[nbytes] := rcvdata[i];
+         inc(nbytes);
+         if nbytes = 2 then
+         begin
+            nbytes := 0;
+            i1 := hidbytes[0];
+            i2 := hidbytes[1];
+            writeln(stderr,'response ',inttohex(i1,2),' ',inttohex(i2,2));
+            flush(stderr);
+            responsebuffer[responsebufferend].cmd := hidbytes[0];
+            responsebuffer[responsebufferend].val := hidbytes[1];
+            responsebufferend := (responsebufferend + 1) mod ResponseBufferSize;
+         end;
       end;
-      if (rcvdata[0] <> 0) then
-      begin
-         writeln(stderr,'first byte not zero from yccc box');
-         halt;
-      end;
-      responsebuffer[responsebufferend].cmd := rcvdata[1];
-      responsebuffer[responsebufferend].val := rcvdata[2];
-      responsebufferend := (responsebufferend + 1) mod ResponseBufferSize;
    end;
 end;
 

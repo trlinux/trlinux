@@ -133,6 +133,19 @@ VAR KeyStatus: KeyStatusType;
 
 
 
+procedure writecontrol(s: string);
+var i: integer;
+begin
+   for i := 1 to length (s) do
+   begin
+      if (ord(s[i]) < 32) then
+          write('^',char(ord(s[i])-1+ord('a')))
+      else
+          write(s[i])
+   end;
+   writeln('');
+end;
+
 PROCEDURE ClearPTTForceOn;
 
     BEGIN
@@ -606,7 +619,7 @@ VAR Key: CHAR;
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
                 ClrEol;
-                WriteLn (TempString);
+                writecontrol(TempString);
                 END;
             END;
 
@@ -626,7 +639,7 @@ VAR Key: CHAR;
                     TempString := Copy (TempString, 1, 78) + '+';
 
                 ClrEol;
-                WriteLn (TempString);
+                writecontrol(TempString);
                 END;
             END;
 
@@ -646,7 +659,7 @@ VAR Key: CHAR;
                     TempString := Copy (TempString, 1, 78) + '+';
 
                 ClrEol;
-                WriteLn (TempString);
+                writecontrol(TempString);
                 END;
             END;
         END;
@@ -685,7 +698,7 @@ VAR Key: CHAR;
                         TempString := Copy (TempString, 1, 78) + '+';
 
                     ClrEol;
-                    WriteLn (TempString);
+                    writecontrol(TempString);
                     END;
                 END
             ELSE
@@ -701,7 +714,7 @@ VAR Key: CHAR;
                     IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
                     ClrEol;
-                    WriteLn (TempString);
+                    writecontrol(TempString);
                     END;
             END;
 
@@ -721,7 +734,7 @@ VAR Key: CHAR;
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
                  ClrEol;
-                WriteLn (TempString);
+                writecontrol(TempString);
                 END;
             END;
 
@@ -741,7 +754,7 @@ VAR Key: CHAR;
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
                  ClrEol;
-                WriteLn (TempString);
+                writecontrol(TempString);
                 END;
             END;
         END;
@@ -762,47 +775,47 @@ VAR TempString: Str160;
     ClrEol;
     TempString := ' 1. Call Okay Now - ' + CorrectedCallMessage;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 2. CQ Exchange   - ' + CQExchange;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 3. CQ Ex Name    - ' + CQExchangeNameKnown;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 4. QSL Message   - ' + QSLMessage;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 5. QSO Before    - ' + QSOBeforeMessage;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 6. Quick QSL     - ' + QuickQSLMessage1;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPounceExchange;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 8. S&P Exchange  - ' + SearchAndPounceExchange;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    writecontrol(TempString);
 
     ClrEol;
     TempString := ' 9. Tail end msg  - ' + TailEndMessage;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    writecontrol(TempString);
 
     ClrEol;
     Write   ('A. Short 0 = ', Short0, '   ',
@@ -818,47 +831,47 @@ VAR TempString: Str160;
     ClrEol;
     TempString := ' 1. Call Okay Now - ' + DVPPath + CorrectedCallPhoneMessage;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 2. CQ Exchange   - ' + DVPPath + CQPhoneExchange;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 3. CQ Ex Name    - ' + DVPPath + CQPhoneExchangeNameKnown;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 4. QSL Message   - ' + DVPPath + QSLPhoneMessage;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 5. QSO Before    - ' + DVPPath + QSOBeforePhoneMessage;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 6. Quick QSL     - ' + DVPPath + QuickQSLPhoneMessage;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 7. Repeat S&P Ex - ' + DVPPath + RepeatSearchAndPouncePhoneExchange;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 8. S&P Exchange  - ' + DVPPath + SearchAndPouncePhoneExchange;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     TempString := ' 9. Tail end msg  - ' + DVPPath + TailEndPhoneMessage;
     IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    WriteLn (TempString);
+    Writecontrol(TempString);
 
     ClrEol;
     END;

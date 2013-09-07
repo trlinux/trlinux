@@ -1828,11 +1828,9 @@ PROCEDURE DisplayBandMode (Band: BandType; Mode: ModeType; UpdateRadio: BOOLEAN)
 
     RestorePreviousWindow;
 
-    IF (ActiveRadio = RadioOne) AND (Radio1BandOutputPort <> nil) THEN
-        OutputBandInfo (RadioOne, Band);
+    IF (ActiveRadio = RadioOne) THEN OutputBandInfo (RadioOne, Band);
 
-    IF (ActiveRadio = RadioTwo) AND (Radio2BandOutputPort <> nil) THEN
-        OutputBandInfo (RadioTwo, Band);
+    IF (ActiveRadio = RadioTwo) THEN OutputBandInfo (RadioTwo, Band);
 
     IF NOT UpdateRadio THEN Exit;
 
@@ -3041,7 +3039,6 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                     { We should also update the band output if it has
                       changed bands. }
 
-                        IF Radio1BandOutputPort <> nil THEN
                             OutputBandInfo (RadioOne, Band);
                         END;
 
@@ -3191,7 +3188,6 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                     { We should also update the band output if it has
                       changed bands. }
 
-                        IF Radio2BandOutputPort <> nil THEN
                             OutputBandInfo (RadioTwo, Band);
                         END;
 
