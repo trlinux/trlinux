@@ -22,7 +22,7 @@ VAR ConfigFileRead: TEXT;
     RunningConfigFile: BOOLEAN;  { True when using Control-V command }
 
 IMPLEMENTATION
-uses keycode,foot,keyers,xkb;
+uses keycode,foot,keyers,xkb,so2r;
 
 {$I ColorCfg}
 {$I PostCfg}
@@ -1491,6 +1491,86 @@ VAR Result,tempint: INTEGER;
     IF (ID = 'YCCC SO2R BOX ENABLE') AND (UpCase (CMD [1]) = 'T') THEN
         BEGIN
         ActiveKeyer := YcccKey;
+        ProcessConfigInstructions2 := true;
+        Exit;
+        END;
+
+    IF (ID = 'SO2R HEADPHONE MODE') THEN
+        BEGIN
+        IF StringHas(UpperCase(CMD),'NORMAL') THEN
+        begin
+            so2rbox.setheadphonemode(HNORMAL);
+            ProcessConfigInstructions2 := true;
+            exit;
+        end;
+        IF StringHas(UpperCase(CMD),'SPATIAL') THEN
+        begin
+            so2rbox.setheadphonemode(HSPATIAL);
+            ProcessConfigInstructions2 := true;
+            exit;
+        end;
+        IF StringHas(UpperCase(CMD),'SYMMETRIC') THEN
+        begin
+            so2rbox.setheadphonemode(HSYMMETRIC);
+            ProcessConfigInstructions2 := true;
+            exit;
+        end;
+        
+        ProcessConfigInstructions2 := false;
+        Exit;
+        END;
+
+    IF (ID = 'SO2R BLEND ENABLE') then
+        BEGIN
+        IF (UpCase (CMD [1]) = 'T') THEN
+           so2rbox.setblend(true)
+        else
+           so2rbox.setblend(false);
+
+        ProcessConfigInstructions2 := true;
+        Exit;
+        END;
+
+    IF (ID = 'SO2R BLEND') then
+        BEGIN
+        Val (CMD, tempint, Result);
+        if (tempint > 255) then tempint := 255;
+        if (tempint < 0) then tempint := 0;
+        so2rbox.blendvalue(tempint);
+
+        ProcessConfigInstructions2 := true;
+        Exit;
+        END;
+
+    IF (ID = 'SO2R MICROPHONE RELAY ENABLE') then
+        BEGIN
+        IF (UpCase (CMD [1]) = 'T') THEN
+           so2rbox.setmicrelay(true)
+        else
+           so2rbox.setmicrelay(false);
+
+        ProcessConfigInstructions2 := true;
+        Exit;
+        END;
+
+    IF (ID = 'SO2R RIG1 MAP') then
+        BEGIN
+        Val (CMD, tempint, Result);
+        if (tempint > 4) then tempint := 4;
+        if (tempint < -4) then tempint := -4;
+        so2rbox.setrig1map(tempint);
+
+        ProcessConfigInstructions2 := true;
+        Exit;
+        END;
+
+    IF (ID = 'SO2R RIG2 MAP') then
+        BEGIN
+        Val (CMD, tempint, Result);
+        if (tempint > 4) then tempint := 4;
+        if (tempint < -4) then tempint := -4;
+        so2rbox.setrig2map(tempint);
+
         ProcessConfigInstructions2 := true;
         Exit;
         END;

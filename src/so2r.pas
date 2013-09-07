@@ -2,13 +2,19 @@ unit so2r;
 {$mode objfpc}
 interface
 type
+   rcvfocus_t = (RX1, RX2, STEREO);
+   hmode_t = (HNORMAL, HSYMMETRIC, HSPATIAL);
+
    so2rinterface = interface
-      procedure setrcvfocus;
-      procedure setxmtfocus;
       procedure setrig1band(band: integer);
       procedure setrig2band(band: integer);
-      function getrcvfocus:integer;
-      function getxmtfocus:integer;
+      procedure setheadphonemode(hmode: hmode_t);
+      procedure setblend(on: boolean);
+      procedure blendvalue(val: integer);
+      procedure setmicrelay(on: boolean);
+      procedure setrig1map(val: integer);
+      procedure setrig2map(val: integer);
    end;
+
 implementation
 end.

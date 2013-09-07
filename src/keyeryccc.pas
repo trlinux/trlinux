@@ -62,6 +62,9 @@ TYPE
         FsCwGrant: Boolean;
         Footsw: FootSwitchx;
         mirror: byte;
+        blend: integer;
+        map1: integer;
+        map2: integer;
         procedure sendcmd(cmd: integer; val: integer);
         procedure flushLocal;
         procedure readresponses;
@@ -121,26 +124,20 @@ TYPE
 
         Procedure SetPort(port: serialportx);
 
-        procedure setrcvfocus;
-        procedure setxmtfocus;
         procedure setrig1band(band: integer);
         procedure setrig2band(band: integer);
-        function getrcvfocus:integer;
-        function getxmtfocus:integer;
+        procedure setheadphonemode(hmode: hmode_t);
+        procedure setblend(on: boolean);
+        procedure blendvalue(val: integer);
+        procedure setmicrelay(on: boolean);
+        procedure setrig1map(val: integer);
+        procedure setrig2map(val: integer);
      end;
 
 IMPLEMENTATION
 
 Uses keycode,linuxsound,xkb,sysutils,cwstring,hidp;
 
-
-procedure YcccKeyer.setrcvfocus;
-begin
-end;
-
-procedure YcccKeyer.setxmtfocus;
-begin
-end;
 
 procedure YcccKeyer.setrig1band(band: integer);
 var aux_info: aux_info_t;
@@ -167,15 +164,6 @@ begin
    sendcmd(CMD_AUX_PORT2,i);
 end;
 
-function YcccKeyer.getrcvfocus:integer;
-begin
-  getrcvfocus := 0;
-end;
-
-function YcccKeyer.getxmtfocus:integer;
-begin
-  getxmtfocus := 0;
-end;
 
 Constructor YcccKeyer.create;
 begin
@@ -195,12 +183,20 @@ begin
    FsCwGrant := False;
    CurtMode := ModeB;
    PTTEnable := false;
+   PTTTurnOnDelay := 0;
    swappaddles := false;
-   keyer_config.val := 0; //zero all bits
    CurtMode := ModeB;
+   keyer_config.val := 0; //zero all bits
+   keyer_control.val := 0;
+   keyer_control.pot_off := 1;
    so2r_state.val := 0;
    so2r_state.stereo := 1;
+   so2r_config.val:= 0;
+   so2r_config.relays := 1;
+   blend := 0;
    nbytes := 0;
+   map1 := 0; //keep eeprom default
+   map2 := 0; //keep eeprom default
 end;
 
 Procedure YcccKeyer.InitializeKeyer;
@@ -208,6 +204,7 @@ var
    tempstring: ucs4string;
    rc: longint;
    ifirm1,ifirm2: integer;
+   map: so2r_map_t;
 begin
    rc := hid_init;
    if rc <> 0 then
@@ -253,17 +250,47 @@ tempstring := nil;
 
    rc := hid_set_nonblocking(hiddev,1);
 writeln(stderr,'set_nonblocking return code ',rc);
+
+// clear out any garbage sent by the so2r box before we connected
+   while (hid_read(hiddev,@rcvdata[0],3) > 0) do continue;
    
    sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
-   keyer_control.val := 0;
-   keyer_control.pot_off := 1;
    sendcmd(CMD_KEYER_CONTROL,keyer_control.val);
    sendcmd(CMD_SO2R_STATE,so2r_state.val);
-   so2r_config.val:= 0;
-   so2r_config.relays := 1; //maybe change with mode later
    sendcmd(CMD_SO2R_CONFIG,so2r_config.val);
-
+   sendcmd(CMD_KEYER_PTT_PRE,PTTTurnOnDelay);
+   sendcmd(CMD_SO2R_BLEND,blend);
    sendcmd(CMD_KEYER_SPEED,codespeed);
+   if map1 <> 0 then
+   begin
+      map.val := 0;
+      if (map1 < 0) then 
+      begin
+         map.radio := -map1-1;
+         map.eeprom := 1;
+      end
+      else
+      begin
+         map.radio := map1-1;
+         map.eeprom := 0;
+      end;
+      sendcmd(CMD_SO2R_MAP1,map.val);
+   end;
+   if map2 <> 0 then
+   begin
+      map.val := 0;
+      if (map2 < 0) then 
+      begin
+         map.radio := -map2-1;
+         map.eeprom := 1;
+      end
+      else
+      begin
+         map.radio := map2-1;
+         map.eeprom := 0;
+      end;
+      sendcmd(CMD_SO2R_MAP2,map.val);
+   end;
 
    CWBufferStart := 0;
    CWBufferEnd := 0;
@@ -573,6 +600,18 @@ begin
    if KeyerInitialized then 
    begin
       KeyerInitialized := false;
+//put box in a reasonable state
+      keyer_control.pot_off := 0;
+      keyer_control.pot_on := 1;
+      sendcmd(CMD_KEYER_CONTROL,keyer_control.val);
+      so2r_state.val := 0;
+      so2r_state.stereo := 1;
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
+      so2r_config.val:= 0;
+      so2r_config.relays := 1;
+      sendcmd(CMD_SO2R_CONFIG,so2r_config.val);
+      keyer_config.ptt := 1;
+      sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
       hid_close(hiddev);
       hid_exit;
    end;
@@ -897,6 +936,93 @@ end;
 
 Procedure YcccKeyer.SetPort(port: serialportx);
 begin
+end;
+
+procedure yccckeyer.setheadphonemode(hmode: hmode_t);
+begin
+end;
+
+procedure yccckeyer.setblend(on: boolean);
+begin
+   if on then
+      so2r_config.blend := 1
+   else
+      so2r_config.blend := 0;
+   if KeyerInitialized then
+   begin
+      sendcmd(CMD_SO2R_CONFIG,so2r_config.val);
+   end;
+end;
+
+procedure yccckeyer.blendvalue(val: integer);
+begin
+   if val < 0 then val := 0;
+   if val > 255 then val := 255;
+   blend := val;
+   if KeyerInitialized then 
+   begin
+      sendcmd(CMD_SO2R_BLEND,blend);
+   end;
+end;
+
+procedure yccckeyer.setmicrelay(on: boolean);
+begin
+   if on then
+      so2r_config.relays:= 1
+   else
+      so2r_config.relays:= 0;
+   if KeyerInitialized then
+   begin
+      sendcmd(CMD_SO2R_CONFIG,so2r_config.val);
+   end;
+end;
+
+procedure yccckeyer.setrig1map(val: integer);
+var
+   map: so2r_map_t;
+begin
+   if (val < -4) then val := -4;
+   if (val > 4) then val := 4;
+   map1 := val;
+   if KeyerInitialized and (map1 <> 0) then
+   begin
+      map.val := 0;
+      if (map1 < 0) then 
+      begin
+         map.radio := -map1-1;
+         map.eeprom := 1;
+      end
+      else
+      begin
+         map.radio := map1-1;
+         map.eeprom := 0;
+      end;
+      sendcmd(CMD_SO2R_MAP1,map.val);
+   end;
+end;
+
+procedure yccckeyer.setrig2map(val: integer);
+var
+   map: so2r_map_t;
+begin
+   if (val < -4) then val := -4;
+   if (val > 4) then val := 4;
+   map2 := val;
+   if KeyerInitialized and (map2 <> 0) then
+   begin
+      map.val := 0;
+      if (map2 < 0) then 
+      begin
+         map.radio := -map2-1;
+         map.eeprom := 1;
+      end
+      else
+      begin
+         map.radio := map2-1;
+         map.eeprom := 0;
+      end;
+      sendcmd(CMD_SO2R_MAP2,map.val);
+   end;
 end;
 
 END.
