@@ -48,7 +48,7 @@ SRC=\
    datetimec.pas
 
 
-post: $(SRC) dupe.o dt.o findports.o
+post: $(SRC) dupe.o dt.o findports.o hid.o
 	fpc -B -Mtp -g post -k-lX11
 	cp post ../log
 
@@ -60,6 +60,9 @@ distclean:
 
 dupe.o:dupe.c
 	gcc -c dupe.c
+
+hid.o:hid.c
+	gcc -c hid.c
 
 findports.o:findports.c
 	gcc -c findports.c

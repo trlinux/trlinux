@@ -14,6 +14,7 @@ type
       procedure setmicrelay(on: boolean);
       procedure setrig1map(val: integer);
       procedure setrig2map(val: integer);
+      procedure setrcvfocus(rcvfocus: rcvfocus_t);
    end;
 
 implementation

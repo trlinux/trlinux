@@ -132,6 +132,7 @@ TYPE
         procedure setmicrelay(on: boolean);
         procedure setrig1map(val: integer);
         procedure setrig2map(val: integer);
+        procedure setrcvfocus(rcvfocus: rcvfocus_t);
      end;
 
 IMPLEMENTATION
@@ -144,7 +145,6 @@ var aux_info: aux_info_t;
     i: integer;
 begin
    if not KeyerInitialized then exit;
-writeln(stderr,'setting rig1 band',band);
    aux_info.val := 0;
    aux_info.update := 1;
    aux_info.aux:= band;
@@ -224,13 +224,13 @@ begin
       halt;
    end;
 
-setlength(tempstring,MAX_STR);
-rc := hid_get_manufacturer_string(hiddev,@tempstring[0],MAX_STR);
-writeln(stderr,' return code ',rc);
-writeln(stderr,' manufacturer = ',UCS4StringToUnicodeString(tempstring));
-rc := hid_get_product_string(hiddev,@tempstring[0],MAX_STR);
-writeln(stderr,' return code ',rc);
-writeln(stderr,' product = ',UCS4StringToUnicodeString(tempstring));
+   setlength(tempstring,MAX_STR);
+   rc := hid_get_manufacturer_string(hiddev,@tempstring[0],MAX_STR);
+//writeln(stderr,' return code ',rc);
+//writeln(stderr,' manufacturer = ',UCS4StringToUnicodeString(tempstring));
+   rc := hid_get_product_string(hiddev,@tempstring[0],MAX_STR);
+//writeln(stderr,' return code ',rc);
+//writeln(stderr,' product = ',UCS4StringToUnicodeString(tempstring));
 //rc := hid_get_serial_number_string(hiddev,@tempstring[0],MAX_STR);
 //writeln(stderr,' return code ',rc);
 //writeln(stderr,' serial = ',UCS4StringToUnicodeString(tempstring));
@@ -249,7 +249,7 @@ tempstring := nil;
 //writeln(stderr,'Firmware version  = ',ifirm2,'.',ifirm1);
 
    rc := hid_set_nonblocking(hiddev,1);
-writeln(stderr,'set_nonblocking return code ',rc);
+//writeln(stderr,'set_nonblocking return code ',rc);
 
 // clear out any garbage sent by the so2r box before we connected
    while (hid_read(hiddev,@rcvdata[0],3) > 0) do continue;
@@ -268,11 +268,13 @@ writeln(stderr,'set_nonblocking return code ',rc);
       begin
          map.radio := -map1-1;
          map.eeprom := 1;
+         map.current:= 1;
       end
       else
       begin
          map.radio := map1-1;
          map.eeprom := 0;
+         map.current:= 1;
       end;
       sendcmd(CMD_SO2R_MAP1,map.val);
    end;
@@ -283,11 +285,13 @@ writeln(stderr,'set_nonblocking return code ',rc);
       begin
          map.radio := -map2-1;
          map.eeprom := 1;
+         map.current:= 1;
       end
       else
       begin
          map.radio := map2-1;
          map.eeprom := 0;
+         map.current:= 1;
       end;
       sendcmd(CMD_SO2R_MAP2,map.val);
    end;
@@ -900,9 +904,10 @@ begin
    snddata[2] := val;
    rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
 
-writeln(stderr,'sndcmd ',Inttohex(cmd,2),' ',Inttohex(val,2));
-if (rc <> 3) then
-writeln(stderr,'sndcmd ',cmd,' ',val,' wrote ',rc,' bytes');
+//writeln(stderr,'sndcmd ',Inttohex(cmd,2),' ',Inttohex(val,2));
+//flush(stderr);
+//if (rc <> 3) then
+//   writeln(stderr,'sndcmd ',cmd,' ',val,' wrote ',rc,' bytes');
 
 end;
 
@@ -914,22 +919,29 @@ begin
    begin
       n := hid_read(hiddev,@rcvdata[0],3);
       if (n <= 0) then exit;
-if (n <> 2 ) then writeln(stderr,n,' bytes read');
-      for i := 0 to n-1 do
+//if (n <> 2 ) then writeln(stderr,n,' bytes read');
+//      for i := 0 to n-1 do
+//      begin
+//         hidbytes[nbytes] := rcvdata[i];
+//         inc(nbytes);
+//         if nbytes = 2 then
+//         begin
+//            nbytes := 0;
+//            i1 := hidbytes[0];
+//            i2 := hidbytes[1];
+//            writeln(stderr,'response ',inttohex(i1,2),' ',inttohex(i2,2));
+//            flush(stderr);
+//            responsebuffer[responsebufferend].cmd := hidbytes[0];
+//            responsebuffer[responsebufferend].val := hidbytes[1];
+      if (n = 2) then
       begin
-         hidbytes[nbytes] := rcvdata[i];
-         inc(nbytes);
-         if nbytes = 2 then
-         begin
-            nbytes := 0;
-            i1 := hidbytes[0];
-            i2 := hidbytes[1];
-            writeln(stderr,'response ',inttohex(i1,2),' ',inttohex(i2,2));
-            flush(stderr);
-            responsebuffer[responsebufferend].cmd := hidbytes[0];
-            responsebuffer[responsebufferend].val := hidbytes[1];
-            responsebufferend := (responsebufferend + 1) mod ResponseBufferSize;
-         end;
+//i1 := rcvdata[0];
+//i2 := rcvdata[1];
+//writeln(stderr,'response ',inttohex(i1,2),' ',inttohex(i2,2));
+//flush(stderr);
+         responsebuffer[responsebufferend].cmd := rcvdata[0];
+         responsebuffer[responsebufferend].val := rcvdata[1];
+         responsebufferend := (responsebufferend + 1) mod ResponseBufferSize;
       end;
    end;
 end;
@@ -991,11 +1003,13 @@ begin
       begin
          map.radio := -map1-1;
          map.eeprom := 1;
+         map.current:= 1;
       end
       else
       begin
          map.radio := map1-1;
          map.eeprom := 0;
+         map.current:= 1;
       end;
       sendcmd(CMD_SO2R_MAP1,map.val);
    end;
@@ -1015,13 +1029,41 @@ begin
       begin
          map.radio := -map2-1;
          map.eeprom := 1;
+         map.current:= 1;
       end
       else
       begin
          map.radio := map2-1;
          map.eeprom := 0;
+         map.current:= 1;
       end;
       sendcmd(CMD_SO2R_MAP2,map.val);
+   end;
+end;
+
+procedure YcccKeyer.setrcvfocus(rcvfocus: rcvfocus_t);
+begin
+   case rcvfocus of
+      RX1:
+      begin
+         so2r_state.stereo := 0;
+         so2r_state.rx2 := 0;
+      end;
+
+      RX2:
+      begin
+         so2r_state.stereo := 0;
+         so2r_state.rx2 := 1;
+      end;
+
+      STEREO:
+      begin
+         so2r_state.stereo := 1;
+      end;
+   end;
+   if KeyerInitialized then
+   begin
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
    end;
 end;
 

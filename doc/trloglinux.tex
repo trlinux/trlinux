@@ -574,6 +574,130 @@ affect any of your configuration files. You should be able to install
 trlinux in any convenient directory e.g. /usr/local/trlinux which
 can be globally readable and executable, but not writeable.
 
+\section{YCCC SO2R box}
+Information about the YCCC SO2R box, its design, and how to obtain
+one, can be found at
+\url{<http://k1xm.org/SO2R/index.html>}.
+
+After assembling your SO2R box, it is highly recommended that you first
+test that it functions correctly on a Windows computer, so that you
+know the SO2R box is working.
+
+\subsection{Setting permissions}
+On linux the first thing to do is to set up permissions for the YCCC SO2R box.
+The SO2R box must have read/write permission for the user running trlog.
+The standard way to do this is to add a udev rule, so when the operating
+system detects the YCCC SO2R box, it will set the desired owner, group,
+and permissions.
+\begin{itemize}
+\item
+As superuser, use a text editor to create a new rule file. I use
+\begin{verbatim}
+/etc/udev/rules.d/50-usb-so2r.rules
+\end{verbatim}
+\item
+The contents of this file should tell the operating system what you want
+to do. Here are two examples:
+\begin{itemize}
+\item
+With contents
+\begin{verbatim}
+SUBSYSTEM=="usb", ATTR{idVendor}=="16c0", ATTR{idProduct}=="065e", MODE="0666"
+\end{verbatim}
+all users will have read/write permission. If your computer is secure,
+this should work fine.
+\item
+
+A more secure solution uses instead a rules file
+with contents
+\begin{verbatim}
+SUBSYSTEM=="usb", ATTR{idVendor}=="16c0", ATTR{idProduct}=="065e", MODE="0660"
+,GROUP="so2rbox"
+\end{verbatim}
+all on one line.
+Only members of the so2rbox group will have read/write permission.
+You will have to create this group. That is on Slackware, with my
+user name w9cf, I would add a line like
+\begin{verbatim}
+so2rbox::1234:w9cf
+\end{verbatim}
+to /etc/group. 1234 is a previously unused group number chosen by you.
+You need to log out and log back in in order to have your login session
+reread the group file. Make sure that typing
+\begin{verbatim}
+groups
+\end{verbatim}
+at the command line returns the name so2rbox (or whatever group name you
+used.)
+\end{itemize}
+\end{itemize}
+In the udev rules above,
+the hex vendor and product IDs are those of the YCCC SO2R box.
+
+\subsection{Using the YCCC SO2R box}
+To use the box, include the configuration line
+\begin{verbatim}
+yccc so2r box enable = true
+\end{verbatim}
+
+For this initial support, other LOGCFG.DAT commands that can be used are
+\begin{verbatim}
+so2r microphone relay enable = true
+\end{verbatim}
+with value true or false. This turns the microphone relays on or off
+in the YCCC SO2R box. Default is true.
+
+\begin{verbatim}
+so2r blend enable = true
+\end{verbatim}
+with value true or false. Default is false. This turns on blending (i.e.
+some of the left radio in the right ear, and some of the right radio
+in the left ear).
+
+\begin{verbatim}
+so2r blend = 50
+\end{verbatim}
+where the value should be between 0 (for minimal blending) to 255
+(for maximal blending).
+
+\begin{verbatim}
+so2r headphone mode = normal
+\end{verbatim}
+The other values are spatial and symmetric. See the YCCC SO2R box documentation
+for details. Default is normal.
+
+\begin{verbatim}
+so2r rig1 map = 1
+so2r rig1 map = 2
+\end{verbatim}
+
+These set the mapping from rig1 and rig2 to the output 1 through 4 on
+the back of the YCCC box. A value of 0 will use whatever the box is
+set up for currently. Default is 0.
+You can also use the values -1, -2, -3, -4. These will save the mapping
+in the YCCC box's EEPROM. The EEPROM values are loaded on power up.
+
+I plan to put many of these commands in the control-j menu so
+they can be changed while running the program, but right now you
+must load these using LOGCFG.DAT.
+
+The second way to send commands to the SO2R box is to
+include commands as messages analogously to the way that
+raw rig control commands can be used as messages, i.e.
+$\langle$CTRL-C$\rangle$SO2R=Command$\langle$CTRL-D$\rangle$.
+The current commands are:
+\begin{verbatim}
+RX1
+RX2
+STEREO
+RXA
+RXI
+\end{verbatim}
+RX1 puts receive focus on Rig 1, RX2 puts receive focus on Rig 2.
+RXA puts receive focus on the active radio.
+RXI puts receive focus on the inactive radio.
+STEREO puts the SO2R box in Stereo mode. 
+
 \section{Troubleshooting}
 \subsection{Some keys or key combinations don't work}
 This is likely either some program like a window manager or helper

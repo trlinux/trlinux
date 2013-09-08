@@ -3404,6 +3404,7 @@ Uses
      foot,
      xkb,
      radio,
+     so2r,
      keycode;
 
 

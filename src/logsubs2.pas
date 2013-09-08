@@ -2805,6 +2805,31 @@ VAR FileName, CommandString: Str40;
                 END;
             END;
 
+        IF CommandString = 'SO2R' THEN
+            BEGIN
+            if filename = 'RX1' then so2rbox.setrcvfocus(RX1);
+            if filename = 'RX2' then so2rbox.setrcvfocus(RX2);
+            if filename = 'STEREO' then so2rbox.setrcvfocus(STEREO);
+            if filename = 'RXA' then
+            begin
+               if activeradio = radioone then 
+                  so2rbox.setrcvfocus(RX1)
+               else
+                  so2rbox.setrcvfocus(RX2)
+            end;
+            if filename = 'RXI' then
+            begin
+               if activeradio = radioone then 
+                  so2rbox.setrcvfocus(RX2)
+               else
+                  so2rbox.setrcvfocus(RX1)
+            end;
+
+            IF SendString <> '' THEN
+                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
+            END;
+
+
         IF CommandString = 'SRS' THEN
             BEGIN
             WHILE FileName <> '' DO

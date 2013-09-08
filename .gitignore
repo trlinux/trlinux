@@ -1,5 +1,6 @@
 *.o
 *.ppu
+doc/trloglinux.pdf
 src/trlog
 src/post
 src/sndfile.pp
