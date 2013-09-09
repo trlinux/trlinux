@@ -206,6 +206,7 @@ var
    ifirm1,ifirm2: integer;
    map: so2r_map_t;
 begin
+   setlength(tempstring,MAX_STR);
    rc := hid_init;
    if rc <> 0 then
    begin
@@ -215,7 +216,7 @@ begin
       writeln('return code ',rc);
       halt;
    end;
-   hiddev := hid_open(VENDOR_ID,PRODUCT_ID);
+   hiddev := hid_open(VENDOR_ID,PRODUCT_ID,Pointer(0));
    if hiddev = nil then
    begin
       clrscr;
@@ -224,7 +225,6 @@ begin
       halt;
    end;
 
-   setlength(tempstring,MAX_STR);
    rc := hid_get_manufacturer_string(hiddev,@tempstring[0],MAX_STR);
 //writeln(stderr,' return code ',rc);
 //writeln(stderr,' manufacturer = ',UCS4StringToUnicodeString(tempstring));

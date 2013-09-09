@@ -619,7 +619,7 @@ Only members of the so2rbox group will have read/write permission.
 You will have to create this group. That is on Slackware, with my
 user name w9cf, I would add a line like
 \begin{verbatim}
-so2rbox::1234:w9cf
+so2rbox:x:1234:w9cf
 \end{verbatim}
 to /etc/group. 1234 is a previously unused group number chosen by you.
 You need to log out and log back in in order to have your login session
@@ -684,7 +684,8 @@ must load these using LOGCFG.DAT.
 The second way to send commands to the SO2R box is to
 include commands as messages analogously to the way that
 raw rig control commands can be used as messages, i.e.
-$\langle$CTRL-C$\rangle$SO2R=Command$\langle$CTRL-D$\rangle$.
+$\langle$03$\rangle$SO2R=Command$\langle$04$\rangle$.
+The $\langle$03$\rangle$ and $\langle$04$\rangle$  are CTRL-C and CTRL-D.
 The current commands are:
 \begin{verbatim}
 RX1

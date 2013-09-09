@@ -7,7 +7,7 @@ interface
 
 function hid_init:longint;cdecl;
 function hid_exit:longint;cdecl;
-function hid_open(vendor: integer; product: integer):Pointer;cdecl;
+function hid_open(vendor: integer; product: integer; p:pucs4char):Pointer;cdecl;
 procedure hid_close(dev: pointer);cdecl;
 function hid_get_manufacturer_string(dev: pointer;p: pucs4char;size: longint)
    :longint;cdecl;
@@ -23,7 +23,8 @@ implementation
 
 function hid_init:longint;cdecl;external;
 function hid_exit:longint;cdecl;external;
-function hid_open(vendor: integer; product: integer):Pointer;cdecl;external;
+function hid_open(vendor: integer; product: integer; p:pucs4char):Pointer;cdecl;
+   external;
 procedure hid_close(dev: pointer);cdecl;external;
 function hid_get_manufacturer_string(dev: pointer;p: pucs4char;size: longint)
    :longint;cdecl;external;

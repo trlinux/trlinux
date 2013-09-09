@@ -7,3 +7,6 @@ src/sndfile.pp
 log/trlog
 log/post
 test/
+doc/texput.log
+doc/trloglinux.aux
+doc/trloglinux.log
