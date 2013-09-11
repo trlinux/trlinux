@@ -10,6 +10,10 @@ DosTerm*VT100*background: black
 DosTerm*VT100*foreground: white
 DosTerm*VT100*geometry: 80x25
 DosTerm*eightBitInput: false
+DosTerm*VT100.translations: #override \
+  Ctrl<Key>minus: string(0x1f)
+
+
 
 !Use:
 !xterm -class BigDosTerm
@@ -20,3 +24,5 @@ BigDosTerm*VT100*background: black
 BigDosTerm*VT100*foreground: white
 BigDosTerm*VT100*geometry: 80x50
 BigDosTerm*eightBitInput: false
+BigDosTerm*VT100.translations: #override \
+  Ctrl<Key>minus: string(0x1f)

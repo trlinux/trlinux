@@ -114,7 +114,7 @@ full size. In that case change the faceSize value in the .Xresources file.
 
 \item
 All of the files that you need to run TRlog are in the subdirectory
-trlinux-r0.01/log.
+trlinux-rn.nn/log.
 Place these in any convenient directory (or leave them where they are).
 I will call this directory path-to-trlog.
 The executable name is then
@@ -493,8 +493,7 @@ MULTI PORT = SERIAL ncat;12001;shack1.myhouse.org:12001
 
 \section{xterm setup}
 The xterm terminal emulator for X is distributed with every linux system,
-so I decided to run TRlog inside an xterm. You can also run it on the
-linux console, but I have done only minimal testing.
+so I decided to run TRlog inside an xterm.
 TRlog expects VGA sized screens, so you need to set up the xterm with
 the correct options. These are most easily set in the .Xresources file
 in your home directory (notice the ``.'' at the beginning of the
@@ -510,6 +509,9 @@ DosTerm*VT100*background: black
 DosTerm*VT100*foreground: white
 DosTerm*VT100*geometry: 80x25
 DosTerm*eightBitInput: false
+DosTerm*VT100.translations: #override \
+  Ctrl<Key>minus: string(0x1f)
+
 
 !Use:
 !xterm -class BigDosTerm
@@ -519,6 +521,8 @@ BigDosTerm*VT100*background: black
 BigDosTerm*VT100*foreground: white
 BigDosTerm*VT100*geometry: 80x50
 BigDosTerm*eightBitInput: false
+BigDosTerm*VT100.translations: #override \
+  Ctrl<Key>minus: string(0x1f)
 \end{verbatim}
 
 You can then start these with the commands
@@ -633,6 +637,45 @@ used.)
 \end{itemize}
 In the udev rules above,
 the hex vendor and product IDs are those of the YCCC SO2R box.
+
+{\em Optional}: You can double check that the udev rule is working and
+giving the proper permissions. If your linux works like mine:
+\begin{itemize}
+\item
+Type
+\begin{verbatim}
+lsusb -d 16c0:065e
+\end{verbatim}
+You can also type lsusb without options,
+but you will get a listing of all your usb
+devices not just the YCCC SO2R box.
+\item
+You should see something like
+\begin{verbatim}
+Bus 002 Device 003: ID 16c0:065e VOTI
+\end{verbatim}
+where VOTI is the manufacturer ID of the YCCC box. Your bus and device
+numbers will likely be different.
+\item
+Check the permissions on this device by using a command like
+\begin{verbatim}
+ls -l /dev/bus/usb/002/003
+\end{verbatim}
+where you should use the Bus and Device numbers from your lsusb command
+output instead of 002 and 003 above.
+The first example udev rule above will show something like
+\begin{verbatim}
+crw-rw-rw- 1 root root 189, 1 Sep  4 21:44 /dev/bus/usb/002/003
+\end{verbatim}
+where the crw-rw-rw shows a character device owned by root with group root
+but all users have read/write permission.
+The second example udev rule above will show something like
+\begin{verbatim}
+crw-rw---- 1 root so2rbox 189, 1 Sep  4 21:44 /dev/bus/usb/002/003
+\end{verbatim}
+which has owner and group read/write permission and the group is set
+to so2rbox.
+\end{itemize}
 
 \subsection{Using the YCCC SO2R box}
 To use the box, include the configuration line
@@ -766,26 +809,31 @@ I therefore am only distributing a binary version.
 
 To legally distribute a binary only version of trlog, some libraries
 (e.g. libsndfile) can only be dynamically linked. Here is the output
-of ldd trlog:
+of ldd trlog on my system:
 \begin{verbatim}
         linux-gate.so.1 =>  (0xffffe000)
-        libasound.so.2 => /usr/lib/libasound.so.2 (0xb777d000)
-        libieee1284.so.3 => /usr/lib/libieee1284.so.3 (0xb7773000)
-        libpthread.so.0 => /lib/libpthread.so.0 (0xb775a000)
-        libsndfile.so.1 => /usr/lib/libsndfile.so.1 (0xb76f4000)
-        libdl.so.2 => /lib/libdl.so.2 (0xb76ef000)
-        libc.so.6 => /lib/libc.so.6 (0xb758c000)
-        libm.so.6 => /lib/libm.so.6 (0xb7566000)
-        librt.so.1 => /lib/librt.so.1 (0xb755d000)
-        /lib/ld-linux.so.2 (0xb7875000)
-        libFLAC.so.8 => /usr/lib/libFLAC.so.8 (0xb750e000)
-        libvorbisenc.so.2 => /usr/lib/libvorbisenc.so.2 (0xb7397000)
-        libvorbis.so.0 => /usr/lib/libvorbis.so.0 (0xb7370000)
-        libogg.so.0 => /usr/lib/libogg.so.0 (0xb736a000)
+        libX11.so.6 => /usr/lib/libX11.so.6 (0xb7601000)
+        libasound.so.2 => /usr/lib/libasound.so.2 (0xb7534000)
+        libieee1284.so.3 => /usr/lib/libieee1284.so.3 (0xb752a000)
+        libpthread.so.0 => /lib/libpthread.so.0 (0xb7510000)
+        libsndfile.so.1 => /usr/lib/libsndfile.so.1 (0xb74aa000)
+        libdl.so.2 => /lib/libdl.so.2 (0xb74a6000)
+        libusb-1.0.so.0 => /usr/lib/libusb-1.0.so.0 (0xb749a000)
+        libc.so.6 => /lib/libc.so.6 (0xb7337000)
+        librt.so.1 => /lib/librt.so.1 (0xb732e000)
+        libxcb.so.1 => /usr/lib/libxcb.so.1 (0xb7315000)
+        libXau.so.6 => /usr/lib/libXau.so.6 (0xb7312000)
+        libXdmcp.so.6 => /usr/lib/libXdmcp.so.6 (0xb730d000)
+        libm.so.6 => /lib/libm.so.6 (0xb72e7000)
+        /lib/ld-linux.so.2 (0xb774a000)
+        libFLAC.so.8 => /usr/lib/libFLAC.so.8 (0xb7298000)
+        libvorbisenc.so.2 => /usr/lib/libvorbisenc.so.2 (0xb7121000)
+        libvorbis.so.0 => /usr/lib/libvorbis.so.0 (0xb70fa000)
+        libogg.so.0 => /usr/lib/libogg.so.0 (0xb70f4000)
 \end{verbatim}
 Check your versions of these libraries if there are problems on your
 system. These libraries are mostly
-used for parallel port and sound card access.
+used for parallel port, usb, and sound card access.
 The trlog executable is linked with an RPATH that points
 to the lib subdirectory in the same directory as the trlog executable.
 If your system uses default libraries that differ from the ones

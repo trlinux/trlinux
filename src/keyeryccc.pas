@@ -220,8 +220,11 @@ begin
    if hiddev = nil then
    begin
       clrscr;
-      writeln('No YCCC SO2R box found');
-      Writeln('Check cables and make sure the YCCC SO2R box is powered up');
+      writeln('No YCCC SO2R box found.');
+      writeln('Check cables and make sure the YCCC SO2R box is powered up.');
+      writeln('Check that you have set up udev rules so that you have');
+      writeln('read/write permission for the YCCC SO2R box usb device.');
+      writeln('See the documentation file trloglinux.pdf for details.');
       halt;
    end;
 
