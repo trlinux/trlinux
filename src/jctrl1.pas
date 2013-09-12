@@ -160,6 +160,12 @@ TYPE MenuEntryType = (NoMenuEntry,
                       RDS,
                       RMD,
                       SHE,
+                      SO2RHM,
+                      SO2RBE,
+                      SO2RBV,
+                      SO2RMR,
+                      SO2RM1,
+                      SO2RM2,
                       SHC,
                       SCS,
                       SML,
@@ -212,7 +218,7 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
 
 IMPLEMENTATION
 
-uses linuxsound,beep,foot,keyers;
+uses linuxsound,beep,foot,keyers,so2r;
 
 FUNCTION Description (Line: MenuEntryType): Str80;
 
@@ -386,6 +392,12 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       RDS: Description := 'RATE DISPLAY';
       RMD: Description := 'REMAINING MULT DISPLAY MODE';
 
+      SO2RHM: Description := 'SO2R BOX HEADPHONE MODE';
+      SO2RBE: Description := 'SO2R BOX BLEND ENABLE';
+      SO2RBV: Description := 'SO2R BOX BLEND VALUE';
+      SO2RMR: Description := 'SO2R BOX MIC RELAY ENABLE';
+      SO2RM1: Description := 'SO2R BOX RIG1 MAP';
+      SO2RM2: Description := 'SO2R BOX RIG2 MAP';
       SHE: Description := 'SAY HI ENABLE';
       SHC: Description := 'SAY HI RATE CUTOFF';
       SCS: Description := 'SCP COUNTRY STRING';
@@ -717,6 +729,18 @@ VAR ChangedRemainingMults: BOOLEAN;
                Erase:            Write ('Erase');
                HiLight:          Write ('HiLight');
                END;
+
+      SO2RHM: Case so2rbox.getheadphonemode of
+         HNORMAL: write ('NORMAL');
+         HSYMMETRIC: write ('SYMMETRIC');
+         HSPATIAL: write ('SPATIAL');
+         end;
+
+      SO2RBE: write(so2rbox.getblend);
+      SO2RBV: write(so2rbox.getblendvalue);
+      SO2RMR: write(so2rbox.getmicrelay);
+      SO2RM1: write(so2rbox.getrig1map);
+      SO2RM2: write(so2rbox.getrig2map);
 
       SHE: Write (SayHiEnable);
       SHC: Write (SayHiRateCutoff);
@@ -1481,6 +1505,49 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Erase:            Write ('Remaining mult erased when worked');
                HiLight:          Write ('Unworked remaining mults highlighted');
                END;
+
+      SO2RHM: case so2rbox.getheadphonemode of
+                 HNORMAL: write('Normal Stereo');
+                 HSPATIAL: write('Rig 1 always left, Rig 2 always right');
+                 HSYMMETRIC: write('Listen to one rig at a time - No stereo!');
+              end;
+
+      SO2RBE: If so2rbox.getblend then
+                 write('Right/Left headphone blending on')
+              else
+                 write('Right/Left headphone blending off');
+
+      SO2RBV: write('Right/Left Blend amount: min 0, max 255');
+
+      SO2RMR: if so2rbox.getmicrelay then
+                 write('Mic relay on')
+              else
+                 write('Mic relay off');
+
+      SO2RM1: case so2rbox.getrig1map of
+              0: write('Rig 1 default connector');
+              1: write ('Rig 1 connector 1');
+              2: write ('Rig 1 connector 2');
+              3: write ('Rig 1 connector 3');
+              4: write ('Rig 1 connector 4');
+              -1: write ('Rig 1 connector 1 stored in EEPROM');
+              -2: write ('Rig 1 connector 2 stored in EEPROM');
+              -3: write ('Rig 1 connector 3 stored in EEPROM');
+              -4: write ('Rig 1 connector 4 stored in EEPROM');
+              end;
+
+      SO2RM2: case so2rbox.getrig2map of
+              0: write('Rig 2 default connector');
+              1: write ('Rig 2 connector 1');
+              2: write ('Rig 2 connector 2');
+              3: write ('Rig 2 connector 3');
+              4: write ('Rig 2 connector 4');
+              -1: write ('Rig 2 connector 1 stored in EEPROM');
+              -2: write ('Rig 2 connector 2 stored in EEPROM');
+              -3: write ('Rig 2 connector 3 stored in EEPROM');
+              -4: write ('Rig 2 connector 4 stored in EEPROM');
+              end;
+
 
       SHE: IF SayHiEnable THEN
                Write ('Name database available to send names')

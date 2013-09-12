@@ -135,6 +135,13 @@ TYPE
         procedure setrig2map(val: integer);
         procedure setrcvfocus(rcvfocus: rcvfocus_t);
         function footswitchpressed:boolean;
+        function getheadphonemode:hmode_t;
+        function getblend:boolean;
+        function getblendvalue:integer;
+        function getmicrelay:boolean;
+        function getrig1map:integer;
+        function getrig2map:integer;
+
      end;
 
 IMPLEMENTATION
@@ -153,6 +160,7 @@ begin
    i := aux_info.val;
    sendcmd(CMD_AUX_PORT1,i);
 end;
+
 
 procedure YcccKeyer.setrig2band(band: integer);
 var aux_info: aux_info_t;
@@ -963,6 +971,24 @@ end;
 
 procedure yccckeyer.setheadphonemode(hmode: hmode_t);
 begin
+   case hmode of
+      HNORMAL: so2r_config.typex := SO2R_CONFIG_NORMAL;
+      HSYMMETRIC: so2r_config.typex := SO2R_CONFIG_SYMMETRIC;
+      HSPATIAL: so2r_config.typex := SO2R_CONFIG_SPATIAL;
+   end;
+   if KeyerInitialized then
+   begin
+      sendcmd(CMD_SO2R_CONFIG,so2r_config.val);
+   end;
+end;
+
+function yccckeyer.getheadphonemode:hmode_t;
+begin
+   case so2r_config.typex of
+      SO2R_CONFIG_NORMAL: getheadphonemode := HNORMAL;
+      SO2R_CONFIG_SYMMETRIC: getheadphonemode := HSYMMETRIC;
+      SO2R_CONFIG_SPATIAL: getheadphonemode := HSPATIAL;
+   end;
 end;
 
 procedure yccckeyer.setblend(on: boolean);
@@ -977,6 +1003,11 @@ begin
    end;
 end;
 
+function yccckeyer.getblend:boolean;
+begin
+   getblend := (so2r_config.blend = 1);
+end;
+
 procedure yccckeyer.blendvalue(val: integer);
 begin
    if val < 0 then val := 0;
@@ -986,6 +1017,11 @@ begin
    begin
       sendcmd(CMD_SO2R_BLEND,blend);
    end;
+end;
+
+function yccckeyer.getblendvalue:integer;
+begin
+   getblendvalue := blend;
 end;
 
 procedure yccckeyer.setmicrelay(on: boolean);
@@ -999,6 +1035,12 @@ begin
       sendcmd(CMD_SO2R_CONFIG,so2r_config.val);
    end;
 end;
+
+function yccckeyer.getmicrelay:boolean;
+begin
+   getmicrelay := (so2r_config.relays = 1);
+end;
+
 
 procedure yccckeyer.setrig1map(val: integer);
 var
@@ -1026,6 +1068,11 @@ begin
    end;
 end;
 
+function yccckeyer.getrig1map:integer;
+begin
+   getrig1map := map1;
+end;
+
 procedure yccckeyer.setrig2map(val: integer);
 var
    map: so2r_map_t;
@@ -1050,6 +1097,11 @@ begin
       end;
       sendcmd(CMD_SO2R_MAP2,map.val);
    end;
+end;
+
+function yccckeyer.getrig2map:integer;
+begin
+   getrig2map := map2;
 end;
 
 procedure YcccKeyer.setrcvfocus(rcvfocus: rcvfocus_t);

@@ -17,7 +17,7 @@ PROCEDURE WriteParameterToLOGCFGFile (FileName: Str80; Line: MenuEntryType);
 
 IMPLEMENTATION
 
-uses linuxsound,keycode,beep,foot,keyers,xkb;
+uses linuxsound,keycode,beep,foot,keyers,xkb,so2r;
 
 PROCEDURE DisplayStatus (FirstEntryDisplayed: MenuEntryType; ActiveEntry: MenuEntryType);
 
@@ -711,6 +711,48 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                Erase:               RemainingMultDisplayMode := HiLight;
                HiLight:             RemainingMultDisplayMode := NoRemainingMults;
                END;
+
+      SO2RHM: case so2rbox.getheadphonemode of
+                 HNORMAL: so2rbox.setheadphonemode(HSPATIAL);
+                 HSPATIAL: so2rbox.setheadphonemode(HSYMMETRIC);
+                 HSYMMETRIC: so2rbox.setheadphonemode(HNORMAL);
+              end;
+
+      SO2RBE: so2rbox.setblend(not so2rbox.getblend);
+
+      SO2RBV: begin
+                 tempint := quickeditinteger('Enter new BLEND VALUE = ',5);
+                 if tempint <> - 1 then
+                 so2rbox.blendvalue(tempint);
+              end;
+
+      SO2RMR: so2rbox.setmicrelay(not so2rbox.getmicrelay);
+
+      SO2RM1: case so2rbox.getrig1map of
+              0: so2rbox.setrig1map(1);
+              1: so2rbox.setrig1map(-1);
+              -1: so2rbox.setrig1map(2);
+              2: so2rbox.setrig1map(-2);
+              -2: so2rbox.setrig1map(3);
+              3: so2rbox.setrig1map(-3);
+              -3: so2rbox.setrig1map(4);
+              4: so2rbox.setrig1map(-4);
+              -4: so2rbox.setrig1map(0);
+              end;
+
+      SO2RM2: case so2rbox.getrig2map of
+              0: so2rbox.setrig2map(1);
+              1: so2rbox.setrig2map(-1);
+              -1: so2rbox.setrig2map(2);
+              2: so2rbox.setrig2map(-2);
+              -2: so2rbox.setrig2map(3);
+              3: so2rbox.setrig2map(-3);
+              -3: so2rbox.setrig2map(4);
+              4: so2rbox.setrig2map(-4);
+              -4: so2rbox.setrig2map(0);
+              end;
+ 
+       
 
       SHE: SayHiEnable := NOT SayHiEnable;
 

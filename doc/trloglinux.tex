@@ -589,10 +589,11 @@ know the SO2R box is working.
 
 \subsection{Setting permissions}
 On linux the first thing to do is to set up permissions for the YCCC SO2R box.
-The SO2R box must have read/write permission for the user running trlog.
-The standard way to do this is to add a udev rule, so when the operating
+Trlog must have
+have read/write permission to the SO2R box hardware device.
+The standard way to set this up is to add a udev rule, so when the operating
 system detects the YCCC SO2R box, it will set the desired owner, group,
-and permissions.
+and permissions for the YCCC SO2R box device.
 \begin{itemize}
 \item
 As superuser, use a text editor to create a new rule file. I use
@@ -621,12 +622,12 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="16c0", ATTR{idProduct}=="065e", MODE="0660"
 all on one line.
 Only members of the so2rbox group will have read/write permission.
 You will have to create this group. That is on Slackware, with my
-user name w9cf, I would add a line like
+user name w9cf, I would use a text editor to add a line like
 \begin{verbatim}
 so2rbox:x:1234:w9cf
 \end{verbatim}
 to /etc/group. 1234 is a previously unused group number chosen by you.
-You need to log out and log back in in order to have your login session
+You need to log out, and log back in, in order to have your login session
 reread the group file. Make sure that typing
 \begin{verbatim}
 groups
@@ -636,9 +637,11 @@ used.)
 \end{itemize}
 \end{itemize}
 In the udev rules above,
-the hex vendor and product IDs are those of the YCCC SO2R box.
+the hex vendor and product IDs are those reported by the
+firmware of the YCCC SO2R box. All YCCC SO2R boxes use these same values.
 
-{\em Optional}: You can double check that the udev rule is working and
+\subsection{Optional: Checking YCCC SO2R box permissions}
+You can double check that the udev rule is working and
 giving the proper permissions. If your linux works like mine:
 \begin{itemize}
 \item
@@ -674,7 +677,9 @@ The second example udev rule above will show something like
 crw-rw---- 1 root so2rbox 189, 1 Sep  4 21:44 /dev/bus/usb/002/003
 \end{verbatim}
 which has owner and group read/write permission and the group is set
-to so2rbox.
+to so2rbox. Users not in the so2rbox group do not have
+permission to communicate with the
+YCCC SO2R box.
 \end{itemize}
 
 \subsection{Using the YCCC SO2R box}
@@ -682,8 +687,9 @@ To use the box, include the configuration line
 \begin{verbatim}
 yccc so2r box enable = true
 \end{verbatim}
+in LOGCFG.DAT
 
-For this initial support, other LOGCFG.DAT commands that can be used are
+Other LOGCFG.DAT commands that can be used are
 \begin{verbatim}
 so2r microphone relay enable = true
 \end{verbatim}
@@ -720,9 +726,7 @@ set up for currently. Default is 0.
 You can also use the values -1, -2, -3, -4. These will save the mapping
 in the YCCC box's EEPROM. The EEPROM values are loaded on power up.
 
-I plan to put many of these commands in the control-j menu so
-they can be changed while running the program, but right now you
-must load these using LOGCFG.DAT.
+You can change all of these value using the control-J menu.
 
 The second way to send commands to the SO2R box is to
 include commands as messages analogously to the way that
@@ -752,7 +756,18 @@ band output parallel port.
 
 You can plug a footswitch into the PTT connector of the YCCC SO2R box.
 It then becomes the footswitch with operation as explained in the DOS TR
-manual. (Except CW grant mode probably does not work.)
+manual. Except,
+\begin{itemize}
+\item
+The footswitch will always toggle the radio PTT line
+on the rig connectors of the YCCC box, in all modes. This is the way the
+hardware is set up, and cannot be changed (except by modifying the
+YCCC SO2R box firmware.) This means that you can only use the
+SO2R box footswitch for other operations if you do not connect the
+connector PTT line to the rig.
+\item
+CW grant mode does not work. Footswitch mode Normal is untested.
+\end{itemize}
 
 \section{Troubleshooting}
 \subsection{Some keys or key combinations don't work}

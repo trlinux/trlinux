@@ -16,6 +16,13 @@ type
       procedure setrig2map(val: integer);
       procedure setrcvfocus(rcvfocus: rcvfocus_t);
       function footswitchpressed:boolean;
+
+      function getheadphonemode:hmode_t;
+      function getblend:boolean;
+      function getblendvalue:integer;
+      function getmicrelay:boolean;
+      function getrig1map:integer;
+      function getrig2map:integer;
    end;
 
 implementation
