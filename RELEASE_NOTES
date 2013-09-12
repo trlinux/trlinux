@@ -161,3 +161,21 @@
   access on 64 bit systems works.
 - Fixed bug in active/inactive radio selection introduced with Winkeyer
   code.
+
+0.22
+- Fixed bug in Winkeyer code which reported cw not being sent when a message
+  was staged, but not yet started. This kept CW messages on the inactive radio
+  from being sent.
+- Made shifted keys work for message programming.
+
+0.23
+- Added native support for the YCCC SO2R box <http://k1xm.org/SO2R/index.html>.
+  No additional programs needed, just make sure you are set up with
+  permission to use the YCCC SO2R usb device, plug in the usb cable,
+  set YCCC SO2R BOX ENABLE = true in LOGCFG.DAT and it should just work,
+  at least at a basic level. TR sends CW, switches the rigs, puts band
+  data on the SO2R box DB25 connector, has new message commands to switch
+  receive between hearing both main receivers in stereo, or either rig
+  (main and sub receiver if so equipped) in both ears, and blends audio.
+- Added documentation for how to use the YCCC SO2R box in trloglinux.pdf
+- Control-P menu now displays control characters in messages.

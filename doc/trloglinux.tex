@@ -742,6 +742,18 @@ RXA puts receive focus on the active radio.
 RXI puts receive focus on the inactive radio.
 STEREO puts the SO2R box in Stereo mode. 
 
+TR puts the band data on the auxiliary connector (the DB25 connector)
+of the SO2R box. Pins 1-4 are the band data for rig 1, Pins 5-9 are
+the band data for rig 2. Pin 9 of the axiliary port is the common ground.
+These set such that Aux pins 1, 2, 3, 4,
+are equivalent to the parallel port pins 2, 7, 8, 9, respectively, of DOS TR,
+and Aux pins 5, 6, 7, 8, are equivalent to pins 2, 7, 8, 9 of rig 2's
+band output parallel port.
+
+You can plug a footswitch into the PTT connector of the YCCC SO2R box.
+It then becomes the footswitch with operation as explained in the DOS TR
+manual. (Except CW grant mode probably does not work.)
+
 \section{Troubleshooting}
 \subsection{Some keys or key combinations don't work}
 This is likely either some program like a window manager or helper

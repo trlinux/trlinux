@@ -7,7 +7,7 @@ uses communication;
 
 type
    FootSwitchx = class
-      private
+      protected
          State: boolean;
          DebouncedState: boolean;
          LastState: boolean;
@@ -15,11 +15,11 @@ type
          Count: integer;
       public
         Constructor create;
-        Procedure Timer;
-        Function getState:boolean;
-        Function getDebouncedState:boolean;
-        Procedure setPort(kp: keyerportx);
-        Function portDefined:boolean;
+        Procedure Timer;virtual;
+        Function getState:boolean;virtual;
+        Function getDebouncedState:boolean;virtual;
+        Procedure setPort(kp: keyerportx);virtual;
+        Function portDefined:boolean;virtual;
    end;
 
    FootSwitchModeType = (CWGrant,

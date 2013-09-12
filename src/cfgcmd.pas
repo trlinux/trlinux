@@ -1491,6 +1491,7 @@ VAR Result,tempint: INTEGER;
     IF (ID = 'YCCC SO2R BOX ENABLE') AND (UpCase (CMD [1]) = 'T') THEN
         BEGIN
         ActiveKeyer := YcccKey;
+        Footsw := footso2r;
         ProcessConfigInstructions2 := true;
         Exit;
         END;

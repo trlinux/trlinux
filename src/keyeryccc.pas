@@ -25,6 +25,7 @@ TYPE
         keyer_control: keyer_control_t;
         so2r_state: so2r_state_t;
         so2r_config: so2r_config_t;
+        so2r_switches: so2r_switches_t;
         hidbytes: Array [0..2] of byte;
         nbytes: integer;
 
@@ -133,6 +134,7 @@ TYPE
         procedure setrig1map(val: integer);
         procedure setrig2map(val: integer);
         procedure setrcvfocus(rcvfocus: rcvfocus_t);
+        function footswitchpressed:boolean;
      end;
 
 IMPLEMENTATION
@@ -193,6 +195,7 @@ begin
    so2r_state.stereo := 1;
    so2r_config.val:= 0;
    so2r_config.relays := 1;
+   so2r_switches.val := 0;
    blend := 0;
    nbytes := 0;
    map1 := 0; //keep eeprom default
@@ -751,6 +754,11 @@ begin
             abortreason.val := responsebuffer[responsebufferstart].val;
             if (abortreason.command = M_KEYER_ABORT_PADDLE) then flushlocal;
          end;
+ 
+         CMD_SO2R_SWITCHES:
+         begin
+            so2r_switches.val := responsebuffer[responsebufferstart].val;
+         end;
 
          CMD_KEYER_EVENT:
          begin
@@ -1068,6 +1076,11 @@ begin
    begin
       sendcmd(CMD_SO2R_STATE,so2r_state.val);
    end;
+end;
+
+function YcccKeyer.footswitchpressed:boolean;
+begin
+   footswitchpressed := so2r_switches.ptt = 1;
 end;
 
 END.

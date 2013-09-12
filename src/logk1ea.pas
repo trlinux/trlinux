@@ -7,7 +7,7 @@ UNIT LogK1EA;
 INTERFACE
 
 USES LogGrid, Dos, trCrt, SlowTree, Tree, communication, beep, foot, radio,
-   keyerk1ea,keyerwin,keyers,so2r,keyeryccc;
+   keyerk1ea,keyerwin,keyers,so2r,keyeryccc,footyccc;
 
 CONST
     RadioCommandBufferSize = 100;
@@ -235,6 +235,8 @@ VAR ActiveDVKPort:     parallelportx;
 
     Tone: Beeper;
     Footsw: FootSwitchx;
+    footparallel: FootSwitchx;
+    footso2r: FootSwitchx;
 
     Radio1ReceiverAddress: BYTE;
     Radio2ReceiverAddress: BYTE;
@@ -3414,6 +3416,9 @@ PROCEDURE K1EAInit;
     WinKey := WinKeyer.create;
     YcccKey := YcccKeyer.create;
     so2rbox := so2rinterface(YcccKey);
+    Footparallel := FootSwitchx.create;
+    Footso2r := FootSwitchYcccx.create(so2rbox);
+    Footsw := Footparallel;
     Tone := Beeper.create;
     CPUKeyer.SetBeeper(Tone);
     CPUKeyer.SetFootSwitch(Footsw);
@@ -3528,7 +3533,6 @@ VAR Ticks: LONGINT;
     { Default values }
     DVKDelay := 0;
 
-    Footsw := FootSwitchx.create;
 
     RadioOneBandOutputStatus := NoBand;
     RadioTwoBandOutputStatus := NoBand;
@@ -3551,6 +3555,7 @@ VAR Ticks: LONGINT;
 
     CPUKeyer.SetPTTTurnOnDelay(15);
     WinKey.SetPTTTurnOnDelay(15);
+    YcccKey.SetPTTTurnOnDelay(15);
     IcomCommandPause       := 300;
     IcomRetries            := 5;   {KK1L: 6.72 Default number of tries to get an Ack from Icoms}
     Radio1IcomFilterByte   := 2;

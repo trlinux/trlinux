@@ -15,6 +15,7 @@ type
       procedure setrig1map(val: integer);
       procedure setrig2map(val: integer);
       procedure setrcvfocus(rcvfocus: rcvfocus_t);
+      function footswitchpressed:boolean;
    end;
 
 implementation
