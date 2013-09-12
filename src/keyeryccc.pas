@@ -946,10 +946,10 @@ begin
 //            responsebuffer[responsebufferend].val := hidbytes[1];
       if (n = 2) then
       begin
-//i1 := rcvdata[0];
-//i2 := rcvdata[1];
-//writeln(stderr,'response ',inttohex(i1,2),' ',inttohex(i2,2));
-//flush(stderr);
+i1 := rcvdata[0];
+i2 := rcvdata[1];
+writeln(stderr,'response ',inttohex(i1,2),' ',inttohex(i2,2));
+flush(stderr);
          responsebuffer[responsebufferend].cmd := rcvdata[0];
          responsebuffer[responsebufferend].val := rcvdata[1];
          responsebufferend := (responsebufferend + 1) mod ResponseBufferSize;

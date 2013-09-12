@@ -10,6 +10,7 @@ type
       protected
          State: boolean;
          DebouncedState: boolean;
+         FootswitchRead: boolean;
          LastState: boolean;
          Port: keyerportx;
          Count: integer;
@@ -63,6 +64,7 @@ begin
    LastState := false;
    Port := nil;
    Count := 0;
+   FootSwitchRead := false;
 end;
 
 Function FootSwitchx.getState:boolean;
@@ -72,7 +74,19 @@ end;
 
 Function FootSwitchx.getDebouncedState:boolean;
 begin
-   getDebouncedState := DebouncedState;
+// return true only the first time footswitch goes from off to on
+   getDebouncedState := false;
+   if DebouncedState then
+   begin
+      if FootSwitchRead then exit;
+      getDebouncedState := true;
+      FootSwitchRead := true;
+      exit;
+   end
+   else
+   begin
+      FootSwitchRead := false;
+   end;
 end;
 
 Procedure FootSwitchx.setPort(kp: keyerportx);

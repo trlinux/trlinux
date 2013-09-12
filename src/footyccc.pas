@@ -35,11 +35,7 @@ end;
 
 Constructor FootSwitchYcccx.create(ycccin: so2rinterface);
 begin
-   State := false;
-   DebouncedState := false;
-   LastState := false;
-   Port := nil;
-   Count := 0;
+   inherited create;
    yccc := ycccin;
 end;
 
