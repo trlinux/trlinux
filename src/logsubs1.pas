@@ -174,7 +174,6 @@ VAR CharPointer, NumberCharsBeingSent, CharacterCount, QSONumber: INTEGER;
     SetSpeed (DisplayedCodeSpeed);
 
     IF Length (SendString) = 0 THEN Exit;
-    SetPTT;
 
     NumberCharsBeingSent := 0;
 
@@ -875,7 +874,7 @@ VAR Frequency: LONGINT;
                        AddStringToBuffer (' ', CWTone);
                    END
                ELSE
-                   IF Pos (ControlD, Message) = 0 THEN FlushCWBuffer;
+                   IF Pos (ControlD, Message) = 0 THEN FlushCWBufferAndClearPTT;
                END;
 
            {QuickDisplay2('SendFunctionKeyMessage..1..2..3');}
