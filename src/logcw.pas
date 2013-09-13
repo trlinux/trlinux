@@ -86,13 +86,11 @@ VAR
     PROCEDURE DVKRecordMessage (MemoryString: Str20);
 
     PROCEDURE FinishRTTYTransmission (MSG: Str160);
-    PROCEDURE FlushCWBuffer;
     PROCEDURE FlushCWBufferAndClearPTT;
 
     PROCEDURE InitializeKeyer;
     PROCEDURE SendStringAndStop (MSG: Str160);
     PROCEDURE SetSpeed (Speed: INTEGER);
-    PROCEDURE SetPTT;
     PROCEDURE UnInitializeKeyer;
 
     FUNCTION  GetCQMemoryString (Mode: ModeType; Key: CHAR): Str80;{KK1L: 6.73 Added mode}
@@ -184,13 +182,6 @@ FUNCTION DeleteLastCharacter: BOOLEAN;
     DeleteLastCharacter := ActiveKeyer.DeleteLastCharacter;
     END;
 
-
-PROCEDURE FlushCWBuffer;
-
-    BEGIN
-    ActiveKeyer.PTTUnForce;
-    ActiveKeyer.FlushCWBuffer;
-    END;
 
 
 PROCEDURE FlushCWBufferAndClearPTT;
@@ -316,12 +307,6 @@ PROCEDURE SetSpeed (Speed: INTEGER);
         CodeSpeed := Speed;
         ActiveKeyer.SetSpeed (Speed);
         END;
-    END;
-
-PROCEDURE SetPTT;
-
-    BEGIN
-    IF NOT CWEnabled THEN Exit;   { Pretty weird looking code Tree! }
     END;
 
 

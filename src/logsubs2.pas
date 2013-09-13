@@ -4689,13 +4689,13 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                     BEGIN
                     IF ActiveMode = CW THEN
                         BEGIN
-                        IF NOT AllCWMessagesChainable THEN FlushCWBuffer;
+                        IF NOT AllCWMessagesChainable THEN FlushCWBufferAndClearPTT;
 
                         IF (KeyRecentlyPressed (F1, 600)) OR (NOT DEEnable) THEN
                             SendStringAndStop (MyCall)
                         ELSE
                             BEGIN
-                            FlushCWBuffer;
+                            FlushCWBufferAndClearPTT;
                             SendStringAndStop ('DE ' + MyCall);
                             END;
                         END
@@ -4720,7 +4720,7 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                 BEGIN
                 IF ActiveMode = CW THEN
                     BEGIN
-                    IF NOT AllCWMessagesChainable THEN FlushCWBuffer;
+                    IF NOT AllCWMessagesChainable THEN FlushCWBufferAndClearPTT;
 
                     IF ExchangeHasBeenSent AND (RepeatSearchAndPounceExchange <> '') THEN
                         SendCrypticMessage (RepeatSearchAndPounceExchange)
