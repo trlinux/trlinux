@@ -179,3 +179,4 @@
   (main and sub receiver if so equipped) in both ears, and blends audio.
 - Added documentation for how to use the YCCC SO2R box in trloglinux.pdf
 - Control-P menu now displays control characters in messages.
+- Fixed footswitch bug
