@@ -180,3 +180,6 @@
 - Added documentation for how to use the YCCC SO2R box in trloglinux.pdf
 - Control-P menu now displays control characters in messages.
 - Fixed footswitch bug
+
+0.24
+- Fixed writing SO2R box commands to LOGCFG.DAT from control-j menu.
