@@ -1206,6 +1206,16 @@ VAR FileWrite: TEXT;
                END;
 
       SHE: WriteLn (FileWrite, SayHiEnable);
+      SO2RHM: case so2rbox.getheadphonemode of
+          HNORMAL: WriteLn (FileWrite,'NORMAL');
+          HSPATIAL: WriteLn (FileWrite,'SPATIAL');
+          HSYMMETRIC: WriteLn (FileWrite,'SYMMETRIC');
+          end;
+      SO2RBE: writeln(FileWrite,so2rbox.getblend);
+      SO2RBV: writeln(FileWrite,so2rbox.getblendvalue);
+      SO2RMR: writeln(FileWrite,so2rbox.getmicrelay);
+      SO2RM1: writeln(FileWrite,so2rbox.getrig1map);
+      SO2RM2: writeln(FileWrite,so2rbox.getrig2map);
       SHC: WriteLn (FileWrite, SayHiRateCutoff);
       SCS: WriteLn (FileWrite, CD.CountryString);
       SML: WriteLn (FileWrite, SCPMinimumLetters);

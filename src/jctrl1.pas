@@ -392,12 +392,12 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       RDS: Description := 'RATE DISPLAY';
       RMD: Description := 'REMAINING MULT DISPLAY MODE';
 
-      SO2RHM: Description := 'SO2R BOX HEADPHONE MODE';
-      SO2RBE: Description := 'SO2R BOX BLEND ENABLE';
-      SO2RBV: Description := 'SO2R BOX BLEND VALUE';
-      SO2RMR: Description := 'SO2R BOX MIC RELAY ENABLE';
-      SO2RM1: Description := 'SO2R BOX RIG1 MAP';
-      SO2RM2: Description := 'SO2R BOX RIG2 MAP';
+      SO2RHM: Description := 'SO2R HEADPHONE MODE';
+      SO2RBE: Description := 'SO2R BLEND ENABLE';
+      SO2RBV: Description := 'SO2R BLEND';
+      SO2RMR: Description := 'SO2R MICROPHONE RELAY ENABLE';
+      SO2RM1: Description := 'SO2R RIG1 MAP';
+      SO2RM2: Description := 'SO2R RIG2 MAP';
       SHE: Description := 'SAY HI ENABLE';
       SHC: Description := 'SAY HI RATE CUTOFF';
       SCS: Description := 'SCP COUNTRY STRING';
