@@ -659,18 +659,21 @@ VAR Result, Speed, TempValue: INTEGER;
            begin
               CPUKeyer.SetCurtisMode(ModeA);
               WinKey.SetCurtisMode(ModeA);
+              YcccKey.SetCurtisMode(ModeA);
               ProcessConfigInstructions1 := True;
            end;
         'B':
            begin
               CPUKeyer.SetCurtisMode(ModeB);
               WinKey.SetCurtisMode(ModeB);
+              YcccKey.SetCurtisMode(ModeB);
               ProcessConfigInstructions1 := True;
            end;
         'U':
            begin
               CPUKeyer.SetCurtisMode(Ultimatic);
               WinKey.SetCurtisMode(Ultimatic);
+              YcccKey.SetCurtisMode(Ultimatic);
               ProcessConfigInstructions1 := True;
            end;
         end;
@@ -1077,6 +1080,7 @@ VAR Result,tempint: INTEGER;
         BEGIN
         CPUKeyer.SetFarnsworthEnable(UpCase (CMD [1]) = 'T');
         WinKey.SetFarnsworthEnable(UpCase (CMD [1]) = 'T');
+        YcccKey.SetFarnsworthEnable(UpCase (CMD [1]) = 'T');
         ProcessConfigInstructions2 := True;
         Exit;
         END;
@@ -1086,6 +1090,7 @@ VAR Result,tempint: INTEGER;
         Val (CMD, tempint, Result);
         CPUKeyer.SetFarnsworthSpeed(tempint);
         WinKey.SetFarnsworthSpeed(tempint);
+        YcccKey.SetFarnsworthSpeed(tempint);
         ProcessConfigInstructions2 := Result = 0;
         Exit;
         END;
@@ -1109,6 +1114,7 @@ VAR Result,tempint: INTEGER;
         FootSwitchMode := FootSwitchDisabled;
         CPUKeyer.setCwGrant(false);
         Winkey.setCwGrant(false);
+        Yccckey.setCwGrant(false);
         CMD := UpperCase (CMD);
 
         IF CMD = 'NORMAL'                  THEN FootSwitchMode := Normal;
@@ -1130,6 +1136,7 @@ VAR Result,tempint: INTEGER;
             FootSwitchMode := CWGrant;
             CPUKeyer.setCwGrant(true);
             WinKey.setCwGrant(true);
+            YcccKey.setCwGrant(true);
         End;
 
         ProcessConfigInstructions2 := (FootSwitchMode <> FootSwitchDisabled) OR
@@ -2078,6 +2085,7 @@ VAR Result,tempint: INTEGER;
         BEGIN
         CPUKeyer.SetPaddleBug(UpCase (CMD [1]) = 'T');
         Winkey.SetPaddleBug(UpCase (CMD [1]) = 'T');
+        Yccckey.SetPaddleBug(UpCase (CMD [1]) = 'T');
         ProcessConfigInstructions2 := True;
         Exit;
         END;
@@ -2087,6 +2095,7 @@ VAR Result,tempint: INTEGER;
         Val (CMD, tempint, Result);
         CPUKeyer.SetPaddleMonitorTone(tempint);
         Winkey.SetPaddleMonitorTone(tempint);
+        Yccckey.SetPaddleMonitorTone(tempint);
         ProcessConfigInstructions2 := Result = 0;
         Exit;
         END;
@@ -2128,6 +2137,7 @@ VAR Result,tempint: INTEGER;
         Val (CMD, tempint, Result);
         CPUKeyer.SetPaddleSpeed(tempint);
         Winkey.SetPaddleSpeed(tempint);
+        Yccckey.SetPaddleSpeed(tempint);
         ProcessConfigInstructions2 := Result = 0;
         Exit;
         END;
@@ -2137,6 +2147,7 @@ VAR Result,tempint: INTEGER;
         Val (CMD, tempint, Result);
         CPUKeyer.SetPaddlePTTHoldCount(tempint);
         Winkey.SetPaddlePTTHoldCount(tempint);
+        Yccckey.SetPaddlePTTHoldCount(tempint);
         ProcessConfigInstructions2 := Result = 0;
         Exit;
         END;
@@ -2254,6 +2265,7 @@ VAR Result,tempint: INTEGER;
         BEGIN
         CPUKeyer.SetPTTEnable(UpCase (CMD [1]) = 'T');
         Winkey.SetPTTEnable(UpCase (CMD [1]) = 'T');
+        Yccckey.SetPTTEnable(UpCase (CMD [1]) = 'T');
         ProcessConfigInstructions2 := True;
         Exit;
         END;
@@ -2263,6 +2275,7 @@ VAR Result,tempint: INTEGER;
         Val (CMD, tempint, Result);
         CPUKeyer.SetPTTTurnOnDelay(tempint);
         Winkey.SetPTTTurnOnDelay(tempint);
+        Yccckey.SetPTTTurnOnDelay(tempint);
         ProcessConfigInstructions2 := Result = 0;
         Exit;
         END;
@@ -3529,6 +3542,7 @@ VAR Result,tempint: INTEGER;
         BEGIN
         CPUKeyer.SetSwapPaddles(UpCase (CMD [1]) = 'T');
         WinKey.SetSwapPaddles(UpCase (CMD [1]) = 'T');
+        YcccKey.SetSwapPaddles(UpCase (CMD [1]) = 'T');
         ProcessConfigInstructions3 := True;
         Exit;
         END;
@@ -3610,6 +3624,7 @@ VAR Result,tempint: INTEGER;
         BEGIN
         CPUKeyer.SetTuneWithDits(UpCase (CMD [1]) = 'T');
         Winkey.SetTuneWithDits(UpCase (CMD [1]) = 'T');
+        Yccckey.SetTuneWithDits(UpCase (CMD [1]) = 'T');
         ProcessConfigInstructions3 := True;
         Exit;
         END;
@@ -3723,6 +3738,7 @@ VAR Result,tempint: INTEGER;
         Val (CMD, tempint, Result);
         CPUKeyer.setWeight(tempint);
         Winkey.setWeight(tempint);
+        Yccckey.setWeight(tempint);
         ProcessConfigInstructions3 := True;
         Exit;
         END;
