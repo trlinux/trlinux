@@ -7,5 +7,6 @@ log/trlog
 log/post
 test/
 doc/texput.log
-doc/trloglinux.aux
-doc/trloglinux.log
+doc/*.aux
+doc/*.log
+doc/trport.pdf

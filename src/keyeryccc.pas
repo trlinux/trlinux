@@ -58,6 +58,7 @@ TYPE
                                Comes on PTTTurnOnDelay before CW starts.  }
         PTTFootSwitch:  BOOLEAN; { Indicates that the footswitch wants the PTT
                                to be on. }
+        PTTForcedon:  boolean;
         DoingPaddle:  BOOLEAN;
         LastFootSwitchStatus: BOOLEAN;
         FsCwGrant: Boolean;
@@ -208,6 +209,7 @@ begin
    nbytes := 0;
    map1 := 0; //keep eeprom default
    map2 := 0; //keep eeprom default
+   PTTForcedon := false;
 end;
 
 Procedure YcccKeyer.InitializeKeyer;
@@ -382,10 +384,12 @@ end;
 
 Procedure YcccKeyer.PTTForceOn;
 begin
+   PTTforcedon := true;
 end;
 
 Procedure YcccKeyer.PTTUnForce;
 begin
+   PTTforcedon := false;
 end;
 
 procedure YcccKeyer.SetSpeed (Speed: integer);
@@ -858,7 +862,19 @@ begin
    else
       countssincelastcw := 0;
 
-   pttasserted := pttenable and (not idle);
+   if pttenable and (pttforcedon and (so2r_state.ptt = 0)) then
+   begin
+      so2r_state.ptt := 1;
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
+   end;
+
+   if (not pttforcedon) and (so2r_state.ptt = 1) then
+   begin
+      so2r_state.ptt := 0;
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
+   end;
+
+   pttasserted := pttenable and (pttforcedon or (not idle));
 end;
 
 function YcccKeyer.CWStillBeingSent:boolean;

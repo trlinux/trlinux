@@ -730,26 +730,18 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       SO2RM1: case so2rbox.getrig1map of
               0: so2rbox.setrig1map(1);
-              1: so2rbox.setrig1map(-1);
-              -1: so2rbox.setrig1map(2);
-              2: so2rbox.setrig1map(-2);
-              -2: so2rbox.setrig1map(3);
-              3: so2rbox.setrig1map(-3);
-              -3: so2rbox.setrig1map(4);
-              4: so2rbox.setrig1map(-4);
-              -4: so2rbox.setrig1map(0);
+              1: so2rbox.setrig1map(2);
+              2: so2rbox.setrig1map(3);
+              3: so2rbox.setrig1map(4);
+              4: so2rbox.setrig1map(0);
               end;
 
       SO2RM2: case so2rbox.getrig2map of
               0: so2rbox.setrig2map(1);
-              1: so2rbox.setrig2map(-1);
-              -1: so2rbox.setrig2map(2);
-              2: so2rbox.setrig2map(-2);
-              -2: so2rbox.setrig2map(3);
-              3: so2rbox.setrig2map(-3);
-              -3: so2rbox.setrig2map(4);
-              4: so2rbox.setrig2map(-4);
-              -4: so2rbox.setrig2map(0);
+              1: so2rbox.setrig2map(2);
+              2: so2rbox.setrig2map(3);
+              3: so2rbox.setrig2map(4);
+              4: so2rbox.setrig2map(0);
               end;
  
        
