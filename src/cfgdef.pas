@@ -131,8 +131,10 @@ PROCEDURE SetConfigurationDefaultValues;
 
     CPUKeyer.SetFarnsworthEnable(False);
     Winkey.SetFarnsworthEnable(False);
+    YcccKey.SetFarnsworthEnable(False);
     CPUKeyer.SetFarnsworthSpeed(25);
     Winkey.SetFarnsworthSpeed(25);
+    Yccckey.SetFarnsworthSpeed(25);
 
     FloppyFileSaveName := 'LOGBACK.DAT';
     FloppyFileSaveFrequency := 0;
@@ -243,10 +245,12 @@ PROCEDURE SetConfigurationDefaultValues;
 
     CPUKeyer.SetPaddleMonitorTone(700);
     Winkey.SetPaddleMonitorTone(700);
+    Yccckey.SetPaddleMonitorTone(700);
     CPUKeyer.SetPaddleBug(False);
     Winkey.SetPaddleBug(False);
     CPUKeyer.SetPaddleSpeed(0);
     Winkey.SetPaddleSpeed(0);
+    Yccckey.SetPaddleSpeed(0);
     ParameterOkayMode        := Standard;
     PartialCallEnable        := True;
     PartialCallLoadLogEnable := False;
@@ -260,6 +264,7 @@ PROCEDURE SetConfigurationDefaultValues;
     PrinterEnabled           := False;
     CPUKeyer.SetPTTEnable(True);
     Winkey.SetPTTEnable(True);
+    YcccKey.SetPTTEnable(True);
 
     QSLMessage             := '73 \ TEST';
     QSLPhoneMessage        := 'QSL.DVP';
@@ -418,6 +423,7 @@ PROCEDURE SetConfigurationDefaultValues;
     SwapPacketSpotRadios := False;
     CPUKeyer.SetSwapPaddles(False);
     Winkey.SetSwapPaddles(False);
+    Yccckey.SetSwapPaddles(False);
     SwapRadioRelaySense := False;
 
     TabMode         := NormalTabMode;
@@ -427,6 +433,7 @@ PROCEDURE SetConfigurationDefaultValues;
     TenMinuteRule   := NoTenMinuteRule;
     CPUKeyer.SetTuneWithDits(False);
     Winkey.SetTuneWithDits(False);
+    Yccckey.SetTuneWithDits(False);
     TuneDupeCheckEnable := False; {KK1L: 6.73}
     TwoRadioState   := TwoRadiosDisabled;
 
