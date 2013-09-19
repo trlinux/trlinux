@@ -2497,12 +2497,10 @@ PROCEDURE GoToLastCQFrequency;
                 RadioOne:
                     BEGIN
                     PreviousRadioOneFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    LastRadioOneFreq := LastCQFrequency;
                     END;
                 RadioTwo:
                     BEGIN
                     PreviousRadioTwoFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    LastRadioTwoFreq := LastCQFrequency;
                     END;
                 END;
             END
@@ -2513,12 +2511,10 @@ PROCEDURE GoToLastCQFrequency;
                 RadioOne:
                     BEGIN
                     PreviousRadioOneFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    LastRadioOneFreq := LastCQFrequency;
                     END;
                 RadioTwo:
                     BEGIN
                     PreviousRadioTwoFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    LastRadioTwoFreq := LastCQFrequency;
                     END;
                 END;
             END;
@@ -4441,9 +4437,9 @@ VAR Number, Result, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         IF PacketSpotCall = '' THEN PacketSpotCall := VisibleLog.LastCallsign;
 
                         IF ActiveRadio = RadioOne THEN
-                            TempFreq := LastRadioOneFreq
+                            TempFreq := StableRadio1Freq
                         ELSE
-                            TempFreq := LastRadioTwoFreq;
+                            TempFreq := StableRadio2Freq;
 
                         IF TempFreq = 0 THEN
                             BEGIN

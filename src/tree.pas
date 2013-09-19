@@ -195,7 +195,6 @@ VAR CodeSpeed:  BYTE;
     HourOffset: INTEGER;
     QuestionMarkChar: CHAR;
     SlashMarkChar:    CHAR;
-    UseBIOSKeyCalls:  BOOLEAN;
 
     Com1PortBaseAddress: WORD;
     Com2PortBaseAddress: WORD;
@@ -4522,22 +4521,11 @@ VAR Day, Hour, Minute, Year, Result: INTEGER;
     TimeString := HourString + ':' + MinuteString;
     END;
 
-
 
 FUNCTION NewKeyPressed: BOOLEAN;
-
     BEGIN
-    IF UseBIOSKeyCalls THEN
-        BEGIN
         NewKeyPressed := KeyPressed;
-        Exit;
-        END;
-{ KS
-    NewKeyPressed := Mem [$40:$1A] <> Mem [$40:$1C];
-}
-    NewKeyPressed := False;
     END;
-
 
 FUNCTION NewReadKey: CHAR;
 
@@ -4546,9 +4534,7 @@ VAR MemByte: BYTE;
     Key: CHAR;
 
     BEGIN
-    IF UseBIOSKeyCalls THEN
-        BEGIN
-        Key := ReadKey;
+       Key := ReadKey;
 
         IF ReadKeyAltState THEN
             BEGIN
@@ -4573,60 +4559,7 @@ VAR MemByte: BYTE;
                 NewReadKey := Key;
 
         Exit;
-        END;
-
-{ KS
-    Address := Mem [$40:$1A];
-}
-    Address := 0;
-
-    IF ExtendedKey <> 0 THEN
-        BEGIN
-        NewReadKey := Chr (ExtendedKey);
-        Address := Address + 2;
-        IF Address > $3C THEN Address := $1E;
-{ KS
-        Mem [$40:$1A] := Address;
-}
-        ExtendedKey := 0;
-        Exit;
-        END;
-
-    REPEAT UNTIL NewKeyPressed;
-
-{ KS
-    MemByte := Mem [$40:Address];
-}
-    MemByte := 0;
-
-    IF (MemByte = 0) OR (MemByte = $E0) THEN
-        BEGIN
-        NewReadKey := Chr (0);
-{ KS
-        ExtendedKey := Mem [$40:Address + 1];
-}
-        ExtendedKey := 0;
-        Exit;
-        END
-    ELSE
-        BEGIN
-        IF Chr (MemByte) = QuestionMarkChar THEN
-            NewReadKey := '?'
-        ELSE
-            IF Chr (MemByte) = SlashMarkChar THEN
-                NewReadKey := '/'
-            ELSE
-                NewReadKey := Chr (MemByte);
-
-        Address := Address + 2;
-        IF Address > $3C THEN Address := $1E;
-{ KS
-        Mem [$40:$1A] := Address;
-}
-        END;
     END;
-
-
 
 
 FUNCTION Tan (X: REAL): REAL;
@@ -4958,7 +4891,6 @@ var ts:string;
 
     QuestionMarkChar := '?';
     SlashMarkChar    := '/';
-    UseBIOSKeyCalls  := True;
 
     ReadKeyAltState := False;
     END.

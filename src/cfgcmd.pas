@@ -3649,13 +3649,6 @@ VAR Result,tempint: INTEGER;
         Exit;
         END;
 
-    IF UpperCase (ID) = 'USE BIOS KEY CALLS' THEN
-        BEGIN
-        UseBIOSKeyCalls := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions3 := True;
-        Exit;
-        END;
-
     IF UpperCase (ID) = 'USER INFO SHOWN' THEN
         BEGIN
         UserInfoShown := NoUserInfo;

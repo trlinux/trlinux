@@ -183,3 +183,13 @@
 
 0.24
 - Fixed writing SO2R box commands to LOGCFG.DAT from control-j menu.
+
+0.25
+- Removed USE BIOS KEY CALLS configuration parameter since direct reading
+  of BIOS memory wouldn't work on a real operating system anyway. 
+- Fixed bug in original 6.76 code where packet spots were given the wrong
+  frequency.
+- Fixed bug in original 6.76 code where the check for stable rig frequency
+  was calculated incorrectly.
+- Fixed bug in original 6.76 code where FT847 and FT817 frequencies were
+  not updated correctly.

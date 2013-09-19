@@ -192,7 +192,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       TWD,
                       TRM,
                       URF,
-                      UBC,
                       UIS,
                       VER,
                       VDE,
@@ -427,7 +426,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       TRM: Description := 'TWO RADIO MODE';
 
       URF: Description := 'UPDATE RESTART FILE ENABLE';
-      UBC: Description := 'USE BIOS KEY CALLS';
       UIS: Description := 'USER INFO SHOWN';
 
       VER: Description := 'VERSION';
@@ -791,8 +789,6 @@ VAR ChangedRemainingMults: BOOLEAN;
                Write ('FALSE');
 
       URF: Write (UpdateRestartFileEnable);
-
-      UBC: Write (UseBIOSKeyCalls);
 
       UIS: CASE UserInfoShown OF
                NoUserInfo: Write ('NONE');
@@ -1677,11 +1673,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('RESTART.BIN updated after each QSO')
            ELSE
                Write ('RESTART.BIN updated when exiting LOG');
-
-      UBC: IF UseBIOSKeyCalls THEN
-               Write ('Use BIOS for keys - no F11 or F12')
-           ELSE
-               Write ('Bypass BIOS - enable F11 and F12 keys');
 
       UIS: CASE UserInfoShown OF
                NoUserInfo: Write ('No user data shown from TRMASTER');

@@ -2937,10 +2937,8 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                     { Put back in for testing in 6.48 }
 
                     IF (Abs (Freq - SplitFreq) <= 1000) THEN
-{                        ((Freq = LastRadioOneFreq) AND (Mode = LastRadioOneMode)) THEN}
                            GoTo IgnoreRadioOneFreq;
 
-                    {KK1L: 6.71b changed to Previous from LastRadioOneFreq. I broke this when I messed with LR1F.}
                     {KK1L: 6.72 Use FreqPollRate instead of 1000 to keep constant response.}
                     {           FreqPollRate in ms relates to 1KHz per second.}
                     {KK1L: 6.72 Scale FreqPollRate to allow variable tuning rate sensitivity.}
@@ -3089,10 +3087,8 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                     {        END;                                                                                     }
 
                     IF (Abs (Freq - SplitFreq) <= 1000) THEN
-{                       ((Freq = LastRadioTwoFreq) AND (Mode = LastRadioTwoMode)) THEN}
                            GoTo IgnoreRadioTwoFreq;
 
-                    {KK1L: 6.71b changed to Previous from LastRadioTwoFreq. I broke this when I messed with LRTF.}
                     {KK1L: 6.72 Use FreqPollRate instead of 1000 to keep constant response}
                     {           FreqPollRate in ms relates to 1KHz per second.}
                     {KK1L: 6.72 Scale FreqPollRate to allow variable tuning rate sensitivity.}
@@ -6291,11 +6287,9 @@ VAR Band: BandType;
     LastHeadingShown       := 0;
 
     LastRadioOneBand       := NoBand;
-    {LastRadioOneFreq       := 0; {KK1L: 6.71 Initialized in LOGK1EA}
     LastRadioOneMode       := NoMode;
 
     LastRadioTwoBand       := NoBand;
-    {LastRadioTwoFreq       := 0; {KK1L: 6.71 Initialized in LOGK1EA}
     LastRadioTwoMode       := NoMode;
 
     LastSecond100          := 0; {KK1L: 6.71a}

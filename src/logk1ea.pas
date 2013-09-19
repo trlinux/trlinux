@@ -174,8 +174,6 @@ VAR ActiveDVKPort:     parallelportx;
     K1EANetworkEnable: BOOLEAN;
     KenwoodResponseTimeout: WORD;
 
-    LastRadioOneFreq: LONGINT; {KK1L: 6.71 Used LastRadioOneFreq here instead of LOGWIND.PAS}
-    LastRadioTwoFreq: LONGINT; {KK1L: 6.71 Used LastRadioTwoFreq here instead of LOGWIND.PAS}
 
     MultiPortBaudRate:      LONGINT;
     MultiReceiveCharBuffer: CharacterBuffer;
@@ -331,6 +329,8 @@ VAR
     LastRadioOneMessageTime: TimeRecord; {KK1L: 6.71}
     LastRadioTwoMessageRead: Str80;
     LastRadioTwoMessageTime: TimeRecord; {KK1L: 6.71}
+    LastRadioOneFreq: LONGINT;
+    LastRadioTwoFreq: LONGINT;
 
     ModemCharacterSentDelayCount: INTEGER;
     ModemDelayCount:              INTEGER;
@@ -2030,27 +2030,34 @@ VAR DebugString: STRING;
 
             IF Radio = RadioOne THEN
                 BEGIN
-                IF NOT Debug THEN
-                    IF (Abs (LastRadioOneFreq - Freq) > 200000) AND (StableRadio1Freq <> 0) THEN
-                        BEGIN
-                        LastRadioOneFreq := Freq; {KK1L: 6.71 Moved here from inside IF THEN}
-                        Freq := StableRadio1Freq;
-                        END
-                    ELSE
-                        StableRadio1Freq := Freq;
+                IF (Abs (LastRadioOneFreq - Freq) > 200000)
+                       AND (StableRadio1Freq <> 0) THEN
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   Freq := StableRadio1Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   StableRadio1Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio1FrequencyAdder;
+
                 END
             ELSE
                 BEGIN
-                IF NOT Debug THEN
-                    IF (Abs (LastRadioTwoFreq - Freq) > 200000) AND (StableRadio2Freq <> 0) THEN
-                        BEGIN
-                        LastRadioTwoFreq := Freq; {KK1L: 6.71 Moved here from inside IF THEN}
-                        Freq := StableRadio2Freq;
-                        END
-                    ELSE
-                        StableRadio2Freq := Freq;
+                IF (Abs (LastRadioTwoFreq - Freq) > 200000
+                    ) AND (StableRadio2Freq <> 0) THEN
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   Freq := StableRadio2Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   StableRadio2Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio2FrequencyAdder;
                 END;
@@ -2093,32 +2100,37 @@ VAR DebugString: STRING;
 
             F1 := F1 + (Ord (RadioInfoString [4]) AND $0F);       { 10 hz }
             F1 := F1 * 10;
+            Freq := F1;
 
             IF Radio = RadioOne THEN
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioOneFreq := Freq; {KK1L: 6.71 Moved here from inside IF THEN}
-                        Freq := StableRadio1Freq;
-                        END
-                    ELSE
-                        StableRadio1Freq := Freq;
+                IF Abs (LastRadioOneFreq - F1) > 200000 THEN
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   Freq := StableRadio1Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   StableRadio1Freq := Freq;
+                   END;
 
-                Freq := F1 + Radio1FrequencyAdder;
+                Freq := Freq + Radio1FrequencyAdder;
                 END
             ELSE
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioTwoFreq := Freq; {KK1L: 6.71 Moved here from inside IF THEN}
-                        Freq := StableRadio2Freq;
-                        END
-                    ELSE
-                        StableRadio2Freq := Freq;
+                IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
+                    BEGIN
+                    LastRadioTwoFreq := Freq;
+                    Freq := StableRadio2Freq;
+                    END
+                ELSE
+                    BEGIN
+                    LastRadioTwoFreq := Freq;
+                    StableRadio2Freq := Freq;
+                    END;
 
-                Freq := F1 + Radio2FrequencyAdder;
+                Freq := Freq + Radio2FrequencyAdder;
                 END;
 
             CalculateBandMode (Freq, Band, Mode);
@@ -2145,27 +2157,31 @@ VAR DebugString: STRING;
 
             IF Radio = RadioOne THEN
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioOneFreq := Freq;
-                        Freq := StableRadio1Freq;
-                        END
-                    ELSE
-                        StableRadio1Freq := Freq;
+                IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   Freq := StableRadio1Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   StableRadio1Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio1FrequencyAdder;
                 END
             ELSE
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioTwoFreq := Freq;
-                        Freq := StableRadio2Freq;
-                        END
-                    ELSE
-                        StableRadio2Freq := Freq;
+                IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   Freq := StableRadio2Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   StableRadio2Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio2FrequencyAdder;
                 END;
@@ -2192,27 +2208,31 @@ VAR DebugString: STRING;
 
             IF Radio = RadioOne THEN
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioOneFreq := Freq; {KK1L: 6.71 Moved here from inside IF THEN}
-                        Freq := StableRadio1Freq;
-                        END
-                    ELSE
-                        StableRadio1Freq := Freq;
+                IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   Freq := StableRadio1Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   StableRadio1Freq := Freq;
+                END;
 
                 Freq := Freq + Radio1FrequencyAdder;
                 END
             ELSE
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioTwoFreq := Freq; {KK1L: 6.71 Moved here from inside IF THEN}
-                        Freq := StableRadio2Freq;
-                        END
-                    ELSE
-                        StableRadio2Freq := Freq;
+                IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   Freq := StableRadio2Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   StableRadio2Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio2FrequencyAdder;
                 END;
@@ -2247,27 +2267,31 @@ VAR DebugString: STRING;
 
             IF Radio = RadioOne THEN
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioOneFreq := Freq; {KK1L: 6.71 Moved here from inside IF THEN}
-                        Freq := StableRadio1Freq;
-                        END
-                    ELSE
-                        StableRadio1Freq := Freq;
+                IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   Freq := StableRadio1Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   StableRadio1Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio1FrequencyAdder;
                 END
             ELSE
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioTwoFreq := Freq; {KK1L: 6.71 Moved here from inside IF THEN}
-                        Freq := StableRadio2Freq;
-                        END
-                    ELSE
-                        StableRadio2Freq := Freq;
+                IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   Freq := StableRadio2Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   StableRadio2Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio2FrequencyAdder;
                 END;
@@ -2348,27 +2372,31 @@ VAR DebugString: STRING;
 
             IF Radio = RadioOne THEN
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioOneFreq := Freq;
-                        Freq := StableRadio1Freq;
-                        END
-                    ELSE
-                        StableRadio1Freq := Freq;
+                IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   Freq := StableRadio1Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   StableRadio1Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio1FrequencyAdder;
                 END
             ELSE
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioTwoFreq := Freq;
-                        Freq := StableRadio2Freq;
-                        END
-                    ELSE
-                        StableRadio2Freq := Freq;
+                IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   Freq := StableRadio2Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioTwoFreq := Freq;
+                   StableRadio2Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio2FrequencyAdder;
                 END;
@@ -2415,14 +2443,16 @@ VAR DebugString: STRING;
 
             IF Radio = RadioOne THEN
                 BEGIN
-                IF NOT Debug THEN
-                    IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
-                        BEGIN
-                        LastRadioOneFreq := Freq;
-                        Freq := StableRadio1Freq;
-                        END
-                    ELSE
-                        StableRadio1Freq := Freq;
+                IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   Freq := StableRadio1Freq;
+                   END
+                ELSE
+                   BEGIN
+                   LastRadioOneFreq := Freq;
+                   StableRadio1Freq := Freq;
+                   END;
 
                 Freq := Freq + Radio1FrequencyAdder;
                 END
@@ -2434,7 +2464,10 @@ VAR DebugString: STRING;
                     Freq := StableRadio2Freq;
                     END
                 ELSE
+                    BEGIN
+                    LastRadioTwoFreq := Freq;
                     StableRadio2Freq := Freq;
+                    END;
 
                 Freq := Freq + Radio2FrequencyAdder;
                 END;
@@ -2489,31 +2522,36 @@ VAR DebugString: STRING;
                        Freq := F1 + F2 + F3 + Ord (RadioInfoString [13]);
                        END;
 
-                   IF NOT Debug THEN
-                       IF Radio = RadioOne THEN
-                           BEGIN
-                           IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
-                               BEGIN
-                               LastRadioOneFreq := Freq;
-                               Freq := StableRadio1Freq;
-                               END
-                           ELSE
-                               StableRadio1Freq := Freq;
+                   IF Radio = RadioOne THEN
+                      BEGIN
+                      IF Abs (LastRadioOneFreq - Freq) > 200000 THEN
+                         BEGIN
+                         LastRadioOneFreq := Freq;
+                         Freq := StableRadio1Freq;
+                         END
+                      ELSE
+                         BEGIN
+                         LastRadioOneFreq := Freq;
+                         StableRadio1Freq := Freq;
+                         END;
 
-                           Freq := Freq + Radio1FrequencyAdder;
-                           END
+                      Freq := Freq + Radio1FrequencyAdder;
+                      END
+                    ELSE
+                       BEGIN
+                       IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
+                          BEGIN
+                          LastRadioTwoFreq := Freq;
+                          Freq := StableRadio2Freq;
+                          END
                        ELSE
-                           BEGIN
-                           IF Abs (LastRadioTwoFreq - Freq) > 200000 THEN
-                               BEGIN
-                               LastRadioTwoFreq := Freq;
-                               Freq := StableRadio2Freq;
-                               END
-                           ELSE
-                               StableRadio2Freq := Freq;
+                          BEGIN
+                          LastRadioTwoFreq := Freq;
+                          StableRadio2Freq := Freq;
+                          END;
 
-                           Freq := Freq + Radio2FrequencyAdder;
-                           END;
+                    Freq := Freq + Radio2FrequencyAdder;
+                    END;
 
                    CalculateBandMode (Freq, Band, Mode);
 

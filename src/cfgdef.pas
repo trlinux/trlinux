@@ -433,7 +433,6 @@ PROCEDURE SetConfigurationDefaultValues;
     UnknownCountryFileEnable := False;
     UnknownCountryFileName   := 'UNKNOWN.CTY';
     UpdateRestartFileEnable  := True;
-    UseBiosKeyCalls          := True;
     UserInfoShown            := NoUserInfo;
 
     VGADisplayEnable := True;

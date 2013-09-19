@@ -1241,34 +1241,12 @@ VAR TimeOut: INTEGER;
 
     RadioOneReadOkay := True;{KK1L: 6.71 False if CASE is used!}
     RadioTwoReadOkay := True;{KK1L: 6.71 False if CASE is used!}
-    {CASE ActiveRadio OF {KK1L: 6.71 We are keeping track of the active radio. Need to read from inactive}
-    {    RadioOne:
-    {        BEGIN
-    {        IF GetRadioParameters (RadioTwo, '', FreqOne, BandOne, ModeOne, FALSE) THEN
-    {            BEGIN
-    {            BandTwo := BandMemory [RadioOne]; {KK1L: 6.71 Save the values to become RadioTwo values}
-    {            ModeTwo := ModeMemory [RadioOne]; {KK1L: 6.71 Save the values to become RadioTwo values}
-    {            FreqTwo := LastRadioOneFreq; {KK1L: 6.71 Save the values to become RadioTwo values}
-    {            RadioTwoReadOkay := True;
-    {            END;
-    {        END;
-    {    RadioTwo:
-    {        BEGIN
-    {        IF GetRadioParameters (RadioOne, '', FreqTwo, BandTwo, ModeTwo, FALSE) THEN
-    {            BEGIN
-    {            BandOne := BandMemory [RadioTwo]; {KK1L: 6.71 Save the values to become RadioOne values}
-    {            ModeOne := ModeMemory [RadioTwo]; {KK1L: 6.71 Save the values to become RadioOne values}
-    {            FreqOne := LastRadioTwoFreq; {KK1L: 6.71 Save the values to become RadioOne values}
-    {            RadioOneReadOkay := True;
-    {            END;
-    {        END;
-    {END; }
     BandOne := BandMemory [RadioTwo]; {KK1L: 6.71 Save the values to become RadioOne values}
     ModeOne := ModeMemory [RadioTwo]; {KK1L: 6.71 Save the values to become RadioOne values}
-    FreqOne := LastRadioTwoFreq;      {KK1L: 6.71 Save the values to become RadioOne values}
+    FreqOne := StableRadio2Freq;      {KK1L: 6.71 Save the values to become RadioOne values}
     BandTwo := BandMemory [RadioOne]; {KK1L: 6.71 Save the values to become RadioTwo values}
     ModeTwo := ModeMemory [RadioOne]; {KK1L: 6.71 Save the values to become RadioTwo values}
-    FreqTwo := LastRadioOneFreq;      {KK1L: 6.71 Save the values to become RadioTwo values}
+    FreqTwo := StableRadio1Freq;      {KK1L: 6.71 Save the values to become RadioTwo values}
 
     IF (RadioOneReadOkay) AND (RadioTwoReadOkay) THEN
         BEGIN
@@ -1277,7 +1255,6 @@ VAR TimeOut: INTEGER;
         BandMemory [RadioTwo] := BandTwo; {KK1L: 6.71 Set RadioTwo stuff from RadioOne stuff}
         ModeMemory [RadioTwo] := ModeTwo; {KK1L: 6.71 Set RadioTwo stuff from RadioOne stuff}
         IF FrequencyMemoryEnable THEN FreqMemory [BandTwo, ModeTwo] := FreqTwo;
-        {LastRadioTwoFreq := FreqTwo;} {KK1L 6.71 NOTE Set in SetRadioFreq}
 
         Delay(200); {KK1L: 6.73}
 
@@ -1286,7 +1263,6 @@ VAR TimeOut: INTEGER;
         BandMemory [RadioOne] := BandOne; {KK1L: 6.71 Set RadioOne stuff from what was RadioTwo stuff}
         ModeMemory [RadioOne] := ModeOne; {KK1L: 6.71 Set RadioOne stuff from what was RadioTwo stuff}
         IF FrequencyMemoryEnable THEN FreqMemory [BandOne, ModeOne] := FreqOne;
-        {LastRadioOneFreq := FreqOne;} {KK1L 6.71 NOTE Set in SetRadioFreq}
 
         Delay(200); {KK1L: 6.73}
 
@@ -1347,17 +1323,17 @@ VAR Band: BandType;
 
     IF ActiveRadio = RadioOne THEN
         BEGIN
-        CalculateBandMode (LastRadioOneFreq, Band, Mode);
+        CalculateBandMode (StableRadio1Freq, Band, Mode);
 
         IF (Band = ActiveBand) AND (Mode = ActiveMode) THEN
-            FreqMemory [ActiveBand, ActiveMode] := LastRadioOneFreq;
+            FreqMemory [ActiveBand, ActiveMode] := StableRadio1Freq;
         END
     ELSE
         BEGIN
-        CalculateBandMode (LastRadioTwoFreq, Band, Mode);
+        CalculateBandMode (StableRadio2Freq, Band, Mode);
 
         IF (Band = ActiveBand) AND (Mode = ActiveMode) THEN
-            FreqMemory [ActiveBand, ActiveMode] := LastRadioTwoFreq;
+            FreqMemory [ActiveBand, ActiveMode] := StableRadio2Freq;
         END;
     END;
 

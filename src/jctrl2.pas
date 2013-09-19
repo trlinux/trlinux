@@ -866,8 +866,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       URF: UpdateRestartFileEnable := NOT UpdateRestartFileEnable;
 
-      UBC: UseBIOSKeyCalls := NOT UseBIOSKeyCalls;
-
       UIS: BEGIN
            Inc (UserInfoShown);
            IF UserInfoShown > CustomInfo THEN UserInfoShown := NoUserInfo;
@@ -1255,7 +1253,6 @@ VAR FileWrite: TEXT;
                WriteLn (FileWrite, 'FALSE');
 
       URF: WriteLn (FileWrite, UpdateRestartFileEnable);
-      UBC: WriteLn (FileWrite, UseBIOSKeyCalls);
 
       UIS: CASE UserInfoShown OF
                NoUserInfo:       WriteLn (Filewrite, 'NONE');
@@ -1603,8 +1600,6 @@ VAR TempString: Str40;
       TRM: IF TwoRadioState <> TwoRadiosDisabled THEN TempString := 'TRUE';
 
       URF: IF UpdateRestartFileEnable THEN TempString := 'TRUE';
-
-      UBC: IF UseBIOSKeyCalls THEN TempString := 'TRUE';
 
       UIS: CASE UserInfoShown OF
                NoUserInfo:       TempString := 'NONE';
