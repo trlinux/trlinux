@@ -185,6 +185,7 @@
 - Fixed writing SO2R box commands to LOGCFG.DAT from control-j menu.
 
 0.25
+- Fixed YCCC SO2R box keyer defaults not being set from LOGCFG.DAT
 - Removed USE BIOS KEY CALLS configuration parameter since direct reading
   of BIOS memory wouldn't work on a real operating system anyway. 
 - Fixed bug in original 6.76 code where packet spots were given the wrong
