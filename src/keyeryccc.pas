@@ -277,6 +277,7 @@ tempstring := nil;
    sendcmd(CMD_KEYER_PTT_PRE,PTTTurnOnDelay);
    sendcmd(CMD_SO2R_BLEND,blend);
    sendcmd(CMD_KEYER_SPEED,codespeed);
+   sendcmd(CMD_KEYER_PTT_POST,15); //just set to 15 ms
    if map1 <> 0 then
    begin
       map.val := 0;
@@ -340,7 +341,7 @@ end;
 
 Procedure YcccKeyer.SetPTTTurnOnDelay(delay: integer);
 begin
-   PTTTurnOnDelay := round(real(delay)*0.17);
+   PTTTurnOnDelay := round(real(delay)*1.7);
    if PTTTurnOnDelay > 255 then PTTTurnOnDelay := 255;
    if KeyerInitialized then 
    begin
@@ -350,7 +351,7 @@ end;
 
 Function YcccKeyer.GetPTTTurnOnDelay:integer;
 begin
-   GetPTTTurnOnDelay := Round(10.0*real(PTTTurnOnDelay)/1.7);
+   GetPTTTurnOnDelay := Round(real(PTTTurnOnDelay)/1.7);
 end;
 
 Procedure YcccKeyer.SetActiveRadio(r: RadioType);

@@ -194,3 +194,9 @@
   was calculated incorrectly.
 - Fixed bug in original 6.76 code where FT847 and FT817 frequencies were
   not updated correctly.
+
+0.26
+- Fixed YCCC SO2R box keyer weight being reported incorrectly in
+  control-j menu.
+- Fixed YCCC SO2R box PTT turn on time setting.
+- Set YCCC SO2R box PTT turn off time to 15ms
