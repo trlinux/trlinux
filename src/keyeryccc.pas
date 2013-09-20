@@ -335,7 +335,7 @@ end;
 
 Function YcccKeyer.GetWeight:real;
 begin
-   GetWeight := 50.0*(real(weight)/(128.0));
+   GetWeight := real(weight)/(128.0);
 end;
 
 Procedure YcccKeyer.SetPTTTurnOnDelay(delay: integer);
