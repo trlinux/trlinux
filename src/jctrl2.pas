@@ -1698,15 +1698,8 @@ VAR FirstEntryShown, MenuEntry, ActiveLine: MenuEntryType;
     BEGIN
     ChangedRemainingMults := False;
 
-    { For some reason the next loop will get a range error if range checking
-      was on.  However, with it off, it seems to work just fine. }
-
-    {$R-}
-
     FOR MenuEntry := NoMenuEntry TO LastMenuEntry DO
-        Changed [ActiveLine] := False;
-
-    {$R+}
+        Changed [MenuEntry] := False;
 
     NoCursor;
     RemoveWindow (EditableLogWindow);

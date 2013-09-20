@@ -168,7 +168,7 @@ begin
 end;
 
 function soundthread(p : pointer) : ptrint;  
-var hz,hzold,modetmp: longint;
+var hz,hzold: longint;
     count: longint = 0;
     i: integer;
     req,rem: timespec;
@@ -317,7 +317,6 @@ end;
 
 procedure playfile(f: pchar); 
 var ftemp: pchar;
-   ftempx: pchar;
 begin
    ftemp := f;
    interlockedexchange(filename,ftemp);
