@@ -200,3 +200,9 @@
   control-j menu.
 - Fixed YCCC SO2R box PTT turn on time setting.
 - Set YCCC SO2R box PTT turn off time to 15ms
+
+0.27
+- Fixed setting the keyer weight. This fixes a bug in setting keyer weight
+  introduced in the first winkeyer version when the different keyers
+  were separated. 
+- Made PTT PADDLE HOLD COUNT work with the YCCC SO2R box keyer.
