@@ -3302,6 +3302,7 @@ FUNCTION ProcessConfigInstructions3 (ID: Str80; CMD: STRING): BOOLEAN;
 
 VAR Result,tempint: INTEGER;
     tempstring: string;
+    tempreal: real;
 
     BEGIN
     IF (ID = 'S&P EXCHANGE') OR (ID = 'S&P CW EXCHANGE') THEN
@@ -3728,10 +3729,10 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'WEIGHT' THEN
         BEGIN
-        Val (CMD, tempint, Result);
-        CPUKeyer.setWeight(tempint);
-        Winkey.setWeight(tempint);
-        Yccckey.setWeight(tempint);
+        Val (CMD, tempreal, Result);
+        CPUKeyer.setWeight(tempreal);
+        Winkey.setWeight(tempreal);
+        Yccckey.setWeight(tempreal);
         ProcessConfigInstructions3 := True;
         Exit;
         END;

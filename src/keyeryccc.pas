@@ -47,6 +47,9 @@ TYPE
         CountsSinceLastCW: LONGINT;
         PTTEnable:              BOOLEAN;
         PTTTurnOnDelay:         INTEGER;
+        PaddlePTTHold: integer;
+        PaddlePTTHoldCount: integer;
+        NormalPTTHold: integer;
         TuningWithDits:           BOOLEAN;
         Tuning:             BOOLEAN;
         TuneWithDits:       BOOLEAN;
@@ -187,7 +190,7 @@ begin
    PaddleBug := false;
    KeyerInitialized := False;
    Tuning := False;
-   Weight := 50;
+   Weight := 128;
    PTTFootSwitch := False;
    TuningWithDits := False;
    TuneWithDits := False;
@@ -195,6 +198,9 @@ begin
    CurtMode := ModeB;
    PTTEnable := false;
    PTTTurnOnDelay := 0;
+   NormalPTTHold := 15; //ms
+   PaddlePTTHold := 13; //dit counts
+   PaddlePTTHoldCount := -1;
    swappaddles := false;
    CurtMode := ModeB;
    keyer_config.val := 0; //zero all bits
@@ -277,7 +283,8 @@ tempstring := nil;
    sendcmd(CMD_KEYER_PTT_PRE,PTTTurnOnDelay);
    sendcmd(CMD_SO2R_BLEND,blend);
    sendcmd(CMD_KEYER_SPEED,codespeed);
-   sendcmd(CMD_KEYER_PTT_POST,15); //just set to 15 ms
+   sendcmd(CMD_KEYER_PTT_POST,NormalPTTHold);
+   sendcmd(CMD_KEYER_WEIGHT,weight);
    if map1 <> 0 then
    begin
       map.val := 0;
@@ -376,11 +383,12 @@ end;
 
 Procedure YcccKeyer.SetPaddlePttHoldCount(Count: INTEGER);
 begin
+   PaddlePTTHold := count;
 end;
 
 Function YcccKeyer.GetPaddlePttHoldCount:integer;
 begin
-   GetPaddlePttHoldCount := 0;
+   GetPaddlePttHoldCount := PaddlePTTHold;
 end;
 
 Procedure YcccKeyer.PTTForceOn;
@@ -765,7 +773,7 @@ begin
          CMD_KEYER_ABORT:
          begin
             abortreason.val := responsebuffer[responsebufferstart].val;
-            if (abortreason.command = M_KEYER_ABORT_PADDLE) then flushlocal;
+            if (abortreason.paddle = 1) then flushlocal;
          end;
  
          CMD_SO2R_SWITCHES:
@@ -802,12 +810,19 @@ begin
                   idle := false;
                   doingpaddle := true;
                   flushlocal;
+                  if pttenable then
+                  begin
+                     paddlepttholdcount := round(714.0/codespeed)*paddlePTThold;
+                     so2r_state.ptt := 1; //force ptt on for hold count
+                     sendcmd(CMD_SO2R_STATE,so2r_state.val);
+                  end;
                end;
             end;
          end;
       end;
       responsebufferstart := (responsebufferstart+1) mod ResponseBufferSize;
    end;
+
 
    while (mirror = 0) and (not doingpaddle)
        and (cwbufferstart <> cwbufferend) do
@@ -869,7 +884,11 @@ begin
       sendcmd(CMD_SO2R_STATE,so2r_state.val);
    end;
 
-   if (not pttforcedon) and (so2r_state.ptt = 1) then
+   if (not doingpaddle) and (paddlePTTholdcount >= 0) then
+      dec(paddlePTTholdcount);
+
+   if (not pttforcedon) and (so2r_state.ptt = 1)
+      and (paddlepttholdcount = 0) then
    begin
       so2r_state.ptt := 0;
       sendcmd(CMD_SO2R_STATE,so2r_state.val);
