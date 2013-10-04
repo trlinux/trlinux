@@ -1,83 +1,61 @@
 CALIFORNIA COUNTIES AND STATES (for W6 in CQP)
 
 
-Ak   = AK, ALK, KL7, ALAS
-Al   = AL, ALAB
-Ar   = AR
-Az   = ARI, AZ
-
-
-But  > Ca = B
-
 Alam > Ca = ALA
-Alp  > Ca = ALP
+Alpi > Ca = ALP
 Amad > Ca = AM
+Ak = AK, ALK, KL7, ALAS
+Al = AL, ALAB
+Ar = AR
+Az = ARI, AZ
+
+Butt > Ca = B
 
 Cala > Ca = CA, CL
-CCon > Ca = CC, CONT
+Ccos > Ca = CC, CONT
 Colu > Ca = COLU
-
 Co = CO
 Ct = CT, CONN
 
-
 DelN > Ca = DELN, DN
-
 De = DE
-
 
 ElDo > Ca = E
 
-
 Fres > Ca = F
-
 Fl = FL
 
-
 Glen > Ca = G
-
 Ga = GA, GEO
 
-
-Hum  > Ca = HU
-
+Humb > Ca = HU
 Hi = HA, HI, KH6, HAW
 
-
-Imp  > Ca = IM
+Impe > Ca = IM
 Inyo > Ca = INY
-
 Ia = IA, IO
 Id = ID
 Il = IL
 In = IN
 
-
 Kern > Ca = KER
 King > Ca = KI
-
 Ks = KA, KS
 Ky = KY, KEN
 
-
 Lake > Ca = LAK
-Las  > Ca = LAS
-LAng > Ca = LAX, LOS
-
-
+Lass > Ca = LAS
+LAng > Ca = LAX, LOS, LAN
 La = LA, LOU
 
-
-Mad   > Ca = MAD
-Marin > Ca = MARIN, MARN
-Marip > Ca = MARIP
-Men   > Ca = MEN
-Mer   > Ca = MER
-Modoc > Ca = MOD
-Mono  > Ca = MONO
-Mont  > Ca = MONT
-
-
+Made > Ca = MAD
+Marn > Ca = MARIN, MARN
+Marp > Ca = MARIP, MARP
+Mend > Ca = MEN
+Merc > Ca = MER
+Modo > Ca = MOD
+Mono > Ca = MONO
+Mont > Ca = MONT
 Ma = MA, MAS
 Md = MD, MARY
 Me = ME, MAI
@@ -87,10 +65,8 @@ Mo = MO, Misso
 Ms = MS, MISS
 Mt = MT, Monta
 
-
 Napa > Ca = NA
-Nev  > Ca = NEV
-
+Neva > Ca = NEV
 Nc = NC
 Nd = ND
 Ne = NE
@@ -100,68 +76,49 @@ Nm = NM
 Nv = NV
 Ny = NY
 
-
-Org  > Ca = ORG, ORA
-
+Oran > Ca = ORG, ORA
 Oh = OH
 Ok = OK
 Or = OR
 
-
-Pla > Ca = PLA
-Plu > Ca = PLU
-
+Plac > Ca = PLA
+Plum > Ca = PLU
 Pa = PA, PENN
 
-Riv > Ca = RIV
-
+Rive > Ca = RIV
 Ri = RI, RH
 
-
-Sac  > Ca = SA
-SBar > Ca = SBA
+Sacr  > Ca = SA
 SBen > Ca = SBEN
 SBer > Ca = SBER
+SDie > Ca = SDG, SDI, SAND
+SFra > Ca = SF
+SJoa > Ca = SJ
+SLui > Ca = SL
+SMat > Ca = SM
+SBar > Ca = SBA
 SCla > Ca = SCL, SCV
 SCru > Ca = SCR
-SDgo > Ca = SDG, SDI, SAND
-Sf   > Ca = SF
 Shas > Ca = SH
 Sier > Ca = SIE
 Sisk > Ca = SIS
-SJoq > Ca = SJ
-Slo  > Ca = SL
-SMat > Ca = SM
-Sol  > Ca = SOL
-Son  > Ca = SON
+Sola > Ca = SOL
+Sono > Ca = SON
 Stan > Ca = ST
-Sut  > Ca = SU
-
+Sutt > Ca = SU
 Sc = SC
 Sd = SD
 
-
-Teh  > Ca = TEH
-Tri  > Ca = TR
-Tul  > Ca = TUL
+Teha > Ca = TEH
+Trin > Ca = TR
+Tula > Ca = TUL
 Tuol > Ca = TUO
-
 Tn = TN, TENN
 Tx = TX, TEX
 
 Ut = UT
 
 Vent > Ca = VEN
-
-Ve1 = VE1, LAB, MAR, NB, NF, NS, PEI, VO, VY2, VE9
-Ve2 = VE2, PQ, QU, QC
-Ve3 = VE3, ON
-Ve4 = VE4, MB, MAN
-Ve5 = VE5, SK, SAS
-Ve6 = VE6, AB, ALT
-Ve7 = VE7, BC
-Ve8 = VE8, NWT, YUK, YK, YT, VY1
-
 Va = VA, VIR
 Vt = VT, VER
 
@@ -173,4 +130,11 @@ Wy = WY
 Yolo > Ca = YO
 Yuba > Ca = YU
 
-
+Mr = VE1, VE9, VY2, LAB, MAR, NB, NF, NL, NS, PE, VO, MR
+Qc = VE2, PQ, QU, QC
+On = VE3, ON
+Mb = VE4, MB, MAN
+Sk = VE5, SK, SAS
+Ab = VE6, AB, ALT
+Bc = VE7, BC
+Nt = VE8, VY1, NT, NU, NWT, YUK, YK, YT

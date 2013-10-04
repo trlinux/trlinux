@@ -1,15 +1,15 @@
-CALIFORNIA COUNTIES
+CALIFORNIA COUNTIES (for non-W6 in CQP)
 
 
 Alam = ALA
-Alp  = ALP
+Alpi = ALP
 Amad = AM
 
-But  = B
+Butt = B
 
 Cala = CA, CL
-CCon = CC, CONT
 Colu = CO
+CCos = CC, CONT
 
 DelN = D
 
@@ -19,60 +19,60 @@ Fres = F
 
 Glen = G
 
-Hum  = H
+Humb = H
 
-Imp  = IM
+Impe = IM
 Inyo = IN
 
 Kern = KE
 King = KI
 
 Lake = LAK
-Las  = LAS
+Lass = LAS
 LAng = LA, LOS, LAX
 
 
-Mad   = MAD
-Marin = MARIN, MARN
-Marip = MARIP, MARP
-Men   = MEN
-Mer   = MER
-Modoc = MOD
-Mono  = MONO
-Mont  = MONT
+Made = MAD
+Marn = MARIN, MARN
+Marp = MARIP, MARP
+Mend = MEN
+Merc = MER
+Modo = MOD
+Mono = MONO
+Mont = MONT
 
 Napa = NA
-Nev  = NEV
+Neva = NEV
 
-Org  = O
+Oran = O
 
-Pla = PLA
-Plu = PLU
+Plac = PLA
+Plum = PLU
 
-Riv = R
+Rive = R
 
-Sac  = SA
-SBar = SBA
+Sacr = SA
 SBen = SBEN
 SBer = SBER
+SDie = SD
+SFra = SF
+SJoa = SJ
+SLui = SL
+SMat = SM
+SBar = SBA
 SCla = SCL, SCV
 SCru = SCR
-SDgo = SD
-Sf   = SF
 Shas = SH
 Sier = SIE
 Sisk = SIS
-SJoq = SJ
-Slo  = SL
-SMat = SM
-Sol  = SOL
-Son  = SON
+Sola = SOL
+Sono = SON
 Stan = ST
-Sut  = SU
+Sutt = SU
 
-Teh  = TE
-Tri  = TR
-Tul  = TUL
+Teha = TE
+Trin = TR
+Tula = TUL
 Tuol = TUO
 
 Vent = V

@@ -15,17 +15,32 @@ Tempe, AZ 85283 USA\\
 \maketitle
 \section{Original program structure}
 TR was written for DOS on 286 and later 386 class machines. This
-has three major consequences that deeply affect the way I have
+had major consequences that deeply affected the way I have
 implemented the linux port.
+\begin{itemize}
+\item
+DOS was limited to 640 Kbytes of memory. Later extended/expanded
+memory was available, but is was more difficult to use, and DOS TR
+did not use it.
+\item
+In DOS only a single program ran at a time. Since no other process
+can interrupt you, the timing is not a problem.
+\item
+DOS didn't have the concept of different users having different
+permissions or any security.
+All DOS programs can directly manipulate any and all hardware on the
+computer.
+\end{itemize}
 
-The first is with the very limited
-memory available i.e. about 640 kilobytes, in the original code
+With the very limited
+memory available 
 information needed by more than one routine in the code was almost
-always stored in public variables in the Pascal units. Many, units
+always stored in global public variables in the Pascal units. Many, units
 are included by most other units, which essentially makes all of these
 variables global to the entire program.  The major consequence of this
 is that these variables cannot be manipulated or changed without a
-more or less global understanding of the entire program. It is very
+more or less global understanding of the entire program. Without
+this understanding, it is very
 easy to make a local change that inadvertently breaks another part of the
 code.
 
@@ -37,7 +52,7 @@ then possible to encapsulate different parts of the code to make modification
 easier. This however, needs to be done in a way that doesn't break the
 code. That means it will be done slowly.
 
-With DOS being a single process operating system, the second consequence is
+With DOS being a single process operating system, a second consequence is
 that TR under DOS could have completely well defined timing. TR under DOS
 took over the timer interrupt, and used this to send CW, communicate with
 the rigs, packet, etc. While there are real time kernels for linux,
@@ -93,10 +108,13 @@ because the computer has been busy doing other things, caughtup will be
 false. This allows each timer procedure to only process critical items
 in an attempt to get better real time performance.
 \end{itemize}
+
 More work needs to be done on the timer routine to be able to remove
-timers, etc. Right only the original timer routine is added with addtimer.
+timers, etc. Right now only the original timer routine is added with addtimer.
 All other timer routines are called by it. That should be changed.
 I think that eventually, the timers should be replaced
 with threads.
+
+
 
 \end{document}
