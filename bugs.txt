@@ -1,0 +1,57 @@
+
+4 July 2013 K5TR
+Mode switching from the program does not seem to work on 6 meters
+and up - it does not change the mode on the radio.
+KES -- still open -- I don't understand
+
+Some of the ALT commands do not work if I have the 'caps lock' key on.
+Like ALT-C or ALT-Q or ALT-S or ALT-H
+KES -- Tried to fix this, but broke F1 etc. need to do this more carefully
+
+
+9 July 2013 K5TR
+I can not get the left control-shift to put the radio in tune.
+Is this a winkeyer link that is not programed in?
+KES (with caps lock/num lock) -- fixed in 0.21.
+
+23 July 2013 K5TR
+Another bug to add to the list I think.
+
+I am here at my station with K5OT and we are trying to
+get the inactive radio CQ and other similar CW messages to work.
+
+Adding CTL-A to a message memory seems to do the radio switch stuff
+but the winkeyer does not send code.  I am thinking this is a winkeyer
+issue now that I think about it.
+
+Also the control (special) characters do not display in
+the messages in the xterm window as they do in MSDOS.  I am not
+sure there is a way to do anything about that or not - it was
+useful in DOS to see them to confirm they are there.
+
+24 July 2013 DH5FS
+- CTRL-Shift Tune does not work, just sends out a dit
+- NEXTBANDMAP works, but its very slow...usually I switch VY fast trough
+the bandmap ;-)
+- INITIAL.EX does not get read and consequently doesnt show information
+  I think this works correctly. It is only read when there is no RESTART.BIN
+  or equivalent.
+
+9 September 2013
+K5TR
+program crashes on logging of a call with no TRMASTER.DTA. Crashes on
+3 character of call with SCP MINIMUM LETTERS = 3
+
+18 September 2013
+K5TR found a packet spot frequency bug. This led to uncovering a whole
+slough of problems with the frequency stuff. I rewrote some of this,
+but I have not changed the frequencyadder. It is still messed up.
+
+1 November 2013
+When he tunes up past 14.350 and out of the band the program
+just closes - xterm window disappears. 
+-I haven't  been able to reproduce this. I only tried on the 32 bit version
+
+17 November 2013
+K5TR reports bandmap flashing with incoming packet spots. This may
+be related to other flashing issues where 
