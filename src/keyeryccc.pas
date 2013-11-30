@@ -888,7 +888,7 @@ begin
       dec(paddlePTTholdcount);
 
    if (not pttforcedon) and (so2r_state.ptt = 1)
-      and (paddlepttholdcount = 0) then
+      and (paddlepttholdcount <= 0) then
    begin
       so2r_state.ptt := 0;
       sendcmd(CMD_SO2R_STATE,so2r_state.val);
