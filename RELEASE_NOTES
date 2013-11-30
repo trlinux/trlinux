@@ -206,3 +206,6 @@
   introduced in the first winkeyer version when the different keyers
   were separated. 
 - Made PTT PADDLE HOLD COUNT work with the YCCC SO2R box keyer.
+
+0.28
+- Fixed bug where ptt would not release in yccc box.
