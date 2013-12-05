@@ -1,7 +1,6 @@
 UNIT LogHelp;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -91,7 +90,7 @@ function paralleladdress(i: integer):integer;cdecl;external;
 PROCEDURE TellMeMyGrid;
 
 VAR LatString, LonString: Str40;
-    Result: INTEGER;
+    xResult: INTEGER;
     Lat, Lon: REAL;
 
     BEGIN
@@ -101,13 +100,13 @@ VAR LatString, LonString: Str40;
         WriteLn;
         LatString := GetResponse ('Enter lat (minus is south - none to quit) : ');
         IF LatString = '' THEN Exit;
-        Val (LatString, Lat, Result);
-        IF Result <> 0 THEN Exit;
+        Val (LatString, Lat, xResult);
+        IF xResult <> 0 THEN Exit;
 
         LonString := GetResponse ('Enter lon (minus is east) : ');
         IF LonString = '' THEN Exit;
-        Val (LonString, Lon, Result);
-        IF Result <> 0 THEN Exit;
+        Val (LonString, Lon, xResult);
+        IF xResult <> 0 THEN Exit;
 
         WriteLn ('Grid is ', ConvertLatLonToGrid (Lat, Lon));
     UNTIL False;
@@ -115,8 +114,7 @@ VAR LatString, LonString: Str40;
 
 PROCEDURE UUDecode;
 
-VAR Mode: Str20;
-    OutFileName, InputfileName: Str80;
+VAR OutFileName, InputfileName: Str80;
     CharacterPointer: INTEGER;
     FileRead: TEXT;
     FileWrite: FILE;
@@ -151,7 +149,7 @@ VAR Mode: Str20;
 
    FileString := UpperCase (FileString);
    FileString := PostcedingString (FileString, 'BEGIN ');
-   Mode := RemoveFirstString (FileString);
+   RemoveFirstString (FileString);
    OutFileName := RemoveFirstString (FileString);
 
    IF OutFileName = '' THEN
@@ -502,7 +500,7 @@ VAR TempString, LastFirstString, LastSecondString, FileString: Str80;
 FUNCTION GetLogEntryQSONumberReceived (FileString: Str80): INTEGER;
 
 VAR Exchange: Str40;
-    QSONumber, Result: INTEGER;
+    QSONumber, xResult: INTEGER;
 
     BEGIN
     Exchange := GetLogEntryExchangeString (FileString);
@@ -512,9 +510,9 @@ VAR Exchange: Str40;
     Exchange := PostcedingString (Exchange, ' ');
     GetRidOfPrecedingSpaces  (Exchange);
     GetRidOfPostcedingSpaces (Exchange);
-    Val (Exchange, QSONumber, Result);
+    Val (Exchange, QSONumber, xResult);
 
-    IF Result = 0 THEN
+    IF xResult = 0 THEN
         GetLogEntryQSONumberReceived := QSONumber
     ELSE
         GetLogEntryQSONumberReceived := 0;
@@ -528,8 +526,8 @@ VAR Band: BandType;
     Mode: ModeType;
     FileRead: TEXT;
     LastQTCTime: Str20;
-    FileString, Exchange, TempString: Str80;
-    QSOPoints, TotalQTCs, QSONumber, Line, LastQTCQSONumber, Result: INTEGER;
+    FileString: Str80;
+    QSOPoints, LastQTCQSONumber: INTEGER;
     LogQSONumber, LogTime: INTEGER;
     Call, LogCall, LastQTCCall: CallString;
     Started: BOOLEAN;
@@ -557,7 +555,7 @@ VAR Band: BandType;
         BEGIN
         New (PendingQTCArray);
 
-        TotalQTCs := TotalNumberQTCsProcessed;  { TotalNumberQTCs is a FUNCTION }
+        TotalNumberQTCsProcessed;  { TotalNumberQTCs is a FUNCTION }
         NextQTCToBeSent  := 0;
         NextQTCToBeAdded := 0;
         NumberQTCBooksSent := 0;
@@ -606,7 +604,6 @@ VAR Band: BandType;
 PROCEDURE SaveQTCDataFile;
 
 VAR FileWrite: TEXT;
-    TempString: Str80;
     Station: INTEGER;
 
     BEGIN
@@ -626,7 +623,7 @@ VAR FileWrite: TEXT;
 PROCEDURE AddReminder;
 
 VAR TimeString, DayString, DateString, ReminderString: Str80;
-    Result: INTEGER;
+    xResult: INTEGER;
     FileWrite: TEXT;
 
     BEGIN
@@ -655,7 +652,7 @@ VAR TimeString, DayString, DateString, ReminderString: Str80;
     Reminders^ [NumberReminderRecords].DayString  := '';
     Reminders^ [NumberReminderRecords].Alarm := False;
 
-    Val (TimeString, Reminders^ [NumberReminderRecords].Time, Result);
+    Val (TimeString, Reminders^ [NumberReminderRecords].Time, xResult);
 
     IF StringHas (UpperCase (DateString), 'ALARM') THEN
         BEGIN
@@ -791,6 +788,8 @@ VAR FileRead, FileWrite: TEXT;
         Directory := FindDirectory ('trlog');
 
         UserNameString := GetResponse ('Please enter your name and call : ');
+        AddressString := GetResponse ('Please enter your street address: ');
+        CityString := GetResponse ('Please enter your city and state/province/country: ');
 
         IF UserNameString = '' THEN Halt;
 
@@ -806,13 +805,12 @@ PROCEDURE LoopBackTest;
 
 VAR Key, RXChar: CHAR;
     BaudString: Str20;
-    BaudRate, Result: LONGINT;
+    BaudRate, xResult: LONGINT;
     SevenBitMode: BOOLEAN;
     Parity: ParityType;
     FileWrite: FILE;
     dev: str80;
     p : serialportx;
-    c : char;
 
     BEGIN
     ClrScr;
@@ -837,7 +835,7 @@ VAR Key, RXChar: CHAR;
           (BaudString = '9600') OR (BaudString = '19200') OR
           (BaudString = '57600');
 
-    Val (BaudString, BaudRate, Result);
+    Val (BaudString, BaudRate, xResult);
 
     REPEAT
         Key := UpCase (GetKey ('7 or 8 bits? : '));
@@ -907,11 +905,10 @@ PROCEDURE PortToFile;
 VAR Key: CHAR;
     FileName, BaudString: Str20;
     FileWrite: FILE;
-    Result, BaudRate: LONGINT;
+    xResult, BaudRate: LONGINT;
     RChar: CHAR;
     dev: str80;
     p : serialportx;
-    c : char;
 
     BEGIN
     ClrScr;
@@ -945,7 +942,7 @@ VAR Key: CHAR;
     ReWrite (FileWrite, 1);
 
 
-    Val (BaudString, BaudRate, Result);
+    Val (BaudString, BaudRate, xResult);
 
     p := serialportx.create(dev);
     p.setparams(BaudRate,8,NoParity,1);
@@ -969,7 +966,7 @@ VAR Key: CHAR;
         IF p.CharReady THEN
             BEGIN
             RChar := p.ReadChar;
-            BlockWrite (FileWrite, RChar, SizeOf (RChar), Result);
+            BlockWrite (FileWrite, RChar, SizeOf (RChar), xResult);
             Write (RChar);
             END;
 
@@ -1082,7 +1079,7 @@ PROCEDURE EditWindowEditor (VAR EditLines: LogEntryArray;
                             CursorX: INTEGER; CursorY: INTEGER;
                             VAR DataChanged: BOOLEAN);
 
-VAR CharPointer, CursorPosition, InsertCursorPosition, NewCursor, Line: INTEGER;
+VAR CursorPosition, NewCursor, Line: INTEGER;
     PreviousCursorChar: CHAR;
     WindowString, TempString: Str160;
     KeyChar: CHAR;
@@ -1498,9 +1495,8 @@ PROCEDURE LoadPageBuffer (BufferNumber: INTEGER);
   from the file indicated by FileRead.  If the end of the file is found,
   the rest of the PageBuffer will be blank. }
 
-VAR Result, NumberLines: INTEGER;
+VAR NumberLines: INTEGER;
     FileChar: CHAR;
-    TempString: Str80;
 
     BEGIN
     TextBuffer [BufferNumber]^.NumberChars := 0;
@@ -1647,7 +1643,7 @@ PROCEDURE ViewRadioDebug;
 VAR Key: CHAR;
     FileString, FileName, TempString: STRING;
     FileRead: FILE;
-    Lines, RecordNumber, Result: INTEGER;
+    Lines, RecordNumber, xResult: INTEGER;
     Band: BandType;
     Mode: ModeType;
     Freq: LONGINT;
@@ -1728,7 +1724,7 @@ VAR Key: CHAR;
 
     WHILE NOT Eof (FileRead) DO
         BEGIN
-        BlockRead (FileRead, FileString, SizeOf (FileString), Result);
+        BlockRead (FileRead, FileString, SizeOf (FileString), xResult);
 
         IF GetRadioParameters (RadioOne, FileString, Freq, Band, Mode, TRUE, False) THEN
             BEGIN
@@ -1898,9 +1894,8 @@ VAR Buffer: INTEGER;
 
 PROCEDURE SetAlarm;
 
-VAR Hour, Minute, Second, Sec100: Word;
-    TempString, HourTempString, MinuteTempString: Str80;
-    CharPointer, Result, Year, Month, Day: INTEGER;
+VAR TempString, HourTempString, MinuteTempString: Str80;
+    CharPointer, xResult: INTEGER;
 
     BEGIN
     IF AlarmSet THEN
@@ -1944,8 +1939,8 @@ VAR Hour, Minute, Second, Sec100: Word;
     MinuteTempString [2] := TempString [CharPointer];
     MinuteTempString [0] := Chr (2);
 
-    Val (HourTempString, AlarmHour, Result);
-    Val (MinuteTempString, AlarmMinute, Result);
+    Val (HourTempString, AlarmHour, xResult);
+    Val (MinuteTempString, AlarmMinute, xResult);
 
     RemoveAndRestorePreviousWindow;
     SaveSetAndClearActiveWindow (AlarmWindow);
@@ -2598,7 +2593,7 @@ PROCEDURE HexConvert;
 
 VAR TempString: Str20;
     TempInt: LONGINT;
-    Result: INTEGER;
+    xResult: INTEGER;
 
     BEGIN
     ClearScreenAndTitle ('CONVERT NUMBERS TO/FROM HEX');
@@ -2618,12 +2613,12 @@ VAR TempString: Str20;
         IF StringHas (TempString, 'H') THEN
             BEGIN
             Delete (TempString, Pos ('H', TempString), 1);
-            HexToLongInteger (TempString, TempInt, Result);
+            HexToLongInteger (TempString, TempInt, xResult);
             WriteLn (TempInt);
             END
         ELSE
             BEGIN
-            Val (TempString, TempInt, Result);
+            Val (TempString, TempInt, xResult);
             WriteHexLongInt (TempInt);
             WriteLn;
             END;
@@ -2866,7 +2861,7 @@ end;
 PROCEDURE IoPort;
 
 VAR TempString, PortString, OutputString: Str80;
-    OutputValue, InputValue, PortAddress, Result: INTEGER;
+    OutputValue, InputValue, PortAddress, xResult: INTEGER;
     LoopMode: BOOLEAN;
     Key: CHAR;
 
@@ -2889,9 +2884,9 @@ VAR TempString, PortString, OutputString: Str80;
         IF (TempString [1] = 'I') OR (TempString [1] = 'O') THEN
             BEGIN
             PortString := GetResponse ('Hex address : ');
-            HexToInteger (PortString, PortAddress, Result);
+            HexToInteger (PortString, PortAddress, xResult);
 
-            IF Result = 0 THEN
+            IF xResult = 0 THEN
                 BEGIN
                 CASE TempString [1] OF
 
@@ -2933,9 +2928,9 @@ VAR TempString, PortString, OutputString: Str80;
 
                     'O': BEGIN
                          OutputString := GetResponse ('Enter hex value to output : ');
-                         HexToInteger (OutputString, OutputValue, Result);
+                         HexToInteger (OutputString, OutputValue, xResult);
 
-                         IF Result = 0 THEN
+                         IF xResult = 0 THEN
                              BEGIN
                              WriteLn ('Output ', OutputString, ' to ', PortString);
                              REPEAT
@@ -2990,10 +2985,9 @@ PROCEDURE PassThrough;
 
 VAR Key: CHAR;
     BaudString: Str20;
-    Result, BaudRate: LONGINT;
+    xResult, BaudRate: LONGINT;
     dev: str80;
     p1,p2 : serialportx;
-    c : char;
 
     BEGIN
     ClrScr;
@@ -3011,7 +3005,7 @@ VAR Key: CHAR;
           (BaudString = '9600');
 
     WriteLn;
-    Val (BaudString, BaudRate, Result);
+    Val (BaudString, BaudRate, xResult);
 
     REPEAT
         Key := UpCase (GetKey ('Enter number of bits (7 or 8) : '));
@@ -3035,7 +3029,7 @@ VAR Key: CHAR;
           (BaudString = '9600');
 
     WriteLn;
-    Val (BaudString, BaudRate, Result);
+    Val (BaudString, BaudRate, xResult);
 
     REPEAT
         Key := UpCase (GetKey ('Enter number of bits (7 or 8) : '));
@@ -3078,6 +3072,7 @@ VAR SerialPort: serialportx;
     Time: TimeRecord;
 
     BEGIN
+    serialport := nil; //This routine doesn't work so kill warning message
     ClrScr;
     WriteLn ('Simulate large amounts of packet spots.');
     WriteLn;
@@ -3214,7 +3209,6 @@ PROCEDURE CoaxLength;
 
 VAR C1, C2, Avg, L1, L2, F1, F2: REAL;
     N: INTEGER;
-    Base: INTEGER;
 
     BEGIN
     ClrScr;

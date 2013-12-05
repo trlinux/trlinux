@@ -1,8 +1,7 @@
 PROGRAM ContestLoggingProgram;
+{$mode objfpc}
 
-{$F+}
 {$V-}
-{xxxx $M 24500, 0, 655360}
 
 {  To make TRTTY, change TREE.PAS so that RTY shows up between CW and SSB.
    Change the mode change command.
@@ -3405,8 +3404,29 @@ Uses
      xkb,
      radio,
      so2r,
-     keycode;
+     keycode,
+     sysutils;
 
+procedure dumpexceptioncallstack(e: exception);
+var
+   i: integer;
+   frames: ppointer;
+   report: string;
+begin
+   report := 'Program exception ' + lineending +
+      'Stacktrace:' + lineending + lineending;
+   if e <> nil then
+   begin
+      report := report + 'Exception class: ' + e.classname + lineending +
+         'Message: ' + e.message + lineending;
+   end;
+   report := report + backtracestrfunc(exceptaddr);
+   frames := exceptframes;
+   for i := 0 to exceptframecount-1 do
+     report := report + lineending+backtracestrfunc(frames[i]);
+   write(stderr,report);
+   halt;
+end;
 
 TYPE QTCActionType = (NoQTCAction, AbortThisQTC, SaveThisQTC);
 
@@ -3681,6 +3701,8 @@ VAR FileRead: TEXT;
 //   function paralleladdress(i: integer):integer;cdecl;external;
 
     BEGIN
+try
+begin
 
 {$IFDEF Debug}
 
@@ -3755,4 +3777,9 @@ VAR FileRead: TEXT;
     IF TempString <> '' THEN SetUpFileNames (TempString);
 
     OperateContest;
+end;
+except
+on e: exception do
+   dumpexceptioncallstack(e);
+end;
     END.

@@ -1242,6 +1242,7 @@ var
     if j=0 then
      j:=length(hstr);
     val(copy(hstr,3,j-3),k,code);
+    if code <> 0 then k := 0; //This shouldn't happen
     Delete(hstr,3,j-2);
     if k=0 then
      k:=1;

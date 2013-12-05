@@ -1,7 +1,6 @@
 UNIT LogHP;
 
 {$O+}
-{$F+}
 
 INTERFACE
 

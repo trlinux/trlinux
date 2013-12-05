@@ -1,7 +1,6 @@
 UNIT PostSubs;
 
 {$F+}
-{$O+}
 {$V-}
 
 INTERFACE

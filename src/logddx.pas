@@ -1,7 +1,6 @@
 UNIT LogDDX;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -123,8 +122,7 @@ VAR ID, Call: CallString;
 
 FUNCTION GetRandomDDXCallsign (Exchange: ExchangeType): CallString;
 
-VAR Country: INTEGER;
-    CountryID, Call: CallString;
+VAR CountryID, Call: CallString;
 
     BEGIN
     Call := '';
@@ -1146,9 +1144,7 @@ VAR CorrectDDXCallSent: BOOLEAN;
 
 FUNCTION DDX (Activity: DDXActivity): BOOLEAN;
 
-VAR Key: CHAR;
-    QSONumber, QTH: Str20;
-    Tone: INTEGER;
+VAR Tone: INTEGER;
 
     BEGIN
     DDX := True;
@@ -1316,7 +1312,8 @@ VAR Key: CHAR;
                     millisleep;
                 UNTIL NOT CWStillBeingSent;
 
-                WHILE NewKeyPressed DO Key := NewReadKey;
+//                WHILE NewKeyPressed DO Key := NewReadKey;
+                WHILE NewKeyPressed DO NewReadKey;
 
                 DelayOrKeyPressed (200 + Random (200));
                 IF NewKeyPressed THEN Exit;

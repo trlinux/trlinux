@@ -5,8 +5,6 @@ PROGRAM PostContestLogProcessing;
 
 { See TR.PAS for revision log  }
 
-{F+}
-
 USES {Overlay,
      PostOnit,}
      memlinux,

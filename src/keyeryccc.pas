@@ -26,7 +26,7 @@ TYPE
         so2r_state: so2r_state_t;
         so2r_config: so2r_config_t;
         so2r_switches: so2r_switches_t;
-        hidbytes: Array [0..2] of byte;
+//        hidbytes: Array [0..2] of byte;
         nbytes: integer;
 
         snddata: array[0..DATA_SIZE] of byte;
@@ -222,7 +222,7 @@ Procedure YcccKeyer.InitializeKeyer;
 var 
    tempstring: ucs4string;
    rc: longint;
-   ifirm1,ifirm2: integer;
+//   ifirm1,ifirm2: integer;
    map: so2r_map_t;
 begin
    setlength(tempstring,MAX_STR);
@@ -952,12 +952,13 @@ begin
 end;
 
 procedure YcccKeyer.sendcmd(cmd: integer; val: integer);
-var rc: integer;
+//var rc: integer;
 begin
    snddata[0] := 0;
    snddata[1] := cmd;
    snddata[2] := val;
-   rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
+//   rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
+   hid_write(hiddev,@snddata[0],DATA_SIZE);
 
 //writeln(stderr,'sndcmd ',Inttohex(cmd,2),' ',Inttohex(val,2));
 //flush(stderr);
@@ -967,8 +968,8 @@ begin
 end;
 
 procedure YcccKeyer.readresponses;
-var n,i: integer;
-var i1,i2,i3: integer;
+var n: integer;
+//var i,i1,i2,i3: integer;
 begin
    while true do
    begin

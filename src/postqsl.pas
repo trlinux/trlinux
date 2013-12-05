@@ -1,7 +1,6 @@
 UNIT PostQSL;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE

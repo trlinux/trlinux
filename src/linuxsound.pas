@@ -177,7 +177,8 @@ var hz,hzold: longint;
     f,fx: pchar;
     soundfile: psndfile;
     info: tsf_info;
-    pl,m: longint;
+    m: longint;
+//  pl: longint;
     s,c,ds,dc,temp: real;
 begin  
   dsp := interlockedcompareexchange(dspopen,1,0);
@@ -254,7 +255,8 @@ begin
         f := interlockedexchange(filename,fx);
         if (f <> nil) then
         begin
-           pl := interlockedexchange(playing,1);
+//           pl := interlockedexchange(playing,1);
+           interlockedexchange(playing,1);
            soundfile := sf_open(f,SFM_READ,@info);
            if ( (info.channels = 2) and (info.samplerate = 44100)) then
            begin
@@ -280,7 +282,8 @@ begin
                  end;
               end;
               snd_pcm_drain(handle);
-              pl := interlockedexchange(playing,0);
+//              pl := interlockedexchange(playing,0);
+              interlockedexchange(playing,0);
            end
         end
         else

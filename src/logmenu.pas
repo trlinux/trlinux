@@ -1,7 +1,6 @@
 UNIT LogMenu;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -313,7 +312,7 @@ VAR Key: CHAR;
 
 FUNCTION SelectAvailableLog: Str20;
 
-VAR ActiveEntry, Entry, Address, BubbleCount, Index, StartX, StartY: INTEGER;
+VAR ActiveEntry, Entry, Address, BubbleCount, Index, StartY: INTEGER;
     NumberRows: INTEGER;
     Key: CHAR;
     TempString, EntryString: Str20;
@@ -349,7 +348,7 @@ VAR ActiveEntry, Entry, Address, BubbleCount, Index, StartX, StartY: INTEGER;
 
     { List the files and allow the user to select one of them }
 
-    StartX := WhereX;
+//    StartX := WhereX;
     StartY := WhereY;
     ActiveEntry := 0;
     EntryString := '';
@@ -469,7 +468,7 @@ VAR ActiveEntry, Entry, Address, BubbleCount, Index, StartX, StartY: INTEGER;
 
                         { List the files and allow the user to select one of them }
 
-                        StartX := WhereX;
+//                        StartX := WhereX;
                         StartY := WhereY;
                         ActiveEntry := 0;
                         EntryString := '';

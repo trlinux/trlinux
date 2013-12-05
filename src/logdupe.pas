@@ -4,7 +4,6 @@ UNIT LogDupe;
   of the methods required to use them. }
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -43,7 +42,7 @@ TYPE
         Age:           BOOLEAN;
         Chapter:       BOOLEAN;
         Check:         BOOLEAN;
-        Class:         BOOLEAN;
+        Classs:         BOOLEAN;
         Kids:          BOOLEAN;
         Name:          BOOLEAN;
         PostalCode:    BOOLEAN;
@@ -86,7 +85,7 @@ TYPE
           Callsign:       Str20;
           Chapter:        Str20;                      { QCWA Chapter }
           Check:          Str20;
-          Class:          Str20;                      { Field day class }
+          Classs:          Str20;                      { Field day class }
           DomesticMult:   BOOLEAN;
           DomMultQTH:     DomesticMultiplierString;
           DomesticQTH:    Str20;
@@ -466,7 +465,6 @@ FUNCTION FoundDomesticQTH (VAR RXData: ContestExchange): BOOLEAN;
   ActiveDomesticMultiplier to see what type of domestic mult it is.  }
 
 VAR QTHString: Str40;
-    CharacterPointer: INTEGER;
 
     BEGIN
     FoundDomesticQTH := False;
@@ -490,7 +488,7 @@ VAR QTHString: Str40;
 FUNCTION GetPartialCall (CallAddress: INTEGER): CallString;
 
 VAR BlockNumber, BlockAddress: INTEGER;
-    LongPartialCallAddress, Result: INTEGER;
+    LongPartialCallAddress, xResult: INTEGER;
     TempString: CallString;
 
     BEGIN
@@ -512,7 +510,7 @@ VAR BlockNumber, BlockAddress: INTEGER;
                Exit;
                END
            ELSE
-               Val (TempString, LongPartialCallAddress, Result);
+               Val (TempString, LongPartialCallAddress, xResult);
 
         { Runtime 201 here when entering second letter of call with Auto CQ
           and DVP.  So, why would this ever be happening? }
@@ -686,8 +684,7 @@ VAR Address:   INTEGER;
 
 PROCEDURE CheckForLongCall (VAR Call: CallString);
 
-VAR TempString: CallString;
-    TempBytes:  EightBytes;
+VAR TempBytes:  EightBytes;
 
     BEGIN
     IF Length (Call) <= 6 THEN Exit;
@@ -945,7 +942,7 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     Exchange.Band             := NoBand;
     Exchange.Callsign         := '';
     Exchange.Check            := '';
-    Exchange.Class            := '';
+    Exchange.Classs            := '';
     Exchange.Date             := '';
     Exchange.DomesticMult     := False;
     Exchange.DomMultQTH       := '';
@@ -1016,8 +1013,7 @@ VAR TempString, NumberString: CallString;
 
 PROCEDURE GetDXQTH (VAR RXData: ContestExchange);
 
-VAR ID: STRING [6];
-    NumberChar: Char; {KK1L: 6.70}
+VAR NumberChar: Char; {KK1L: 6.70}
 
     BEGIN
     IF DomesticCountryCall (RXData.Callsign) THEN
@@ -1376,8 +1372,7 @@ VAR CompressedCall, CompressedMult: FourBytes;
     BigCompressedCall: EightBytes;
     MultBand: BandType;
     MultMode: ModeType;
-    BigCallAddress, NumberCalls, NumberMults: INTEGER;
-    ZoneString: Str20;
+    BigCallAddress, NumberMults: INTEGER;
 
     BEGIN
     IF LoadingInLogFile AND PartialCallLoadLogEnable AND PartialCallEnable THEN
@@ -1575,7 +1570,6 @@ VAR CompressedCall: FourBytes;
     BigCallAddress: INTEGER;
     DupeBand: BandType;
     DupeMode: ModeType;
-    NumberCalls, NumberDupeBlocks, NumberEntriesInLastBlock, Block, EndAddress, Address: INTEGER;
 
     BEGIN
     Call := StandardCallFormat (Call, True);
@@ -1645,7 +1639,6 @@ FUNCTION DupeAndMultSheet.TwoLetterCrunchProcess (PartialCall: CallString): BOOL
 
 VAR Address, FirstAddress, LastAddress, NumberCallsToCrunch: INTEGER;
     GotPartialCall, TempString: Str20;
-    FileWrite: TEXT;
 
     BEGIN
     TwoLetterCrunchProcess := False;          { Assume no changes }
@@ -1778,7 +1771,7 @@ PROCEDURE DupeAndMultSheet.AddCallToVisibleDupeSheet (Callsign: CallString);
 
 VAR SuffixString, NumberString: CallString;
     NumberChar, Character: CHAR;
-    NextRecord, Remember, ActiveVDEntry: VDEntryPointer;
+    NextRecord, ActiveVDEntry: VDEntryPointer;
     Count: INTEGER;
 
     BEGIN
@@ -2089,8 +2082,6 @@ FUNCTION DupeAndMultSheet.EntryExists (Entry: FourBytes; Band: BandType; Mode: M
 VAR DupeBand: BandType;
     DupeMode: ModeType;
     NumberCalls, NumberDupeBlocks, NumberEntriesInLastBlock, Block, EndAddress: INTEGER;
-    TempString: Str80;
-    TempChar: CHAR;
 
     BEGIN
     IF QSOByBand  THEN DupeBand := Band ELSE DupeBand := All;
@@ -2358,7 +2349,6 @@ FUNCTION DupeAndMultSheet.IsADomesticMult (Mult: Str10; Band: BandType; Mode: Mo
 
 VAR NumberMults: INTEGER;
     CompressedMult: FourBytes;
-    DomQTH: Str20;
 
     BEGIN
     IsADomesticMult := False;
@@ -2392,7 +2382,7 @@ PROCEDURE DupeAndMultSheet.SetMultFlags (VAR RXData: ContestExchange);
   if any multiplier flags should be set.  No updating of multiplier arrays
   of totals is done.        }
 
-VAR Mult, NumberMults: INTEGER;
+VAR NumberMults: INTEGER;
     MultBand: BandType;
     MultMode: ModeType;
     CompressedMult: FourBytes;
@@ -2482,39 +2472,39 @@ PROCEDURE DupeAndMultSheet.SaveRestartFile;
 VAR Band: BandType;
     Mode: ModeType;
     FileWrite: File;
-    Block, Result, NumberBlocks: INTEGER;
+    Block, xResult, NumberBlocks: INTEGER;
 
     BEGIN
     Assign  (FileWrite, LogRestartFileName);
     ReWrite (FileWrite, 1);
 
-    BlockWrite (FileWrite, RestartVersionNumber,   SizeOf (RestartVersionNumber),   Result);
-    BlockWrite (FileWrite, ContestName,            SizeOf (ContestName),            Result);
+    BlockWrite (FileWrite, RestartVersionNumber,   SizeOf (RestartVersionNumber),   xResult);
+    BlockWrite (FileWrite, ContestName,            SizeOf (ContestName),            xResult);
 
-    BlockWrite (FileWrite, BandMemory,       SizeOf (BandMemory),       Result);
-    BlockWrite (FileWrite, ModeMemory,       SizeOf (ModeMemory),       Result);
-    BlockWrite (FileWrite, DupeSheet.Totals, SizeOf (DupeSheet.Totals), Result);
-    BlockWrite (FileWrite, DupeSheet.NumberBigCalls, SizeOf (DupeSheet.NumberBigCalls), Result);
-    BlockWrite (FileWrite, QSOTotals,        SizeOf (QSOTotals),        Result);
-    BlockWrite (FileWrite, TotalNamesSent,   SizeOf (TotalNamesSent),   Result);
-    BlockWrite (FileWrite, TotalQSOPoints,   SizeOf (TotalQSOPoints),   Result);
-    {BlockWrite (FileWrite, RadioOneSpeed,    SizeOf (RadioOneSpeed),    Result);}
-    {BlockWrite (FileWrite, RadioTwoSpeed,    SizeOf (RadioTwoSpeed),    Result);}
-    BlockWrite (FileWrite, SpeedMemory[RadioOne], SizeOf (SpeedMemory[RadioOne]),  Result); {KK1L: 6.73}
-    BlockWrite (FileWrite, SpeedMemory[RadioTwo], SizeOf (SpeedMemory[RadioTwo]),  Result); {KK1L: 6.73}
-    BlockWrite (FileWrite, MultByBand,       SizeOf (MultByBand),       Result);
-    BlockWrite (FileWrite, MultByMode,       SizeOf (MultByMode),       Result);
-    BlockWrite (FileWrite, TakingABreak,     SizeOf (TakingABreak),     Result);
-    BlockWrite (FileWrite, TotalOffTime,     SizeOf (TotalOffTime),     Result);
-    BlockWrite (FileWrite, OffTimeStart,     SizeOf (OffTimeStart),     Result);
+    BlockWrite (FileWrite, BandMemory,       SizeOf (BandMemory),       xResult);
+    BlockWrite (FileWrite, ModeMemory,       SizeOf (ModeMemory),       xResult);
+    BlockWrite (FileWrite, DupeSheet.Totals, SizeOf (DupeSheet.Totals), xResult);
+    BlockWrite (FileWrite, DupeSheet.NumberBigCalls, SizeOf (DupeSheet.NumberBigCalls), xResult);
+    BlockWrite (FileWrite, QSOTotals,        SizeOf (QSOTotals),        xResult);
+    BlockWrite (FileWrite, TotalNamesSent,   SizeOf (TotalNamesSent),   xResult);
+    BlockWrite (FileWrite, TotalQSOPoints,   SizeOf (TotalQSOPoints),   xResult);
+    {BlockWrite (FileWrite, RadioOneSpeed,    SizeOf (RadioOneSpeed),    xResult);}
+    {BlockWrite (FileWrite, RadioTwoSpeed,    SizeOf (RadioTwoSpeed),    xResult);}
+    BlockWrite (FileWrite, SpeedMemory[RadioOne], SizeOf (SpeedMemory[RadioOne]),  xResult); {KK1L: 6.73}
+    BlockWrite (FileWrite, SpeedMemory[RadioTwo], SizeOf (SpeedMemory[RadioTwo]),  xResult); {KK1L: 6.73}
+    BlockWrite (FileWrite, MultByBand,       SizeOf (MultByBand),       xResult);
+    BlockWrite (FileWrite, MultByMode,       SizeOf (MultByMode),       xResult);
+    BlockWrite (FileWrite, TakingABreak,     SizeOf (TakingABreak),     xResult);
+    BlockWrite (FileWrite, TotalOffTime,     SizeOf (TotalOffTime),     xResult);
+    BlockWrite (FileWrite, OffTimeStart,     SizeOf (OffTimeStart),     xResult);
 
-    BlockWrite (FileWrite, ContinentQSOCount, SizeOf (ContinentQSOCount), Result);
-    BlockWrite (FileWrite, TimeSpentByBand,   SizeOf (TimeSpentByBand),   Result);
+    BlockWrite (FileWrite, ContinentQSOCount, SizeOf (ContinentQSOCount), xResult);
+    BlockWrite (FileWrite, TimeSpentByBand,   SizeOf (TimeSpentByBand),   xResult);
 
-    BlockWrite (FileWrite, BandChangesThisHour, SizeOf (BandChangesThisHour), Result);
-    BlockWrite (FileWrite, LastBand,            SizeOf (LastBand),            Result);
-    BlockWrite (FileWrite, LastCQFrequency,     SizeOf (LastCQFrequency),     Result); {KK1L: 6.68}
-    BlockWrite (FileWrite, LastCQMode,          SizeOf (LastCQMode),          Result); {KK1L: 6.68}
+    BlockWrite (FileWrite, BandChangesThisHour, SizeOf (BandChangesThisHour), xResult);
+    BlockWrite (FileWrite, LastBand,            SizeOf (LastBand),            xResult);
+    BlockWrite (FileWrite, LastCQFrequency,     SizeOf (LastCQFrequency),     xResult); {KK1L: 6.68}
+    BlockWrite (FileWrite, LastCQMode,          SizeOf (LastCQMode),          xResult); {KK1L: 6.68}
 
 
     FOR Band := Band160 TO All DO
@@ -2527,7 +2517,7 @@ VAR Band: BandType;
                     BlockWrite (FileWrite,
                                 DupeSheet.DupeList [Band, Mode, Block]^,
                                 SizeOf (DupeSheet.DupeList [Band, Mode, Block]^),
-                                Result);
+                                xResult);
                 END;
             END;
 
@@ -2539,14 +2529,14 @@ VAR Band: BandType;
             BlockWrite (FileWrite,
                         DupeSheet.BigCallList [Block]^,
                         SizeOf (DupeSheet.BigCallList [Block]^),
-                        Result);
+                        xResult);
         END;
 
-    BlockWrite (FileWrite, RemainingMultDisplay, SizeOf (RemainingMultDisplay), Result);
+    BlockWrite (FileWrite, RemainingMultDisplay, SizeOf (RemainingMultDisplay), xResult);
 
     WITH Multsheet DO
         BEGIN
-        BlockWrite (FileWrite, Totals, SizeOf (Totals), Result);
+        BlockWrite (FileWrite, Totals, SizeOf (Totals), xResult);
 
         FOR Band := Band160 TO All DO
             FOR Mode := CW TO Both DO
@@ -2559,32 +2549,32 @@ VAR Band: BandType;
                            BlockWrite (FileWrite,
                                        DomesticList [Band, Mode]^,
                                        SizeOf (DomesticList [Band, Mode]^),
-                                       Result);
+                                       xResult);
 
                        IF Totals [Band, Mode].NumberDXMults > 0 THEN
                            BlockWrite (FileWrite,
                                        DXList [Band, Mode]^,
                                        SizeOf (DXList [Band, Mode]^),
-                                       Result);
+                                       xResult);
 
                        IF Totals [Band, Mode].NumberPrefixMults > 0 THEN
                            BlockWrite (FileWrite,
                                        PrefixList [Band, Mode]^,
                                        SizeOf (PrefixList [Band, Mode]^),
-                                       Result);
+                                       xResult);
 
                        IF Totals [Band, Mode].NumberZoneMults > 0 THEN
                            BlockWrite (FileWrite,
                                        ZoneList [Band, Mode]^,
                                        SizeOf (ZoneList [Band, Mode]^),
-                                       Result);
+                                       xResult);
                        END;
         END;
 
-    BlockWrite (FileWrite, NumberPartialCalls,     SizeOf (NumberPartialCalls),     Result);
-    BlockWrite (FileWrite, LastPartialCallBlock,   SizeOf (LastPartialCallBlock),   Result);
-    BlockWrite (FileWrite, NumberInitialExchanges, SizeOf (NumberInitialExchanges), Result);
-    BlockWrite (FileWrite, NumberLongPartialCalls, SizeOf (NumberInitialExchanges), Result);
+    BlockWrite (FileWrite, NumberPartialCalls,     SizeOf (NumberPartialCalls),     xResult);
+    BlockWrite (FileWrite, LastPartialCallBlock,   SizeOf (LastPartialCallBlock),   xResult);
+    BlockWrite (FileWrite, NumberInitialExchanges, SizeOf (NumberInitialExchanges), xResult);
+    BlockWrite (FileWrite, NumberLongPartialCalls, SizeOf (NumberInitialExchanges), xResult);
 
     IF NumberPartialCalls > 0 THEN
         BEGIN
@@ -2595,20 +2585,20 @@ VAR Band: BandType;
             BlockWrite (FileWrite,
                         PartialCallList [Block]^,
                         SizeOf (PartialCallList [Block]^),
-                        Result);
+                        xResult);
             END;
 
         IF NumberInitialExchanges > 0 THEN
-            BlockWrite (FileWrite, InitialExchangeList^, SizeOf (InitialExchangeList^), Result);
+            BlockWrite (FileWrite, InitialExchangeList^, SizeOf (InitialExchangeList^), xResult);
 
         END;
 
     IF NumberLongPartialCalls > 0 THEN
-        BlockWrite (FileWrite, LongPartialCallList^, SizeOf (LongPartialCallList^), Result);
+        BlockWrite (FileWrite, LongPartialCallList^, SizeOf (LongPartialCallList^), xResult);
 
     FOR Band := Band160 TO Band2 DO
         FOR Mode := CW TO PHONE DO
-            BlockWrite (FileWrite, FreqMemory [Band, Mode], SizeOf (FreqMemory [Band, Mode]), Result);
+            BlockWrite (FileWrite, FreqMemory [Band, Mode], SizeOf (FreqMemory [Band, Mode]), xResult);
 
     Close (FileWrite);
     END;
@@ -2618,7 +2608,7 @@ VAR Band: BandType;
 FUNCTION DupeAndMultSheet.ReadInBinFiles (JustDoIt: BOOLEAN): BOOLEAN;
 
 VAR FileRead: FILE;
-    Result, Block, NumberBlocks: INTEGER;
+    xResult, Block, NumberBlocks: INTEGER;
     Band: BandType;
     Mode: ModeType;
     RestartVersion: Str20;
@@ -2661,7 +2651,7 @@ VAR FileRead: FILE;
     Assign (FileRead, LogRestartFileName);
     Reset  (FileRead, 1);
 
-    BlockRead (FileRead, RestartVersion,   SizeOf (RestartVersion),   Result);
+    BlockRead (FileRead, RestartVersion,   SizeOf (RestartVersion),   xResult);
 
     IF RestartVersion <> RestartVersionNumber THEN
         BEGIN
@@ -2673,7 +2663,7 @@ VAR FileRead: FILE;
         Exit;
         END;
 
-    BlockRead (FileRead, NameOfContest, SizeOf (ContestName), Result);
+    BlockRead (FileRead, NameOfContest, SizeOf (ContestName), xResult);
 
     IF ContestName = '' THEN ContestName := NameOfContest;
 
@@ -2685,30 +2675,30 @@ VAR FileRead: FILE;
         Exit;
         END;
 
-    BlockRead (FileRead, BandMemory,       SizeOf (BandMemory),       Result);
-    BlockRead (FileRead, ModeMemory,       SizeOf (ModeMemory),       Result);
-    BlockRead (FileRead, DupeSheet.Totals, SizeOf (DupeSheet.Totals), Result);
-    BlockRead (FileRead, DupeSheet.NumberBigCalls, SizeOf (DupeSheet.NumberBigCalls), Result);
-    BlockRead (FileRead, QSOTotals,        SizeOf (QSOTotals),        Result);
-    BlockRead (FileRead, TotalNamesSent,   SizeOf (TotalNamesSent),   Result);
-    BlockRead (FileRead, TotalQSOPoints,   SizeOf (TotalQSOPoints),   Result);
-    {BlockRead (FileRead, RadioOneSpeed,    SizeOf (RadioOneSpeed),    Result);}
-    {BlockRead (FileRead, RadioTwoSpeed,    SizeOf (RadioTwoSpeed),    Result);}
-    BlockRead (FileRead, SpeedMemory[RadioOne], SizeOf (SpeedMemory[RadioOne]),  Result); {KK1L: 6.73}
-    BlockRead (FileRead, SpeedMemory[RadioTwo], SizeOf (SpeedMemory[RadioTwo]),  Result); {KK1L: 6.73}
-    BlockRead (FileRead, MultByBand,       SizeOf (MultByBand),       Result);
-    BlockRead (FileRead, MultByMode,       SizeOf (MultByMode),       Result);
-    BlockRead (FileRead, TakingABreak,     SizeOf (TakingABreak),     Result);
-    BlockRead (FileRead, TotalOffTime,     SizeOf (TotalOffTime),     Result);
-    BlockRead (FileRead, OffTimeStart,     SizeOf (OffTimeStart),     Result);
+    BlockRead (FileRead, BandMemory,       SizeOf (BandMemory),       xResult);
+    BlockRead (FileRead, ModeMemory,       SizeOf (ModeMemory),       xResult);
+    BlockRead (FileRead, DupeSheet.Totals, SizeOf (DupeSheet.Totals), xResult);
+    BlockRead (FileRead, DupeSheet.NumberBigCalls, SizeOf (DupeSheet.NumberBigCalls), xResult);
+    BlockRead (FileRead, QSOTotals,        SizeOf (QSOTotals),        xResult);
+    BlockRead (FileRead, TotalNamesSent,   SizeOf (TotalNamesSent),   xResult);
+    BlockRead (FileRead, TotalQSOPoints,   SizeOf (TotalQSOPoints),   xResult);
+    {BlockRead (FileRead, RadioOneSpeed,    SizeOf (RadioOneSpeed),    xResult);}
+    {BlockRead (FileRead, RadioTwoSpeed,    SizeOf (RadioTwoSpeed),    xResult);}
+    BlockRead (FileRead, SpeedMemory[RadioOne], SizeOf (SpeedMemory[RadioOne]),  xResult); {KK1L: 6.73}
+    BlockRead (FileRead, SpeedMemory[RadioTwo], SizeOf (SpeedMemory[RadioTwo]),  xResult); {KK1L: 6.73}
+    BlockRead (FileRead, MultByBand,       SizeOf (MultByBand),       xResult);
+    BlockRead (FileRead, MultByMode,       SizeOf (MultByMode),       xResult);
+    BlockRead (FileRead, TakingABreak,     SizeOf (TakingABreak),     xResult);
+    BlockRead (FileRead, TotalOffTime,     SizeOf (TotalOffTime),     xResult);
+    BlockRead (FileRead, OffTimeStart,     SizeOf (OffTimeStart),     xResult);
 
-    BlockRead (FileRead, ContinentQSOCount, SizeOf (ContinentQSOCount), Result);
-    BlockRead (FileRead, TimeSpentByBand,   SizeOf (TimeSpentByBand),   Result);
+    BlockRead (FileRead, ContinentQSOCount, SizeOf (ContinentQSOCount), xResult);
+    BlockRead (FileRead, TimeSpentByBand,   SizeOf (TimeSpentByBand),   xResult);
 
-    BlockRead (FileRead, BandChangesThisHour, SizeOf (BandChangesThisHour), Result);
-    BlockRead (FileRead, LastBand,            SizeOf (LastBand),            Result);
-    BlockRead (FileRead, LastCQFrequency,     SizeOf (LastCQFrequency),     Result); {KK1L: 6.68}
-    BlockRead (FileRead, LastCQMode,          SizeOf (LastCQMode),          Result); {KK1L: 6.68}
+    BlockRead (FileRead, BandChangesThisHour, SizeOf (BandChangesThisHour), xResult);
+    BlockRead (FileRead, LastBand,            SizeOf (LastBand),            xResult);
+    BlockRead (FileRead, LastCQFrequency,     SizeOf (LastCQFrequency),     xResult); {KK1L: 6.68}
+    BlockRead (FileRead, LastCQMode,          SizeOf (LastCQMode),          xResult); {KK1L: 6.68}
 
     IF BandMemory [RadioOne] >= All THEN BandMemory [RadioOne] := Band160;
     IF BandMemory [RadioTwo] >= All THEN BandMemory [RadioTwo] := Band160;
@@ -2740,7 +2730,7 @@ VAR FileRead: FILE;
                     BlockRead (FileRead,
                                DupeSheet.DupeList [Band, Mode, Block]^,
                                SizeOf (DupeSheet.DupeList [Band, Mode, Block]^),
-                               Result);
+                               xResult);
                     END;
                 END;
 
@@ -2762,15 +2752,15 @@ VAR FileRead: FILE;
             BlockRead (FileRead,
                        DupeSheet.BigCallList [Block]^,
                        SizeOf (DupeSheet.BigCallList [Block]^),
-                       Result);
+                       xResult);
             END;
         END;
 
-    BlockRead (FileRead, RemainingMultDisplay, SizeOf (RemainingMultDisplay), Result);
+    BlockRead (FileRead, RemainingMultDisplay, SizeOf (RemainingMultDisplay), xResult);
 
     WITH Multsheet DO
         BEGIN
-        BlockRead (FileRead, Totals, SizeOf (Totals), Result);
+        BlockRead (FileRead, Totals, SizeOf (Totals), xResult);
 
         FOR Band := Band160 TO All DO
             FOR Mode := CW TO Both DO
@@ -2786,7 +2776,7 @@ VAR FileRead: FILE;
                            BlockRead (FileRead,
                                       DomesticList [Band, Mode]^,
                                       SizeOf (DomesticList [Band, Mode]^),
-                                      Result);
+                                      xResult);
                            END;
 
                        IF Totals [Band, Mode].NumberDXMults > 0 THEN
@@ -2796,7 +2786,7 @@ VAR FileRead: FILE;
                            BlockRead (FileRead,
                                       DXList [Band, Mode]^,
                                       SizeOf (DXList [Band, Mode]^),
-                                      Result);
+                                      xResult);
                            END;
 
                        IF Totals [Band, Mode].NumberPrefixMults > 0 THEN
@@ -2806,7 +2796,7 @@ VAR FileRead: FILE;
                            BlockRead (FileRead,
                                       PrefixList [Band, Mode]^,
                                       SizeOf (PrefixList [Band, Mode]^),
-                                      Result);
+                                      xResult);
                            END;
 
                        IF Totals [Band, Mode].NumberZoneMults > 0 THEN
@@ -2816,15 +2806,15 @@ VAR FileRead: FILE;
                            BlockRead (FileRead,
                                       ZoneList [Band, Mode]^,
                                       SizeOf (ZoneList [Band, Mode]^),
-                                      Result);
+                                      xResult);
                            END;
                 END;
         END;
 
-    BlockRead (FileRead, NumberPartialCalls,     SizeOf (NumberPartialCalls),     Result);
-    BlockRead (FileRead, LastPartialCallBlock,   SizeOf (LastPartialCallBlock),   Result);
-    BlockRead (FileRead, NumberInitialExchanges, SizeOf (NumberInitialExchanges), Result);
-    BlockRead (FileRead, NumberLongPartialCalls, SizeOf (NumberInitialExchanges), Result);
+    BlockRead (FileRead, NumberPartialCalls,     SizeOf (NumberPartialCalls),     xResult);
+    BlockRead (FileRead, LastPartialCallBlock,   SizeOf (LastPartialCallBlock),   xResult);
+    BlockRead (FileRead, NumberInitialExchanges, SizeOf (NumberInitialExchanges), xResult);
+    BlockRead (FileRead, NumberLongPartialCalls, SizeOf (NumberInitialExchanges), xResult);
 
     IF NumberPartialCalls > 0 THEN
         BEGIN
@@ -2837,14 +2827,14 @@ VAR FileRead: FILE;
             BlockRead (FileRead,
                        PartialCallList [Block]^,
                        SizeOf (PartialCallList [Block]^),
-                       Result);
+                       xResult);
             END;
 
         IF NumberInitialExchanges > 0 THEN
             BEGIN
             IF InitialExchangeList = Nil THEN
                 New (InitialExchangeList);
-            BlockRead (FileRead, InitialExchangeList^, SizeOf (InitialExchangeList^), Result);
+            BlockRead (FileRead, InitialExchangeList^, SizeOf (InitialExchangeList^), xResult);
             END;
         END;
 
@@ -2852,12 +2842,12 @@ VAR FileRead: FILE;
         BEGIN
         IF LongPartialCallList = Nil THEN
             New (LongPartialCallList);
-        BlockRead (FileRead, LongPartialCallList^, SizeOf (LongPartialCallList^), Result);
+        BlockRead (FileRead, LongPartialCallList^, SizeOf (LongPartialCallList^), xResult);
         END;
 
     FOR Band := Band160 TO Band2 DO
         FOR Mode := CW TO Phone DO
-            BlockRead (FileRead, FreqMemory [Band, Mode], SizeOf (FreqMemory [Band, Mode]), Result);
+            BlockRead (FileRead, FreqMemory [Band, Mode], SizeOf (FreqMemory [Band, Mode]), xResult);
 
     Close (FileRead);
     SetUpRemainingMultiplierArrays;
@@ -2875,13 +2865,9 @@ PROCEDURE DupeAndMultSheet.SheetInitAndLoad;
   active multiplier globals are setup before executing this.         }
 
 VAR FileRead: TEXT;
-    NumberCharsThisLine, NumberBytesRead, QSOPoints, FilePointer: INTEGER;
-    MultiplierString, LeftOverString: Str80;
+    QSOPoints: INTEGER;
     FileString: STRING;
     TempRXData: ContestExchange;
-    Block: INTEGER;
-    Band: BandType;
-    Mode: ModeType;
 
     BEGIN
     LoadingInLogFile := False;
@@ -3036,7 +3022,7 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
         Age            := False;
         Chapter        := False;
         Check          := False;
-        Class          := False;
+        Classs          := False;
         Name           := False;
         PostalCode     := False;
         Power          := False;
@@ -3059,7 +3045,7 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
 
         ClassDomesticOrDXQTHExchange:
             BEGIN
-            ExchangeInformation.Class := True;
+            ExchangeInformation.Classs := True;
             ExchangeInformation.QTH   := True;
             END;
 
@@ -3315,8 +3301,8 @@ VAR ExchangeString: Str80;
 
     ELSE {KK1L: 6.70 What follows is what was always here!}
         BEGIN
-        IF ExchangeInformation.Class THEN
-            RXData.Class := RemoveFirstString (ExchangeString);
+        IF ExchangeInformation.Classs THEN
+            RXData.Classs := RemoveFirstString (ExchangeString);
 
         { Sometimes the QSO number is optional - so only pull it off the
           exchange if it looks like it is there. }
@@ -3416,7 +3402,7 @@ VAR Block: INTEGER;
 
 
 
-FUNCTION HeapFunc (Size: Word): INTEGER; FAR;
+FUNCTION HeapFunc (Size: Word): INTEGER;
 
     BEGIN
     HeapFunc := 1;
@@ -3465,7 +3451,7 @@ VAR QString, TString, TempString: Str40;
 
         IF ExchangeInformation.Zone  THEN TempString := Zone;
         IF ExchangeInformation.Name  THEN TempString := Name;
-        IF ExchangeInformation.Class THEN TempString := Class;
+        IF ExchangeInformation.Classs THEN TempString := Classs;
         IF ExchangeInformation.Age   THEN TempString := Age;
         IF ExchangeInformation.Check THEN TempString := Check;
 

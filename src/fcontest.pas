@@ -1,7 +1,6 @@
 UNIT FContest;
 
 {$O+}
-{$F+}
 
 { PLEASE NOTE!!  This file is included with the TR Logging Program as a
   reference document.  It is intended to show you the default values for
@@ -124,7 +123,7 @@ VAR TempQTH: QTHRecord;
             DomesticQTHDataFileName := 'IARUHQ.DOM';
             ActiveExchange := RSTZoneOrSocietyExchange;
             ActiveInitialExchange := ZoneInitialExchange; {KK1L: 6.71 NOTE changed in code}
-            {ActiveInitialExchange := None; {May need this to satisfy rules}
+            {ActiveInitialExchange := None;} {May need this to satisfy rules}
             ActiveDXMult := ARRLDXCC;
             ActiveQSOPointMethod := OneEuropeTwoOther;
             ActiveZoneMult := NoZoneMults;
@@ -1142,13 +1141,13 @@ VAR TempQTH: QTHRecord;
             IF UpperCase (Copy (MyState, 1, 2)) = 'MI' THEN
                 BEGIN
                 DomesticQTHDataFileName := 'MIQP.DOM';
-                {ActiveExchange := RSTQSONumberAndPossibleDomesticQTHExchange; {KK1L: 6.73}
+                {ActiveExchange := RSTQSONumberAndPossibleDomesticQTHExchange;} {KK1L: 6.73}
                 ActiveExchange := QSONumberDomesticQTHExchange; {KK1L: 6.73}
                 END
             ELSE
                 BEGIN
                 DomesticQTHDataFileName := 'MICHCTY.DOM';
-                {ActiveExchange := RSTQSONumberAndDomesticQTHExchange; {KK1L: 6.73}
+                {ActiveExchange := RSTQSONumberAndDomesticQTHExchange;} {KK1L: 6.73}
                 ActiveExchange := QSONumberDomesticQTHExchange; {KK1L: 6.73}
                 END;
 

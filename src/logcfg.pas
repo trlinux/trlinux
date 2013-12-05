@@ -1,7 +1,6 @@
 UNIT LogCfg;
 
 {$O+}
-{$F+}
 
 INTERFACE
 
@@ -104,8 +103,6 @@ FUNCTION ConfigurationOkay: BOOLEAN;
 PROCEDURE SetUpGlobalsAndInitialize;
 
 VAR FileWrite: TEXT;
-    TempBand: BandType;
-    TempMode: ModeType;
     Minute: INTEGER;
 
     BEGIN
@@ -464,7 +461,6 @@ PROCEDURE ReadInConfigFile (Call: CallString);
 VAR FileString: STRING;
     FirstCommand: BOOLEAN;
     LineNumber: INTEGER;
-    ConfigRead: TEXT;
     FileName: Str40;
     TempQTH: QTHRecord;
 
@@ -610,8 +606,11 @@ VAR Result, ParameterCount: INTEGER;
     BEGIN
     PacketFile := False;
 
-    FOR ParameterCount := 1 TO ParamCount DO
+//    FOR ParameterCount := 1 TO ParamCount DO
+    ParameterCount := 0;
+    while ((ParameterCount + 1) <= ParamCount) do
         BEGIN
+        inc(ParameterCount);
         IF UpperCase (ParamStr (ParameterCount)) = 'B64DECODE' THEN
             BEGIN
             Bin64Decode;

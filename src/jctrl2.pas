@@ -140,7 +140,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            END;
 
      { BMO: BEGIN                                                         }
-     {      BandMapMultsOnly        := NOT BandMapMultsOnly; {KK1L: 6.xx}
+     {      BandMapMultsOnly        := NOT BandMapMultsOnly; }{KK1L: 6.xx}
      {      DisplayBandMap;                                               }
      {      END;                                                          }
 
@@ -159,8 +159,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                BandMapDecayMultiplier  := (BandMapDecayValue div 64) + 1; {KK1L: 6.65}
                BandMapDecayTime := BandMapDecayValue div BandMapDecayMultiplier; {KK1L: 6.65}
                ResetBandMapTimes; {KK1L: 6.70 Need to set BM times to new decay time}
-               {ForcedEntry := True; {KK1L: 6.70 Switch to add comment since I wrote the entry automatically}
-               {WriteParameterToLOGCFGFile (LogConfigFileName, ActiveLine); {KK1L: 6.70}
+               {ForcedEntry := True; }{KK1L: 6.70 Switch to add comment since I wrote the entry automatically}
+               {WriteParameterToLOGCFGFile (LogConfigFileName, ActiveLine); }{KK1L: 6.70}
                END;
            END;
 
@@ -957,7 +957,7 @@ VAR FileWrite: TEXT;
       BEN: WriteLn (FileWrite, BackCopyEnable);
       BAB: WriteLn (FileWrite, BandMapAllBands);
       BAM: WriteLn (FileWrite, BandMapAllModes);
-      {BMO: WriteLn (FileWrite, BandMapMultsOnly); {KK1L: 6.xx}
+      {BMO: WriteLn (FileWrite, BandMapMultsOnly);} {KK1L: 6.xx}
       BCW: WriteLn (FileWrite, BandMapCallWindowEnable);
       BDD: WriteLn (FileWrite, BandMapDupeDisplay);
       BMD: WriteLn (FileWrite, BandMapDecayValue);
@@ -1319,7 +1319,7 @@ VAR TempString: Str40;
       BEN: IF BackCopyEnable THEN TempString := 'TRUE';
       BAB: IF BandMapAllBands THEN TempString := 'TRUE';
       BAM: IF BandMapAllModes THEN TempString := 'TRUE';
-      {BMO: IF BandMapMultsOnly THEN TempString := 'TRUE'; {KK1L: 6.xx}
+      {BMO: IF BandMapMultsOnly THEN TempString := 'TRUE';} {KK1L: 6.xx}
       BCW: IF BandMapCallWindowEnable THEN TempString := 'TRUE';
       BDD: IF BandMapDupeDisplay THEN TempString := 'TRUE';
       BMD: Str (BandMapDecayValue, TempString);
@@ -1659,7 +1659,7 @@ VAR TempString: STRING;
 
 FUNCTION GetActiveLineFromEntryString (EntryString: Str80): MenuEntryType;
 
-VAR Entry: MenuEntryType;
+VAR en,Entry: MenuEntryType;
 
     BEGIN
     WHILE EntryString <> '' DO
@@ -1667,9 +1667,10 @@ VAR Entry: MenuEntryType;
         FOR Entry := NoMenuEntry TO LastMenuEntry DO
             IF Copy (Description (Entry), 1, Length (EntryString)) = EntryString THEN
                 BEGIN
-                IF Entry = LastMenuEntry THEN Entry := Pred (Entry);
+                en := entry;
+                IF Entry = LastMenuEntry THEN en:= Pred (Entry);
 
-                GetActiveLineFromEntryString := Entry;
+                GetActiveLineFromEntryString := en;
                 Exit;
                 END;
 

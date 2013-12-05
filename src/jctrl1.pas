@@ -31,7 +31,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       BAM,
                       BCW,
                       BMD,
-                      {BMO, {KK1L: 6.xx}
+                      {BMO, }{KK1L: 6.xx}
                       BCQ,
                       BDD,
                       BME,
@@ -450,8 +450,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
 
 PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
-VAR ChangedRemainingMults: BOOLEAN;
-
     BEGIN
     IF Active THEN
         BEGIN
@@ -482,7 +480,7 @@ VAR ChangedRemainingMults: BOOLEAN;
       BEN: Write (BackCopyEnable);
       BAB: Write (BandMapAllBands);
       BAM: Write (BandMapAllModes);
-      {BMO: Write (BandMapMultsOnly); {KK1L: 6.xx}
+      {BMO: Write (BandMapMultsOnly); }{KK1L: 6.xx}
       BCW: Write (BandMapCallWindowEnable);
       BMD: Write (BandMapDecayValue);
       BCQ: Write (BandMapDisplayCQ);

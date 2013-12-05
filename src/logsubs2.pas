@@ -303,7 +303,7 @@ VAR MultiString, MessageString: STRING;
     Band: BandType;
     Mode: ModeType;
     Points: INTEGER;
-    Freq, QSX, OldScore: LONGINT;
+    Freq, QSX: LONGINT;
     ControlByte: BYTE;
     RXData: ContestExchange;
     Year, Month, Day, DayOfWeek, Hour, Minute, Second, Sec100: WORD;
@@ -318,8 +318,6 @@ VAR MultiString, MessageString: STRING;
     MultiString := GetMultiPortCommand;
 
     IF MultiString = '' THEN Exit;
-
-    OldScore := TotalScore;
 
     IF K1EANetworkEnable THEN
         BEGIN
@@ -1791,24 +1789,24 @@ VAR CQMemory, SendChar: CHAR;
                 TempString := GetCQMemoryString (ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
 
                 {KK1L: 6.72 Pulled out the DVK code from the REPEAT...UNTIL. Can't tell end of DVK message}
-                {REPEAT {KK1L: 6.71}
-                {    IF DVPEnable THEN
-                {        BEGIN
-                {        WHILE TempString <> '' DO
-                {            BEGIN
-                {            FileName := RemoveFirstString (TempString);
-                {            GetRidOfPrecedingSpaces (FileName);
-                {            IF NOT SkipFirstMessage THEN DVPPlayMessage (FileName);
-                {            END;
-                {        END
-                {    ELSE
-                {        IF (NOT SkipFirstMessage) AND (ActiveDVKPort <> NoPort) THEN {KK1L: 6.71 added DVK check}
-                {            SendDVKMessage (TempString);
-                {
-                {    IF CheckNullKeys = EscapeKey THEN Exit; {KK1L: 6.71a Check if key fell out of loop or escape}
-                {
-                {    Wait (20); {KK1L: 6.71}
-                {UNTIL NOT (DVPMessagePlaying OR DVKMessagePlaying); {KK1L: 6.71 should start timer at END of message}
+                {REPEAT }{KK1L: 6.71}
+                {    IF DVPEnable THEN}
+                {        BEGIN}
+                {        WHILE TempString <> '' DO}
+                {            BEGIN}
+                {            FileName := RemoveFirstString (TempString);}
+                {            GetRidOfPrecedingSpaces (FileName);}
+                {            IF NOT SkipFirstMessage THEN DVPPlayMessage (FileName);}
+                {            END;}
+                {        END}
+                {    ELSE}
+                {        IF (NOT SkipFirstMessage) AND (ActiveDVKPort <> NoPort) THEN} {KK1L: 6.71 added DVK check}
+                {            SendDVKMessage (TempString); }
+                { }
+                {    IF CheckNullKeys = EscapeKey THEN Exit;} {KK1L: 6.71a Check if key fell out of loop or escape}
+                { }
+                {    Wait (20); } {KK1L: 6.71}
+                {UNTIL NOT (DVPMessagePlaying OR DVKMessagePlaying); }{KK1L: 6.71 should start timer at END of message}
 
                 {KK1L: 6.72 Replaced above with this}
                 IF DVPEnable THEN
@@ -2075,7 +2073,7 @@ VAR Result: INTEGER;
     IF (ActiveWindow = CallWindow) AND (SCPMinimumLetters > 0) AND (NOT NewKeyPressed) THEN
         VisibleLog.SuperCheckPartial (WindowString, True, ActiveRadio); {KK1L: 6.73 Added ActiveRadio}
 
-    {UpdateTimeAndRateDisplays (True, True); {KK1L: 6.72 Moved from here to the end of the procedure.}
+    {UpdateTimeAndRateDisplays (True, True);} {KK1L: 6.72 Moved from here to the end of the procedure.}
 
     IF PacketFile THEN
         BEGIN
@@ -2306,7 +2304,7 @@ VAR Result: INTEGER;
       the band map blinking call }
 
     IF BandMapEnable THEN
-        {IF (BandMapBlinkingCall <> BandMapInfoCall) THEN { Different call }
+        {IF (BandMapBlinkingCall <> BandMapInfoCall) THEN } { Different call }
         {KK1L: 6.73 Keeps station ready to work whenever tuned to a BM entry or NEXTBANDMAP}
         {I tried these things to allow tuning the inactive radio to load DupeInfoCall correctly. }
         {The problem is that if you tune slower than AutoSAPEnableRate then the call will not update.}
@@ -2319,7 +2317,7 @@ VAR Result: INTEGER;
                 BEGIN
                 BandMapInitialExchange := InitialExchangeEntry (BandMapBlinkingCall);
 
-                {IF TwoRadioState <> CallReady THEN {KK1L: 6.73}
+                {IF TwoRadioState <> CallReady THEN }{KK1L: 6.73}
                     BEGIN
                     {SaveSetAndClearActiveWindow (DupeInfoWindow);} {KK1L: 6.73 Moved to below.}
                     {WriteLn (BandMapBlinkingCall);}  {KK1L: 6.73 Moved to below.}
@@ -2611,7 +2609,7 @@ FUNCTION FoundCommand (VAR SendString: Str160): BOOLEAN;
 
 VAR FileName, CommandString: Str40;
     FirstCommand: BOOLEAN;
-    TempInt, Result: INTEGER;
+    TempInt, xResult: INTEGER;
 
     BEGIN
     FoundCommand := False;
@@ -2664,7 +2662,7 @@ VAR FileName, CommandString: Str40;
         IF CommandString = 'DVKDELAY' THEN
             IF StringIsAllNumbers (FileName) THEN
                 BEGIN
-                Val (FileName, TempInt, Result);
+                Val (FileName, TempInt, xResult);
                 SetDVKDelay (TempInt);
                 END;
 
@@ -2771,7 +2769,7 @@ VAR FileName, CommandString: Str40;
 
             IF StringIsAllNumbers (CommandString) THEN
                 BEGIN
-                Val (CommandString, TempInt, Result);
+                Val (CommandString, TempInt, xResult);
                 SetSpeed (TempInt);
                 DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
                 END
@@ -2974,7 +2972,7 @@ PROCEDURE WindowEditor (VAR WindowString: Str80;
   there is no data entered yet.                                          }
 
 
-VAR Number, Result, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
+VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
     Freq: LONGINT;
     PreviousCursorChar: CHAR;
     TempString: String [255];
@@ -3453,15 +3451,15 @@ VAR Number, Result, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                          IF StringHas (TempString, '.') THEN
                              BEGIN
-                             Val (TempString, RealFreq, Result);
+                             Val (TempString, RealFreq, xResult);
                              Freq := Round (RealFreq * 1000.0);
                              END
                          ELSE
-                             Val (TempString + '000', Freq, Result);
+                             Val (TempString + '000', Freq, xResult);
 
                          TempMode := ModeMemory[InactiveRadio];
 
-                         IF Result = 0 THEN
+                         IF xResult = 0 THEN
                              BEGIN
                              PutRadioOutOfSplit(InactiveRadio);
                              SetRadioFreq (InactiveRadio, Freq, TempMode, VFOChar); {KK1L: 6.73}
@@ -3760,15 +3758,15 @@ VAR Number, Result, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                          IF StringHas (TempString, '.') THEN
                              BEGIN
-                             Val (TempString, RealFreq, Result);
+                             Val (TempString, RealFreq, xResult);
                              Freq := Round (RealFreq * 1000.0);
                              END
                          ELSE
-                             Val (TempString + '000', Freq, Result);
+                             Val (TempString + '000', Freq, xResult);
 
                          TempMode := ModeMemory[InactiveRadio];
 
-                         IF Result = 0 THEN
+                         IF xResult = 0 THEN
                              BEGIN
                              PutRadioOutOfSplit(InactiveRadio);
                              SetRadioFreq (InactiveRadio, Freq, TempMode, VFOChar); {KK1L: 6.73}
@@ -3841,13 +3839,13 @@ VAR Number, Result, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   IF StringHas (TempString, '.') THEN
                       BEGIN
-                      Val (TempString, RealFreq, Result);
+                      Val (TempString, RealFreq, xResult);
                       Freq := Round (RealFreq * 1000.0);
                       END
                   ELSE
-                      Val (TempString + '000', Freq, Result);
+                      Val (TempString + '000', Freq, xResult);
 
-                  IF Result = 0 THEN
+                  IF xResult = 0 THEN
                       BEGIN
                       PutRadioOutOfSplit (ActiveRadio);
                       SetRadioFreq (ActiveRadio, Freq, ActiveMode, VFOChar); {KK1L: 6.73}
@@ -4106,11 +4104,11 @@ VAR Number, Result, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   AltR: BEGIN
                         {KK1L: 6.73 Not implimented because George did not like it AT ALL!}
-                        {IF (TwoRadioState = StationCalled) THEN {KK1L: 6.73}
-                        {    BEGIN
-                        {    DoABeep(Warning);
-                        {    QuickDisplay('You are working a station on the 2nd radio. Escape to cancel first!');
-                        {    END
+                        {IF (TwoRadioState = StationCalled) THEN }{KK1L: 6.73}
+                        {    BEGIN }
+                        {    DoABeep(Warning); }
+                        {    QuickDisplay('You are working a station on the 2nd radio. Escape to cancel first!'); }
+                        {    END }
                         {ELSE }
                             BEGIN
                             SwapRadios;
@@ -4466,8 +4464,8 @@ VAR Number, Result, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                (StringIsAllNumbers (WindowString)) THEN
                    BEGIN { not null }
                    NumberString := GetLastString (WindowString);
-                   Val (NumberString, Number, Result);
-                   IF Result = 0 THEN
+                   Val (NumberString, Number, xResult);
+                   IF xResult = 0 THEN
                        BEGIN
                        Inc (Number);
                        Str (Number, NumberString);
@@ -4768,7 +4766,6 @@ PROCEDURE LogContact (VAR RXData: ContestExchange);
   log will be examined and written to the LOG.DAT file.                 }
 
 VAR LogString: Str80;
-    OldTotalScore: LONGINT;
     Address: INTEGER;
 
     BEGIN
@@ -4778,8 +4775,6 @@ VAR LogString: Str80;
 
     IF ActivePacketPort <> nil THEN
         Packet.DeletePacketEntry (RXData.Callsign, RXData.Band, RXData.Mode);
-
-    OldTotalScore := TotalScore;
 
     LastTwoLettersCrunchedOn := '';
 
@@ -6282,7 +6277,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 IF ActiveWindow <> ExchangeWindow THEN   {KK1L: 6.68 fixes multi downarrows causing problems}
                                     IF ExchangeWindowString = '' THEN
                                         BEGIN
-                                        {QuickDisplay2('trouble brewing'); {KK1L testing}
+                                        {QuickDisplay2('trouble brewing');} {KK1L testing}
                                         SaveSetAndClearActiveWindow (ExchangeWindow);
                                         END
                                     ELSE

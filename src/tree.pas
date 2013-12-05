@@ -5,7 +5,6 @@ UNIT Tree;
     which is a requirement for adding new routines. }
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -108,6 +107,7 @@ TYPE
       Second: Word;
       Sec100: Word;
       END;
+
 
 CONST
     FrameEnd              = $C0;
@@ -249,7 +249,6 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  FirstLetter (InputString: Str80): CHAR;
     PROCEDURE FormFeed;
 
-    FUNCTION  GetChecksum8 (Call: FourBytes): INTEGER;
     FUNCTION  GetColorInteger (ColorString: Str80): INTEGER;
     FUNCTION  GetDateString: Str80;
     FUNCTION  GetDayString:  Str80;
@@ -295,9 +294,9 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  GoodCallSyntax (Call: CallString): BOOLEAN;
     FUNCTION  GoodLookingGrid (Grid: Str20): BOOLEAN;
 
-    PROCEDURE HexToInteger (InputString: Str80; VAR OutputInteger: INTEGER; VAR Result: INTEGER);
-    PROCEDURE HexToLongInteger (InputString: Str80; VAR OutputInteger: LONGINT; VAR Result: INTEGER);
-    PROCEDURE HexToWord    (InputString: Str80; VAR OutputWord:    WORD;    VAR Result: INTEGER);
+    PROCEDURE HexToInteger (InputString: Str80; VAR OutputInteger: INTEGER; VAR xResult: INTEGER);
+    PROCEDURE HexToLongInteger (InputString: Str80; VAR OutputInteger: LONGINT; VAR xResult: INTEGER);
+    PROCEDURE HexToWord    (InputString: Str80; VAR OutputWord:    WORD;    VAR xResult: INTEGER);
 
     PROCEDURE IncrementASCIIInteger (VAR ASCIIString: Str80);
     PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
@@ -487,12 +486,8 @@ TYPE FileControlBlockType = RECORD
          END;
 
 
-VAR Beat:            INTEGER;
-    CWPitch:         INTEGER;
-    DahLength:       INTEGER;
-    DitLength:       INTEGER;
-    ExtendedKey:     BYTE;
-    ReadKeyAltState: BOOLEAN;
+VAR ReadKeyAltState: BOOLEAN;
+//  ExtendedKey:     BYTE;
 
 function paralleladdress(i: integer):integer;cdecl;external;
 
@@ -553,8 +548,6 @@ FUNCTION CharacterFromIntegerValue (IntegerValue: INTEGER): CHAR;
 
 
 FUNCTION WordValueFromCharacter (Character: CHAR): WORD;
-
-VAR TempInteger: WORD;
 
 { This table is used for compressing data. }
 
@@ -665,62 +658,6 @@ VAR Sum: LongInt;
     ExpandTwoBytes := TempString;
     END;
 
-
-
-PROCEDURE SixteenthNote (Pitch: INTEGER);
-
-    BEGIN
-    IF Pitch > 0 THEN
-        BEGIN
-        LSound (Pitch);
-        END;
-    Delay (Beat DIV 4);
-    LNoSound;
-    END;
-
-PROCEDURE EigthNote (Pitch: INTEGER);
-
-    BEGIN
-    IF Pitch > 0 THEN
-        BEGIN
-        LSound (Pitch);
-        END;
-    Delay (Beat DIV 2);
-    LNoSound;
-    END;
-
-PROCEDURE QuarterNote (Pitch: INTEGER);
-
-    BEGIN
-    IF Pitch > 0 THEN
-        BEGIN
-        LSound (Pitch);
-        END;
-    Delay (Beat);
-    LNoSound;
-    END;
-
-
-PROCEDURE Dit;
-
-    BEGIN
-    LSound (CWPitch);
-    Delay (DitLength);
-    LNoSound;
-    Delay (DitLength);
-    END;
-
-
-PROCEDURE Dah;
-
-    BEGIN
-    LSound (CWPitch);
-    Delay (DahLength);
-    LNoSound;
-    Delay (DitLength);
-    END;
-
-
 
 { Now for the external routines in alphabetical order. }
 
@@ -1256,11 +1193,11 @@ FUNCTION CopyWord (LongString: STRING; Index: INTEGER): Str80;
 
 PROCEDURE DecrementASCIIInteger (VAR ASCIIString: Str80);
 
-VAR TempValue, Result: INTEGER;
+VAR TempValue, xResult: INTEGER;
 
     BEGIN
-    Val (ASCIIString, TempValue, Result);
-    IF Result <> 0 THEN
+    Val (ASCIIString, TempValue, xResult);
+    IF xResult <> 0 THEN
         BEGIN
         ASCIIString := '';
         Exit;
@@ -1335,7 +1272,7 @@ FUNCTION ElaspedTimeString (StartTime: TimeRecord): Str20;
 
 { Returns a string in the format HH:MM:SS with how long it has been }
 
-VAR Hours, Mins, Secs, TotalSeconds: LONGINT;
+VAR Hours, Mins, TotalSeconds: LONGINT;
     HourString, MinsString, SecsString: Str20;
 
     BEGIN
@@ -1359,7 +1296,6 @@ VAR Hours, Mins, Secs, TotalSeconds: LONGINT;
     ElaspedTimeString := HourString + ':' + MinsString + ':' + SecsString;
     END;
 
-    
 
 FUNCTION ElaspedSec100 (StartTime: TimeRecord): LONGINT;
 
@@ -1560,16 +1496,6 @@ PROCEDURE FormFeed;
     END;
 
 
-FUNCTION GetCheckSum8 (Call: FourBytes): INTEGER;
-
-VAR Sum: INTEGER;
-
-    BEGIN
-    Sum := Call[1] + Call[2] + Call[3] + Call[4];
-    Sum := Sum AND 7;
-    END;
-
-
 FUNCTION GetColorInteger (ColorString: Str80): INTEGER;
 
     BEGIN
@@ -1610,9 +1536,9 @@ FUNCTION GetDateString: Str80;
 
 VAR TempString, DString: Str80;
 
-CONST
-    DayTags: ARRAY [0..6] OF STRING [9] = ('Sunday', 'Monday', 'Tuesday',
-          'Wednesday', 'Thursday', 'Friday', 'Saturday');
+//CONST
+//    DayTags: ARRAY [0..6] OF STRING [9] = ('Sunday', 'Monday', 'Tuesday',
+//          'Wednesday', 'Thursday', 'Friday', 'Saturday');
 
 VAR Year, Month, Day, DayOfWeek: WORD;
     Hours, Minutes, Seconds, Hundredths: WORD;
@@ -1719,8 +1645,7 @@ CONST
     DayTags: ARRAY [0..6] OF STRING [9] = ('Sunday', 'Monday', 'Tuesday',
           'Wednesday', 'Thursday', 'Friday', 'Saturday');
 
-VAR TempString: Str80;
-    Year, Month, Day, DayOfWeek: Word;
+VAR Year, Month, Day, DayOfWeek: Word;
     Hours, Minutes, Seconds, Hundredths: Word;
     I: Integer;
 
@@ -1909,12 +1834,12 @@ VAR TempString: Str80;
 FUNCTION GetLogEntryHour (LogEntry: Str160): INTEGER;
 
 VAR HourString: Str80;
-    Hour, Result: INTEGER;
+    Hour, xResult: INTEGER;
 
     BEGIN
     HourString := Copy (LogEntry, LogEntryHourAddress, LogEntryHourWidth);
-    Val (HourString, Hour, Result);
-    IF Result = 0 THEN GetLogEntryHour := Hour ELSE GetLogEntryHour := -1;
+    Val (HourString, Hour, xResult);
+    IF xResult = 0 THEN GetLogEntryHour := Hour ELSE GetLogEntryHour := -1;
     END;
 
 
@@ -1954,7 +1879,7 @@ VAR TempString: Str80;
 FUNCTION GetLogEntryQSONumber (LogEntry: Str160): INTEGER;
 
 VAR TempString: Str20;
-    QSONumber, Result: INTEGER;
+    QSONumber, xResult: INTEGER;
 
     BEGIN
     TempString := Copy (LogEntry, LogEntryQSONumberAddress, LogEntryQSONumberWidth + 1);
@@ -1963,8 +1888,8 @@ VAR TempString: Str20;
 
     TempString := NumberPartOfString (TempString);
 
-    Val (TempString, QSONumber, Result);
-    IF Result = 0 THEN
+    Val (TempString, QSONumber, xResult);
+    IF xResult = 0 THEN
         GetLogEntryQSONumber := QSONumber
     ELSE
         GetLogEntryQSONumber := -1;
@@ -1975,7 +1900,7 @@ VAR TempString: Str20;
 FUNCTION GetLogEntryQSOPoints (LogEntry: Str160): INTEGER;
 
 VAR TempString: Str80;
-    Address, QSOPoints, Result: INTEGER;
+    Address, QSOPoints, xResult: INTEGER;
 
     BEGIN
     TempString := Copy (LogEntry, LogEntryPointsAddress, LogEntryPointsWidth);
@@ -1994,7 +1919,7 @@ VAR TempString: Str80;
         GetLogEntryQSOPoints := 0
     ELSE
         BEGIN
-        VAL (TempString, QSOPoints, Result);
+        VAL (TempString, QSOPoints, xResult);
         GetLogEntryQSOPoints := QSOPoints;
         END;
     END;
@@ -2014,15 +1939,15 @@ VAR TempString: Str80;
 FUNCTION GetLogEntryIntegerTime (LogEntry: Str160): INTEGER;
 
 VAR TempString: Str20;
-    Time, Result: INTEGER;
+    Time, xResult: INTEGER;
 
     BEGIN
     TempString := Copy (LogEntry, LogEntryHourAddress, 5);
     Delete (TempString, 3, 1);
 
-    Val (TempString, Time, Result);
+    Val (TempString, Time, xResult);
 
-    IF Result = 0 THEN
+    IF xResult = 0 THEN
         GetLogEntryIntegerTime := Time
     ELSE
         GetLogEntryIntegerTime := -1;
@@ -2084,8 +2009,7 @@ FUNCTION GetPrefix (Call: CallString): PrefixString;
     a new and improved version that will handle calls as they are usaully
     sent on the air.                                                          }
 
-VAR CallPointer, PrefixPointer, Count: INTEGER;
-    CallHasPortableSign: BOOLEAN;
+VAR CallPointer, Count: INTEGER;
     FirstPart, SecondPart, TempString: Str80;
 
     BEGIN
@@ -2372,7 +2296,7 @@ FUNCTION GetValue (Prompt: Str80): LONGINT;
   integer value input by the operator.  If the input is illegal, the
   prompt will be reprinted and a new value read.  }
 
-VAR TempValue, Result: INTEGER;
+VAR TempValue, xResult: INTEGER;
     TempString: Str80;
 
     BEGIN
@@ -2381,8 +2305,8 @@ VAR TempValue, Result: INTEGER;
         Write (Prompt);
         TextColor (Yellow);
         ReadLn (TempString);
-        Val (TempString, TempValue, Result);
-    UNTIL Result = 0;
+        Val (TempString, TempValue, xResult);
+    UNTIL xResult = 0;
     GetValue := TempValue;
     END;
 
@@ -2390,14 +2314,14 @@ VAR TempValue, Result: INTEGER;
 FUNCTION GetReal (Prompt: Str80): REAL;
 
 VAR TempValue: REAL;
-    Result: INTEGER;
+    xResult: INTEGER;
     TempString: Str80;
 
     BEGIN
     TempString := GetResponse (Prompt);
-    Val (TempString, TempValue, Result);
+    Val (TempString, TempValue, xResult);
 
-    IF Result = 0 THEN
+    IF xResult = 0 THEN
         GetReal := TempValue
     ELSE
         GetReal := 0;
@@ -2471,18 +2395,18 @@ VAR CharacterPointer: INTEGER;
 
 
 
-PROCEDURE HexToInteger (InputString: Str80; VAR OutputInteger: INTEGER; VAR Result: INTEGER);
+PROCEDURE HexToInteger (InputString: Str80; VAR OutputInteger: INTEGER; VAR xResult: INTEGER);
 
 VAR Multiplier: INTEGER;
 
 
     BEGIN
-    Result := 1;
+    xResult := 1;
     Multiplier := 1;
     OutputInteger := 0;
     IF InputString = '' THEN Exit;
 
-    Result := 0;
+    xResult := 0;
 
     WHILE Length (InputString) > 0 DO
         BEGIN
@@ -2505,7 +2429,7 @@ VAR Multiplier: INTEGER;
             'F': OutputInteger := OutputInteger + Multiplier * 15;
 
             ELSE BEGIN
-                 Result := 1;
+                 xResult := 1;
                  Exit;
                  END;
             END;
@@ -2514,22 +2438,22 @@ VAR Multiplier: INTEGER;
         Multiplier := Multiplier * 16;
         END;
 
-    Result := 0;
+    xResult := 0;
     END;
 
 
 
-PROCEDURE HexToWord (InputString: Str80; VAR OutputWord: Word; VAR Result: INTEGER);
+PROCEDURE HexToWord (InputString: Str80; VAR OutputWord: Word; VAR xResult: INTEGER);
 
 VAR Multiplier: Word;
 
     BEGIN
-    Result := 1;
+    xResult := 1;
     Multiplier := 1;
     OutputWord := 0;
     IF InputString = '' THEN Exit;
 
-    Result := 0;
+    xResult := 0;
 
     WHILE Length (InputString) > 0 DO
         BEGIN
@@ -2552,7 +2476,7 @@ VAR Multiplier: Word;
             'F': OutputWord := OutputWord + Multiplier * 15;
 
             ELSE BEGIN
-                 Result := 1;
+                 xResult := 1;
                  Exit;
                  END;
             END;
@@ -2561,22 +2485,22 @@ VAR Multiplier: Word;
         Multiplier := Multiplier * 16;
         END;
 
-    Result := 0;
+    xResult := 0;
     END;
 
 
 
-PROCEDURE HexToLongInteger (InputString: Str80; VAR OutputInteger: LONGINT; VAR Result: INTEGER);
+PROCEDURE HexToLongInteger (InputString: Str80; VAR OutputInteger: LONGINT; VAR xResult: INTEGER);
 
 VAR Multiplier: LONGINT;
 
     BEGIN
-    Result := 1;
+    xResult := 1;
     Multiplier := 1;
     OutputInteger := 0;
     IF InputString = '' THEN Exit;
 
-    Result := 0;
+    xResult := 0;
 
     WHILE Length (InputString) > 0 DO
         BEGIN
@@ -2599,7 +2523,7 @@ VAR Multiplier: LONGINT;
             'F': OutputInteger := OutputInteger + Multiplier * 15;
 
             ELSE BEGIN
-                 Result := 1;
+                 xResult := 1;
                  Exit;
                  END;
             END;
@@ -2608,18 +2532,18 @@ VAR Multiplier: LONGINT;
         Multiplier := Multiplier * 16;
         END;
 
-    Result := 0;
+    xResult := 0;
     END;
 
 
 
 PROCEDURE IncrementASCIIInteger (VAR ASCIIString: Str80);
 
-VAR TempValue, Result: INTEGER;
+VAR TempValue, xResult: INTEGER;
 
     BEGIN
-    Val (ASCIIString, TempValue, Result);
-    IF Result <> 0 THEN
+    Val (ASCIIString, TempValue, xResult);
+    IF xResult <> 0 THEN
         BEGIN
         ASCIIString := '';
         Exit;
@@ -3426,12 +3350,12 @@ FUNCTION RemoveFirstLongInteger (VAR LongString: STRING): LongInt;
 
 VAR IntegerString: Str80;
     Number: LongInt;
-    Result: INTEGER;
+    xResult: INTEGER;
 
     BEGIN
     IntegerString := RemoveFirstString (LongString);
-    Val (IntegerString, Number, Result);
-    IF Result = 0 THEN
+    Val (IntegerString, Number, xResult);
+    IF xResult = 0 THEN
         RemoveFirstLongInteger := Number
     ELSE
         RemoveFirstLongInteger := 0;
@@ -3441,16 +3365,16 @@ VAR IntegerString: Str80;
 
 FUNCTION RemoveFirstReal (VAR LongString: STRING): REAL;
 
-VAR Result: INTEGER;
+VAR xResult: INTEGER;
     TempString: Str80;
     TempReal: REAL;
 
     BEGIN
     TempString := RemoveFirstString (LongString);
 
-    Val (TempString, TempReal, Result);
+    Val (TempString, TempReal, xResult);
 
-    IF Result = 0 THEN
+    IF xResult = 0 THEN
         RemoveFirstReal := TempReal
     ELSE
         RemoveFirstReal := 0;
@@ -3472,6 +3396,7 @@ VAR CharCount: INTEGER;
         END;
 
     FirstWordFound := False;
+    FirstWordCursor := 0;//Silence the uninitialize compiler note
 
     FOR CharCount := 1 TO Length (LongString) DO
         IF FirstWordFound THEN
@@ -3516,6 +3441,7 @@ VAR CharCount: INTEGER;
                LongString [CharCount] := ' ';
 
     FirstWordFound := False;
+    FirstWordCursor := 0;//Silence the uninitialize compiler note
 
     FOR CharCount := 1 TO Length (LongString) DO
         IF FirstWordFound THEN
@@ -3633,25 +3559,16 @@ FUNCTION RoverCall (Call: CallString): BOOLEAN;
 
 PROCEDURE PacketSendChar (SerialPort: serialportx; CharToSend: CHAR);
 
-VAR PortAddress: WORD;
-
     BEGIN
-    PortAddress := 0;
-
     SerialPort.putchar(CharToSend);
     END;
 
 
 PROCEDURE SendChar (SerialPort: serialportx; CharToSend: CHAR);
 
-
-VAR PortAddress: WORD;
-
     BEGIN
     SerialPort.putchar(CharToSend);
     END;
-
-
 
 
 PROCEDURE SendString (SerialPort: serialportx; StringToSend: Str160);
@@ -4150,7 +4067,7 @@ PROCEDURE CharacterBuffer.GoAway;
     END;
 
 
-FUNCTION CharacterBuffer.IsEmpty;
+FUNCTION CharacterBuffer.IsEmpty:boolean;
 
     BEGIN
     IsEmpty := (Head = Tail) OR (List = nil);
@@ -4381,13 +4298,13 @@ PROCEDURE IncrementMonth (VAR DateString: Str20);
   be incremented. }
 
 VAR MonthString, YearString: Str20;
-    Year, Result: INTEGER;
+    Year, xResult: INTEGER;
 
     BEGIN
     MonthString := UpperCase (BracketedString (DateString, '-', '-'));
 
     YearString := Copy (DateString, Length (DateString) - 1, 2);
-    Val (YearString, Year, Result);
+    Val (YearString, Year, xResult);
 
     IF MonthString = 'JAN' THEN
         DateString := '1-FEB-' + YearString;
@@ -4444,13 +4361,13 @@ PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
   string is in the format dd-mon-yr.  It will handle month ends and
   increment the year correctly (including leap years). }
 
-VAR Day, Hour, Minute, Year, Result: INTEGER;
+VAR Day, Hour, Minute, Year, xResult: INTEGER;
     MinuteString, HourString, DayString, MonthString, YearString: Str20;
 
 
     BEGIN
-    Val (PostcedingString (TimeString, ':'), Minute, Result);
-    Val (PrecedingString  (TimeString, ':'), Hour,   Result);
+    Val (PostcedingString (TimeString, ':'), Minute, xResult);
+    Val (PrecedingString  (TimeString, ':'), Hour,   xResult);
 
     Inc (Minute);
 
@@ -4463,7 +4380,7 @@ VAR Day, Hour, Minute, Year, Result: INTEGER;
             BEGIN
             Hour := 0;
 
-            Val (PrecedingString (DateString, '-'), Day, Result);
+            Val (PrecedingString (DateString, '-'), Day, xResult);
             Inc (Day);
             Str (Day, DayString);
 
@@ -4488,7 +4405,7 @@ VAR Day, Hour, Minute, Year, Result: INTEGER;
                 IF MonthString = 'FEB' THEN
                     BEGIN
                     YearString := Copy (DateString, Length (DateString) - 1, 2);
-                    Val (YearString, Year, Result);
+                    Val (YearString, Year, xResult);
 
                     IF (Year MOD 4 = 0) AND (Year <> 0) THEN { Leap year }
                         BEGIN
@@ -4530,9 +4447,7 @@ FUNCTION NewKeyPressed: BOOLEAN;
 
 FUNCTION NewReadKey: CHAR;
 
-VAR MemByte: BYTE;
-    Address: BYTE;
-    Key: CHAR;
+VAR Key: CHAR;
 
     BEGIN
        Key := ReadKey;
@@ -4878,12 +4793,11 @@ FUNCTION GetStateFromSection (Section: Str20): Str20;
 
 procedure getdegree(d: pchar);cdecl;external;
 
-var ts:string;
     BEGIN
     setlength(DegreeSymbol,8);
     getdegree(@DegreeSymbol[1]);
     setlength(DegreeSymbol,strlen(pchar(@DegreeSymbol[0])));
-    ExtendedKey := 0;
+//    ExtendedKey := 0;
     Com5PortBaseAddress := 0;
     Com6PortBaseAddress := 0;
 

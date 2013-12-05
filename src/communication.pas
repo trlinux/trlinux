@@ -142,7 +142,7 @@ end;
 constructor serialportx.create(devicename: string);
 var tempfile: text;
     tios: termios;
-    i,flags: integer;
+//    i,flags: integer;
 begin
    if pos('PTY',upcase(devicename)) = 1 then
       begin

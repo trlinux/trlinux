@@ -2,7 +2,6 @@
 UNIT CfgCMD;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -32,13 +31,11 @@ uses keycode,foot,keyers,xkb,so2r;
 PROCEDURE SniffOutControlCharacters (VAR TempString: STRING);
 
 VAR NumericString: Str20;
-    StringLength, NumericValue, Result: INTEGER;
+    NumericValue, xResult: INTEGER;
     Count: Integer;
 
     BEGIN
     IF TempString = '' THEN Exit;
-
-    StringLength := Length (TempString);
 
     Count := 1;
 
@@ -48,9 +45,9 @@ VAR NumericString: Str20;
             BEGIN
             NumericString := UpperCase (Copy (TempString, Count + 1, 2));
 
-            HexToInteger (NumericString, NumericValue, Result);
+            HexToInteger (NumericString, NumericValue, xResult);
 
-            IF Result = 0 THEN
+            IF xResult = 0 THEN
                 BEGIN
                 Delete (TempString, Count, 4);
                 Insert (Chr (NumericValue), TempString, Count);
@@ -65,7 +62,7 @@ VAR NumericString: Str20;
 
 FUNCTION ProcessConfigInstructions1 (ID: Str80; CMD: STRING): BOOLEAN;
 
-VAR Result, Speed, TempValue: INTEGER;
+VAR xResult, Speed, TempValue: INTEGER;
     TempLongInt: LONGINT;
     tempstring: string;
 
@@ -137,9 +134,9 @@ VAR Result, Speed, TempValue: INTEGER;
 
     IF ID = 'AUTO QSL INTERVAL' THEN
         BEGIN
-        Val (CMD, AutoQSLInterval, Result);
-        ProcessConfigInstructions1 := Result = 0;
-        IF Result = 0 THEN AutoQSLCount := AutoQSLInterval;
+        Val (CMD, AutoQSLInterval, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
+        IF xResult = 0 THEN AutoQSLCount := AutoQSLInterval;
         Exit;
         END;
 
@@ -166,9 +163,9 @@ VAR Result, Speed, TempValue: INTEGER;
 
     IF ID = 'AUTO S&P ENABLE SENSITIVITY' THEN {KK1L: 6.72}
         BEGIN
-        Val (CMD, AutoSAPEnableRate, Result);
-        ProcessConfigInstructions1 := Result = 0;
-        IF Result = 0 THEN
+        Val (CMD, AutoSAPEnableRate, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
+        IF xResult = 0 THEN
           BEGIN
           IF NOT ((AutoSAPEnableRate > 9) AND (AutoSAPEnableRate < 10001)) THEN
               AutoSAPEnableRate := 1000;
@@ -178,15 +175,15 @@ VAR Result, Speed, TempValue: INTEGER;
 
     IF ID = 'AUTO SEND CHARACTER COUNT' THEN
         BEGIN
-        Val (CMD, AutoSendCharacterCount, Result);
-        ProcessConfigInstructions1 := Result = 0;
+        Val (CMD, AutoSendCharacterCount, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'AUTO TIME INCREMENT' THEN
         BEGIN
-        Val (CMD, AutoTimeIncrementQSOs, Result);
-        ProcessConfigInstructions1 := Result = 0;
+        Val (CMD, AutoTimeIncrementQSOs, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
         Exit;
         END;
 
@@ -256,9 +253,9 @@ VAR Result, Speed, TempValue: INTEGER;
 
     IF ID = 'BAND MAP CUTOFF FREQUENCY' THEN
         BEGIN
-        Val (CMD, TempLongInt, Result);
+        Val (CMD, TempLongInt, xResult);
 
-        IF Result = 0 THEN
+        IF xResult = 0 THEN
             BEGIN
             AddBandMapModeCutoffFrequency (TempLongInt);
             ProcessConfigInstructions1 := True;
@@ -269,9 +266,9 @@ VAR Result, Speed, TempValue: INTEGER;
 
     IF ID = 'BAND MAP DECAY TIME' THEN
         BEGIN
-        Val (CMD, BandMapDecayValue, Result);
-        ProcessConfigInstructions1 := Result = 0;
-        IF Result = 0 THEN
+        Val (CMD, BandMapDecayValue, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
+        IF xResult = 0 THEN
           BEGIN
           BandMapDecayMultiplier  := (BandMapDecayValue div 64) + 1; {KK1L: 6.65}
           BandMapDecayTime := BandMapDecayValue div BandMapDecayMultiplier; {KK1L: 6.65}
@@ -302,8 +299,8 @@ VAR Result, Speed, TempValue: INTEGER;
 
     IF ID = 'BAND MAP GUARD BAND' THEN
         BEGIN
-        Val (CMD, BandMapGuardBand, Result);
-        ProcessConfigInstructions1 := Result = 0;
+        Val (CMD, BandMapGuardBand, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
         Exit;
         END;
 
@@ -414,8 +411,8 @@ VAR Result, Speed, TempValue: INTEGER;
         BEGIN
         IF StringIsAllNumbers (CMD) THEN
             BEGIN
-            VAL (CMD, Speed, Result);
-            IF Result = 0 THEN
+            VAL (CMD, Speed, xResult);
+            IF xResult = 0 THEN
                 BEGIN
                 CodeSpeed := Speed;
                 ProcessConfigInstructions1 := True;
@@ -710,7 +707,7 @@ VAR Result, Speed, TempValue: INTEGER;
 
     IF ID = 'CW SPEED INCREMENT' THEN  {KK1L: 6.72}
         BEGIN
-        VAL (CMD, TempValue, Result);
+        VAL (CMD, TempValue, xResult);
         IF (TempValue > 0) AND (TempValue < 11) THEN
             BEGIN
             CodeSpeedIncrement := TempValue;
@@ -721,8 +718,8 @@ VAR Result, Speed, TempValue: INTEGER;
 
     IF ID = 'CW TONE' THEN
         BEGIN
-        VAL (CMD, TempValue, Result);
-        IF Result = 0 THEN
+        VAL (CMD, TempValue, xResult);
+        IF xResult = 0 THEN
             BEGIN
             CWTone := TempValue;
             ProcessConfigInstructions1 := True;
@@ -1065,7 +1062,7 @@ VAR Result, Speed, TempValue: INTEGER;
 
 FUNCTION ProcessConfigInstructions2 (ID: Str80; CMD: STRING): BOOLEAN;
 
-VAR Result,tempint: INTEGER;
+VAR xResult,tempint: INTEGER;
     TimeString, DateString, DayString: Str20;
     TempFreq, TempLongInt: LONGINT;
     TempBand: BandType;
@@ -1087,18 +1084,18 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'FARNSWORTH SPEED' THEN
         BEGIN
-        Val (CMD, tempint, Result);
+        Val (CMD, tempint, xResult);
         CPUKeyer.SetFarnsworthSpeed(tempint);
         WinKey.SetFarnsworthSpeed(tempint);
         YcccKey.SetFarnsworthSpeed(tempint);
-        ProcessConfigInstructions2 := Result = 0;
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'FLOPPY FILE SAVE FREQUENCY' THEN
         BEGIN
-        Val (CMD, FloppyFileSaveFrequency, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, FloppyFileSaveFrequency, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -1176,23 +1173,23 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'FREQUENCY ADDER' THEN
         BEGIN
-        Val (CMD, Radio1FrequencyAdder, Result);
+        Val (CMD, Radio1FrequencyAdder, xResult);
         Radio2FrequencyAdder := Radio1FrequencyAdder;
-        ProcessConfigInstructions2 := Result = 0;
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'FREQUENCY ADDER RADIO ONE' THEN
         BEGIN
-        Val (CMD, Radio1FrequencyAdder, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, Radio1FrequencyAdder, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'FREQUENCY ADDER RADIO TWO' THEN
         BEGIN
-        Val (CMD, Radio2FrequencyAdder, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, Radio2FrequencyAdder, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -1202,9 +1199,9 @@ VAR Result,tempint: INTEGER;
             BEGIN
             Delete (CMD, Pos ('SSB ', CMD), 4);
 
-            Val (CMD, TempFreq, Result);
+            Val (CMD, TempFreq, xResult);
 
-            IF Result = 0 THEN
+            IF xResult = 0 THEN
                 BEGIN
                 CalculateBandMode (TempFreq, TempBand, TempMode);
                 FreqMemory [TempBand, Phone] := TempFreq;
@@ -1214,9 +1211,9 @@ VAR Result,tempint: INTEGER;
             END
         ELSE
             BEGIN
-            Val (CMD, TempFreq, Result);
+            Val (CMD, TempFreq, xResult);
 
-            IF Result = 0 THEN
+            IF xResult = 0 THEN
                 BEGIN
                 CalculateBandMode (TempFreq, TempBand, TempMode);
                 FreqMemory [TempBand, TempMode] := TempFreq;
@@ -1238,12 +1235,12 @@ VAR Result,tempint: INTEGER;
     {KK1L: 6.71}
     IF ID = 'FREQUENCY POLL RATE' THEN
         BEGIN
-        Val (CMD, TempLongInt, Result);
+        Val (CMD, TempLongInt, xResult);
         IF (TempLongInt >= 10) AND (TempLongInt <= 1000) THEN {KK1L: 6.72}
             FreqPollRate := TempLongInt
         ELSE
             FreqPollRate := 250; {KK1L: 6.73 Better resutls with Icom and other radios.}
-        ProcessConfigInstructions2 := Result = 0;
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -1283,22 +1280,22 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'HOUR OFFSET' THEN
         BEGIN
-        Val (CMD, HourOffset, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, HourOffset, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'ICOM COMMAND PAUSE' THEN
         BEGIN
-        Val (CMD, IcomCommandPause, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, IcomCommandPause, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'ICOM RESPONSE TIMEOUT' THEN
         BEGIN
-        Val (CMD, IcomResponseTimeout, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, IcomResponseTimeout, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -1448,8 +1445,8 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'JST RESPONSE TIMEOUT' THEN
         BEGIN
-        Val (CMD, JSTResponseTimeout, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, JSTResponseTimeout, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -1469,8 +1466,8 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'KENWOOD RESPONSE TIMEOUT' THEN
         BEGIN
-        Val (CMD, KenwoodResponseTimeout, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, KenwoodResponseTimeout, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -1541,7 +1538,7 @@ VAR Result,tempint: INTEGER;
 
     IF (ID = 'SO2R BLEND') then
         BEGIN
-        Val (CMD, tempint, Result);
+        Val (CMD, tempint, xResult);
         if (tempint > 255) then tempint := 255;
         if (tempint < 0) then tempint := 0;
         so2rbox.blendvalue(tempint);
@@ -1563,7 +1560,7 @@ VAR Result,tempint: INTEGER;
 
     IF (ID = 'SO2R RIG1 MAP') then
         BEGIN
-        Val (CMD, tempint, Result);
+        Val (CMD, tempint, xResult);
         if (tempint > 4) then tempint := 4;
         if (tempint < -4) then tempint := -4;
         so2rbox.setrig1map(tempint);
@@ -1574,7 +1571,7 @@ VAR Result,tempint: INTEGER;
 
     IF (ID = 'SO2R RIG2 MAP') then
         BEGIN
-        Val (CMD, tempint, Result);
+        Val (CMD, tempint, xResult);
         if (tempint > 4) then tempint := 4;
         if (tempint < -4) then tempint := -4;
         so2rbox.setrig2map(tempint);
@@ -1703,8 +1700,8 @@ VAR Result,tempint: INTEGER;
 
         IF StringIsAllNumbers (CMD) THEN
             BEGIN
-            Val (CMD, LeadingZeros, Result);
-            ProcessConfigInstructions2 := (Result = 0) AND
+            Val (CMD, LeadingZeros, xResult);
+            ProcessConfigInstructions2 := (xResult = 0) AND
                                         (LeadingZeros < 4) AND
                                         (LeadingZeros >= 0);
             Exit;
@@ -1811,8 +1808,8 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'MODEM PORT BAUD RATE' THEN
         BEGIN
-        Val (CMD, ModemPortBaudRate, Result);
-        ProcessConfigInstructions2 := (Result = 0) AND (ModemPortBaudRate <= 4800);
+        Val (CMD, ModemPortBaudRate, xResult);
+        ProcessConfigInstructions2 := (xResult = 0) AND (ModemPortBaudRate <= 4800);
         Exit;
         END;
 
@@ -1825,8 +1822,8 @@ VAR Result,tempint: INTEGER;
 
     IF (ID = 'MULT REPORT MINIMUM BANDS') OR (ID = 'MULT REPORT MINIMUM COUNTRIES') THEN
         BEGIN
-        Val (CMD, MultReportMinimumBands, Result);
-        ProcessConfigInstructions2 := (Result = 0) AND
+        Val (CMD, MultReportMinimumBands, xResult);
+        ProcessConfigInstructions2 := (xResult = 0) AND
                                     (MultReportMinimumBands <  6) AND
                                     (MultReportMinimumBands >= 2);
         Exit;
@@ -1867,15 +1864,15 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'MULTI PORT BAUD RATE' THEN
         BEGIN
-        Val (CMD, MultiPortBaudRate, Result);
-        ProcessConfigInstructions2 := (Result = 0) AND (MultiPortBaudRate <= 4800);
+        Val (CMD, MultiPortBaudRate, xResult);
+        ProcessConfigInstructions2 := (xResult = 0) AND (MultiPortBaudRate <= 4800);
         Exit;
         END;
 
     IF ID = 'MULTI RETRY TIME' THEN
         BEGIN
-        Val (CMD, MultiRetryTime, Result);
-        ProcessConfigInstructions2 := (Result = 0) AND (MultiRetryTime >= 3);
+        Val (CMD, MultiRetryTime, xResult);
+        ProcessConfigInstructions2 := (xResult = 0) AND (MultiRetryTime >= 3);
         Exit;
         END;
 
@@ -1957,8 +1954,8 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'ORION RESPONSE TIMEOUT' THEN
         BEGIN
-        Val (CMD, OrionResponseTimeout, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, OrionResponseTimeout, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -1985,8 +1982,8 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'PACKET BAUD RATE' THEN
         BEGIN
-        Val (CMD, Packet.PacketBaudRate, Result);
-        ProcessConfigInstructions2 := (Result = 0) AND (Packet.PacketBaudRate <= 9600);
+        Val (CMD, Packet.PacketBaudRate, xResult);
+        ProcessConfigInstructions2 := (xResult = 0) AND (Packet.PacketBaudRate <= 9600);
         Exit;
         END;
 
@@ -2024,15 +2021,15 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'PACKET PORT BAUD RATE' THEN
         BEGIN
-        Val (CMD, Packet.PacketBaudRate, Result);
-        ProcessConfigInstructions2 := (Result = 0) AND (Packet.PacketBaudRate <= 4800);
+        Val (CMD, Packet.PacketBaudRate, xResult);
+        ProcessConfigInstructions2 := (xResult = 0) AND (Packet.PacketBaudRate <= 4800);
         Exit;
         END;
 
     IF ID = 'PACKET RETURN PER MINUTE' THEN
         BEGIN
-        Val (CMD, PacketReturnPerMinute, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, PacketReturnPerMinute, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -2092,11 +2089,11 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'PADDLE MONITOR TONE' THEN
         BEGIN
-        Val (CMD, tempint, Result);
+        Val (CMD, tempint, xResult);
         CPUKeyer.SetPaddleMonitorTone(tempint);
         Winkey.SetPaddleMonitorTone(tempint);
         Yccckey.SetPaddleMonitorTone(tempint);
-        ProcessConfigInstructions2 := Result = 0;
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -2134,21 +2131,21 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'PADDLE SPEED' THEN
         BEGIN
-        Val (CMD, tempint, Result);
+        Val (CMD, tempint, xResult);
         CPUKeyer.SetPaddleSpeed(tempint);
         Winkey.SetPaddleSpeed(tempint);
         Yccckey.SetPaddleSpeed(tempint);
-        ProcessConfigInstructions2 := Result = 0;
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'PADDLE PTT HOLD COUNT' THEN
         BEGIN
-        Val (CMD, tempint, Result);
+        Val (CMD, tempint, xResult);
         CPUKeyer.SetPaddlePTTHoldCount(tempint);
         Winkey.SetPaddlePTTHoldCount(tempint);
         Yccckey.SetPaddlePTTHoldCount(tempint);
-        ProcessConfigInstructions2 := Result = 0;
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -2272,11 +2269,11 @@ VAR Result,tempint: INTEGER;
 
     IF (ID = 'PTT TURN ON DELAY') THEN
         BEGIN
-        Val (CMD, tempint, Result);
+        Val (CMD, tempint, xResult);
         CPUKeyer.SetPTTTurnOnDelay(tempint);
         Winkey.SetPTTTurnOnDelay(tempint);
         Yccckey.SetPTTTurnOnDelay(tempint);
-        ProcessConfigInstructions2 := Result = 0;
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -2444,15 +2441,15 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'RADIO ONE BAUD RATE' THEN
         BEGIN
-        Val (CMD, Radio1BaudRate, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, Radio1BaudRate, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'RADIO TWO BAUD RATE' THEN
         BEGIN
-        Val (CMD, Radio2BaudRate, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, Radio2BaudRate, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -2560,15 +2557,15 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'RADIO ONE RECEIVER ADDRESS' THEN
         BEGIN
-        Val (CMD, Radio1ReceiverAddress, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, Radio1ReceiverAddress, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'RADIO TWO RECEIVER ADDRESS' THEN
         BEGIN
-        Val (CMD, Radio2ReceiverAddress, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, Radio2ReceiverAddress, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -3051,21 +3048,21 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'RADIO ONE UPDATE SECONDS' THEN
         BEGIN
-        Val (CMD, Radio1UpdateSeconds, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, Radio1UpdateSeconds, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'RADIO TWO UPDATE SECONDS' THEN
         BEGIN
-        Val (CMD, Radio2UpdateSeconds, Result);
-        ProcessConfigInstructions2 := Result = 0;
+        Val (CMD, Radio2UpdateSeconds, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
     IF ID = 'RADIUS OF EARTH' THEN
         BEGIN
-        Val (CMD, RadiusOfEarth, Result);
+        Val (CMD, RadiusOfEarth, xResult);
         ProcessConfigInstructions2 := True;
         Exit;
         END;
@@ -3115,9 +3112,9 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'RECEIVER ADDRESS' THEN
         BEGIN
-        Val (CMD, Radio1ReceiverAddress, Result);
+        Val (CMD, Radio1ReceiverAddress, xResult);
         Radio2ReceiverAddress := Radio1ReceiverAddress;
-        ProcessConfigInstructions2 := Result = 0;
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -3160,7 +3157,7 @@ VAR Result,tempint: INTEGER;
             Exit;
             END;
 
-        Val (TimeString, Reminders^ [NumberReminderRecords].Time, Result);
+        Val (TimeString, Reminders^ [NumberReminderRecords].Time, xResult);
 
         DateString := BracketedString (CMD, ' ON ', '');
 
@@ -3300,7 +3297,7 @@ VAR Result,tempint: INTEGER;
 
 FUNCTION ProcessConfigInstructions3 (ID: Str80; CMD: STRING): BOOLEAN;
 
-VAR Result,tempint: INTEGER;
+VAR xResult: INTEGER;
     tempstring: string;
     tempreal: real;
 
@@ -3329,8 +3326,8 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'SAY HI RATE CUTOFF' THEN
         BEGIN
-        Val (CMD, SayHiRateCutOff, Result);
-        ProcessConfigInstructions3 := Result = 0;
+        Val (CMD, SayHiRateCutOff, xResult);
+        ProcessConfigInstructions3 := xResult = 0;
         Exit;
         END;
 
@@ -3349,8 +3346,8 @@ VAR Result,tempint: INTEGER;
     IF ID = 'SCP MINIMUM LETTERS' THEN {KK1L: 6.68 0 for WRTC2002}
         IF (NOT WRTC2002) THEN
             BEGIN
-            Val (CMD, SCPMinimumLetters, Result);
-            ProcessConfigInstructions3 := Result = 0;
+            Val (CMD, SCPMinimumLetters, xResult);
+            ProcessConfigInstructions3 := xResult = 0;
             Exit;
             END
         ELSE
@@ -3382,9 +3379,9 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'STEREO CONTROL PIN' THEN {KK1L: 6.71}
        BEGIN
-       Val (CMD, StereoControlPin, Result);
+       Val (CMD, StereoControlPin, xResult);
        IF (StereoControlPin <> 5) AND (StereoControlPin <> 9) THEN StereoControlPin := 9;
-       ProcessConfigInstructions3 := Result = 0;
+       ProcessConfigInstructions3 := xResult = 0;
        Exit;
        END;
 
@@ -3604,10 +3601,10 @@ VAR Result,tempint: INTEGER;
         BEGIN
         IF NumberTotalScoreMessages < 10 THEN
             BEGIN
-            Val (CMD, TotalScoreMessages [NumberTotalScoreMessages].Score, Result);
+            Val (CMD, TotalScoreMessages [NumberTotalScoreMessages].Score, xResult);
             ReadLn (ConfigFileRead, TotalScoreMessages [NumberTotalScoreMessages].MessageString);
             Inc (NumberTotalScoreMessages);
-            ProcessConfigInstructions3 := Result = 0;
+            ProcessConfigInstructions3 := xResult = 0;
             END
         ELSE
             Write ('Too many TOTAL SCORE MESSAGEs!!');
@@ -3694,8 +3691,8 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'VIDEO GAME LENGTH' THEN
         BEGIN
-        Val (CMD, VideoGameLength, Result);
-        ProcessConfigInstructions3 := Result = 0;
+        Val (CMD, VideoGameLength, xResult);
+        ProcessConfigInstructions3 := xResult = 0;
         Exit;
         END;
 
@@ -3708,8 +3705,8 @@ VAR Result,tempint: INTEGER;
 
     IF UpperCase (ID) = 'WAKE UP TIME OUT' THEN
         BEGIN
-        Val (CMD, WakeUpTimeOut, Result);
-        ProcessConfigInstructions3 := Result = 0;
+        Val (CMD, WakeUpTimeOut, xResult);
+        ProcessConfigInstructions3 := xResult = 0;
         Exit;
         END;
 
@@ -3729,7 +3726,7 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'WEIGHT' THEN
         BEGIN
-        Val (CMD, tempreal, Result);
+        Val (CMD, tempreal, xResult);
         CPUKeyer.setWeight(tempreal);
         Winkey.setWeight(tempreal);
         Yccckey.setWeight(tempreal);
@@ -3753,8 +3750,8 @@ VAR Result,tempint: INTEGER;
 
     IF ID = 'YAESU RESPONSE TIMEOUT' THEN
         BEGIN
-        Val (CMD, YaesuResponseTimeout, Result);
-        ProcessConfigInstructions3 := Result = 0;
+        Val (CMD, YaesuResponseTimeout, xResult);
+        ProcessConfigInstructions3 := xResult = 0;
         Exit;
         END;
     END;
@@ -3763,13 +3760,9 @@ VAR Result,tempint: INTEGER;
 
 FUNCTION ProcessConfigInstruction (FileString: STRING; VAR FirstCommand: BOOLEAN): BOOLEAN;
 
-VAR Count, Result, Memory: INTEGER;
-    Directory, ID: Str80;
+VAR Count: INTEGER;
+    ID: Str80;
     CMD: STRING;
-    TimeString, DateString, DayString: Str20;
-    TempFreq: LONGINT;
-    TempBand: BandType;
-    TempMode: ModeType;
 
     BEGIN
     FOR Count := 1 TO Length (FileString) DO

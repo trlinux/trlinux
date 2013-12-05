@@ -1,7 +1,6 @@
 UNIT PostRpt;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE

@@ -1,7 +1,6 @@
 UNIT LogCW;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -126,8 +125,8 @@ TYPE
     KeyStatusType = (NormalKeys, AltKeys, ControlKeys);
 
 VAR KeyStatus: KeyStatusType;
-    {SendingOnRadioOne: BOOLEAN; {KK1L: 6.72 Moved to global (INTERFACE section) for use in LOGSUBS}
-    {SendingOnRadioTwo: BOOLEAN; {KK1L: 6.72 Moved to global (INTERFACE section) for use in LOGSUBS}
+    {SendingOnRadioOne: BOOLEAN;} {KK1L: 6.72 Moved to global (INTERFACE section) for use in LOGSUBS}
+    {SendingOnRadioTwo: BOOLEAN;} {KK1L: 6.72 Moved to global (INTERFACE section) for use in LOGSUBS}
 
 
 
@@ -390,7 +389,7 @@ PROCEDURE SendKeyboardInput;
 { This procedure will take input from the keyboard and send it until a
   return is pressed.                                                    }
 
-VAR Key, ExtendedKey: CHAR;
+VAR Key: CHAR;
     TimeMark: TimeRecord;
     Buffer: SendBufferType;
     BufferStart, BufferEnd: INTEGER;
@@ -398,6 +397,7 @@ VAR Key, ExtendedKey: CHAR;
     BEGIN
     BufferStart := 0;
     BufferEnd := 0;
+    Buffer[0] := ' '; //to kill buffer not initialized warning
 
     IF NOT CWEnable THEN Exit;
 
@@ -888,7 +888,7 @@ PROCEDURE DVKLIstenMessage (MemoryString: Str20);
     IF MemoryString = 'DVK4' THEN StartDVK (4);
     IF MemoryString = 'DVK5' THEN StartDVK (5); {KK1L: 6.71}
     IF MemoryString = 'DVK6' THEN StartDVK (6); {KK1L: 6.71}
-    {IF MemoryString = 'DVK7' THEN StartDVK (7); {KK1L: 6.71} {KK1L: 6.72 removed}
+    {IF MemoryString = 'DVK7' THEN StartDVK (7);} {KK1L: 6.71} {KK1L: 6.72 removed}
     END;
 
 PROCEDURE DVKRecordMessage (MemoryString: Str20);
@@ -908,7 +908,7 @@ PROCEDURE DVKRecordMessage (MemoryString: Str20);
     IF MemoryString = 'DVK4' THEN StartDVK (4);
     IF MemoryString = 'DVK5' THEN StartDVK (5); {KK1L: 6.71}
     IF MemoryString = 'DVK6' THEN StartDVK (6); {KK1L: 6.71}
-    {IF MemoryString = 'DVK7' THEN StartDVK (7); {KK1L: 6.71} {KK1L: 6.72 removed}
+    {IF MemoryString = 'DVK7' THEN StartDVK (7); }{KK1L: 6.71} {KK1L: 6.72 removed}
 
     REPEAT millisleep UNTIL KeyPressed;
 
@@ -1758,7 +1758,7 @@ VAR TimeOut: BYTE;
             {KK1L: 6.71 Need to set mode to that of ModeMemory [RadioOne] for split mode SO2R}
             {KK1L: 6.72 Moved this to SendCrypticMessage to only handle CTRL-A requests      }
             {           SwapRadios is run prior to coming here for SO2R and that hoses things}
-            {ActiveMode := ModeMemory [RadioOne]; {KK1L: 6.71 for split mode SO2R}
+            {ActiveMode := ModeMemory [RadioOne];} {KK1L: 6.71 for split mode SO2R}
             SendingOnRadioOne := True;
             SendingOnRadioTwo := False;
             SetRelayForActiveRadio (ActiveRadio);
@@ -1778,7 +1778,7 @@ VAR TimeOut: BYTE;
             {KK1L: 6.71 Need to set mode to that of ModeMemory [RadioTwo] for split mode SO2R}
             {KK1L: 6.72 Moved this to SendCrypticMessage to only handle CTRL-A requests      }
             {           SwapRadios is run prior to coming here for SO2R and that hoses things}
-            {ActiveMode := ModeMemory [RadioTwo]; {KK1L: 6.71 for split mode SO2R}
+            {ActiveMode := ModeMemory [RadioTwo];} {KK1L: 6.71 for split mode SO2R}
             SendingOnRadioOne := False;
             SendingOnRadioTwo := True;
             SetRelayForActiveRadio (ActiveRadio);
@@ -1821,7 +1821,7 @@ VAR TimeOut: BYTE;
             SetSpeed (CodeSpeed);
             SetRelayForActiveRadio (RadioTwo);
             {KK1L: 6.71 Need to set mode to that of ModeMemory [RadioTwo] for split mode SO2R}
-            {ActiveMode := ModeMemory [RadioTwo]; {KK1L: 6.71 for split mode SO2R}
+            {ActiveMode := ModeMemory [RadioTwo];} {KK1L: 6.71 for split mode SO2R}
             SendingOnRadioOne := False;
             SendingOnRadioTwo := True;
             END;
@@ -1838,7 +1838,7 @@ VAR TimeOut: BYTE;
             SetSpeed (CodeSpeed);
             SetRelayForActiveRadio (RadioOne);
             {KK1L: 6.71 Need to set mode to that of ModeMemory [RadioOne] for split mode SO2R}
-            {ActiveMode := ModeMemory [RadioOne]; {KK1L: 6.71 for split mode SO2R}
+            {ActiveMode := ModeMemory [RadioOne];} {KK1L: 6.71 for split mode SO2R}
             SendingOnRadioOne := True;
             SendingOnRadioTwo := False;
             END;

@@ -1,7 +1,6 @@
 UNIT PostCab;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE

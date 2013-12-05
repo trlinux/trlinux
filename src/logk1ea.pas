@@ -1,7 +1,6 @@
 UNIT LogK1EA;
 {$mode objfpc}
 
-{$F+}
 {$V-}
 
 INTERFACE
@@ -305,10 +304,6 @@ CONST ParallelOutputPullupOffset  = 5;
 VAR
 
 
-    CWLPT1Image: BYTE;
-    CWLPT2Image: BYTE;
-    CWLPT3Image: BYTE;
-
     DelayCount:   LONGINT;
     DoingDVK:     BOOLEAN;
     DoingModem:   BOOLEAN;
@@ -317,13 +312,6 @@ VAR
     DoingRotator: BOOLEAN;
     DoingRTTY:    BOOLEAN;
     DVKTimeOut:   INTEGER;
-
-    FrameEscapeFound: BOOLEAN;
-
-    LPT1Image: BYTE;
-    LPT2Image: BYTE;
-    LPT3Image: BYTE;
-
 
     LastRadioOneMessageRead: Str80;
     LastRadioOneMessageTime: TimeRecord; {KK1L: 6.71}
@@ -334,16 +322,9 @@ VAR
 
     ModemCharacterSentDelayCount: INTEGER;
     ModemDelayCount:              INTEGER;
-    ModemReceiveMessage:          Str80;
-    ModemPortAddress:             WORD;
-    ModemTestAddress:             WORD;
 
     MultiCharacterSentDelayCount: INTEGER;
     MultiDelayCount:              INTEGER;
-    MultiPortAddress:             WORD;
-    MultiTestAddress:             WORD;
-
-    OldInt08Vector:           POINTER;
 
     PacketOutputDelay:        INTEGER;
 
@@ -355,15 +336,9 @@ VAR
     RadioOneBandOutputStatus: BandType;
     RadioTwoBandOutputStatus: BandType;
 
-    RememberRIT:          BOOLEAN;
 
     RTTYCharacterSentDelayCount: INTEGER;
     RTTYDelayCount:              INTEGER;
-    RTTYTestAddress:             WORD;
-
-
-    YaesuRITOffset:       INTEGER;
-
 
 
 PROCEDURE AddK1EACheckSumToString (VAR Message: STRING);
@@ -747,25 +722,17 @@ VAR CharPointer: INTEGER;
 
 PROCEDURE PutRadioIntoSplit (Radio: RadioType);
 
-VAR FreqStr: Str20;
-    CharPointer: INTEGER;
-    SendByte, TempByte: BYTE;
-    IntRadioType: InterfacedRadioType;
-    ControlPort: serialportx; {KK1L: 6.72}
-    IcomAckString: String; {KK1L: 6.72}
-    RetryCount: INTEGER; {KK1L: 6.72}
+VAR IntRadioType: InterfacedRadioType;
 
     BEGIN
     CASE Radio OF
 
         RadioOne: BEGIN
                   IntRadioType := Radio1Type;
-                  ControlPort  := Radio1ControlPort;
                   END;
 
         RadioTwo: BEGIN
                   IntRadioType := Radio2Type;
-                  ControlPort  := Radio2ControlPort;
                   END;
         END;
 
@@ -823,25 +790,17 @@ VAR FreqStr: Str20;
 
 PROCEDURE PutRadioOutOfSplit (Radio: RadioType);
 
-VAR FreqStr: Str20;
-    CharPointer: INTEGER;
-    SendByte, TempByte: BYTE;
-    IntRadioType: InterfacedRadioType;
-    ControlPort: serialportx; {KK1L: 6.72}
-    IcomAckString: String; {KK1L: 6.72}
-    RetryCount: INTEGER; {KK1L: 6.72}
+VAR IntRadioType: InterfacedRadioType;
 
     BEGIN
     CASE Radio OF
 
         RadioOne: BEGIN
                   IntRadioType := Radio1Type;
-                  ControlPort  := Radio1ControlPort;
                   END;
 
         RadioTwo: BEGIN
                   IntRadioType := Radio2Type;
-                  ControlPort  := Radio2ControlPort;
                   END;
         END;
 
@@ -863,7 +822,6 @@ VAR FreqStr: Str20;
         IC746, IC746PRO, IC756, IC756PRO, IC756PROII,  IC736, IC737, IC738,
         IC761, IC765, IC775, IC781, OMNI6: {KK1L: 6.73 Added OMNI6}
             BEGIN
-            Inc (RetryCount); {KK1L: 6.72}
             AddRadioCommandCharacter (Radio, Chr ($FE));
             AddRadioCommandCharacter (Radio, Chr ($FE));
 
@@ -896,7 +854,6 @@ VAR FreqStr: Str20;
 PROCEDURE OutputBandInfo (Radio: RadioType; Band: BandType);
 
 VAR Image: BYTE;
-    PortNumber: PortType;
     data: integer;
 {KK1L: Note I can create personized freq range output by calling BandOutputFreqLimits proc (to be created)}
 {           Using frequency should be okay, since if no radio connected then can use TR band data}
@@ -1006,9 +963,7 @@ VAR Image: BYTE;
 
 PROCEDURE StartDVK (MemorySwitch: INTEGER);
 
-VAR BaseAddress: WORD;
-    Image: BYTE;
-    mask: byte;
+VAR Image: BYTE;
 
     BEGIN
     IF NOT DVPOn THEN Exit;
@@ -1044,8 +999,7 @@ VAR BaseAddress: WORD;
 
 PROCEDURE SetStereoPin (PinNumber: INTEGER; PinSet: BOOLEAN);
 
-VAR BaseAddress: WORD;
-    Image: BYTE;
+VAR Image: BYTE;
 
     BEGIN
     if ActiveStereoPort = nil then exit;
@@ -1306,7 +1260,6 @@ VAR FreqStr: Str20;
     CharPointer: INTEGER;
     SendByte, TempByte: BYTE;
     IntRadioType: InterfacedRadioType;
-    ControlPort: serialportx; {KK1L: 6.72}
 
     BEGIN
     CASE Radio OF
@@ -1315,7 +1268,6 @@ VAR FreqStr: Str20;
                   Freq := Freq - Radio1FrequencyAdder;
 
                   IntRadioType     := Radio1Type;
-                  ControlPort      := Radio1ControlPort;
                   StableRadio1Freq := Freq;
                   LastRadioOneFreq := Freq;
                   Radio1PollDelay  := 0;     { Skips the next poll? }
@@ -1325,7 +1277,6 @@ VAR FreqStr: Str20;
                   Freq := Freq - Radio2FrequencyAdder;
 
                   IntRadioType     := Radio2Type;
-                  ControlPort      := Radio2ControlPort; {KK1L: 6.72}
                   StableRadio2Freq := Freq;
                   LastRadioTwoFreq := Freq;
                   Radio2PollDelay  := 0;     { Skips the next poll? }
@@ -1444,6 +1395,7 @@ VAR FreqStr: Str20;
             WHILE Length (FreqStr) < 8 DO
                 FreqStr := '0' + FreqStr;
 
+sendbyte := $00; //KS added -- Check
             FOR CharPointer := Length (FreqStr) DOWNTO 1 DO
                 IF Odd (CharPointer) THEN
                     BEGIN
@@ -1780,7 +1732,6 @@ VAR IntRadioType: InterfacedRadioType;
 
         FT890, FT920, FT990, FT1000, FT1000MP:
             BEGIN
-            YaesuRITOffset := 0;
             AddRadioCommandCharacter (ActiveRadio, Chr (0));
             AddRadioCommandCharacter (ActiveRadio, Chr (0));
             AddRadioCommandCharacter (ActiveRadio, Chr (0));
@@ -1817,22 +1768,18 @@ VAR IntRadioType: InterfacedRadioType;
 
 PROCEDURE BumpRITUp;
 
-VAR Offset, Radio: INTEGER;
-    IntRadioType: InterfacedRadioType;
-    TempString: Str20;
+VAR IntRadioType: InterfacedRadioType;
 
     BEGIN
     IF ActiveRadio = RadioOne THEN
         BEGIN
         IF Radio1CommandBufferStart <> Radio1CommandBufferEnd THEN Exit;
         IntRadioType := Radio1Type;
-        Radio := 1;
         END
     ELSE
         BEGIN
         IF Radio2CommandBufferStart <> Radio2CommandBufferEnd THEN Exit;
         IntRadioType := Radio2Type;
-        Radio := 2;
         END;
 
     IF (IntRadioType = TS850) OR (IntRadioType = K2) THEN
@@ -1846,22 +1793,18 @@ VAR Offset, Radio: INTEGER;
 
 PROCEDURE BumpRITDown;
 
-VAR Offset, Radio: INTEGER;
-    IntRadioType: InterfacedRadioType;
-    TempString: Str20;
+VAR IntRadioType: InterfacedRadioType;
 
     BEGIN
     IF ActiveRadio = RadioOne THEN
         BEGIN
         IF Radio1CommandBufferStart <> Radio1CommandBufferEnd THEN Exit;
         IntRadioType := Radio1Type;
-        Radio := 1;
         END
     ELSE
         BEGIN
         IF Radio2CommandBufferStart <> Radio2CommandBufferEnd THEN Exit;
         IntRadioType := Radio2Type;
-        Radio := 2;
         END;
 
     IF (IntRadioType = TS850) OR (IntRadioType = K2) THEN
@@ -1871,25 +1814,21 @@ VAR Offset, Radio: INTEGER;
         AddRadioCommandString (ActiveRadio, '*RMR-200' + CarriageReturn);
     END;
 
-
 
 PROCEDURE BumpVFOUp;
 
-VAR Radio: INTEGER;
-    IntRadioType: InterfacedRadioType;
+VAR IntRadioType: InterfacedRadioType;
 
     BEGIN
     IF ActiveRadio = RadioOne THEN
         BEGIN
         IF Radio1CommandBufferStart <> Radio1CommandBufferEnd THEN Exit;
         IntRadioType := Radio1Type;
-        Radio := 1;
         END
     ELSE
         BEGIN
         IF Radio2CommandBufferStart <> Radio2CommandBufferEnd THEN Exit;
         IntRadioType := Radio2Type;
-        Radio := 2;
         END;
 
     CASE IntRadioType OF
@@ -1925,21 +1864,18 @@ VAR Radio: INTEGER;
 
 PROCEDURE BumpVFODown;
 
-VAR Radio: INTEGER;
-    IntRadioType: InterfacedRadioType;
+VAR IntRadioType: InterfacedRadioType;
 
     BEGIN
     IF ActiveRadio = RadioOne THEN
         BEGIN
         IF Radio1CommandBufferStart <> Radio1CommandBufferEnd THEN Exit;
         IntRadioType := Radio1Type;
-        Radio := 1;
         END
     ELSE
         BEGIN
         IF Radio2CommandBufferStart <> Radio2CommandBufferEnd THEN Exit;
         IntRadioType := Radio2Type;
-        Radio := 2;
         END;
 
     CASE IntRadioType OF
@@ -2609,12 +2545,9 @@ VAR LastMessage, TempString: STRING;
     IntRadioType: InterfacedRadioType;
     ControlPort: serialportx;
     DebugString: STRING;
-    Count, Resultx, DelayCount, CharPointer: INTEGER;
-    PortChar: Char;
+    Resultx, CharPointer: INTEGER;
     IcomDataString: STRING; {KK1L: 6.72}
     VFOAFrequencyString, VFOBFrequencyString, ActiveVFOString, ModeString: Str40;
-    Interrupted: BOOLEAN;
-
     BEGIN
     GetRadioInformation := '';  { If we exit with this - nothing will happen }
 
@@ -3131,7 +3064,6 @@ procedure k1eatimer.timer(caughtup: boolean);
 
 VAR TempChar:   CHAR;
     TempByte:   BYTE;
-    TempString: Str80;
     tempint: integer;
 
  BEGIN
@@ -3479,7 +3411,6 @@ PROCEDURE K1EAInit;
 
     DVKTimeOut  := 0;
 
-    FrameEscapeFound := False;
 
     LastRadioOneMessageRead := '';
     LastRadioTwoMessageRead := '';
@@ -3533,7 +3464,6 @@ PROCEDURE K1EAInit;
     TalkDebugMode            := False;
 
 
-    YaesuRITOffset           := 0;
     END;
 
 PROCEDURE CloseDebug;
@@ -3574,10 +3504,6 @@ VAR Ticks: LONGINT;
 
     RadioOneBandOutputStatus := NoBand;
     RadioTwoBandOutputStatus := NoBand;
-
-    CWLPT1Image := $08;
-    CWLPT2Image := $08;
-    CWLPT3Image := $08;
 
     LastRadioOneFreq := 0; {KK1L: 6.71 Used LastRadioOneFreq here instead of LOGWIND.PAS}
     LastRadioTwoFreq := 0; {KK1L: 6.71 Used LastRadioTwoFreq here instead of LOGWIND.PAS}

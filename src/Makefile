@@ -58,7 +58,7 @@ trlog: $(SRC) hidapi.h hid.o dupe.o dt.o findports.o
 #	fpc -Xt -B -Mtp -g -otrlog tr\
              -k-logg -k-lvorbis -k-lFLAC -k-lvorbisenc -k-lm
 #	fpc -dBUSYWAIT -B -Mtp -g -otrlog tr -k-rpath=\$$ORIGIN/lib -k'-z origin' -k-lX11
-	fpc -O2 -B -Mtp -g -otrlog tr -k-rpath=\$$ORIGIN/lib -k'-z origin' -k-lX11
+	fpc -O2 -B -Mobjfpc -g -gl -otrlog tr -k-rpath=\$$ORIGIN/lib -k'-z origin' -k-lX11
 
 install:
 #	sudo install -m 4755 trlog ../log/trlog

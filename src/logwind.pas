@@ -1,7 +1,6 @@
 UNIT LogWind;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -968,8 +967,8 @@ CONST
 
     {IF WideFreqDisplay THEN                   }
     {    BEGIN                                 }
-    {    FrequencyTwoWindowLX = 67; {KK1L: 6.73}
-    {    FrequencyTwoWindowRX = 79; {KK1L: 6.73}
+    {    FrequencyTwoWindowLX = 67;} {KK1L: 6.73}
+    {    FrequencyTwoWindowRX = 79;} {KK1L: 6.73}
     {    END                                   }
     {ELSE                                      }
     {    BEGIN                                 }
@@ -1066,18 +1065,11 @@ VAR
     Band: BandType;
     Continent: ContinentType;
 
-    DupeSheetWindowX: INTEGER;
-    DupeSheetWindowY: INTEGER;
-
-
     NumberMinutesProgramRunning: INTEGER;
     NumberSavedWindows:          INTEGER;
 
     Radio1InquireCount:           INTEGER;
     Radio2InquireCount:           INTEGER;
-
-    Radio1PollCount:              INTEGER;
-    Radio2PollCount:              INTEGER;
 
     SavedWindowList:             ARRAY [0..12] OF SavedWindow;
 
@@ -1198,7 +1190,7 @@ VAR TempFreq: REAL;
 
 PROCEDURE DisplayBeamHeading (Call: CallString);
 
-VAR Heading, Distance, Country: INTEGER;
+VAR Heading, Distance: INTEGER;
     CountryID, HeadingString, DistanceString, HisGrid : Str20;
     Lat, Lon: REAL;
     TempString: Str40;
@@ -1930,7 +1922,6 @@ PROCEDURE DisplayMultiMessages;
 VAR Band: BandType;
     Mode: ModeType;
     TempString: Str40;
-    Index: INTEGER;
     PassFreqStr, RunFreqStr: Str20;
 
     BEGIN
@@ -2026,8 +2017,7 @@ PROCEDURE DisplayInsertMode (InsertMode: BOOLEAN);
 PROCEDURE DisplayCT1BOHData;
 
 VAR Band: BandType;
-    Contienent: ContinentType;
-    TotalTimeOn, TotalQSOs: INTEGER;
+    TotalTimeOn: INTEGER;
     Percent: REAL;
     BandTotals: ARRAY [Band160..Band10] OF INTEGER;
 
@@ -2261,7 +2251,7 @@ PROCEDURE DisplayQTCNumber (QTCNumber: INTEGER);
 
 PROCEDURE DisplayCountryName (Call: CallString);
 
-VAR IDString, TempString: Str80;
+VAR TempString: Str80;
     Country: INTEGER;
 
     BEGIN
@@ -2502,8 +2492,7 @@ FUNCTION QuickEditInteger (Prompt: Str80; MaxInputLength: INTEGER): LONGINT;
 
 VAR InputString: Str80;
     InputValue: LONGINT;
-    Result: INTEGER;
-    Key: Char;
+    xResult: INTEGER;
 
     BEGIN
     QuickEditInteger := -1;
@@ -2513,8 +2502,8 @@ VAR InputString: Str80;
 
     IF StringIsAllNumbers (InputString) AND (InputString <> '') THEN
         BEGIN
-        Val (InputString, InputValue, Result);
-        IF Result = 0 THEN QuickEditInteger := InputValue;
+        Val (InputString, InputValue, xResult);
+        IF xResult = 0 THEN QuickEditInteger := InputValue;
         END;
     END;
 
@@ -2535,9 +2524,8 @@ FUNCTION QuickEditFreq (Prompt: Str80; MaxInputLength: INTEGER): LONGINT;
 VAR InputString: Str80;
     KHzString, HertzString: Str20;
     InputValue: LONGINT;
-    Result: INTEGER;
-    Key: Char;
-    CTRLStr, TempStr: Str80; {KK1L: 6.73}
+    xResult: INTEGER;
+    CTRLStr: Str80; {KK1L: 6.73}
 
     BEGIN
     QuickEditFreq := -1;
@@ -2560,16 +2548,16 @@ VAR InputString: Str80;
         WHILE Length (HertzString) < 3 DO
             HertzString := HertzString + '0';
 
-        Val (KHzString + HertzString, InputValue, Result);
+        Val (KHzString + HertzString, InputValue, xResult);
         END
     ELSE
         BEGIN
         InputString := InputString + '000';
-        Val (InputString, InputValue, Result);
+        Val (InputString, InputValue, xResult);
         END;
 
-    IF (CTRLStr = 'CTRL') AND (Result = 0) THEN InputValue := InputValue * (-1) {KK1L: 6.73}
-    ELSE IF Result <> 0 THEN Exit;
+    IF (CTRLStr = 'CTRL') AND (xResult = 0) THEN InputValue := InputValue * (-1) {KK1L: 6.73}
+    ELSE IF xResult <> 0 THEN Exit;
 
     { This used to be all over LOGSUBS2, I moved it here }
 
@@ -2598,9 +2586,8 @@ FUNCTION QuickEditReal (Prompt: Str80; MaxInputLength: INTEGER): REAL;
   response will be -1.                                                }
 
 VAR InputString: Str80;
-    Result: INTEGER;
+    xResult: INTEGER;
     InputValue: REAL;
-    Key: Char;
 
     BEGIN
     QuickEditReal := -1;
@@ -2610,9 +2597,9 @@ VAR InputString: Str80;
 
     IF InputString <> '' THEN
         BEGIN
-        Val (InputString, InputValue, Result);
+        Val (InputString, InputValue, xResult);
 
-        IF Result = 0 THEN
+        IF xResult = 0 THEN
             QuickEditReal := InputValue;
         END;
     END;
@@ -2789,7 +2776,7 @@ PROCEDURE DecrementBandMapTimes;
 
 { Decrements all times by one.  Any that were at zero get deleted. }
 
-VAR BandMapEntryRecord, EntryToBeDisposed, PreviousBandMapEntryRecord: BandMapEntryPointer;
+VAR BandMapEntryRecord, PreviousBandMapEntryRecord: BandMapEntryPointer;
     MinutesLeft: BYTE;
     Band: BandType;
     Mode: ModeType;
@@ -2881,10 +2868,9 @@ LABEL IgnoreRadioOneFreq, IgnoreRadioTwoFreq;
 VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
     Hour, Minute, Second, Hundredths: WORD;
     AlarmInteger, RecordNumber, IntegerTime, RateMinute: INTEGER;
-    Freq, DummyFreq: LONGINT;
-    Band, DummyBand: BandType;
-    Mode, DummyMode: ModeType;
-    TempStr, TempStr2: Str80; {KK1L: 6.71 DEBUG}
+    Freq: LONGINT;
+    Band: BandType;
+    Mode: ModeType;
 
     BEGIN
     IF ShowTime THEN
@@ -3052,7 +3038,7 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
                 Radio1InquireCount := 1;
                 END;
-            {QuickDisplay('Done with radio one'); {KK1L: 6.72 DEBUG}
+            {QuickDisplay('Done with radio one'); }{KK1L: 6.72 DEBUG}
             END;
 
         IF NOT PollRadioTwo THEN
@@ -3062,7 +3048,7 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
         IF DoRadios AND (Radio2Type <> NoInterfacedRadio) AND PollRadioTwo THEN  {KK1L: 6.72 Added PollRadioTwo}
             BEGIN
             Inc (Radio2InquireCount);
-            {QuickDisplay2('Working with radio two'); {KK1L: 6.72 DEBUG}
+            {QuickDisplay2('Working with radio two'); }{KK1L: 6.72 DEBUG}
 
             {Radio2PollCount := Radio2UpdateSeconds;} {KK1L: 6.71a removed}
 
@@ -3199,7 +3185,7 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
                 Radio2InquireCount := 1;
                 END;
-            {QuickDisplay('Done with radio two'); {KK1L: 6.72 DEBUG}
+            {QuickDisplay('Done with radio two');} {KK1L: 6.72 DEBUG}
 
         {KK1L: 6.71a This bit (til the next end) moved here so it only occurs once per second rather than}    END;
         {           the once per 50ms or so that the radio stuff occurs}
@@ -3263,7 +3249,11 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
             DayString   := UpperCase (GetDayString);
             DateString  := UpperCase (DateString);
 
-            FOR RecordNumber := 0 TO NumberReminderRecords - 1 DO
+//            FOR RecordNumber := 0 TO NumberReminderRecords - 1 DO
+            RecordNumber := -1;
+            while ((RecordNumber + 1) <= NumberReminderRecords - 1) do
+            begin
+                inc(RecordNumber);
                 IF Reminders^ [RecordNumber].Time = IntegerTime THEN
                     IF (Reminders^ [RecordNumber].DateString = DateString) OR
                        (Reminders^ [RecordNumber].DayString  = DayString) OR
@@ -3282,6 +3272,7 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                            RecordNumber := NumberReminderRecords - 1;
                            ReminderPostedCount := 60;
                            END;
+            end;
             END;
 
         IF AlarmSet THEN
@@ -3412,8 +3403,7 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
 PROCEDURE IncrementTime (Count: INTEGER);
 
-VAR LoopCount: INTEGER;
-    Hours, Minutes, Seconds, Hundredths: Word;
+VAR Hours, Minutes, Seconds, Hundredths: Word;
     Year, Month, Day, DayOfWeek: Word;
 
     BEGIN
@@ -3515,7 +3505,6 @@ PROCEDURE DisplayAutoSendCharacterCount;
 PROCEDURE DeleteBandMapEntry (VAR Entry: BandMapEntryPointer);
 
 VAR BandMapEntryRecord, PreviousBandEntryRecord: BandMapEntryPointer;
-    CompressedDeleteCall: EightBytes;
     StartBand, StopBand, Band: BandType;
     StartMode, StopMode, Mode: ModeType;
 
@@ -3991,7 +3980,6 @@ PROCEDURE GetBandMapBandModeFromFrequency (Frequency: LONGINT;
 { Mode might be setup by someone else - in which case, don't mess with it }
 
 VAR TempMode: ModeType;
-    tempstr: str20;
 
     BEGIN
     CalculateBandMode (Frequency, Band, TempMode);
@@ -4066,7 +4054,7 @@ PROCEDURE AddBandMapEntry (Call: CallString;
 
 {KK1L: 6.64 Added QSXOffset scaling to make range within INTEGER}
 
-VAR LastBandMapEntryRecord, NextBandMapEntryRecord: BandMapEntryPointer;
+VAR LastBandMapEntryRecord: BandMapEntryPointer;
     TempBandMapEntryRecord, BandMapEntryRecord: BandMapEntryPointer;
     StatusByte: BYTE;
     QSXOffset: LONGINT; {KK1L: 6.64 Tried INTEGER, but no joy.}
@@ -4212,7 +4200,6 @@ VAR LastBandMapEntryRecord, NextBandMapEntryRecord: BandMapEntryPointer;
                 { New for 6.50 - if the frequency is less than the next
                   bandmap entries, we should also just use this one }
 
-                NextBandMapEntryRecord := BandMapEntryRecord^.NextEntry;
 
                 IF Frequency < BandMapEntryRecord^.Frequency THEN
                     BEGIN
@@ -4263,7 +4250,6 @@ VAR LastBandMapEntryRecord, NextBandMapEntryRecord: BandMapEntryPointer;
             { See if the frequency is less than the next entry }
 
 
-                NextBandMapEntryRecord := BandMapEntryRecord^.NextEntry;
 
                 IF Frequency < BandMapEntryRecord^.Frequency THEN
                     BEGIN
@@ -4409,7 +4395,7 @@ PROCEDURE SaveBandMap;
 
 VAR BandMapEntryRecord: BandMapEntryPointer;
     FileWrite: FILE;
-    Result: INTEGER;
+    xResult: INTEGER;
     Mode: ModeType;
     Band: BandType;
     DummyBandMapRecord: BandMapEntry;
@@ -4424,20 +4410,20 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
     Assign  (FileWrite, BandMapFileName);
     ReWrite (FileWrite, 1);
 
-    BlockWrite (FileWrite, BandMapFileVersion, SizeOf (BandMapFileVersion), Result);
-    BlockWrite (FileWrite, BandMapDecayValue, SizeOf (BandMapDecayValue), Result); {KK1L: 6.70 Keeps map and program in synch}
+    BlockWrite (FileWrite, BandMapFileVersion, SizeOf (BandMapFileVersion), xResult);
+    BlockWrite (FileWrite, BandMapDecayValue, SizeOf (BandMapDecayValue), xResult); {KK1L: 6.70 Keeps map and program in synch}
 
     FOR Band := Band160 TO Band2 DO
         FOR Mode := CW TO Phone DO
             IF BandMapFirstEntryList [Band, Mode] = nil THEN
-                BlockWrite (FileWrite, DummyBandMapRecord, SizeOf (DummyBandMapRecord), Result)
+                BlockWrite (FileWrite, DummyBandMapRecord, SizeOf (DummyBandMapRecord), xResult)
             ELSE
                 BEGIN
                 BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];  { 1st entry of linked list }
 
                 WHIlE BandMapEntryRecord <> nil DO
                     BEGIN
-                    BlockWrite (FileWrite, BandMapEntryRecord^, SizeOf (BandMapEntryRecord^), Result);
+                    BlockWrite (FileWrite, BandMapEntryRecord^, SizeOf (BandMapEntryRecord^), xResult);
                     BandMapEntryRecord  := BandMapEntryRecord^.NextEntry;
                     END;
                 END;
@@ -4457,9 +4443,8 @@ PROCEDURE LoadBandMap;
 VAR PreviousBandMapEntryRecord, BandMapEntryRecord: BandMapEntryPointer;
     TempBandMapEntryRecord: BandMapEntry;
     FileRead: FILE;
-    Result: INTEGER;
-    FirstTime: BOOLEAN;
-    Band, TempBand: BandType;
+    xResult: INTEGER;
+    Band: BandType;
     Mode: ModeType;
     TempChar: CHAR;
 
@@ -4474,7 +4459,7 @@ VAR PreviousBandMapEntryRecord, BandMapEntryRecord: BandMapEntryPointer;
     Assign (FileRead, BandMapFileName);
     Reset  (FileRead, 1);
 
-    BlockRead (FileRead, TempChar, SizeOf (TempChar), Result);
+    BlockRead (FileRead, TempChar, SizeOf (TempChar), xResult);
 
     IF (TempChar <> BandMapFileVersion) OR Eof (FileRead) THEN
         BEGIN
@@ -4483,7 +4468,7 @@ VAR PreviousBandMapEntryRecord, BandMapEntryRecord: BandMapEntryPointer;
         END;
 
     {KK1L: 6.70 Keeps bandmap and program in synch}
-    BlockRead (FileRead, BandMapDecayValue, SizeOf (BandMapDecayValue), Result);
+    BlockRead (FileRead, BandMapDecayValue, SizeOf (BandMapDecayValue), xResult);
     BandMapDecayMultiplier  := (BandMapDecayValue div 64) + 1; {KK1L: 6.70}
     BandMapDecayTime := BandMapDecayValue div BandMapDecayMultiplier; {KK1L: 6.70}
 
@@ -4493,7 +4478,7 @@ VAR PreviousBandMapEntryRecord, BandMapEntryRecord: BandMapEntryPointer;
         FOR Mode := CW TO Phone DO
             IF NOT Eof (FileRead) THEN
                 BEGIN
-                BlockRead (FileRead, TempBandMapEntryRecord, SizeOf (TempBandMapEntryRecord), Result);
+                BlockRead (FileRead, TempBandMapEntryRecord, SizeOf (TempBandMapEntryRecord), xResult);
 
                 IF TempBandMapEntryRecord.Frequency <> 0 THEN  { not filler }
                     BEGIN
@@ -4509,7 +4494,7 @@ VAR PreviousBandMapEntryRecord, BandMapEntryRecord: BandMapEntryPointer;
 
                         BandMapEntryRecord := New (BandMapEntryPointer);
                         PreviousBandMapEntryRecord^.NextEntry := BandMapEntryRecord;
-                        BlockRead (FileRead, BandMapEntryRecord^, SizeOf (BandMapEntryRecord^), Result);
+                        BlockRead (FileRead, BandMapEntryRecord^, SizeOf (BandMapEntryRecord^), xResult);
                         END;
 
                     END;
@@ -4589,10 +4574,10 @@ VAR StartBand, StopBand: BandType;
     IF NOT BandMapEnable THEN Exit;
 
     {KK1L: 6.68 Tree had this check when BandMapRecord did not cover all bands. Removed!}
-    {IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
-    {  IF (BandMapBand > Band2) OR (BandMapMode > Phone) THEN Exit
-    {ELSE
-    {  IF (BandMapBand > Band12) OR (BandMapMode > Phone) THEN Exit;  {KK1L: 6.65 fixes WARC display enable}
+    {IF VHFBandsEnabled THEN }{KK1L: 6.64 Keep band map within contest limits}
+    {  IF (BandMapBand > Band2) OR (BandMapMode > Phone) THEN Exit}
+    {ELSE}
+    {  IF (BandMapBand > Band12) OR (BandMapMode > Phone) THEN Exit; } {KK1L: 6.65 fixes WARC display enable}
 
     SaveSetAndClearActiveWindow (BandMapWindow);
 
@@ -4896,7 +4881,7 @@ VAR StartBand, StopBand: BandType;
                       (CurrentCursor <  LastDisplayableBandMapcursor) THEN
                      GoToProperXY (NumberEntriesDisplayed, NumberBandMapRows, 5);
 
-                   {KK1L: 6.65 Added the conditional Inc since I now allow all entries (displayed or
+                   {KK1L: 6.65 Added the conditional Inc since I now allow all entries (displayed or}
                    {           otherwise) to enter the loop. This was for CallWindowShowAllSpots}
                    IF ((BandMapEntryRecord^.StatusByte AND $40) <> 0) AND BandMapDupeDisplay THEN
                      Inc (CurrentCursor)
@@ -5000,7 +4985,7 @@ PROCEDURE ShowBandMapCursor (CursorPosition: INTEGER;
 { Cursor position is an integer count of the position on the band map,
   starting at zero.  The BandMapCursorData will be updated to point to
   the contents of the spot located at that position. }
-{KK1L: 6.64 Changed the name of NumberEntriesDisplayed to NumberVisibleBandMapEntries to
+{KK1L: 6.64 Changed the name of NumberEntriesDisplayed to NumberVisibleBandMapEntries to}
 {      better reflect its use.}
 
 {KK1L: 6.65 NOTE THAT THIS PROC IS ONLY CALLED FROM EditBandMap. THAT PREDICATES SOME OF}
@@ -5008,7 +4993,7 @@ PROCEDURE ShowBandMapCursor (CursorPosition: INTEGER;
 
 VAR FreqString: Str10;
     BandMapCall: CallString;
-    MinutesLeft, BandMapColumnsNeeded, OnScreenCursorPosition,
+    MinutesLeft, OnScreenCursorPosition,
       MaxEntriesPerPage, NumberBandMapRows:                       INTEGER;
 
     BEGIN
@@ -5254,7 +5239,6 @@ FUNCTION GetRecordForBandMapCursor (VAR Entry: BandMapEntryPointer;
 { KK1L: 6.65 CursorEntryNumber did not need to be "pass by reference". Changed to "pass by value"}
 
 VAR EntryNumber : INTEGER;
-    FoundRecord: BOOLEAN;
     Band, StartBand, StopBand: BandType;
     Mode, StartMode, StopMode: ModeType;
 
@@ -5291,7 +5275,6 @@ VAR EntryNumber : INTEGER;
 
     EntryNumber := 0;
     GetRecordForBandMapCursor := FALSE;
-    FoundRecord := FALSE;
 
     FOR Band := StartBand TO StopBand DO
         BEGIN
@@ -5315,7 +5298,6 @@ VAR EntryNumber : INTEGER;
                 BEGIN {KK1L: 6.64 Only set data if not nil}
                 BandMapCursorData := Entry;
                 GetRecordForBandMapCursor := TRUE;
-                FoundRecord := TRUE;
                 Exit; {KK1L: 6.64 Found a match. Let's get out of here}
                 END;
               Break; {KK1L: 6.64 Ran out of entries. Jump out of WHILE Entry <> nil to next Mode/Band}
@@ -5346,13 +5328,8 @@ PROCEDURE EditBandMap;
   be = 0 if no entry left.  }
 
 VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER;
-    TempFreq: LONGINT;
-    DeletedLastEntry, EntryDeleted, Button1, Button2: BOOLEAN;
+    Button1, Button2: BOOLEAN;
     BandMapEntryRecord: BandMapEntryPointer;
-    Key: CHAR;
-    BandMapStatusString: Str40;
-    Band, StartBand, StopBand: BandType;
-    Mode, StartMode, StopMode: ModeType;
 
     BEGIN
     IF NOT BandMapEnable THEN Exit;
@@ -5382,7 +5359,6 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
 
     { Now - highlight the entry where the cursor is and process keystrokes }
 
-    EntryDeleted := False;
     {KK1L: 6.65 Removed following to allow us to enter the BM for edit at the current cursor position.}
     {BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];}
     {CursorEntryNumber :=0;}
@@ -5411,8 +5387,8 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
                     ShowBandMapCursor (CursorEntryNumber, NumberBandMapEntries, True);
                     RemoveWindow (QuickCommandWindow);
                     {KK1L 6.65 no longer needed}
-                    { BandMapCursorFrequency := TempFreq; {KK1L: 6.64 restore radio freq value}
-                    {BandMapCursorData := nil; {KK1L: 6.64 Keeps call from showing up in call window}
+                    { BandMapCursorFrequency := TempFreq;} {KK1L: 6.64 restore radio freq value}
+                    {BandMapCursorData := nil;} {KK1L: 6.64 Keeps call from showing up in call window}
                     InEditBandMap := False;
                     EscapeFromEditBandMap := True; {KK1L: 6.65 Replaces BandMapCursorDate := nil above}
                     NeedToSynchBandMap := True; {KK1L: 6.69}
@@ -5430,7 +5406,7 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
                     ShowBandMapCursor (CursorEntryNumber, NumberBandMapEntries, True);
                     RemoveWindow (QuickCommandWindow);
                     {KK1L 6.65 no longer needed}
-                    {BandMapCursorFrequency := TempFreq; {KK1L: 6.64 restore radio freq value}
+                    {BandMapCursorFrequency := TempFreq;} {KK1L: 6.64 restore radio freq value}
                     InEditBandMap := False;
                     Exit;
                     END;
@@ -5482,13 +5458,13 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
                                 {CalculateNumberVisibleBandMapEntries (NumberBandMapEntries, CursorEntryNumber, False);}
                                 DisplayBandMap;
 
-                                {IF NumberBandMapEntries = 0 THEN
-                                {    BEGIN
-                                {    RemoveWindow (QuickCommandWindow);
-                                {    {KK1L 6.65 no longer needed}
-                                {    {BandMapCursorFrequency := TempFreq; {KK1L: 6.64 restore radio freq value}
-                                {    InEditBandMap := False;
-                                {    Exit;
+                                {IF NumberBandMapEntries = 0 THEN}
+                                {    BEGIN}
+                                {    RemoveWindow (QuickCommandWindow);}
+                                {    }{KK1L 6.65 no longer needed}
+                                {    }{BandMapCursorFrequency := TempFreq; }{KK1L: 6.64 restore radio freq value}
+                                {    InEditBandMap := False;}
+                                {    Exit;}
                                 {    END;}
                                 END;
                              END;
@@ -5542,7 +5518,7 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
                 DisplayBandMap;
                 RemoveWindow (QuickCommandWindow);
                 {KK1L 6.65 no longer needed}
-                {BandMapCursorFrequency := TempFreq; {KK1L: 6.64 restore radio freq value}
+                {BandMapCursorFrequency := TempFreq; }{KK1L: 6.64 restore radio freq value}
                 InEditBandMap := False;
                 Exit;
                 END;
@@ -6170,16 +6146,15 @@ PROCEDURE UpdateK1EAStationInfo (Field: K1EAStationInfoFieldType;
                                  MessageString: Str20);
 
 VAR Freq: LONGINT;
-    Index, Result: INTEGER;
-    TempString: Str20;
+    xResult: INTEGER;
     Band: BandType;
     Mode: ModeType;
 
     BEGIN
     GetRidOfPostcedingSpaces (MessageString);
-    Val (MessageString, Freq, Result);
+    Val (MessageString, Freq, xResult);
 
-    IF Result <> 0 THEN
+    IF xResult <> 0 THEN
         BEGIN
         SendMorse ('ooops');
         Exit;
@@ -6322,9 +6297,6 @@ VAR Band: BandType;
 
     Radio1InquireCount          := 0;
     Radio2InquireCount          := 0;
-
-    Radio1PollCount             := 0;
-    Radio2PollCount             := 0;
 
     Rate                        := 0;
     ReminderPostedCount         := 0;

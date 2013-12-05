@@ -249,42 +249,5 @@ VAR FirstHeapIndex, LastHeapIndex: LONGINT;
 
     END;
 
-
-(*
-HeapSort( apSort, nSort, pfunCmp)
-void			*apSort[];
-int			nSort, (*pfunCmp)();
-{   void		**ppRoot, **ppLast, *pRef;
-
-    ppRoot = apSort + nSort / 2;
-    ppLast = apSort + nSort - 1;
-    while( --ppRoot >= apSort)
-	HeapSortSiftUp( apSort, ppRoot, ppLast, *ppRoot, pfunCmp);
-    while( ppLast > apSort)
-    {   pRef = *ppLast;
-	*ppLast-- = apSort[ 0];
-	HeapSortSiftUp( apSort, apSort, ppLast, pRef, pfunCmp);
-    }
-}
-
-HeapSortSiftUp( ppBase, ppParent, ppLast, pRef, pfunCmp)
-void			**ppBase, **ppParent, **ppLast, *pRef;
-int			(*pfunCmp)();
-{   void		**ppChild, **ppTwin;
-
-    while( 1)
-    {   ppChild = ppParent + (ppParent - ppBase) + 1;
-	ppTwin = ppChild + 1;
-	if( ppChild < ppLast && (*pfunCmp)( *ppChild, *ppTwin) >= 0)
-	    ppChild = ppTwin;
-	if( ppChild > ppLast || (*pfunCmp)( *ppChild, pRef) < 0)
-	    break;
-	*ppParent = *ppChild;
-	ppParent = ppChild;
-    }
-    *ppParent = pRef;
-}
-*)
-
 END.
 

@@ -1,7 +1,6 @@
 UNIT PostSCP;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE

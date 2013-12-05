@@ -1,7 +1,6 @@
 UNIT PostMult;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE

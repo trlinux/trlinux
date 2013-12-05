@@ -1,7 +1,6 @@
 UNIT PostLog;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE

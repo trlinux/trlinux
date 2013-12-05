@@ -1,7 +1,6 @@
 UNIT K1EANet;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -230,7 +229,7 @@ VAR Done : Boolean;
 
 PROCEDURE DateStringToYearMonthDay (DateString: Str20; VAR Year, Month, Day: WORD);
 
-VAR Result: INTEGER;
+VAR xResult: INTEGER;
     YearString, DayString: Str20;
 
     BEGIN
@@ -242,14 +241,15 @@ VAR Result: INTEGER;
 
     IF YearString >= '70' THEN
         BEGIN
-        Val (YearString, Year, Result);
+        Val (YearString, Year, xResult);
         Year := Year + 1900;
         END
     ELSE
         BEGIN
-        Val (YearString, Year, Result);
+        Val (YearString, Year, xResult);
         Year := Year + 2000;
         END;
+    if xResult <> 0 then Year := 1900; //shouldn't happen
 
     IF StringHas (DateString, 'JAN') THEN Month := 1 ELSE
      IF StringHas (DateString, 'FEB') THEN Month := 2 ELSE
@@ -266,7 +266,7 @@ VAR Result: INTEGER;
                    Month := 0;
 
     DayString := Copy (DateString, 1, 2);
-    Val (DayString, Day, Result);
+    Val (DayString, Day, xResult);
     END;
 
 
@@ -276,16 +276,16 @@ PROCEDURE TimeStringToHourAndMinute (TimeString: Str20;  VAR Hour, Minute: WORD)
 { Works for either hh:mm or hhmm }
 
 VAR TempString: Str20;
-    Result: INTEGER;
+    xResult: INTEGER;
 
     BEGIN
     TempString := Copy (TimeString, 1, 2);
 
-    Val (TempString, Hour, Result);
+    Val (TempString, Hour, xResult);
 
     TempString := Copy (TimeString, Length (TimeString) - 1, 2);
 
-    Val (TempString, Minute, Result);
+    Val (TempString, Minute, xResult);
     END;
 
 
@@ -311,10 +311,7 @@ which means simplex and the only one we will bother sending.  4 is the band
 The next four values are not used.  The ? is a checksum - add up all of
 the characters in the string so far, or with $80.  Then a <cr>.   }
 
-VAR TempString: STRING;
-    CheckSum: WORD;
-    CharPointer: INTEGER;
-    BandChar, ModeChar: CHAR;
+VAR BandChar, ModeChar: CHAR;
     Band: BandType;
     Mode: ModeType;
     Call: CallString;
@@ -446,9 +443,8 @@ U7 599 7025000 7025000 1062530106 0 3 1 G4LNS 14 0 2 1 0 599 7025000 7025000 ...
 VAR RSTString, UnixTimeString, BandString, ModeString, CallSign, ZoneString: Str20;
     BandStringChar, ModeStringChar: CHAR;
     UnixDate: LONGINT;
-    Result, Year, Month, Day, Hour, Minute, Second: WORD;
+    xResult, Year, Month, Day, Hour, Minute, Second: WORD;
     DayString, MonthString, YearString, HourString, MinuteString: Str20;
-    TempString: Str80;
 
     N6TRLogString: STRING;
 
@@ -490,7 +486,8 @@ VAR RSTString, UnixTimeString, BandString, ModeString, CallSign, ZoneString: Str
         ELSE N6TRLogString := N6TRLogString + '???';
         END;
 
-    Val (UnixTimeString, UnixDate, Result);
+    Val (UnixTimeString, UnixDate, xResult);
+    if xResult <> 0 then UnixDate := 0; //This shouldn't happen
 
     Unix2Norm (UnixDate, Year, Month, Day, Hour, Minute, Second);
 
@@ -576,7 +573,7 @@ PROCEDURE TestUnixTimeConversionRoutines;
 VAR InputString: Str20;
     Year, Month, Day, Hour, Minute, Second: WORD;
     UnixDate: LONGINT;
-    Result: INTEGER;
+    xResult: INTEGER;
 
     BEGIN
     REPEAT
@@ -586,7 +583,7 @@ VAR InputString: Str20;
 
         IF StringIsAllNumbers (InputString) THEN
             BEGIN
-            Val (InputString, UnixDate, Result);
+            Val (InputString, UnixDate, xResult);
 
             Unix2Norm (UnixDate, Year, Month, Day, Hour, Minute, Second);
 

@@ -112,7 +112,6 @@ PROCEDURE DupeAndMultSheet.SetUpRemainingMultiplierArrays;
 
 VAR StartBand, FinishBand, Band: BandType;
     StartMode, FinishMode, Mode: ModeType;
-    TempString: Str20;
     Address: INTEGER;
 
     BEGIN

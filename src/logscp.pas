@@ -1,7 +1,6 @@
 UNIT LogSCP;
 
 {$O+}
-{$F+}
 {$R+}
 {$V-}
 
@@ -276,8 +275,6 @@ FUNCTION DoubleIndexCall (Call: CallString): BOOLEAN;
 
 
 PROCEDURE CellBufferObject.Initialize (VAR NumberBytes: LONGINT);
-
-VAR NumberWordBytes: WORD;
 
     BEGIN
     IF MaximumMemoryToUse = 3 * BufferArraySize THEN  { POST mode }
@@ -999,7 +996,6 @@ PROCEDURE CallDatabase.SaveCallsAndNamesToFile (FileName: Str40);
 VAR CellSize: LONGINT;
     FileRead: FILE;
     FileWrite: TEXT;
-    BytesRead: WORD;
     X, Y, NextX, NextY, StartingOffset, EndingOffset: LONGINT;
     KeyString, TempString: Str40;
     EntryString: STRING;
@@ -1359,7 +1355,7 @@ FUNCTION CallDatabase.BuildNewDatabaseFromASCIIFile (Ignore: CHAR): BOOLEAN;
 TYPE Point = ARRAY [0..1] OF INTEGER;
 
 VAR FileString: STRING;
-    Done: BOOLEAN;
+//    Done: BOOLEAN;
     FileRead: TEXT;
     FileWrite: FILE;
     Data: DatabaseEntryRecord;
@@ -1372,6 +1368,7 @@ VAR FileString: STRING;
     BytesWrittenArray: BytesWrittenArrayPtr;
 
     BEGIN
+    PointList[0,0] := 0; //kill uninitialized warning message
     BuildNewDatabaseFromASCIIFile := False;
 
     { See if we have an ASCII file to work with }
@@ -1515,7 +1512,7 @@ VAR FileString: STRING;
             END;
 
 
-    Done := False;
+//    Done := False;
 
     GoToXY (1, WhereY);
     TextColor (Cyan);
@@ -2030,7 +2027,7 @@ PROCEDURE CallDatabase.GetDataFromASCIIEntry (FileString: STRING; VAR Data: Data
 
 VAR TestName, Command: Str40;
     ID: CHAR;
-    Result: INTEGER;
+    xResult: INTEGER;
 
     BEGIN
     ClearDataEntry (Data);
@@ -2065,7 +2062,7 @@ VAR TestName, Command: Str40;
                 'F': IF Ignore <> 'F' THEN FOC     := Command;
                 'G': IF Ignore <> 'G' THEN Grid    := Command;
 
-                'H': IF Ignore <> 'H' THEN Val (Command, Hits, Result);
+                'H': IF Ignore <> 'H' THEN Val (Command, Hits, xResult);
 
                 'I': IF Ignore <> 'I' THEN ITUZone := Command;
                 'K': IF Ignore <> 'K' THEN Check   := Command;
@@ -2095,7 +2092,7 @@ VAR TestName, Command: Str40;
                 'O': IF Ignore <> 'O' THEN OldCall := Command;
                 'Q': IF Ignore <> 'Q' THEN QTH     := Command;
 
-                'S': IF Ignore <> 'S' THEN Val (Command, Speed, Result);
+                'S': IF Ignore <> 'S' THEN Val (Command, Speed, xResult);
 
                 'T': IF Ignore <> 'T' THEN TenTen  := Command;
                 'U': IF Ignore <> 'U' THEN User1   := Command;
@@ -2217,7 +2214,7 @@ FUNCTION CallDatabase.LoadInIndexArray: BOOLEAN;
   It is saved in SCPIndexArray. Returns TRUE if it thinks it worked. }
 
 VAR Directory: Str80;
-    Result: WORD;
+    xResult: WORD;
     infile,outfile: file;
     infilename,outfilename: string;
     buf: array[1..1024] of char;
@@ -2296,8 +2293,8 @@ VAR Directory: Str80;
             DTAFileSize := FileSize (TRMasterFileRead);
 
             New (SCPIndexArray);
-            BlockRead (TRMasterFileRead, SCPIndexArray^, SizeOf (SCPIndexArray^), Result);
-            BlockRead (TRMasterFileRead, SCPEndOfFile,   SizeOf (SCPEndOfFile),   Result);
+            BlockRead (TRMasterFileRead, SCPIndexArray^, SizeOf (SCPIndexArray^), xResult);
+            BlockRead (TRMasterFileRead, SCPEndOfFile,   SizeOf (SCPEndOfFile),   xResult);
             LoadInIndexArray := True;
             TRMasterFileOpen := True;
             IndexArrayAllocated := True;
@@ -2641,10 +2638,9 @@ PROCEDURE CallDatabase.SaveToASCIIFile;
   It will set the variable ASCIIFileIsCurrent to TRUE }
 
 
-VAR Address, FileOffset, CellSize: LONGINT;
+VAR CellSize: LONGINT;
     FileRead: FILE;
     FileWrite: TEXT;
-    BytesRead: WORD;
     X, Y, NextX, NextY, StartingOffset, EndingOffset: LONGINT;
     EntryString: STRING;
     KeyString: CallString;
@@ -2823,6 +2819,7 @@ VAR ChangesMade, NeedToSaveLastRecord: BOOLEAN;
     FileWrite: TEXT;
 
     BEGIN
+    ClearDataEntry(Data);//To suppress seems uninitialized note
     ChangesMade := False;
     NeedToSaveLastRecord := False;
 
@@ -3710,7 +3707,7 @@ VAR Key: CHAR;
 
 PROCEDURE CallDatabase.DeleteLowHitCalls;
 
-VAR Hits, Threshold, Result: INTEGER;
+VAR Hits, Threshold, xResult: INTEGER;
     SaveNames: BOOLEAN;
     Key: CHAR;
     CallsFound, CallsSaved: LONGINT;
@@ -3761,7 +3758,7 @@ VAR Hits, Threshold, Result: INTEGER;
                 BEGIN
                 TempString := PostcedingString (FileString, '=H');
                 TempString := RemoveFirstString (TempString);
-                Val (TempString, Hits, Result);
+                Val (TempString, Hits, xResult);
 
                 IF (Hits >= Threshold) THEN
                     BEGIN
@@ -3852,10 +3849,12 @@ VAR FirstKeyPos, SecondKeyPos, CharPos: INTEGER;
     LowestCell, SecondLowestCell, ThirdLowestCell, BytesAtThisPos: LONGINT;
     LowestKeyPos, SecondLowestKeyPos, ThirdLowestKeyPos: INTEGER;
     TempDupe, Change: BOOLEAN;
-    Temp, Range, CallAddress: INTEGER;
+    Range, CallAddress: INTEGER;
     TempString: CallString;
 
     BEGIN
+    SecondLowestKeyPos := 0; //to suppress does not seem to be initialized
+    LowestKeyPos := 0; //to suppress does not seem to be initialized
     PossibleCallList.NumberPossibleCalls := 0;
 
     IF NOT LoadInIndexArray THEN Exit;
@@ -3977,23 +3976,20 @@ PROCEDURE CallDatabase.SortDTAFile;
 { This routine will sort the .DTA file cell by cell, so that the callsigns
   in each cell are in alphabetical order. }
 
-VAR Address, FileOffset: LONGINT;
-    FileRead, FileWrite: FILE;
+VAR FileRead, FileWrite: FILE;
     Count, EntrySize, NumberPaddingBytes, ByteDifference, Entry: INTEGER;
     EntryArray, TempArray, NextArray: EntryArrayPtr;
-    TempChar, Key: CHAR;
-    EntryString: STRING;
+    TempChar: CHAR;
 
-    BytesRead: WORD;
     X, Y, NextX, NextY: INTEGER;
     NumberBytes, StartingOffset, EndingOffset: LONGINT;
 
-    DataRecord: DataBaseEntryRecord;
     WriteTempArray, WriteEnable: BOOLEAN;
     KeyString, EntryCall, NextCall: CallString;
     NextEntryAddress: POINTER;
 
     BEGIN
+    temparray := nil; //kill uninitialized warning
     ClearScreenAndTitle ('SORT TRMASTER FILE');
 
     WriteLn ('This routine will sort the callsigns in the TRMASTER file so they will appear');
@@ -4367,9 +4363,7 @@ PROCEDURE CallDatabase.SCPDisableAndDeAllocateFileBuffer;
 PROCEDURE CallDatabase.ShowStatistics;
 
 
-VAR Address, FileOffset: LONGINT;
-    FileRead: FILE;
-    BytesRead: WORD;
+VAR FileRead: FILE;
     X, Y, Entry, NextX, NextY, StartingOffset, EndingOffset: LONGINT;
     EntryString: STRING;
     DataRecord: DataBaseEntryRecord;
@@ -4379,7 +4373,7 @@ VAR Address, FileOffset: LONGINT;
     NumberBytes, TotalOldCalls, TotalSpeeds: LONGINT;
     TotalUser1s, TotalUser2s, TotalUser3s, TotalUser4s, TotalUser5s: LONGINT;
     HitList: ARRAY [0..51] OF LONGINT;
-    KeyString, TempString: Str20;
+    KeyString: Str20;
 
     BEGIN
     ClearScreenAndTitle ('TRMASTER DATABASE STATISTICS');

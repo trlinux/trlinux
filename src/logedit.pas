@@ -3,7 +3,6 @@ UNIT LogEdit;
 { This unit contains the object EditableLog.  }
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -408,9 +407,6 @@ PROCEDURE UpdateTotals;
   put a case statement in here someday and make it more appropriate to
   different contest.                                                    }
 
-VAR Band: BandType;
-    Mode: ModeType;
-
     BEGIN
     QTotals := QSOTotals;
     Sheet.MultSheetTotals (MTotals);
@@ -748,7 +744,6 @@ PROCEDURE EditableLog.SetUpEditableLog;
 
 VAR Entry: INTEGER;
     FileRead: TEXT;
-    TempBand: BandType;
 
     BEGIN
     IF OpenFileForRead (FileRead, LogTempFileName) THEN
@@ -804,8 +799,6 @@ VAR Entry: INTEGER;
 
 
 FUNCTION EditableLog.CallIsADupe (Call: CallString; Band: BandType; Mode: ModeType): BOOLEAN;
-
-VAR Entry: INTEGER;
 
     BEGIN
     CallIsADupe := False;
@@ -1154,7 +1147,7 @@ PROCEDURE EditableLog.DisplayVisibleDupeSheet (Band: BandType; Mode: ModeType);
 VAR CallsThisDistrict, CallDistrict, NumberDistrictsOver25: INTEGER;
     ActiveVDEntry: VDEntryPointer;
     CallDistrictOver25, Entry: INTEGER;
-    CallDistrictTotals: CallDistrictTotalArray;
+//    CallDistrictTotals: CallDistrictTotalArray;
     DoingColumnDupeSheet: BOOLEAN;
 
 
@@ -1168,7 +1161,7 @@ VAR CallsThisDistrict, CallDistrict, NumberDistrictsOver25: INTEGER;
     IF NOT QSOByBand THEN Band := All;
     IF NOT QSOByMode THEN Mode := Both;
 
-    FOR CallDistrict := 1 TO 10 DO CallDistrictTotals [CallDistrict] := 0;
+//    FOR CallDistrict := 1 TO 10 DO CallDistrictTotals [CallDistrict] := 0;
 
     Sheet.CreateVisibleDupesheetArrays (Band, Mode);
 
@@ -1511,7 +1504,6 @@ PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: Str80);
   procedure for new entries into the editable log.                        }
 
 VAR TempRXData: ContestExchange;
-    QSOPoints: INTEGER;
 
     BEGIN
     TransferLogEntryInfoToContestExchange (LogEntry, TempRXData);
@@ -1705,10 +1697,6 @@ VAR Band: BandType;
 PROCEDURE EditableLog.ShowDomesticMultiplierStatus (DomesticQTH: Str20);
 
 VAR OutputString: Str80;
-    Band, FirstBand, LastBand: BandType;
-    Mode, FirstMode, LastMode: ModeType;
-    MultString, TempString: Str80;
-    Cursor: INTEGER;
     QTotals: QSOTotalArray;
 
     BEGIN
@@ -1892,7 +1880,6 @@ PROCEDURE EditableLog.CreateModeSpecificQSOInfo
      (Call: CallString; Mode: ModeType; VAR OutputString: Str160);
 
 VAR Band: BandType;
-    MultString: Str20;
 
     BEGIN
     IF Mode <> Both THEN
@@ -2042,9 +2029,8 @@ VAR RemainingMults: RemainingMultListPointer;
 
     MultBand, Band: BandType;
     MultMode, Mode: ModeType;
-    Result, Entry, Index: INTEGER;
-    MultString, TempString, TestString: Str80;
-    Key: CHAR;
+    xResult, Entry, Index: INTEGER;
+    MultString, TempString: Str80;
 
     BEGIN
     IF VisibleDupeSheetEnable AND NOT SuperDupeSheet THEN Exit;
@@ -2184,7 +2170,7 @@ if remmultmatrix[multband,multmode,DX] = nil then exit;
 
                                 IF StringIsAllNumbers (TempString) THEN
                                     BEGIN
-                                    Val (TempString, Index, Result);
+                                    Val (TempString, Index, xResult);
 
                                     IF ActiveZoneMult <> EuHFCYear THEN
                                         Dec (Index);
@@ -2208,10 +2194,9 @@ if remmultmatrix[multband,multmode,DX] = nil then exit;
 
 PROCEDURE EditableLog.SearchLog (InitialString: Str20);
 
-VAR SearchString, TempString, FileString: Str80;
+VAR SearchString, FileString: Str80;
     FileRead: TEXT;
-    DisplayArray: LogEntryArray;
-    Line, NumberLinesWritten: INTEGER;
+    NumberLinesWritten: INTEGER;
     Key: CHAR;
     TotalEntriesFound: INTEGER;
 
@@ -2296,7 +2281,7 @@ VAR SearchString, TempString, FileString: Str80;
         Exit;
         END;
 
-    TempString := QuickEditResponse ('Press any key to clear...', 1);
+    QuickEditResponse ('Press any key to clear...', 1);
     RestorePreviousWindow;
     DisplayEditableLog (LogEntries);
     END;
@@ -2485,16 +2470,7 @@ PROCEDURE DisplaySCPCall (Call: CallString; Radio: RadioType); {KK1L: 6.73 Added
 PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; Radio: RadioType);
 {KK1L: 6.73 Added Radio to allow SO2R SCP}
 
-LABEL NotAPartialCall, RememberNotAPartialCall;
-
-VAR NumberBytes: ARRAY [1..11] OF LONGINT;
-    FileOffset, Bytes, MinimumBytes: LONGINT;
-    X, Y, CharPos, QuestionPos1, QuestionPos2, CallAddress, Result: INTEGER;
-    NumberAnticipatedCalls: INTEGER;
-
-    FileChar: CHAR;
-    FileCall: CallString;
-    FileRead: FILE;
+//LABEL NotAPartialCall, RememberNotAPartialCall;
 
     BEGIN
     IF CD.SCPDisabledByApplication THEN Exit;
@@ -2801,7 +2777,7 @@ PROCEDURE TimeAndDateSet;
 
 VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
     TempString, SecondTempString, HourTempString, MinuteTempString: Str80;
-    CharPointer, Result: INTEGER;
+    xResult: INTEGER;
     Hours, Mins, SecS, YearS, MonS, DayS: Str20;
 
     BEGIN
@@ -2857,7 +2833,6 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
 
     HourTempString := '';
 
-    CharPointer := 1;
 
     HourTempString := PrecedingString (TempString, ':');
 
@@ -2882,9 +2857,9 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
            Exit;
            END;
 
-    Val (HourTempString,     Hour, Result);
-    Val (MinuteTempString, Minute, Result);
-    Val (SecondTempString, Second, Result);
+    Val (HourTempString,     Hour, xResult);
+    Val (MinuteTempString, Minute, xResult);
+    Val (SecondTempString, Second, xResult);
 
     SetTime (Hour, Minute, Second, 0);
 
@@ -2903,7 +2878,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
             Exit;
             END;
 
-        Val (TempString, Year, Result);
+        Val (TempString, Year, xResult);
 
     UNTIL (Year > 1900) AND (Year < 2100);
 
@@ -2921,7 +2896,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
             Exit;
             END;
 
-        Val (TempString, Month, Result);
+        Val (TempString, Month, xResult);
 
     UNTIL (Month >= 1) AND (Month <= 12);
 
@@ -2939,7 +2914,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
             Exit;
             END;
 
-        Val (TempString, Day, Result);
+        Val (TempString, Day, xResult);
 
     UNTIL (Day >= 1) AND (Day <= 31);
 
@@ -2983,8 +2958,6 @@ PROCEDURE EditInit;
 
 PROCEDURE ShowStationInformation (Call: CallString);
 
-VAR Name: Str80;
-
     BEGIN
     { Took next line out in 6.27.  What if you are working the same guy
       on a different band? }
@@ -3024,7 +2997,7 @@ FUNCTION DetermineQTCNumberAndQuanity (InputString: Str80;
                                        VAR QTCNumber: INTEGER;
                                        VAR Quantity: INTEGER): BOOLEAN;
 
-VAR Result: INTEGER;
+VAR xResult: INTEGER;
     QTCNumberString, NumberMessagesString: Str80;
 
     BEGIN
@@ -3040,18 +3013,18 @@ VAR Result: INTEGER;
         Exit;
         END;
 
-    Val (QTCNumberString, QTCNumber, Result);
+    Val (QTCNumberString, QTCNumber, xResult);
 
-    IF Result <> 0 THEN
+    IF xResult <> 0 THEN
         BEGIN
         Tone.DoABeep (Warning);
         QuickDisplay ('QTC Number has illegal characters.');
         Exit;
         END;
 
-    Val (NumberMessagesString, Quantity, Result);
+    Val (NumberMessagesString, Quantity, xResult);
 
-    IF Result <> 0 THEN
+    IF xResult <> 0 THEN
         BEGIN
         Tone.DoABeep (Warning);
         QuickDisplay ('Number of messages has illegal characters.');
@@ -3173,7 +3146,7 @@ FUNCTION InitialExchangeEntry (Call: CallString): Str80;
 { This function will give you an initial exchange window entry if it
   thinks it knows what the guy will send.                            }
 
-VAR Heading, CharPosition, Distance, Zone, Result: INTEGER;
+VAR Heading, CharPosition, Distance, Zone : INTEGER;
     TempQTH: QTHRecord;
     TestSTring, StandardCall, Command: Str20;
     Exchange, CustomString, TempString: Str80;
@@ -3307,7 +3280,7 @@ VAR Heading, CharPosition, Distance, Zone, Result: INTEGER;
                 InitialExchangeEntry := ' ' + Exchange; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
 
 {               IF InitialExchangeOverwrite THEN
-                    InitialExchangePutUp := True; {KK1L: 6.70 For custom typing any character overwrites the whole exchange.}
+                    InitialExchangePutUp := True;} {KK1L: 6.70 For custom typing any character overwrites the whole exchange.}
 
                 Exit;
                 END;
@@ -3430,7 +3403,7 @@ VAR Heading, CharPosition, Distance, Zone, Result: INTEGER;
         InitialExchangeEntry := ' ' + TempString; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
 
 {        IF InitialExchangeOverwrite THEN
-            InitialExchangePutUp := True; {KK1L: 6.73 Typing any character overwrites the whole exchange.}
+            InitialExchangePutUp := True;} {KK1L: 6.73 Typing any character overwrites the whole exchange.}
 
         END
     ELSE
@@ -3542,8 +3515,8 @@ PROCEDURE UpdateBandMapMultiplierStatus;
 {      from "EditableLog.DeleteLastLogEntry"}
 
 VAR BandMapEntryRecord: BandMapEntryPointer;
-    Mode, CheckMode: ModeType;
-    Band, CheckBand: BandType;
+    Mode: ModeType;
+    Band: BandType;
     MultString: Str20;
 
     BEGIN
@@ -3551,8 +3524,6 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
     FOR Band := Band160 TO Band2 DO
         FOR Mode := CW TO Phone DO
             BEGIN
-            IF MultByBand THEN CheckBand := Band ELSE CheckBand := All;
-            IF MultByMode THEN CheckMode := Mode ELSE CheckMode := Both;
 
             BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];
 
@@ -3581,9 +3552,6 @@ PROCEDURE UpdateBandMapDupeStatus(RXCall: CallString; RXBand: BandType; RXMode: 
 
 VAR BandMapEntryRecord: BandMapEntryPointer;
     ChangeMade: BOOLEAN;
-    CallString: Str20;
-    CharPointer: INTEGER;
-    TempStr: Str80;
 
     BEGIN
     ChangeMade := False;

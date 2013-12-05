@@ -2,7 +2,7 @@
 
 FUNCTION ProcessPostConfigInstruction (ID: Str80; CMD: Str80): BOOLEAN;
 
-VAR TempValue, Result: INTEGER;
+VAR TempValue, xResult: INTEGER;
     TempQTH: QTHRecord;
 
     BEGIN
@@ -12,8 +12,8 @@ VAR TempValue, Result: INTEGER;
 
     IF ID = 'CONTACTS PER PAGE' THEN
         BEGIN
-        VAL (CMD, TempValue, Result);
-        IF Result = 0 THEN
+        VAL (CMD, TempValue, xResult);
+        IF xResult = 0 THEN
             BEGIN
             ContactsPerPage := TempValue;
             ProcessPostConfigInstruction := True;
@@ -663,29 +663,29 @@ VAR TempValue, Result: INTEGER;
 
         IF ID = 'QSO POINTS DOMESTIC CW' THEN
             BEGIN
-            Val (CMD, QSOPointsDomesticCW, Result);
-            ProcessPostConfigInstruction := Result = 0;
+            Val (CMD, QSOPointsDomesticCW, xResult);
+            ProcessPostConfigInstruction := xResult = 0;
             Exit;
             END;
 
         IF ID = 'QSO POINTS DOMESTIC PHONE' THEN
             BEGIN
-            Val (CMD, QSOPointsDomesticPhone, Result);
-            ProcessPostConfigInstruction := Result = 0;
+            Val (CMD, QSOPointsDomesticPhone, xResult);
+            ProcessPostConfigInstruction := xResult = 0;
             Exit;
             END;
 
         IF ID = 'QSO POINTS DX CW' THEN
             BEGIN
-            Val (CMD, QSOPointsDXCW, Result);
-            ProcessPostConfigInstruction := Result = 0;
+            Val (CMD, QSOPointsDXCW, xResult);
+            ProcessPostConfigInstruction := xResult = 0;
             Exit;
             END;
 
         IF ID = 'QSO POINTS DX PHONE' THEN
             BEGIN
-            Val (CMD, QSOPointsDXPhone, Result);
-            ProcessPostConfigInstruction := Result = 0;
+            Val (CMD, QSOPointsDXPhone, xResult);
+            ProcessPostConfigInstruction := xResult = 0;
             Exit;
             END;
 

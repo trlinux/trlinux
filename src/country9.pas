@@ -1,7 +1,6 @@
 UNIT Country9;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -140,96 +139,19 @@ FUNCTION ARRLSectionCountry (CountryID: Str20): BOOLEAN;
 
 PROCEDURE CheckForNewCountryForTreeOn160 (Call: CallString);
 
-VAR CountryForThisStation: INTEGER;
-    CountryIDForThisStation: CallString;
-    FileRead: TEXT;
-    FileString: Str20;
-    TimeStamp: TimeRecord;
-
     BEGIN
-{   CountryForThisStation   := CountryTable.GetARRLCountry (Call, True);
-    CountryIDForThisStation := CountryTable.GetCountryID (CountryForThisStation);
-
-    IF OpenFileForRead (FileRead, 'N6TR160.CTY') THEN
-        BEGIN
-        WHILE NOT Eof (FileRead) DO
-            BEGIN
-            ReadLn (FileRead, FileString);
-
-            GetRidOfPostcedingSpaces (FileString);
-
-            IF FileString <> '' THEN
-                IF CountryIDForThisStation = FileString THEN
-                    BEGIN
-                    Close (FileRead);
-                    Exit;
-                    END;
-
-            END;
-
-        Close (FileRead);
-        END
-    ELSE
-        Exit;
-
-    WakeUp;
-
-    SendChar (ActivePacketPort, 'B');
-    SendChar (ActivePacketPort, CarriageReturn);
-
-    MarkTime (TimeStamp);
-    REPEAT millisleep UNTIL ElaspedSec100 (TimeStamp) > 2000;
-
-    SendChar (ActivePacketPort, 'B');
-    SendChar (ActivePacketPort, CarriageReturn);
-
-    MarkTime (TimeStamp);
-    REPEAT millisleep UNTIL ElaspedSec100 (TimeStamp) > 2000;
-
-    SendString (ActivePacketPort, 'mail Beeper' + CarriageReturn);
-
-    MarkTime (TimeStamp);
-    REPEAT millisleep UNTIL ElaspedSec100 (TimeStamp) > 2000;
-
-    SendString (ActivePacketPort, 'DX' + CarriageReturn);
-
-    MarkTime (TimeStamp);
-    REPEAT millisleep UNTIL ElaspedSec100 (TimeStamp) > 2000;
-
-    SendString (ActivePacketPort, Call + CarriageReturn);
-
-    MarkTime (TimeStamp);
-    REPEAT millisleep UNTIL ElaspedSec100 (TimeStamp) > 2000;
-
-    SendChar (ActivePacketPort, ControlD);
-
-    MarkTime (TimeStamp);
-    REPEAT millisleep UNTIL ElaspedSec100 (TimeStamp) > 2000;
-
-    SendString (ActivePacketPort, 'EXIT');
-
-    MarkTime (TimeStamp);
-    REPEAT millisleep UNTIL ElaspedSec100 (TimeStamp) > 2000;
-
-    SendString (ActivePacketPort, 'ATDT18886915793');
-
-    MarkTime (TimeStamp);
-    REPEAT millisleep UNTIL ElaspedSec100 (TimeStamp) > 2000;
-
-    SendString (ActivePacketPort, '8881111#');
-}
     END;
 
 
 
 FUNCTION RecordPointerIndex (FirstLetter: CHAR): INTEGER;
 
-VAR TempInt, Result: INTEGER;
+VAR TempInt, xResult: INTEGER;
 
     BEGIN
-    Val (FirstLetter, TempInt, Result);
+    Val (FirstLetter, TempInt, xResult);
 
-    IF Result = 0 THEN
+    IF xResult = 0 THEN
         BEGIN
         RecordPointerIndex := TempInt;
         Exit;
@@ -917,7 +839,7 @@ FUNCTION CountryTableObject.GetGrid (Call: CallString; VAR ID: CallString): Str2
 
 VAR CurrentPrefixRecord: PrefixRecPtr;
     Index: INTEGER;
-    Oblast, LUCall, ShortCall: CallString;
+    Oblast, ShortCall: CallString;
     PossibleUSACall: BOOLEAN;
     fullcall: boolean;
     CallTotal: CallString;
@@ -1153,7 +1075,8 @@ VAR CurrentPrefixRecord: PrefixRecPtr;
 
                 IF ID = 'LU' THEN
                     BEGIN
-                    LUCall := RootCall (Call);
+//                    LUCall := RootCall (Call);
+                    RootCall (Call);
 
                     WHILE StringHasNumber (Call) DO
                     begin
@@ -1596,7 +1519,7 @@ FUNCTION CountryTableObject.GetContinent (Call: CallString): ContinentType;
 
 VAR CurrentPrefixRecord: PrefixRecPtr;
     Index: INTEGER;
-    ShortCall, ID: CallString;
+    ShortCall: CallString;
     PossibleUSACall: BOOLEAN;
     fullcall: boolean;
     CallTotal: CallString;
@@ -1850,12 +1773,11 @@ FUNCTION CountryTableObject.LoadInCountryFile: BOOLEAN;
 
 VAR FileRead: TEXT;
     FileString: STRING;
-    Directory, PrefixString, Grid, CountryID, TempString1, CountryName: Str40;
-    Result, RecordPointer: INTEGER;
+    PrefixString, Grid, CountryID, TempString1, CountryName: Str40;
+    xResult, RecordPointer: INTEGER;
     CurrentRecord, NextRecord: PrefixRecPtr;
     TempString, FileName: Str160;
-    LastCountryIndex, UTCOffset, LastCountryZone: INTEGER;
-    LastCountryContinent: ContinentType;
+    UTCOffset: INTEGER;
 
     CQZOne, ITUZone: INTEGER;
     Continent: ContinentType;
@@ -1963,14 +1885,14 @@ VAR FileRead: TEXT;
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, CountryInfoTable^ [NumberCountries].DefaultCQZone, Result);
+            Val (TempString, CountryInfoTable^ [NumberCountries].DefaultCQZone, xResult);
 
             TempString := PrecedingString (FileString, ':');
             FileString := PostcedingString (FileString, ':');
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, CountryInfoTable^ [NumberCountries].DefaultITUZone, Result);
+            Val (TempString, CountryInfoTable^ [NumberCountries].DefaultITUZone, xResult);
 
             TempString := PrecedingString (FileString, ':');
             FileString := PostcedingString (FileString, ':');
@@ -1984,14 +1906,14 @@ VAR FileRead: TEXT;
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, Lat, Result);
+            Val (TempString, Lat, xResult);
 
             TempString := PrecedingString (FileString, ':');
             FileString := PostcedingString (FileString, ':');
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, Lon, Result);
+            Val (TempString, Lon, xResult);
 
             CountryInfoTable^ [NumberCountries].DefaultGrid := ConvertLatLonToGrid (Lat, Lon);
 
@@ -2000,7 +1922,7 @@ VAR FileRead: TEXT;
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, UTCOffset, Result);
+            Val (TempString, UTCOffset, xResult);
 
             TempString := PrecedingString (FileString, ':');
             FileString := PostcedingString (FileString, ':');
@@ -2038,7 +1960,7 @@ VAR FileRead: TEXT;
                         BEGIN
                         TempString1 := BracketedString (PrefixString, '(', ')');
 
-                        Val (TempString1, CQZone, Result);
+                        Val (TempString1, CQZone, xResult);
 
                         PrefixString := PrecedingString  (PrefixString, '(') +
                                         PostcedingString (PrefixString, ')');
@@ -2050,7 +1972,7 @@ VAR FileRead: TEXT;
                         BEGIN
                         TempString1 := BracketedString (PrefixString, '[', ']');
 
-                        Val (TempString1, ITUZone, Result);
+                        Val (TempString1, ITUZone, xResult);
 
                         PrefixString := PrecedingString  (PrefixString, '[') +
                                         PostcedingString (PrefixString, ']');
@@ -2062,8 +1984,8 @@ VAR FileRead: TEXT;
                         BEGIN
                         TempString1 := BracketedString (PrefixString, '<', '>');
 
-                        Val (PrecedingString  (TempString1, '/'), Lat, Result);
-                        Val (PostcedingString (TempString1, '/'), Lon, Result);
+                        Val (PrecedingString  (TempString1, '/'), Lat, xResult);
+                        Val (PostcedingString (TempString1, '/'), Lon, xResult);
 
                         Grid := ConvertLatLonToGrid (Lat, Lon);
 
@@ -2181,7 +2103,6 @@ FUNCTION  GetNumber (Call: CallString): CHAR;
   or prefix has two numbers in it, the last one will be given.         }
 
 VAR CharPtr: INTEGER;
-    TempString: Str80;
 
     BEGIN
     IF StringHas (Call, '/') THEN

@@ -6,7 +6,6 @@ UNIT SlowTree;
   isn't. }
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -52,9 +51,9 @@ Uses Tree,keycode;
     FUNCTION  GetStateFromSection (Section: Str20): Str20;
     FUNCTION  GetValue (Prompt: Str80): LONGINT;
 
-    PROCEDURE HexToInteger (InputString: Str80; VAR OutputInteger: INTEGER; VAR Result: INTEGER);
-    PROCEDURE HexToLongInteger (InputString: Str80; VAR OutputInteger: LONGINT; VAR Result: INTEGER);
-    PROCEDURE HexToWord    (InputString: Str80; VAR OutputWord:    WORD;    VAR Result: INTEGER);
+    PROCEDURE HexToInteger (InputString: Str80; VAR OutputInteger: INTEGER; VAR xResult: INTEGER);
+    PROCEDURE HexToLongInteger (InputString: Str80; VAR OutputInteger: LONGINT; VAR xResult: INTEGER);
+    PROCEDURE HexToWord    (InputString: Str80; VAR OutputWord:    WORD;    VAR xResult: INTEGER);
 
     PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
 
@@ -217,7 +216,6 @@ VAR ActivityCounter: INTEGER;
     CWPitch:         INTEGER;
     DahLength:       INTEGER;
     DitLength:       INTEGER;
-    MouseType:       MouseTypeType;
     WordSpace:       INTEGER;
 
 //{$L dupe}
@@ -377,11 +375,12 @@ FUNCTION CallFoundInFile (Callsign: CallString; FileName: Str40): BOOLEAN;
 
 
 VAR FileRead: FILE;
-    DirInfo: SearchRec;
     MatchStartAddress, BytesInBuffer, Address: INTEGER;
     Match: BOOLEAN;
+    aa: integer;
 
     BEGIN
+    MatchStartAddress := 0;//Silence uninitialized compiler note
     CallFoundInFile := False;
 
     Assign  (FileRead, FileName);
@@ -396,8 +395,11 @@ VAR FileRead: FILE;
         BlockRead (FileRead, CBuffer, SizeOf (CBuffer), BytesInBuffer);
 
         IF BytesInBuffer > 0 THEN
+            aa := -1;
             FOR Address := 0 TO BytesInBuffer - 1 DO
                 BEGIN
+                aa := aa + 1;
+                if address < aa then continue;
                 IF Match THEN
                     BEGIN
                     IF (CBuffer^ [Address] = CallSign [(Address - MatchStartAddress) + 1]) THEN
@@ -412,9 +414,10 @@ VAR FileRead: FILE;
                         END
                     ELSE
                         BEGIN
-                        Address := MatchStartAddress + 1;
-                        Match := CBuffer^ [Address] = CallSign [1];
-                        IF Match THEN MatchStartAddress := Address;
+//                        Address := MatchStartAddress + 1;
+                        aa := MatchStartAddress + 1;
+                        Match := CBuffer^ [aa] = CallSign [1];
+                        IF Match THEN MatchStartAddress := aa;
                         END;
                     END
                 ELSE
@@ -452,7 +455,6 @@ FUNCTION CompareFileTimes (FirstFileName: Str80; SecondFileName: Str80): FileCom
 
 VAR FirstFile, SecondFile: TEXT;
     FirstTime, SecondTime: LongInt;
-    FirstDateTime, SecondDateTime: DateTime;
 
     BEGIN
     Assign (FirstFile, FirstFileName);
@@ -575,10 +577,9 @@ VAR FileNames: FileNameRecord;
             CopyFile (SourceDirectory + FileNames.List [FileNumber],
                       DestDirectory + FileNames.List [FileNumber]);
 
-    IF IoResult = 0 THEN;
+    CopyFiles := (IoResult = 0);
     END;
 
-
 
 FUNCTION CopyFile (SourceFile: Str80; DestFile: Str80): BOOLEAN;
 
@@ -680,8 +681,7 @@ VAR F: Text;
 
 FUNCTION DupingFileExists (Name: Str80): BOOLEAN;
 
-VAR FileThere: BOOLEAN;
-    TempString: Str80;
+VAR TempString: Str80;
     FileTest: TEXT;
 
     BEGIN
@@ -697,7 +697,7 @@ VAR FileThere: BOOLEAN;
 FUNCTION ElaspedMinutes (StartTime: TimeRecord): INTEGER;
 
 VAR Hour, Minute, Second, Sec100: WORD;
-    TempHour, TempMinute, TempSecond, TempSec100: LONGINT;
+    TempHour, TempMinute: LONGINT;
 
     BEGIN
     GetTime (Hour, Minute, Second, Sec100);
@@ -772,14 +772,13 @@ FUNCTION FoundDirectory (FileName: Str80; Path: Str80; VAR Directory: Str80): BO
 
 VAR TempString: Str80;
     S: PathStr;
-    CharPos: INTEGER;
 
     BEGIN
     FoundDirectory := False;
 
     S := FSearch (FileName, Path);
 
-    CharPos := IOResult; {KK1L: 6.68 Added per Tree e-mail 02JUN02}
+    IOResult; {KK1L: 6.68 Added per Tree e-mail 02JUN02}
     { This will clear the IOResult flag in case there was an
       error during FSearch - like if you have an illegal directory
       in your PATH statement.  If it isn't cleared, it will prevent
@@ -1032,14 +1031,14 @@ VAR InputString: STRING;
 FUNCTION GetReal (Prompt: Str80): REAL;
 
 VAR TempValue: REAL;
-    Result: INTEGER;
+    xResult: INTEGER;
     TempString: Str80;
 
     BEGIN
     TempString := GetResponse (Prompt);
-    Val (TempString, TempValue, Result);
+    Val (TempString, TempValue, xResult);
 
-    IF Result = 0 THEN
+    IF xResult = 0 THEN
         GetReal := TempValue
     ELSE
         GetReal := 0;
@@ -1053,7 +1052,7 @@ FUNCTION GetValue (Prompt: Str80): LONGINT;
   integer value input by the operator.  If the input is illegal, the
   prompt will be reprinted and a new value read.  }
 
-VAR TempValue, Result, Pointer: INTEGER;
+VAR TempValue, xResult: INTEGER;
     TempString: Str80;
 
     BEGIN
@@ -1062,8 +1061,8 @@ VAR TempValue, Result, Pointer: INTEGER;
         Write (Prompt);
         TextColor (Yellow);
         ReadLn (TempString);
-        Val (TempString, TempValue, Result);
-    UNTIL Result = 0;
+        Val (TempString, TempValue, xResult);
+    UNTIL xResult = 0;
     GetValue := TempValue;
     END;
 
@@ -1077,18 +1076,18 @@ FUNCTION HexString (HexByte: Byte): Str20;
 
 
 
-PROCEDURE HexToInteger (InputString: Str80; VAR OutputInteger: INTEGER; VAR Result: INTEGER);
+PROCEDURE HexToInteger (InputString: Str80; VAR OutputInteger: INTEGER; VAR xResult: INTEGER);
 
 VAR Multiplier: INTEGER;
 
 
     BEGIN
-    Result := 1;
+    xResult := 1;
     Multiplier := 1;
     OutputInteger := 0;
     IF InputString = '' THEN Exit;
 
-    Result := 0;
+    xResult := 0;
 
     WHILE Length (InputString) > 0 DO
         BEGIN
@@ -1111,7 +1110,7 @@ VAR Multiplier: INTEGER;
             'F': OutputInteger := OutputInteger + Multiplier * 15;
 
             ELSE BEGIN
-                 Result := 1;
+                 xResult := 1;
                  Exit;
                  END;
             END;
@@ -1120,22 +1119,22 @@ VAR Multiplier: INTEGER;
         Multiplier := Multiplier * 16;
         END;
 
-    Result := 0;
+    xResult := 0;
     END;
 
 
 
-PROCEDURE HexToWord (InputString: Str80; VAR OutputWord: Word; VAR Result: INTEGER);
+PROCEDURE HexToWord (InputString: Str80; VAR OutputWord: Word; VAR xResult: INTEGER);
 
 VAR Multiplier: Word;
 
     BEGIN
-    Result := 1;
+    xResult := 1;
     Multiplier := 1;
     OutputWord := 0;
     IF InputString = '' THEN Exit;
 
-    Result := 0;
+    xResult := 0;
 
     WHILE Length (InputString) > 0 DO
         BEGIN
@@ -1158,7 +1157,7 @@ VAR Multiplier: Word;
             'F': OutputWord := OutputWord + Multiplier * 15;
 
             ELSE BEGIN
-                 Result := 1;
+                 xResult := 1;
                  Exit;
                  END;
             END;
@@ -1167,22 +1166,22 @@ VAR Multiplier: Word;
         Multiplier := Multiplier * 16;
         END;
 
-    Result := 0;
+    xResult := 0;
     END;
 
 
 
-PROCEDURE HexToLongInteger (InputString: Str80; VAR OutputInteger: LONGINT; VAR Result: INTEGER);
+PROCEDURE HexToLongInteger (InputString: Str80; VAR OutputInteger: LONGINT; VAR xResult: INTEGER);
 
 VAR Multiplier: LONGINT;
 
     BEGIN
-    Result := 1;
+    xResult := 1;
     Multiplier := 1;
     OutputInteger := 0;
     IF InputString = '' THEN Exit;
 
-    Result := 0;
+    xResult := 0;
 
     WHILE Length (InputString) > 0 DO
         BEGIN
@@ -1205,7 +1204,7 @@ VAR Multiplier: LONGINT;
             'F': OutputInteger := OutputInteger + Multiplier * 15;
 
             ELSE BEGIN
-                 Result := 1;
+                 xResult := 1;
                  Exit;
                  END;
             END;
@@ -1214,7 +1213,7 @@ VAR Multiplier: LONGINT;
         Multiplier := Multiplier * 16;
         END;
 
-    Result := 0;
+    xResult := 0;
     END;
 
 
@@ -1226,13 +1225,13 @@ PROCEDURE IncrementMonth (VAR DateString: Str20);
   be incremented. }
 
 VAR MonthString, YearString: Str20;
-    Year, Result: INTEGER;
+    Year, xResult: INTEGER;
 
     BEGIN
     MonthString := UpperCase (BracketedString (DateString, '-', '-'));
 
     YearString := Copy (DateString, Length (DateString) - 1, 2);
-    Val (YearString, Year, Result);
+    Val (YearString, Year, xResult);
 
     IF MonthString = 'JAN' THEN
         DateString := '1-FEB-' + YearString;
@@ -1289,13 +1288,13 @@ PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
   string is in the format dd-mon-yr.  It will handle month ends and
   increment the year correctly (including leap years). }
 
-VAR Day, Hour, Minute, Year, Result: INTEGER;
+VAR Day, Hour, Minute, Year, xResult: INTEGER;
     MinuteString, HourString, DayString, MonthString, YearString: Str20;
 
 
     BEGIN
-    Val (PostcedingString (TimeString, ':'), Minute, Result);
-    Val (PrecedingString  (TimeString, ':'), Hour,   Result);
+    Val (PostcedingString (TimeString, ':'), Minute, xResult);
+    Val (PrecedingString  (TimeString, ':'), Hour,   xResult);
 
     Inc (Minute);
 
@@ -1308,7 +1307,7 @@ VAR Day, Hour, Minute, Year, Result: INTEGER;
             BEGIN
             Hour := 0;
 
-            Val (PrecedingString (DateString, '-'), Day, Result);
+            Val (PrecedingString (DateString, '-'), Day, xResult);
             Inc (Day);
             Str (Day, DayString);
 
@@ -1333,7 +1332,7 @@ VAR Day, Hour, Minute, Year, Result: INTEGER;
                 IF MonthString = 'FEB' THEN
                     BEGIN
                     YearString := Copy (DateString, Length (DateString) - 1, 2);
-                    Val (YearString, Year, Result);
+                    Val (YearString, Year, xResult);
 
                     IF (Year MOD 4 = 0) AND (Year <> 0) THEN { Leap year }
                         BEGIN
@@ -1475,8 +1474,8 @@ FUNCTION LineInput (Prompt: Str160;
 
 VAR Key: CHAR;
     InputString, TempString: Str160;
-    CursorPosition, EndOfPrompt, InputArea, InputShift: INTEGER;
-    VirginEntry, InsertMode, InputTooLong: BOOLEAN;
+    CursorPosition, EndOfPrompt: INTEGER;
+    VirginEntry, InsertMode: BOOLEAN;
 
     BEGIN
     ClrScr;
@@ -2013,8 +2012,8 @@ FUNCTION ShowDirectoryAndSelectFile (PathAndMask: Str80;
     the escape char.  The complete window will be cleared before returning. }
 
 VAR DirInfo: SearchRec;
-    NumberFiles, FileNumber, SelectedFile, StartX, StartY, Row, Col: INTEGER;
-    StartIndex, Line, NumberLines, Address, BubbleCount, Range, Index: INTEGER;
+    NumberFiles, FileNumber, SelectedFile, StartY, Row, Col: INTEGER;
+    StartIndex, Line, NumberLines, Address, BubbleCount, Index: INTEGER;
     FileNames: ARRAY [0..255] OF STRING [12];
     InputString, TempString, Dir, Name, Ext: Str20;
     Key: Char;
@@ -2036,7 +2035,7 @@ VAR DirInfo: SearchRec;
         FindNext (DirInfo);
         END;
 
-    StartX := WhereX;
+    WhereX;
     StartY := WhereY;
     SelectedFile := 0;
 
@@ -2296,8 +2295,8 @@ PROCEDURE TimeStamp (VAR FileWrite: TEXT);
 
 PROCEDURE WaitForKeyPressed;
 
-VAR Key: CHAR;
-    OrigMode: INTEGER;
+VAR OrigMode: INTEGER;
+// Key: CHAR;
 
     BEGIN
     OrigMode := LastMode;
@@ -2305,7 +2304,7 @@ VAR Key: CHAR;
     TextColor (Cyan);
     Write ('Press any key to continue...');
     REPEAT UNTIL KeyPressed;
-    Key := ReadKey;
+    ReadKey;
     GoToXY (1, WhereY);
     ClrEol;
     TextMode(OrigMode);

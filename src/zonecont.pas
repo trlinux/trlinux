@@ -1,7 +1,6 @@
 UNIT ZoneCont;
 
 {$O+}
-{$F+}
 
 INTERFACE
 
@@ -44,8 +43,6 @@ IMPLEMENTATION
 
 
 FUNCTION GetVEInitialExchange (Call: CallString): Str20;
-
-VAR CountryID: Str20;
 
     BEGIN
     GetVEInitialExchange := '';
@@ -364,7 +361,6 @@ FUNCTION GetNumber (Call: CallString): CHAR;
   or prefix has two numbers in it, the last one will be given.         }
 
 VAR CharPtr: INTEGER;
-    TempString: Str80;
 
     BEGIN
     IF StringHas (Call, '/') THEN
@@ -388,8 +384,6 @@ PROCEDURE LocateCall (Call: CallString;
 { This is the procedure that gets everything done  }
 
 VAR TempString: Str80;
-    Prefix: INTEGER;
-    Country: INTEGER;
 
     BEGIN
     IF Call = LastLocateCall THEN

@@ -37,11 +37,11 @@ TYPE
         CodeSpeed:        INTEGER;
         curtmode: CurtisMode;
         KeyerInitialized: BOOLEAN;
-        ElementLength:         INTEGER;
-        ElementLengthConstant: INTEGER;
-        PaddleActive:            BOOLEAN;
+//        ElementLength:         INTEGER;
+//        ElementLengthConstant: INTEGER;
+//        PaddleActive:            BOOLEAN;
         PaddleBug:               BOOLEAN;
-        PaddlePTTOffTimer:      INTEGER;
+//        PaddlePTTOffTimer:      INTEGER;
         PaddleMonitorTone:      INTEGER;
         PaddleSpeed:            INTEGER;
         SwapPaddles:              BOOLEAN;
@@ -53,7 +53,7 @@ TYPE
         MonitorTone:            INTEGER;
         PTTEnable:              BOOLEAN;
         PTTTurnOnDelay:         INTEGER;
-        RememberCodeSpeed:        INTEGER;
+//        RememberCodeSpeed:        INTEGER;
         TuningWithDits:           BOOLEAN;
         Tuning:             BOOLEAN;
         TuneWithDits:       BOOLEAN;
@@ -65,9 +65,9 @@ TYPE
                                Comes on PTTTurnOnDelay before CW starts.  }
         PTTFootSwitch:  BOOLEAN; { Indicates that the footswitch wants the PTT
                                to be on. }
-        DoingPaddle:  BOOLEAN;
+//        DoingPaddle:  BOOLEAN;
         LastFootSwitchStatus: BOOLEAN;
-        SendStatus:           SendStatusType;
+//        SendStatus:           SendStatusType;
         FsCwGrant: Boolean;
         Footsw: FootSwitchx;
         WinkeyerPort: serialportx;

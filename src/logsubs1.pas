@@ -163,7 +163,8 @@ PROCEDURE SendCrypticCWString (SendString: Str160);
   be sent on the new inactive radio (which is probably what you want).   }
 
 
-VAR CharPointer, NumberCharsBeingSent, CharacterCount, QSONumber: INTEGER;
+VAR CharPointer, CharacterCount, QSONumber: INTEGER;
+    cc: integer;
     Result, Entry, Offset: INTEGER;
     Key, SendChar, TempChar: CHAR;
     CommandMode, WarningSounded: BOOLEAN;
@@ -175,12 +176,14 @@ VAR CharPointer, NumberCharsBeingSent, CharacterCount, QSONumber: INTEGER;
 
     IF Length (SendString) = 0 THEN Exit;
 
-    NumberCharsBeingSent := 0;
-
     CommandMode := False;
 
+//ugly patch to fix original code incrementing the for loop variable
+    cc := 0;
     FOR CharacterCount := 1 TO Length (SendString) DO
         BEGIN
+        cc := cc + 1;
+        if CharacterCount < cc then continue;
         SendChar := SendString [CharacterCount];
 
         IF CommandMode THEN
@@ -219,7 +222,8 @@ VAR CharPointer, NumberCharsBeingSent, CharacterCount, QSONumber: INTEGER;
                          IF Result = 0 THEN
                              BEGIN
                              QSONumber := QSONumber + Offset;
-                             CharacterCount := CharacterCount + 2;
+//                             CharacterCount := CharacterCount + 2;
+                             cc := cc + 2;
                              END;
                          END;
 
@@ -230,7 +234,8 @@ VAR CharPointer, NumberCharsBeingSent, CharacterCount, QSONumber: INTEGER;
                          IF Result = 0 THEN
                              BEGIN
                              QSONumber := QSONumber - Offset;
-                             CharacterCount := CharacterCount + 2;
+//                             CharacterCount := CharacterCount + 2;
+                             cc := cc + 2;
                              END;
                          END;
                      END;
@@ -457,7 +462,8 @@ PROCEDURE SendCrypticDigitalString (SendString: Str160);
   be sent on the new inactive radio (which is probably what you want).   }
 
 
-VAR NumberCharsBeingSent, CharacterCount, QSONumber: INTEGER;
+VAR CharacterCount, QSONumber: INTEGER;
+    cc: integer;
     Result, Entry, Offset: INTEGER;
     Key, SendChar, TempChar: CHAR;
     TempCall: CallString;
@@ -470,10 +476,11 @@ VAR NumberCharsBeingSent, CharacterCount, QSONumber: INTEGER;
     IF NOT RTTYTransmissionStarted THEN
         StartRTTYTransmission ('');
 
-    NumberCharsBeingSent := 0;
-
+    cc := 0;
     FOR CharacterCount := 1 TO Length (SendString) DO
         BEGIN
+        cc := cc + 1;
+        if CharacterCount < cc then continue;
         SendChar := SendString [CharacterCount];
 
         CASE SendChar OF
@@ -498,7 +505,8 @@ VAR NumberCharsBeingSent, CharacterCount, QSONumber: INTEGER;
                          IF Result = 0 THEN
                              BEGIN
                              QSONumber := QSONumber + Offset;
-                             CharacterCount := CharacterCount + 2;
+//                             CharacterCount := CharacterCount + 2;
+                             cc := cc + 2;
                              END;
                          END;
 
@@ -509,7 +517,8 @@ VAR NumberCharsBeingSent, CharacterCount, QSONumber: INTEGER;
                          IF Result = 0 THEN
                              BEGIN
                              QSONumber := QSONumber - Offset;
-                             CharacterCount := CharacterCount + 2;
+//                             CharacterCount := CharacterCount + 2;
+                             cc := cc + 2;
                              END;
                          END;
                      END;
@@ -814,8 +823,7 @@ VAR TimeOut: BYTE;
 
 PROCEDURE SendFunctionKeyMessage  (Key: CHAR; OpMode: OpModeType);
 
-VAR Frequency: LONGINT;
-    FileName, QSONumberString: Str20;
+VAR FileName, QSONumberString: Str20;
     MessageKey: CHAR;
     Message: Str160;
     TimeOut: BYTE;
@@ -942,7 +950,7 @@ VAR Frequency: LONGINT;
                     IF BandMapEnable AND (LastDisplayedFreq[RadioOne] <> 0) AND (OpMode = CQOpMode) AND BandMapDisplayCQ THEN
                         BEGIN
                         Str (TotalContacts + 1, QSONumberString);
-                        BandMapCursorFrequency := Frequency;
+                        BandMapCursorFrequency := LastDisplayedFreq[RadioOne];
                         NewBandMapEntry ('CQ/' + QSONumberString,
                                          LastDisplayedFreq[RadioOne], 0, ActiveMode,
                                          False, False, BandMapDecayTime, True);
@@ -1251,7 +1259,7 @@ VAR TimeOut: INTEGER;
     IF (RadioOneReadOkay) AND (RadioTwoReadOkay) THEN
         BEGIN
         SetRadioFreq (RadioTwo, FreqTwo, ModeTwo, 'A'); {KK1L: 6.71 Need yet to handle split mode and VFO B}
-        {SetRadioFreq (RadioTwo, FreqTwo, ModeTwo, 'A'); {KK1L: 6.71 Need yet to handle split mode and VFO B}
+        {SetRadioFreq (RadioTwo, FreqTwo, ModeTwo, 'A'); }{KK1L: 6.71 Need yet to handle split mode and VFO B}
         BandMemory [RadioTwo] := BandTwo; {KK1L: 6.71 Set RadioTwo stuff from RadioOne stuff}
         ModeMemory [RadioTwo] := ModeTwo; {KK1L: 6.71 Set RadioTwo stuff from RadioOne stuff}
         IF FrequencyMemoryEnable THEN FreqMemory [BandTwo, ModeTwo] := FreqTwo;
@@ -1259,7 +1267,7 @@ VAR TimeOut: INTEGER;
         Delay(200); {KK1L: 6.73}
 
         SetRadioFreq (RadioOne, FreqOne, ModeOne, 'A'); {KK1L: 6.71 Need yet to handle split mode and VFO B}
-        {SetRadioFreq (RadioOne, FreqOne, ModeOne, 'A'); {KK1L: 6.71 Need yet to handle split mode and VFO B}
+        {SetRadioFreq (RadioOne, FreqOne, ModeOne, 'A');} {KK1L: 6.71 Need yet to handle split mode and VFO B}
         BandMemory [RadioOne] := BandOne; {KK1L: 6.71 Set RadioOne stuff from what was RadioTwo stuff}
         ModeMemory [RadioOne] := ModeOne; {KK1L: 6.71 Set RadioOne stuff from what was RadioTwo stuff}
         IF FrequencyMemoryEnable THEN FreqMemory [BandOne, ModeOne] := FreqOne;

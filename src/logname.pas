@@ -1,7 +1,6 @@
 UNIT LogName;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE

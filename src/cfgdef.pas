@@ -116,7 +116,7 @@ PROCEDURE SetConfigurationDefaultValues;
 
     ExchangeInformation.Age           := False;
     ExchangeInformation.Check         := False;
-    ExchangeInformation.Class         := False;
+    ExchangeInformation.Classs         := False;
     ExchangeInformation.Name          := False;
     ExchangeInformation.Precedence    := False;
     ExchangeInformation.Power         := False;

@@ -1,7 +1,6 @@
 UNIT LogWAE;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -328,11 +327,11 @@ PROCEDURE WAEQTC (VAR QTCCallsign: CallString);
 
 LABEL SaveQTC, StopQTC, KeepGoing;
 
-VAR QTCNumberString, QTCString, NumberMessagesString, MessageString: Str80;
+VAR QTCNumberString, QTCString, MessageString: Str80;
     NumberMessagesToBeSentString, TempString, MaxQTCString, CommandString: Str80;
     NumberQTCsAlreadySent, QTCNumber, NumberMessagesToBeSent, MaxQTCsThisStation: INTEGER;
     FullTimeString: Str20;
-    Message, Line, Index, Result: INTEGER;
+    Message, Line, Index: INTEGER;
     QTCBuffer: LogEntryArray;
     ControlEnterUsed, DataChanged, ValidKey: BOOLEAN;
     FileWrite: TEXT;
@@ -546,8 +545,12 @@ VAR QTCNumberString, QTCString, NumberMessagesString, MessageString: Str80;
                 END;
         UNTIL CommandString = '';
 
-        FOR Message := 1 TO NumberMessagesToBeSent DO
+//        FOR Message := 1 TO NumberMessagesToBeSent DO
+    Message := 0;
+    while ((Message + 1) <= NumberMessagesToBeSent) Do
             BEGIN
+            inc(Message);
+
             QTCString := PopNextQTCToBeSent (FullTimeString);
 
             FixUpQTCString (QTCString);

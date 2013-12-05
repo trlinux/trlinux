@@ -1,7 +1,6 @@
 Unit LogDom;
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -212,7 +211,6 @@ FUNCTION DomQTHTableObject.GetDomQTH (InputString: Str20;
 
 VAR CurrentPrefixRecord: PrefixRecPtr;
     Index: INTEGER;
-    PossibleUSACall: BOOLEAN;
     ContinentString, NumberString: Str20;
 
     BEGIN
@@ -342,9 +340,9 @@ VAR CurrentPrefixRecord: PrefixRecPtr;
 
 FUNCTION DomQTHTableObject.RecordPointerIndex (FirstLetter: CHAR): INTEGER;
 
-VAR TempInt, Result: INTEGER;
+VAR TempInt, xResult: INTEGER;
 
-    {BEGIN
+    {BEGIN}
     {IF (FirstLetter >= 'A') AND (FirstLetter <= 'Z') THEN  }
     {    BEGIN                                              }
     {    TempInt := Ord (FirstLetter) - Ord ('A') + 1;      }
@@ -356,9 +354,9 @@ VAR TempInt, Result: INTEGER;
 {KK1L: 6.72 Replaced above to allow use of numbers in the DOM file}
 {           Returns a value of 1 through 36 for 0-9, A-Z.         }
     BEGIN
-    Val (FirstLetter, TempInt, Result);
+    Val (FirstLetter, TempInt, xResult);
 
-    IF Result = 0 THEN
+    IF xResult = 0 THEN
         BEGIN
         RecordPointerIndex := TempInt + 1;
         Exit;
@@ -397,8 +395,6 @@ FUNCTION RemoveDomQTHID (VAR FileString: Str160): Str80;
 
 FUNCTION GetNextPrefix (VAR FileString: Str160;
                         VAR PrefixString: Str20): BOOLEAN;
-
-VAR Result: INTEGER;
 
     BEGIN
     GetNextPrefix := False;

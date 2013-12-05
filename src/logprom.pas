@@ -1,7 +1,6 @@
 UNIT LogProm;
 
 {$O+}
-{$F+}
 
 INTERFACE
 
@@ -15,7 +14,7 @@ uses keycode,portname;
 
 VAR FileWrite: TEXT;
 
-function ChooseSerialPort(initialString :string; finalstring: string):string;
+procedure ChooseSerialPort(initialString :string; finalstring: string);
 var buf: PChararray;
    nch,nd,i,nf,dnum,j: integer;
    portkey: char;
@@ -81,7 +80,7 @@ begin
       writeln('No Serial ports found');
 end;
 
-function ChooseParallelPort(initialString :string):string;
+procedure ChooseParallelPort(initialString :string);
 var buf: PChararray;
    nch,nd,i,nf,dnum,j: integer;
    portkey: char;
@@ -156,7 +155,7 @@ end;
 
 PROCEDURE SetUpCWStuff;
 
-VAR TypeKey, InvKey, PaddleKey, CWKey, PortKey: CHAR;
+VAR TypeKey, InvKey, CWKey: CHAR;
    Winkey,Yccc: boolean;
 
     BEGIN
@@ -266,7 +265,7 @@ VAR TypeKey, InvKey, PaddleKey, CWKey, PortKey: CHAR;
 
 PROCEDURE SetUpRadioStuff;
 
-VAR PortKey, RadioKey: CHAR;
+VAR RadioKey: CHAR;
     TempString: Str40;
     Address: INTEGER;
 
@@ -377,7 +376,7 @@ VAR PortKey, RadioKey: CHAR;
 
 PROCEDURE SetUpPacketStuff;
 
-VAR PortKey, RadioKey: CHAR;
+VAR RadioKey: CHAR;
 
     BEGIN
     ClrScr;
@@ -518,7 +517,7 @@ VAR Row, Col: INTEGER;
 FUNCTION GetContestName: Str80;
 
 VAR Contests: ARRAY [0..80] OF Str20;
-    NumberContests, Address, Index, StartX, StartY, Entry: INTEGER;
+    NumberContests, Address, Index, StartY, Entry: INTEGER;
     ActiveEntry, NumberRows, BubbleCount: INTEGER;
     EntryString, TempString: Str80;
     Key: CHAR;
@@ -616,7 +615,6 @@ VAR Contests: ARRAY [0..80] OF Str20;
         NumberContests := 74;  { One more than last index value }
         END;
 
-    StartX := WhereX;
     StartY := WhereY;
     ActiveEntry := 0;
 
@@ -759,8 +757,8 @@ VAR Contests: ARRAY [0..80] OF Str20;
 
 PROCEDURE ManualConfigFileGenerator;
 
-VAR PortKey, TypeKey, PaddleKey, CWKey, Key, ColorKey, SimulatorKey: Char;
-    FileName, ColorMode, MyState, MyName, MyQTH, TempString: Str20;
+VAR Key, SimulatorKey: Char;
+    FileName, MyState, MyName, MyQTH: Str20;
     FileString, ContestName: Str80;
     TempQTH: QTHRecord;
     FileRead: TEXT;

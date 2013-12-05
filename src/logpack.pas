@@ -3,7 +3,6 @@ UNIT LogPack;
 { This unit has most of the stuff used to make the packet work.  }
 
 {$O+}
-{$F+}
 {$V-}
 
 INTERFACE
@@ -197,7 +196,7 @@ FUNCTION LookForQSXFrequency (PacketFrequency: LONGINT; Notes: Str40): LONGINT;
 { Returns zero if nothing found. }
 
 VAR QSXFreq: REAL;
-    Result: INTEGER;
+    xResult: INTEGER;
     BaseFreq: LONGINT;
     FrequencyString, TempString: Str80;
 
@@ -224,7 +223,7 @@ VAR QSXFreq: REAL;
             BEGIN
             IF StringHas (FrequencyString, '.') THEN
                 BEGIN
-                Val (FrequencyString, QSXFreq, Result);
+                Val (FrequencyString, QSXFreq, xResult);
 
                 { Convert MHz to Hz }
 
@@ -239,7 +238,7 @@ VAR QSXFreq: REAL;
 
             IF Length (FrequencyString) >= 4 THEN  { Entered complete kHz }
                 BEGIN
-                Val (FrequencyString, QSXFreq, Result);
+                Val (FrequencyString, QSXFreq, xResult);
 
                 { Convert KHz to Hz }
 
@@ -249,7 +248,7 @@ VAR QSXFreq: REAL;
 
             IF Length (FrequencyString) = 3 THEN   { Entered kHz w/o MHz }
                 BEGIN
-                Val (FrequencyString, QSXFreq, Result);
+                Val (FrequencyString, QSXFreq, xResult);
 
                 { Compute MHz part of PacketFrequency }
 
@@ -271,7 +270,7 @@ VAR QSXFreq: REAL;
 
         IF Length (FrequencyString) <= 2 THEN   { Entered kHz offset }
             BEGIN
-            Val (FrequencyString, QSXFreq, Result);
+            Val (FrequencyString, QSXFreq, xResult);
 
             { Add them together }
 
@@ -288,7 +287,7 @@ VAR QSXFreq: REAL;
 
         IF Length (FrequencyString) <= 2 THEN   { Entered kHz offset }
             BEGIN
-            Val (FrequencyString, QSXFreq, Result);
+            Val (FrequencyString, QSXFreq, xResult);
 
             { Add them together }
 
@@ -332,7 +331,7 @@ FUNCTION FoundDXSpot (InputString: STRING; VAR DXSpot: DXSpotType): BOOLEAN;
 DX de OK1CF:     10107.1  WP4KGR       Marconi station                2148Z   }
 
 
-VAR Result: INTEGER;
+VAR xResult: INTEGER;
     TempFrequency: REAL;
 
     BEGIN
@@ -352,9 +351,9 @@ VAR Result: INTEGER;
 
         FrequencyString := RemoveFirstString (InputString);
 
-        Val (FrequencyString, TempFrequency, Result);
+        Val (FrequencyString, TempFrequency, xResult);
 
-        IF Result <> 0 THEN Exit;
+        IF xResult <> 0 THEN Exit;
 
         IF TempFrequency < MaxLongInt DIV 9 THEN
             TempFrequency := TempFrequency * 1000;      { Convert kHz to Hz }
@@ -412,7 +411,7 @@ FUNCTION ShowDXResponse (InputString: STRING; VAR DXSpot: DXSpotType): BOOLEAN;
 144219.7  K3KYR      13-Nov-1999 2110Z  FN24 aurora qtf 330         K <KU2A> }
 
 VAR DateString: Str40;
-    Result: INTEGER;
+    xResult: INTEGER;
     TempFrequency: REAL;
 
     BEGIN
@@ -437,8 +436,8 @@ VAR DateString: Str40;
 
         IF NOT StringHas (FrequencyString, '.') THEN Exit;
 
-        Val (FrequencyString, TempFrequency, Result);
-        IF Result <> 0 THEN Exit;
+        Val (FrequencyString, TempFrequency, xResult);
+        IF xResult <> 0 THEN Exit;
 
         { Look at the date and time syntax }
 
@@ -496,8 +495,7 @@ DL9YAJ    21227.7 4U1VIC                                    1029 31 Oct 1999
 CT2CVE    28614.5 OK1ARI      contest                       1030 31 Oct 1999
 }
 
-VAR DateString: Str40;
-    Result: INTEGER;
+VAR xResult: INTEGER;
     TempFrequency: REAL;
 
     BEGIN
@@ -525,8 +523,8 @@ VAR DateString: Str40;
 
         IF NOT StringHas (FrequencyString, '.') THEN Exit;
 
-        Val (FrequencyString, TempFrequency, Result);
-        IF Result <> 0 THEN Exit;
+        Val (FrequencyString, TempFrequency, xResult);
+        IF xResult <> 0 THEN Exit;
 
         { Look at the date and time syntax }
 
@@ -579,8 +577,7 @@ FUNCTION PacketFileInputSpot (InputString: STRING; VAR DXSpot: DXSpotType): BOOL
 7066.4   9H0VRZ      01-Oct-1999 0002Z                             9H <9K2HN>
 }
 
-VAR DateString: Str40;
-    Result: INTEGER;
+VAR xResult: INTEGER;
     TempFrequency: REAL;
 
     BEGIN
@@ -607,8 +604,8 @@ VAR DateString: Str40;
 
         IF NOT StringHas (FrequencyString, '.') THEN Exit;
 
-        Val (FrequencyString, TempFrequency, Result);
-        IF Result <> 0 THEN Exit;
+        Val (FrequencyString, TempFrequency, xResult);
+        IF xResult <> 0 THEN Exit;
 
         { Look at the date and time syntax }
 
@@ -677,7 +674,7 @@ VAR DXSpot: DXSpotType;
 
     Message := UpperCase (PacketString);
 
-    IF FoundDXSpot (PacketString, DXSpot) OR ShowDXResponse (PacketString, DXSpot) THEN
+    IF FoundDXSpot (Message, DXSpot) OR ShowDXResponse (Message, DXSpot) THEN
         BEGIN
         ProcessPacketSpot (DXSpot);
         Exit;
@@ -685,14 +682,14 @@ VAR DXSpot: DXSpotType;
 
     { Might this be a talk or an announce message that I need to display? }
 
-    IF TalkOrAnnounceMessage (PacketString) THEN
+    IF TalkOrAnnounceMessage (Message) THEN
         BEGIN
         IF PacketBeep THEN Tone.DoABeep (Single);
 
-        IF Length (PacketString) > 72 THEN
-            QuickDisplay (Copy (PacketString, 1, 72))
+        IF Length (Message) > 72 THEN
+            QuickDisplay (Copy (Message, 1, 72))
         ELSE
-            QuickDisplay (PacketString);
+            QuickDisplay (Message);
 
         Exit;
         END;
@@ -899,7 +896,7 @@ PROCEDURE PacketObject.ProcessPacketSpot (DXSpot: DXSpotType);
   it onto the packet spot buffer. }
 
 VAR MultString: Str20;
-    Dupe, Mult: BOOLEAN;
+    Mult: BOOLEAN;
 
     BEGIN
     WITH DXSpot DO
@@ -941,8 +938,6 @@ PROCEDURE PacketObject.PushPacketSpot (DXSpot: DXSpotType);
 
 { Takes the spot information and saves it for Control-U. }
 
-VAR TempString: Str80;
-
     BEGIN
     WITH DXSpot DO
         IF SpotMode = NormalSpot THEN
@@ -959,8 +954,6 @@ VAR TempString: Str80;
 
 
 PROCEDURE PacketObject.PushPacketMemory (DXSpot: DXSpotType);
-
-VAR Address: INTEGER;
 
     BEGIN
     WITH DXSpot DO

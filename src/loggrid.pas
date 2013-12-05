@@ -1,7 +1,6 @@
 UNIT LogGrid;
 
 {$O+}
-{$F+}
 
 { Minus lon is east }
 
@@ -87,7 +86,7 @@ FUNCTION ConvertLatLonToGrid (Lat, Lon: REAL): Str20;
 
 VAR c: INTEGER;
 
-    G4, R, M, L4 : REAL;
+    G4, L4 : REAL;
     M1, M2, M3, M4, M5, M6 : Char;
 
 
@@ -364,9 +363,6 @@ VAR Lat1, Lat2, Lon1, Lon2: REAL;
 
 PROCEDURE GetLatLon (Grid: Str20; VAR Lat, Lon: REAL);
 
-VAR Lat1, Lat2, Lon1, Lon2: REAL;
-    ShortHeading, LongHeading, Distance: REAL;
-
     BEGIN
     IF Length (Grid) <> 6 THEN Grid := Grid + 'll';
     Grid := UpperCase (Grid);
@@ -406,7 +402,6 @@ FUNCTION CalculateTime (Year: INTEGER;
 
 VAR DOY: WORD;
     Doy1, UTC, UTCrad, T1, T2, T3, Q, DECSol, Anm, RAsol, LONsol: REAL;
-    k1: INTEGER;
 
     BEGIN
     CalculateTime := True;
