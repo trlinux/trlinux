@@ -5474,6 +5474,8 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
 
                     CASE NewReadKey OF
                         DeleteKey:
+                            IF BandMapCursorData <> Nil then
+                            BEGIN
                             IF BandMapCursorData^.Frequency > 0 THEN
                                 BEGIN
                                 DeleteBandMapEntry (BandMapCursorData);
@@ -5489,6 +5491,7 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
                                 {    Exit;
                                 {    END;}
                                 END;
+                             END;
 
                         DownArrow:
                             IF (CursorEntryNumber < NumberBandMapEntries - 1) THEN

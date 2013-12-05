@@ -1359,6 +1359,7 @@ VAR Hours, Mins, Secs, TotalSeconds: LONGINT;
     ElaspedTimeString := HourString + ':' + MinsString + ':' + SecsString;
     END;
 
+    
 
 FUNCTION ElaspedSec100 (StartTime: TimeRecord): LONGINT;
 
