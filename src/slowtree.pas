@@ -697,60 +697,22 @@ VAR TempString: Str80;
 FUNCTION ElaspedMinutes (StartTime: TimeRecord): INTEGER;
 
 VAR Hour, Minute, Second, Sec100: WORD;
-    TempHour, TempMinute: LONGINT;
-
+    th,tm,ts,ts100,t0h,t0m,t0s,t0s100: longint;
+    
     BEGIN
+    t0h := starttime.hour;
+    t0m := starttime.minute;
+    t0s := starttime.second;
+    t0s100 := starttime.sec100;
     GetTime (Hour, Minute, Second, Sec100);
-
-    IF StartTime.Hour > Hour THEN Hour := Hour + 24;
-
-    IF StartTime.Minute > Minute THEN
-        BEGIN
-        Minute := Minute + 60;
-        Dec (Hour);
-
-        IF StartTime.Hour > Hour THEN
-            Hour := Hour + 24;
-        END;
-
-    IF StartTime.Second > Second THEN
-        BEGIN
-        Second := Second + 60;
-        Dec (Minute);
-        IF Minute < 0 THEN
-            BEGIN
-            Minute := Minute + 60;
-            Dec (Hour);
-            IF StartTime.Hour > Hour THEN
-                Hour := Hour + 24;
-            END;
-        END;
-
-    IF StartTime.Sec100 > Sec100 THEN
-        BEGIN
-        Sec100 := Sec100 + 100;
-        Dec (Second);
-        IF Second < 0 THEN
-            BEGIN
-            Second := Second + 60;
-            Dec (Minute);
-            IF Minute < 0 THEN
-                BEGIN
-                Minute := Minute + 60;
-                Dec (Hour);
-                IF Hour < 0 THEN
-                    Hour := Hour + 24;
-                END;
-            END;
-        END;
-
-    { Runtime 215 error on the next line - 273b:1e93 }
-
-    TempHour := Hour - StartTime.Hour;
-
-    TempMinute := Minute - StartTime.Minute;
-
-    ElaspedMinutes := (TempHour * 60) + TempMinute;
+    th := hour;
+    tm := minute;
+    ts := second;
+    ts100 := sec100;
+    ts100 := ts100-t0s100+100*(ts-t0s+60*(tm-t0m+60*(th-t0h)));
+    if ts100 < 0 then ts100 := ts100+360000;
+    elaspedminutes := ts100 div 6000;
+    if elaspedminutes < 0 then elaspedminutes := 0;
     END;
 
 
@@ -2250,35 +2212,19 @@ FUNCTION TimeElasped (StartHour, StartMinute, StartSecond, NumberOfMinutes: INTE
   the start time.                                                          }
 
 VAR Hour, Minute, Second, Sec100: WORD;
-    ElaspedMinutes: INTEGER;
+    th,tm,ts,ts100: longint;
 
     BEGIN
     GetTime (Hour, Minute, Second, Sec100);
-    IF StartHour > Hour THEN Hour := Hour + 24;
-
-    IF StartMinute > Minute THEN
-        BEGIN
-        Minute := Minute + 60;
-        Dec (Hour);
-        IF StartHour > Hour THEN
-          Hour := Hour + 24;
-        END;
-
-    IF StartSecond > Second THEN
-        BEGIN
-        Second := Second + 60;
-        Dec (Minute);
-        IF Minute < 0 THEN
-          BEGIN
-          Minute := Minute + 60;
-          Dec (Hour);
-          IF StartHour > Hour THEN
-                Hour := Hour + 24;
-          END;
-        END;
-
-    ElaspedMinutes := (Hour - StartHour) * 60 + (Minute - StartMinute);
-    TimeElasped := ElaspedMinutes >= NumberOfMinutes;
+    th := hour;
+    tm := minute;
+    ts := second;
+    ts100 := sec100;
+    ts100 := 100*(ts-startsecond+60*(tm-startminute
+       +60*(th-starthour)));
+    if ts100 < 0 then ts100 := ts100+360000;
+    if ts100 < 0 then ts100 := 0;
+    timeelasped := (ts100 div 6000) >=  numberofminutes;
     END;
 
 

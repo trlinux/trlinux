@@ -1296,88 +1296,29 @@ VAR Hours, Mins, TotalSeconds: LONGINT;
     ElaspedTimeString := HourString + ':' + MinsString + ':' + SecsString;
     END;
 
-
-FUNCTION ElaspedSec100 (StartTime: TimeRecord): LONGINT;
-
+FUNCTION  ElaspedSec100 (StartTime: TimeRecord): LongInt;
 VAR Hour, Minute, Second, Sec100: WORD;
-    TempMinute, TempSecond, TempSec100: LONGINT;
-
-    BEGIN
+    t0h,t0m,t0s,t0s100: longint;
+    th,tm,ts,ts100: longint;
+begin
+    t0h := starttime.hour;
+    t0m := starttime.minute;
+    t0s := starttime.second;
+    t0s100 := starttime.sec100;
     GetTime (Hour, Minute, Second, Sec100);
-
-    IF StartTime.Hour > Hour THEN Hour := Hour + 24;
-
-    IF StartTime.Hour > Hour THEN
-        BEGIN
-        ElaspedSec100 := 0;
-        Exit;
-        END;
-
-    IF StartTime.Minute > Minute THEN
-        BEGIN
-        Minute := Minute + 60;
-        Dec (Hour);
-
-        IF StartTime.Hour > Hour THEN
-            Hour := Hour + 24;
-        END;
-
-    IF StartTime.Second > Second THEN
-        BEGIN
-        Second := Second + 60;
-        Dec (Minute);
-        IF Minute < 0 THEN
-            BEGIN
-            Minute := Minute + 60;
-            Dec (Hour);
-            IF StartTime.Hour > Hour THEN
-                Hour := Hour + 24;
-            END;
-        END;
-
-
-
-    IF StartTime.Sec100 > Sec100 THEN
-        BEGIN
-        Sec100 := Sec100 + 100;
-        Dec (Second);
-        IF Second < 0 THEN
-            BEGIN
-            Second := Second + 60;
-            Dec (Minute);
-            IF Minute < 0 THEN
-                BEGIN
-                Minute := Minute + 60;
-                Dec (Hour);
-                IF Hour < 0 THEN
-                    Hour := Hour + 24;
-                END;
-            END;
-        END;
-
-    IF Sec100 > StartTime.Sec100 THEN
-        TempSec100 := Sec100 - StartTime.Sec100
-    ELSE
-        TempSec100 := 0;
-
-    IF Minute > StartTime.Minute THEN
-        TempMinute := Minute - StartTime.Minute
-    ELSE
-        TempMinute := 0;
-
-    TempMinute := TempMinute * 6000;
-
-    IF Second > StartTime.Second THEN
-        TempSecond := Second - StartTime.Second
-    ELSE
-        TempSecond := 0;
-
-    TempSecond := TempSecond * 100;
-
-    ElaspedSec100 := TempMinute + TempSecond + TempSec100;
-    END;
-
-
+    th := hour;
+    tm := minute;
+    ts := second;
+    ts100 := sec100;
+    ts100 := ts100-t0s100+100*(ts-t0s+60*(tm-t0m+60*(th-t0h)));
+    if ts100 < 0 then ts100 := ts100+360000;
+    if ts100 < 0 then
+    begin
+       elaspedsec100 := 0;
+       exit;
+    end;
+    elaspedsec100 := ts100;
+end;
 
 FUNCTION ExpandedString (Input: FourBytes): Str80;
 
@@ -2268,13 +2209,13 @@ VAR Year, Month, Day, DayOfWeek: Word;
 
         I := I + HourOffset;
 
-        IF Hours > 23 THEN                { Add a day }
+        IF I > 23 THEN                { Add a day }
             BEGIN
             Inc (DayOfWeek);
             IF DayOfWeek = 8 THEN DayOfWeek := 1;
             END
         ELSE
-            IF Hours < 0 THEN             { Subtract a day }
+            IF I < 0 THEN             { Subtract a day }
                 BEGIN
                 Dec (DayOfWeek);
                 IF DayOfWeek = 0 THEN DayOfWeek := 7;
