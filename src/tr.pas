@@ -3701,8 +3701,8 @@ VAR FileRead: TEXT;
 //   function paralleladdress(i: integer):integer;cdecl;external;
 
     BEGIN
-try
-begin
+//try
+//begin
 
 {$IFDEF Debug}
 
@@ -3721,7 +3721,8 @@ begin
     RememberCWSpeed := 0;
 //KS console beep only works if root
     if (FpGeteuid() = 0) then openconsole;
-    setupkeyboard;
+
+    IF UpperCase (ParamStr (1)) <> 'PACKETSIMULATE' THEN setupkeyboard;
 
     FootSwitchDebug := False;
     NetDebug        := False;
@@ -3777,9 +3778,9 @@ begin
     IF TempString <> '' THEN SetUpFileNames (TempString);
 
     OperateContest;
-end;
-except
-on e: exception do
-   dumpexceptioncallstack(e);
-end;
+//end;
+//except
+//on e: exception do
+//   dumpexceptioncallstack(e);
+//end;
     END.

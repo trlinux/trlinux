@@ -3071,7 +3071,8 @@ VAR TempChar:   CHAR;
 
     { Check multi input port real quick - we check it again later. }
 if caughtup then
-    IF DoingMulti AND ActiveMultiPort.CharReady THEN
+//    IF DoingMulti AND ActiveMultiPort.CharReady THEN
+    while DoingMulti AND ActiveMultiPort.CharReady do
         BEGIN
         TempByte := Ord(ActiveMultiPort.ReadChar);
         MultiReceiveCharBuffer.AddEntry (TempByte);
@@ -3109,7 +3110,8 @@ if caughtup then Footsw.timer;
 if caughtup then
     IF DoingPacket THEN
         BEGIN
-        IF ActivePacketPort.CharReady THEN
+//        IF ActivePacketPort.CharReady THEN
+          while ActivePacketPort.CharReady do
             BEGIN
             TempChar := ActivePacketPort.ReadChar;
             PacketReceiveCharBuffer.AddEntry (Ord (TempChar) AND $7F);
@@ -3166,7 +3168,8 @@ if caughtup then
         BEGIN
         IF MultiCharacterSentDelayCount = 0 THEN
             BEGIN
-            IF MultiSendCharBuffer.GetNextByte (TempByte) THEN
+//            IF MultiSendCharBuffer.GetNextByte (TempByte) THEN
+            while MultiSendCharBuffer.GetNextByte (TempByte) do
                 ActiveMultiPort.putchar(Char(TempByte));
 
             MultiCharacterSentDelayCount := MultiDelayCount;
@@ -3174,7 +3177,8 @@ if caughtup then
         ELSE
             Dec (MultiCharacterSentDelayCount);
 
-        IF ActiveMultiPort.CharReady THEN
+//        IF ActiveMultiPort.CharReady THEN
+        while ActiveMultiPort.CharReady do
             BEGIN
             TempByte := Ord(ActiveMultiPort.ReadChar);
             MultiReceiveCharBuffer.AddEntry (TempByte);
@@ -3187,7 +3191,8 @@ if caughtup then
 
             { Characters coming in on multi port get put into buffer }
 
-            IF ActiveMultiPort.CharReady THEN
+//            IF ActiveMultiPort.CharReady THEN
+            while ActiveMultiPort.CharReady do
                 BEGIN
                 TempByte := Ord(ActiveMultiPort.readchar);
                 MultiReceiveCharBuffer.AddEntry (TempByte);
@@ -3370,9 +3375,9 @@ BEGIN
         BEGIN
         timerinitialize;
         BumpCount := 0;
-        ModemDelayCount := 1;
-        MultiDelayCount := 1;
-        RTTYDelayCount  := 1;
+        ModemDelayCount := 0;
+        MultiDelayCount := 0;
+        RTTYDelayCount  := 0;
         BumpDelay := 50;
         TimerInitialized := true;
 

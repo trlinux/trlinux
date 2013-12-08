@@ -3065,43 +3065,25 @@ VAR Key: CHAR;
 PROCEDURE PacketSimulate;
 
 
-VAR SerialPort: serialportx;
-    Key: CHAR;
-    FreqString, RandomCall, TempString: Str80;
+VAR FreqString, RandomCall, TempString: Str80;
     Frequency: REAL;
-    Time: TimeRecord;
+    i: integer;
+//    Time: TimeRecord;
 
     BEGIN
-    serialport := nil; //This routine doesn't work so kill warning message
-    ClrScr;
+//    ClrScr;
     WriteLn ('Simulate large amounts of packet spots.');
     WriteLn;
-    WriteLn ('This procedure will generate random packet spots and send them out to the');
-    WriteLn ('serial port indicated at 4800 baud with 7 bits, even parity, one stop bit.');
+    WriteLn ('This procedure will generate random packet spots on');
+    WriteLn ('standard out.');
     WriteLn;
-
-    REPEAT
-        Key := UpCase (GetKey ('Enter  serial port (1-4): '));
-        IF Key = EscapeKey THEN Exit;
-    UNTIL (Key = '1') OR (Key = '2') OR (Key = '3') OR (Key = '4');
-    WriteLn;
-
-//    CASE Key OF
-//        '1': SerialPort := Serial1;
-//        '2': SerialPort := Serial2;
-//        '3': SerialPort := Serial3;
-//        '4': SerialPort := Serial4;
-//        ELSE Exit;
-//        END;
-
-//    InitializeSerialPort (SerialPort, 4800, 7, EvenParity, 1);
 
     WriteLn ('Press ESCAPE key to stop packet spot generation.');
 
     REPEAT
         IF KeyPressed THEN
-            IF ReadKey = EscapeKey THEN
-                Exit;
+           IF ReadKey = EscapeKey THEN
+              Exit;
 
 
         CASE Random (4) OF
@@ -3153,12 +3135,16 @@ VAR SerialPort: serialportx;
             3: TempString := TempString + '  Gus in Helsinki';
             END;
 
-        SendString (SerialPort, TempString + CarriageReturn + LineFeed);
+        write(TempString + CarriageReturn + LineFeed);
+        flush(stdout);
+ //         writeln(TempString);
 
-        MarkTime (Time);
+//        MarkTime (Time);
 
-        REPEAT millisleep UNTIL ElaspedSec100 (Time) >= 50;
+//        REPEAT millisleep UNTIL ElaspedSec100 (Time) >= 50;
 
+       for i := 1 to 10 do millisleep;
+//         millisleep;
     UNTIL False;
     END;
 
