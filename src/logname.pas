@@ -187,8 +187,7 @@ IMPLEMENTATION
 
 uses memlinux,keycode;
 
-VAR CallsPrinted: INTEGER;
-    LargestCommonArray: INTEGER;
+VAR LargestCommonArray: INTEGER;
     LargestUncommonArray: INTEGER;
     NamesCleared: BOOLEAN;
     TotalCalls: INTEGER;
@@ -362,10 +361,11 @@ VAR TempBytes: FourBytes;
 FUNCTION NameDictionary.AddName (Call: CallString; Name: Str80): BOOLEAN;
 
 VAR NameAddress: BYTE;
-    Address, NameCode, Pointer: INTEGER;
+    Address, NameCode: INTEGER;
     CompCall, CompName: FourBytes;
     PrefixFlag: BOOLEAN;
     Prefix, Suffix: TwoBytes;
+    aa: integer;
 
     BEGIN
     AddName := False;
@@ -413,26 +413,29 @@ VAR NameAddress: BYTE;
             BEGIN
             PrefixFlag := False;
 
+            aa := -1;
             FOR Address := 0 TO CommonTotals [NameCode] - 1 DO
                 BEGIN
+                aa := aa + 1;
+                if address < aa then continue;
                 IF PrefixFlag THEN
                     BEGIN
                     IF (CommonCalls^ [NameCode, Address] [1] = Prefix [1]) AND
                        (CommonCalls^ [Namecode, Address] [2] = Prefix [2]) THEN
                            BEGIN
-                           Inc (Address);
+                           Inc (aa);
 
-                           Move (CommonCalls^ [NameCode, Address],
-                                 CommonCalls^ [Namecode, Address + 1],
-                                 (CommonTotals [NameCode] - Address) * 2);
+                           Move (CommonCalls^ [NameCode, aa],
+                                 CommonCalls^ [Namecode, aa + 1],
+                                 (CommonTotals [NameCode] - aa) * 2);
 
-                           Move (CommonNames^ [NameCode, Address],
-                                 CommonNames^ [Namecode, Address + 1],
-                                 CommonTotals [NameCode] - Address);
+                           Move (CommonNames^ [NameCode, aa],
+                                 CommonNames^ [Namecode, aa + 1],
+                                 CommonTotals [NameCode] - aa);
 
 
-                           CommonCalls^ [NameCode, Address] := Suffix;
-                           CommonNames^ [NameCode, Address] := NameAddress;
+                           CommonCalls^ [NameCode, aa] := Suffix;
+                           CommonNames^ [NameCode, aa] := NameAddress;
 
                            Inc (CommonTotals [NameCode]);
                            Inc (TotalCalls);
@@ -443,9 +446,9 @@ VAR NameAddress: BYTE;
                     PrefixFlag := False;
                     END;
 
-                IF (CommonCalls^ [NameCode, Address] [2] = $FF) AND
-                   (CommonCalls^ [NameCode, Address] [1] = $FF) AND
-                   (CommonNames^ [NameCode, Address] = $F) THEN
+                IF (CommonCalls^ [NameCode, aa] [2] = $FF) AND
+                   (CommonCalls^ [NameCode, aa] [1] = $FF) AND
+                   (CommonNames^ [NameCode, aa] = $F) THEN
                        PrefixFlag := True;
 
                 END;
@@ -495,26 +498,29 @@ VAR NameAddress: BYTE;
             BEGIN
             PrefixFlag := False;
 
+            aa := -1;
             FOR Address := 0 TO UnCommonTotals [NameCode] - 1 DO
                 BEGIN
+                aa := aa + 1;
+                if address < aa then continue;
                 IF PrefixFlag THEN
                     BEGIN
                     IF (UnCommonCalls^ [NameCode, Address] [1] = Prefix [1]) AND
                        (UnCommonCalls^ [Namecode, Address] [2] = Prefix [2]) THEN
                            BEGIN
-                           Inc (Address);
+                           Inc (aa);
 
-                           Move (UnCommonCalls^ [NameCode, Address],
-                                 UnCommonCalls^ [Namecode, Address + 1],
-                                (UnCommonTotals [NameCode] - Address) * 2);
+                           Move (UnCommonCalls^ [NameCode, aa],
+                                 UnCommonCalls^ [Namecode, aa + 1],
+                                (UnCommonTotals [NameCode] - aa) * 2);
 
-                           Move (UnCommonNames^ [NameCode, Address],
-                                 UnCommonNames^ [Namecode, Address + 1],
-                                (UnCommonTotals [NameCode] - Address) * 4);
+                           Move (UnCommonNames^ [NameCode, aa],
+                                 UnCommonNames^ [Namecode, aa + 1],
+                                (UnCommonTotals [NameCode] - aa) * 4);
 
 
-                           UnCommonCalls^ [NameCode, Address] := Suffix;
-                           UnCommonNames^ [NameCode, Address] := CompName;
+                           UnCommonCalls^ [NameCode, aa] := Suffix;
+                           UnCommonNames^ [NameCode, aa] := CompName;
 
                            Inc (UnCommonTotals [NameCode]);
                            Inc (TotalCalls);
@@ -525,10 +531,10 @@ VAR NameAddress: BYTE;
                     PrefixFlag := False;
                     END;
 
-                IF (UnCommonCalls^ [NameCode, Address] [2] = $FF) AND
-                   (UnCommonCalls^ [NameCode, Address] [1] = $FF) AND
-                   (UnCommonNames^ [NameCode, Address] [1] = $FF) AND
-                   (UnCommonNames^ [NameCode, Address] [2] = $FF) THEN
+                IF (UnCommonCalls^ [NameCode, aa] [2] = $FF) AND
+                   (UnCommonCalls^ [NameCode, aa] [1] = $FF) AND
+                   (UnCommonNames^ [NameCode, aa] [1] = $FF) AND
+                   (UnCommonNames^ [NameCode, aa] [2] = $FF) THEN
                        PrefixFlag := True;
 
                 END;
@@ -568,7 +574,6 @@ PROCEDURE NameDictionary.DeleteName (Callsign: CallString);
 
 VAR Address, NamePointer, Offset, NameCode: INTEGER;
     TempBytes: FourBytes;
-    HexWord: WORD;
     Call: CallString;
 
     BEGIN
@@ -1235,7 +1240,7 @@ VAR NameCode, Address: INTEGER;
 FUNCTION NameDictionary.ReLoad: BOOLEAN;
 
 VAR FileRead: FILE;
-    NameCode, Result: INTEGER;
+    NameCode, xResult: INTEGER;
 
     BEGIN
     NamesCleared := False;
@@ -1251,21 +1256,21 @@ VAR FileRead: FILE;
         BEGIN
         Assign (FileRead, CMQFileName);
         Reset  (FileRead, 1);
-        BlockRead (FileRead, CommonTotals, SizeOf (CommonTotals), Result);
-        BlockRead (FileRead, UncommonTotals, SizeOf (UncommonTotals), Result);
+        BlockRead (FileRead, CommonTotals, SizeOf (CommonTotals), xResult);
+        BlockRead (FileRead, UncommonTotals, SizeOf (UncommonTotals), xResult);
 
         FOR NameCode := 0 TO NumberArrays - 1 DO
             BEGIN
-            BlockRead (FileRead, CommonCalls^ [NameCode], SizeOf (CommonCalls^ [NameCode]), Result);
-            BlockRead (FileRead, CommonNames^ [NameCode], SizeOf (CommonNames^ [NameCode]), Result);
-            BlockRead (FileRead, UncommonCalls^ [NameCode], SizeOf (UncommonCalls^ [NameCode]), Result);
-            BlockRead (FileRead, UncommonNames^ [NameCode], SizeOf (UncommonNames^ [NameCode]), Result);
+            BlockRead (FileRead, CommonCalls^ [NameCode], SizeOf (CommonCalls^ [NameCode]), xResult);
+            BlockRead (FileRead, CommonNames^ [NameCode], SizeOf (CommonNames^ [NameCode]), xResult);
+            BlockRead (FileRead, UncommonCalls^ [NameCode], SizeOf (UncommonCalls^ [NameCode]), xResult);
+            BlockRead (FileRead, UncommonNames^ [NameCode], SizeOf (UncommonNames^ [NameCode]), xResult);
             END;
 
         IF NOT Eof (FileRead) THEN
             BEGIN
-            BlockRead (FileRead, NumberClubCalls, SizeOf (NumberClubCalls), Result);
-            BlockRead (FileRead, ClubCalls^, SizeOf (ClubCalls^), Result);
+            BlockRead (FileRead, NumberClubCalls, SizeOf (NumberClubCalls), xResult);
+            BlockRead (FileRead, ClubCalls^, SizeOf (ClubCalls^), xResult);
             END;
 
         Close (FileRead);
@@ -1458,7 +1463,7 @@ PROCEDURE NameDictionary.UpdateNameFile;
 
 VAR FileWrite: FILE;
     NameCode: INTEGER;
-    Result: INTEGER;
+    xResult: INTEGER;
 
     BEGIN
     IF NamesCleared THEN Exit;
@@ -1469,18 +1474,18 @@ VAR FileWrite: FILE;
     ASSIGN  (FileWrite, CMQFileName);
     REWRITE (FileWrite, 1);
 
-    BlockWrite (FileWrite, CommonTotals, SizeOf (CommonTotals), Result);
-    BlockWrite (FileWrite, UncommonTotals, SizeOf (UncommonTotals), Result);
+    BlockWrite (FileWrite, CommonTotals, SizeOf (CommonTotals), xResult);
+    BlockWrite (FileWrite, UncommonTotals, SizeOf (UncommonTotals), xResult);
 
     LargestCommonArray := 0;
     LargestUncommonArray := 0;
 
     FOR NameCode := 0 TO NumberArrays - 1 DO
         BEGIN
-        BlockWrite (FileWrite, CommonCalls^ [NameCode], SizeOf (CommonCalls^ [NameCode]), Result);
-        BlockWrite (FileWrite, CommonNames^ [NameCode], SizeOf (CommonNames^ [NameCode]), Result);
-        BlockWrite (FileWrite, UncommonCalls^ [NameCode], SizeOf (UncommonCalls^ [NameCode]), Result);
-        BlockWrite (FileWrite, UncommonNames^ [NameCode], SizeOf (UncommonNames^ [NameCode]), Result);
+        BlockWrite (FileWrite, CommonCalls^ [NameCode], SizeOf (CommonCalls^ [NameCode]), xResult);
+        BlockWrite (FileWrite, CommonNames^ [NameCode], SizeOf (CommonNames^ [NameCode]), xResult);
+        BlockWrite (FileWrite, UncommonCalls^ [NameCode], SizeOf (UncommonCalls^ [NameCode]), xResult);
+        BlockWrite (FileWrite, UncommonNames^ [NameCode], SizeOf (UncommonNames^ [NameCode]), xResult);
 
         IF CommonTotals [NameCode] > LargestCommonArray THEN
             LargestCommonArray := CommonTotals [NameCode];
@@ -1490,8 +1495,8 @@ VAR FileWrite: FILE;
 
         END;
 
-    BlockWrite (FileWrite, NumberClubCalls, SizeOf (NumberClubCalls), Result);
-    BlockWrite (FileWrite, ClubCalls^, SizeOf (ClubCalls^), Result);
+    BlockWrite (FileWrite, NumberClubCalls, SizeOf (NumberClubCalls), xResult);
+    BlockWrite (FileWrite, ClubCalls^, SizeOf (ClubCalls^), xResult);
     Close (FileWrite);
     END;
 
@@ -1527,7 +1532,7 @@ PROCEDURE NameDictionary.MakePossibleCallList (Call: CallString; VAR PossCallLis
 
 
 VAR Address, NameCode, Index: INTEGER;
-    TestCall, ListPrefix, ListSuffix, Prefix, Suffix, TempCall: CallString;
+    TestCall, ListPrefix, Prefix, Suffix, TempCall: CallString;
     TestBytes: FourBytes;
     PrefixFlag: BOOLEAN;
 

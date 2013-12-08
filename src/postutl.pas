@@ -38,7 +38,6 @@ TYPE FileBuffer = ARRAY [0..BufferSize] OF Str160;
 
 VAR Buffer: FileBufferPointer;
     CheckCallBuffer: CallBufferPointer;
-    SCPIndexMatrix: SCPArrayPtr;
 
 { UTILITY Programs }
 
@@ -225,8 +224,6 @@ PROCEDURE AddHeadingToOutputFile (Call: Str20;
 
 
 FUNCTION NumberFileQSOs (FileName: Str80): LONGINT;
-
-VAR FileRead: TEXT;
 
     BEGIN
     NumberFileQSOs := 0;
@@ -540,13 +537,11 @@ VAR FileString, Callsign, CallListFileName, LogFileName, OutputFileName: Str80;
 PROCEDURE NameEditor;
 
 VAR FileName, Name, TotalString, Call: Str80;
-    NumberTimes, NameCode, NamePointer, Offset, CallPointer: INTEGER;
     CWSend: BOOLEAN;
     StartOfCallEntered: INTEGER;
     FileRead: TEXT;
 
     LastPrefix: Str20;
-    TempBytes: Fourbytes;
     FileString: Str20;
 
     BEGIN
@@ -687,8 +682,6 @@ VAR FileWrite: TEXT;
     Mode: ModeType;
     CallSign, TempString: Str20;
     CompressedCall: FourBytes;
-    StartMode, EndMode: ModeType;
-    StartBand, EndBand: BandType;
 
     BEGIN
     ClrScr;
@@ -998,8 +991,7 @@ PROCEDURE DTAEditor;
 
 
 VAR Key: CHAR;
-    Data: DataBaseEntryRecord;
-    PCall, Call: CallString;
+    Call: CallString;
     FileName: Str40;
     Address: INTEGER;
 
@@ -1150,8 +1142,7 @@ VAR Key: CHAR;
 
 PROCEDURE GetBeamHeadings;
 
-VAR Heading, Country: INTEGER;
-    Grid, MyGrid: Str20;
+VAR Grid, MyGrid: Str20;
 
     BEGIN
     ClrScr;
@@ -1191,7 +1182,7 @@ VAR Heading, Country: INTEGER;
 
 PROCEDURE DateTimeChange;
 
-VAR OutputFileName, InputFileName, DateString, TimeString: Str40;
+VAR OutputFileName, InputFileName : Str40;
     LogString: STRING;
     OutputFile, InputFile: TEXT;
     Offset: INTEGER;

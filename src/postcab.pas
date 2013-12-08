@@ -217,8 +217,6 @@ FUNCTION ClaimedScore: LONGINT;
 
 VAR TotalMultipliers: LONGINT;
     TotalQSOPoints:   LONGINT;
-    TotalQTCs:        LONGINT;
-    TotalScore:       LONGINT;
 
     BEGIN
     TotalQSOPoints   := QSOPointTotals [All, Both];
@@ -656,7 +654,6 @@ FUNCTION GenerateSummaryPortionOfCabrilloFile (CabrilloFileName: Str80;
 
 VAR Key:             CHAR;
     Address1, Address2, Address3, Address4, TempString, Category:      Str80;
-    TotalScore:      LONGINT;
     Operators:       STRING;
     Precedence, Check, Section, Power, Name, QTH, Overlay: Str40;
     NameFileWrite, NameFileRead: TEXT;
@@ -1217,8 +1214,8 @@ LABEL DoItAgain;
 VAR QTCFileRead, FileRead: TEXT;
     QTCFileString, FileString, CabrilloString: STRING;
     QTCWriteString: STRING;
-    YearString, ExchangeString, NumberString, TimeString, DateString: Str40;
-    SentData, ModeString, FrequencyString, MyCallString, MonthString: Str40;
+    ExchangeString, TimeString, DateString: Str40;
+    SentData, ModeString, FrequencyString, MyCallString: Str40;
     NumberQSOs: WORD;
     Band: BandType;
     Mode: ModeType;
@@ -1375,9 +1372,9 @@ QTC 1/10 with ES1QD on 16-Aug-03 at 14:27 on  80CW
                                 QTCIndexNumberString := RemoveFirstString (QTCFileString);
                                 QTCIndexNumberString := PrecedingString (QTCIndexNumberString, ':');
 
-                                Val (QTCIndexNumberString, QTCIndexNumber, Result);
+                                Val (QTCIndexNumberString, QTCIndexNumber, xResult);
 
-                                IF Result <> 0 THEN
+                                IF xResult <> 0 THEN
                                     BEGIN
                                     ReportError ('Error reading QTC.DAT file.');
                                     WriteLn (QTCFileString);

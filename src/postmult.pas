@@ -92,8 +92,7 @@ FUNCTION GenerateCountryMultiplierTotals: BOOLEAN;
   CountryMultTotals. }
 
 VAR FileRead: TEXT;
-    MultString, FileString, FileName, TempString: Str80;
-    Destination: CHAR;
+    MultString, FileString, TempString: Str80;
     Band: BandType;
     Mode: ModeType;
     CountryIndex: INTEGER;
@@ -169,11 +168,10 @@ FUNCTION GenerateZoneMultiplierTotals: BOOLEAN;
   CountryMultTotals. }
 
 VAR FileRead: TEXT;
-    FileString, MultString, ZoneString, FileName, TempString: Str80;
-    Destination, BandChar, ModeChar, AlphabetizeChar: CHAR;
+    FileString, MultString, ZoneString, TempString: Str80;
     Band: BandType;
     Mode: ModeType;
-    ZoneIndex, Result: INTEGER;
+    ZoneIndex, xResult: INTEGER;
 
     BEGIN
     GenerateZoneMultiplierTotals := False;
@@ -217,7 +215,7 @@ VAR FileRead: TEXT;
 
                    IF StringIsAllNumbers (TempString) THEN
                        BEGIN
-                       Val (TempString, ZoneIndex, Result);
+                       Val (TempString, ZoneIndex, xResult);
 
                        IF (ZoneIndex > 0) AND (ZoneIndex <= 100) THEN
                            IF CountryMultTotals^ [Band, ZoneIndex].TotalQSOs = 0 THEN
@@ -232,7 +230,7 @@ VAR FileRead: TEXT;
 
            IF StringIsAllNumbers (ZoneString) THEN
                BEGIN
-               Val (ZoneString, ZoneIndex, Result);
+               Val (ZoneString, ZoneIndex, xResult);
 
                IF (ZoneIndex > 0) AND (ZoneIndex <= 100) THEN
                    Inc (CountryMultTotals^ [Band, ZoneIndex].TotalQSOs);
@@ -252,7 +250,7 @@ VAR FileRead: TEXT;
 
 PROCEDURE PrintFirstCountryMultiplierCallsigns;
 
-VAR Lines, Count, NumberFillerSpaces, CountryIndex: INTEGER;
+VAR Lines, CountryIndex: INTEGER;
     TempString, FileName: Str80;
     FileWrite: TEXT;
     Destination: CHAR;
@@ -373,7 +371,7 @@ VAR Lines, Count, NumberFillerSpaces, CountryIndex: INTEGER;
 
 PROCEDURE PrintFirstZoneMultiplierCallsigns;
 
-VAR Lines, Count, NumberFillerSpaces, MaxNumberOfZones, ZoneIndex: INTEGER;
+VAR Lines, MaxNumberOfZones, ZoneIndex: INTEGER;
     TempString, FileName: Str80;
     FileWrite: TEXT;
     Destination: CHAR;
@@ -491,7 +489,7 @@ VAR Lines, Count, NumberFillerSpaces, MaxNumberOfZones, ZoneIndex: INTEGER;
 
 PROCEDURE PrintQSOsByCountry;
 
-VAR Lines, Count, NumberFillerSpaces, CountryIndex: INTEGER;
+VAR Lines, CountryIndex: INTEGER;
     TempString, FileName: Str80;
     FileWrite: TEXT;
     Destination: CHAR;
@@ -624,7 +622,7 @@ VAR Lines, Count, NumberFillerSpaces, CountryIndex: INTEGER;
 
 PROCEDURE PrintQSOsByZone;
 
-VAR Lines, Count, NumberFillerSpaces, ZoneIndex, MaxNumberOfZones: INTEGER;
+VAR Lines, ZoneIndex, MaxNumberOfZones: INTEGER;
     TempString, FileName: Str80;
     FileWrite: TEXT;
     Destination: CHAR;
@@ -1167,7 +1165,7 @@ PROCEDURE FinishOutLastHour;
   than 10 minutes. }
 
 VAR LastMinuteString: Str20;
-    Minute, LastMinute, Result: INTEGER;
+    Minute, LastMinute, xResult: INTEGER;
 
     BEGIN
     WITH PLeftOnBiState DO
@@ -1175,7 +1173,7 @@ VAR LastMinuteString: Str20;
 
         LastMinuteString := PostcedingString (LastTimeString, ':');
 
-        Val (LastMinuteString, LastMinute, Result);
+        Val (LastMinuteString, LastMinute, xResult);
 
         IF (LastMinute >= 50) AND (LastMinute < 59) THEN
             FOR Minute := LastMinute + 1 TO 59 DO
@@ -1239,9 +1237,9 @@ VAR FileRead: TEXT;
     TempString, FileString: Str80;
     Band: BandType;
     Mode: ModeType;
-    LineNumber, CurrentHourIndex, Result, HourIndex, Minute, QSOPoints: INTEGER;
+    LineNumber, CurrentHourIndex, HourIndex, QSOPoints: INTEGER;
     TotalLogQSOs: LONGINT;
-    HourString, MultString, MinuteString, Callstring, LastHourProcessed: Str20;
+    HourString, MultString, LastHourProcessed: Str20;
 
     BEGIN
     FOR HourIndex := 0 TO 49 DO
@@ -1308,11 +1306,11 @@ VAR FileRead: TEXT;
         IF (Band <> NoBand) AND (Mode <> NoMode) THEN
             BEGIN
             PinWheel;
-            CallString   := GetLogEntryCall (FileString);
+            GetLogEntryCall (FileString);
             HourString   := PrecedingString  (GetLogEntryTimeString (FileString), ':');
-            MinuteString := PostcedingString (GetLogEntryTimeString (FileString), ':');
+//            MinuteString := PostcedingString (GetLogEntryTimeString (FileString), ':');
 
-            Val (MinuteString, Minute, Result);
+//            Val (MinuteString, Minute, xResult);
 
             IF LastHourProcessed <> HourString THEN
                 BEGIN
@@ -1402,8 +1400,8 @@ PROCEDURE PrintHourTotals;
 VAR Destination: CHAR;
     FileWrite: TEXT;
     Band: BandType;
-    TempString, FileName: Str80;
-    TotalMults, LastHourPrinted, HourIndex, ThisHour, Result: INTEGER;
+    FileName: Str80;
+    TotalMults, LastHourPrinted, HourIndex, ThisHour, xResult: INTEGER;
     TotalQSOPoints, TotalContacts: LONGINT;
     Score: REAL;
     Day1QSOTotals, Day1MultTotals, Day2QSOTotals, Day2MultTotals: ARRAY [Band160..Band10] OF LONGINT;
@@ -1411,6 +1409,7 @@ VAR Destination: CHAR;
     TotalDay1QSOs, TotalDay1Mults, TotalDay2QSOs, TotalDay2Mults: LONGINT;
 
     BEGIN
+    LastHourPrinted := 0;//KS initialized ??
     REPEAT
     Destination := UpCase (GetKey ('Output to (F)ile, (P)rinter or (S)creen? : '));
         CASE Destination OF
@@ -1470,7 +1469,7 @@ VAR Destination: CHAR;
             LastHourPrinted := 0;
             END;
 
-        Val (LogHourTotals^ [HourIndex].HourName, ThisHour, Result);
+        Val (LogHourTotals^ [HourIndex].HourName, ThisHour, xResult);
 
         IF HourIndex = 0 THEN LastHourPrinted := ThisHour;
 
@@ -1578,7 +1577,7 @@ VAR Destination: CHAR;
             WriteLn (FileWrite, Score:6:2, 'M');
             END;
 
-        Val (LogHourTotals^ [HourIndex].HourName, LastHourPrinted, Result);
+        Val (LogHourTotals^ [HourIndex].HourName, LastHourPrinted, xResult);
         Inc (HourIndex);
         END;
 
@@ -1673,14 +1672,14 @@ VAR Destination: CHAR;
     FileWrite: TEXT;
     Band: BandType;
     TempString, RateString, FileName: Str80;
-    Rate, TotalMinutes, LastHourPrinted, HourIndex, ThisHour, Result: INTEGER;
+    Rate, TotalMinutes, LastHourPrinted, HourIndex, ThisHour, xResult: INTEGER;
     TotalQSOPoints, TotalContacts: LONGINT;
-    Score: REAL;
     Day1QSOTotals, Day1MinTotals, Day2QSOTotals, Day2MinTotals: ARRAY [Band160..Band10] OF LONGINT;
     DoingDay1: BOOLEAN;
     TotalDay1QSOs, TotalDay1Mins, TotalDay2QSOs, TotalDay2Mins: LONGINT;
 
     BEGIN
+    LastHourPrinted := 0; //KS initialized?
     REPEAT
     Destination := UpCase (GetKey ('Output to (F)ile, (P)rinter or (S)creen? : '));
         CASE Destination OF
@@ -1741,7 +1740,7 @@ VAR Destination: CHAR;
             LastHourPrinted := 0;
             END;
 
-        Val (LogHourTotals^ [HourIndex].HourName, ThisHour, Result);
+        Val (LogHourTotals^ [HourIndex].HourName, ThisHour, xResult);
 
         IF HourIndex = 0 THEN LastHourPrinted := ThisHour;
 
@@ -1832,7 +1831,7 @@ VAR Destination: CHAR;
             WriteLn (FileWrite, TotalMinutes:4, '/', Round (TotalContacts * (60 / TotalMinutes)));
             END;
 
-        Val (LogHourTotals^ [HourIndex].HourName, LastHourPrinted, Result);
+        Val (LogHourTotals^ [HourIndex].HourName, LastHourPrinted, xResult);
         Inc (HourIndex);
         END;
 

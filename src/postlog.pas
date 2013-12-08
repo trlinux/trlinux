@@ -34,8 +34,7 @@ TYPE WorkedArrayType = ARRAY [BandType, CW..Both, 0..400] OF BOOLEAN;
          NumberPrefixes: INTEGER;
          END;
 
-VAR Worked: WorkedArrayPtr;
-    PrefixLists: ARRAY [BandType, CW..Both] OF PrefixArrayRecordType;
+VAR PrefixLists: ARRAY [BandType, CW..Both] OF PrefixArrayRecordType;
 
 
 
@@ -173,7 +172,7 @@ VAR Line, PageNumber, NumberPages: INTEGER;
 PROCEDURE WriteLogEntry (LogEntry: Str80; Band: BandType; Mode: ModeType);
 
 VAR TempString: Str80;
-    MultString, DomesticString, UnknownString, NumberString: Str20;
+    MultString: Str20;
     QSOPoints, Mult, NumberMults: WORD;
     MultArray: ARRAY [1..2] OF Str20;
     MultIdentified: BOOLEAN;
@@ -383,7 +382,7 @@ VAR Key: CHAR;
 
 PROCEDURE ARRLCompatibleLog;
 
-VAR ARRLString, LogString, DateString, TimeString, TempString, OutputFileName: STRING;
+VAR ARRLString, LogString, DateString, TimeString, OutputFileName: STRING;
     NumberString: Str20;
     FileRead, FileWrite: TEXT;
     Band: BandType;
@@ -537,8 +536,8 @@ PROCEDURE CreateFinalLog;
 VAR TempString: Str80;
     Band: BandType;
     Mode: ModeType;
-    QSONumber, NumberZeroContacts: INTEGER;
-    Command, Key: CHAR;
+    QSONumber: INTEGER;
+    Command: CHAR;
     FileRead: TEXT;
 
     BEGIN
@@ -619,8 +618,6 @@ VAR TempString: Str80;
     IF AccumulateMultipliers THEN
         IF NOT DetermineMultiplierTypes THEN Exit;
 
-    NumberZeroContacts := 0;
-
     IF NOT FileExists (LogFileName) THEN
         BEGIN
         ReportError ('No logfile file found!!');
@@ -681,13 +678,13 @@ VAR TempString: Str80;
 
 FUNCTION DupeLog: BOOLEAN;
 
-VAR Band, DupeBand: BandType;
-    Mode, DupeMode: ModeType;
+VAR Band: BandType;
+    Mode : ModeType;
     FileRead, FileWrite: TEXT;
     DupeFileName, TempString, FileString: Str80;
     QSONumber, DupePos, NumberDupesUnmarked, NumberZeros: INTEGER;
     RXData: ContestExchange;
-    Key, Command: CHAR;
+    Key: CHAR;
     PossibleDupeList: ARRAY [0..100] OF CallString;
     PossibleDupe, NumberPossibleDupes: INTEGER;
     FileDupe: TEXT;
@@ -969,7 +966,7 @@ VAR Band, DupeBand: BandType;
 
 PROCEDURE EditLog;
 
-VAR Call, TempString, FileString: Str80;
+VAR Call, FileString: Str80;
     FileWrite: TEXT;
     Key: CHAR;
     VAR FileRead: TEXT;
@@ -1067,7 +1064,7 @@ VAR QSONumber, Country, NumberEntriesSaved, NumberCountries: INTEGER;
     LogEntryCountry: INTEGER;
     CountryList: ARRAY [0..19] OF INTEGER;
     CludeString, Call: CallString;
-    FileName, FileString, TempString: Str80;
+    FileName, FileString: Str80;
     Destination, CludeKey, Key: CHAR;
     FileRead, FileWrite: TEXT;
     FoundCountry: BOOLEAN;
@@ -1222,7 +1219,7 @@ VAR QSONumber, Country, NumberEntriesSaved, NumberCountries: INTEGER;
 
 FUNCTION QuasiDayOfYear (DateString: Str20): INTEGER;
 
-VAR TempDay, Result, Day: INTEGER;
+VAR TempDay, xResult, Day: INTEGER;
     DayString: Str20;
 
     BEGIN
@@ -1243,8 +1240,8 @@ VAR TempDay, Result, Day: INTEGER;
 
     DayString := PrecedingString (DateString, '-');
 
-    Val (DayString, TempDay, Result);
-    IF Result = 0 THEN Day := Day + TempDay;
+    Val (DayString, TempDay, xResult);
+    IF xResult = 0 THEN Day := Day + TempDay;
 
     QuasiDayOfYear := Day;
     END;
@@ -1281,12 +1278,12 @@ VAR FileOneName, FileTwoName, OutputFileName: Str80;
     Address, DayOfYearOne, DayOfYearTwo: INTEGER;
     IntegerTimeOne, IntegerTimeTwo: INTEGER;
     NeedNewQSOForFileOne, NeedNewQSOForFileTwo: BOOLEAN;
-    Command: CHAR;
     TotalFileOneContacts, TotalFileTwoContacts, TotalContacts: INTEGER;
     LTQW: ARRAY [0..29] OF Str80;
     LTQWHead, LTQWTail: INTEGER;
 
     BEGIN
+    LTQW[0] := '';//Silence uninitialized note
     ClrScr;
     TextColor (Yellow);
     WriteLnCenter ('MERGE UTILITY');
@@ -1497,7 +1494,6 @@ PROCEDURE MakeKCJLog;
 VAR KCJString, LogString, TimeString, TempString, OutputFileName: Str80;
     FileRead, FileWrite: TEXT;
     Band: BandType;
-    Mode: ModeType;
     DayNumber, QSONumber: INTEGER;
     BandChar: CHAR;
     Call: CallString;
@@ -2068,7 +2064,7 @@ FUNCTION ZoneMultsOkay (VAR FileString: STRING;
 
 
 VAR CharPosition: INTEGER;
-    ExchangeZone, Result, CallsignZone: INTEGER;
+    ExchangeZone, xResult, CallsignZone: INTEGER;
     ExchangeString, CallsignZoneString: Str40;
 
     BEGIN
@@ -2081,9 +2077,9 @@ VAR CharPosition: INTEGER;
 
         IF CallsignZone > 0 THEN
             BEGIN
-            Val (EData.Zone, ExchangeZone, Result);
+            Val (EData.Zone, ExchangeZone, xResult);
 
-            IF (Result <> 0) OR
+            IF (xResult <> 0) OR
                ((CountryTable.ZoneMode = ITUZoneMode) AND (ExchangeZone <> CallsignZone)) OR
                ((CountryTable.ZoneMode = CQZoneMode)  AND (ExchangeZone <> CallsignZone) AND
                (ExchangeZone <> 3) AND (ExchangeZone <> 4) AND (ExchangeZone <> 5)) THEN
@@ -2224,7 +2220,7 @@ PROCEDURE MultCheck;
 
 VAR EData, MData: ContestExchange;
     MultString: Str20;
-    CharPosition, QSONumber: INTEGER;
+    QSONumber: INTEGER;
     FileString: STRING;
     CheckZones, ProblemFound: BOOLEAN;
     Key: CHAR;
@@ -2424,15 +2420,15 @@ VAR EData, MData: ContestExchange;
 
 PROCEDURE PrefixMultCheck;
 
-VAR FileString, NameString, FileName: Str80;
+VAR FileString: Str80;
     Prefix, MultString: Str20;
     Band: BandType;
     Mode: ModeType;
-    CharPointer, StringLength, QSONumber: INTEGER;
-    Command, Key: CHAR;
+    CharPointer, QSONumber: INTEGER;
+    Key: CHAR;
     MultByBand, MultByMode: BOOLEAN;
-    MultiplierString, Call: CallString;
-    FileRead, FileWrite, FileAppend: TEXT;
+    Call: CallString;
+    FileRead, FileWrite: TEXT;
 
     BEGIN
     ClrScr;

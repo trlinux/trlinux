@@ -54,7 +54,6 @@ PROCEDURE ExportOldCallsFromASCIIFile;
 
 VAR FileString, FileName: Str80;
     FileRead: TEXT;
-    Key: CHAR;
     CallCount: INTEGER;
     Data: DatabaseEntryRecord;
     SaveNewCalls: BOOLEAN;
@@ -259,14 +258,14 @@ TYPE SearchInfoType = RECORD
 
 VAR NumberSearchItems: INTEGER;
     SearchItemData: ARRAY [0..10] OF SearchInfoType;
-    TempKey, Key, FieldKey: CHAR;
+    TempKey, Key: CHAR;
     DoingLogFile: BOOLEAN;
     DataString, FileName: Str40;
     FileRead: TEXT;
     FileString: Str160;
     Data: DatabaseEntryRecord;
     CallCursorPosition, CallCount, Count: INTEGER;
-    Ignore, Result: INTEGER;
+    Ignore: INTEGER;
     TotalCallCount: LONGINT;
 
     BEGIN
@@ -546,7 +545,7 @@ VAR NumberSearchItems: INTEGER;
 PROCEDURE ReadDataFromAnotherDTAFile;
 
 VAR RememberActiveFileName, RememberASCIIFileName: Str80;
-    ExchangeString, FileString, FileName: Str80;
+    FileString, FileName: Str80;
     FileRead: TEXT;
     CallCount: INTEGER;
     Data: DatabaseEntryRecord;
@@ -682,7 +681,6 @@ PROCEDURE ExportNamesFromASCIIFile;
 
 VAR FileString, FileName: Str80;
     FileRead: TEXT;
-    ActiveRecord: DataListEntryPointer;
     CallCount: INTEGER;
     Data: DatabaseEntryRecord;
 
@@ -840,12 +838,10 @@ VAR CharPointer: INTEGER;
 
 PROCEDURE TRMasterNameEditor;
 
-LABEL DataAdded;
-
 VAR FileName: Str80;
     CWSend: BOOLEAN;
     StartOfCallEntered: INTEGER;
-    Name, Call, LastPrefix, FileString: Str20;
+    Name, Call, LastPrefix: Str20;
     TempData: DataBaseEntryRecord;
 
     BEGIN

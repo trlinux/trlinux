@@ -28,32 +28,9 @@ USES {Overlay,
      Logwind;           {  4666 bytes of data }
 
 
-{$O PostCab}
-{$O PostLog}
-{$O PostQSL}
-{$O PostRpt}
-{$O PostSubs}
-{$O PostUtl}
-{$O Country9}    { 18 K }
-{$O LogDupe}
-{$O LogMenu}
-{$O ZoneCont}    {  6 K }
-{$O LogWind}
-{$O LogDom}      {  4 K }
-{$O LogGrid}     {  6 K }
-{$O LogMenu}
-{$O LogSCP}      { 39 K }
-{$O PostSCP}     { 34 K }
-{$O LogName}
-{$O PostMult}
-{$O FContest}
-{$O SlowTree}
-
 //{ $L SUFFIX}
 
 PROCEDURE PostContestLogMassage;
-
-VAR FileString: Str160;
 
     BEGIN
     ClearScreenAndTitle ('POST CONTEST LOG PROCESSOR');
@@ -132,7 +109,6 @@ PROCEDURE Init;
 
 VAR Band: BandType;
     Mode: ModeType;
-    Day, Hour: INTEGER;
 
     BEGIN
     FOR Band := Band160 TO All DO
@@ -168,8 +144,6 @@ VAR Band: BandType;
 
 
 PROCEDURE MainScreen;
-
-VAR TempString: Str80;
 
     BEGIN
     ClearScreenAndTitle ('TR POST CONTEST PROGRAM  Version ' + PostVersion);

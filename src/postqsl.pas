@@ -214,8 +214,7 @@ VAR Address, Temp, NumberCallsToSort, AddressA, AddressB: INTEGER;
 
 PROCEDURE CreateSmallCountryTempFile (CountryTotalArray: CountryTotalArrayType);
 
-VAR Country: INTEGER;
-    FileRead, FileWrite: TEXT;
+VAR FileRead, FileWrite: TEXT;
     Call, FileString: Str80;
     Band: BandType;
 
@@ -272,12 +271,11 @@ TYPE QSOEntryRecord = RECORD
          EntryIndexList: ARRAY [0..20] OF INTEGER;
          END;
 
-VAR Call, NumberQSOs, StationsName, NewName, FileString: Str80;
+VAR Call, StationsName, NewName, FileString: Str80;
     DoingNames: BOOLEAN;
     CallAddress, Entry, NumberQSOEntries, NumberCalls: INTEGER;
     CallList: ARRAY [0..20] OF QSOEntryRecord;
     FileCallString: CallString;
-    Key: CHAR;
     NameFileWrite: TEXT;
     FileRead: TEXT;
 
@@ -586,7 +584,6 @@ VAR Key: CHAR;
 PROCEDURE PrintLabelsOne;
 
 VAR FileName, FirstCall, TempString: Str80;
-    Band: BandType;
     Mode: ModeType;
     MyCall, BandString, ModeString, DateString, CallString,
     TimeString, RSTString, Signature: Str80;
@@ -729,7 +726,7 @@ VAR FileName, FirstCall, TempString: Str80;
 
         REPEAT
             ReadLn (FileRead, TempString);
-            Band := GetLogEntryBand (TempString);
+            GetLogEntryBand (TempString);
             Mode := GetLogEntryMode (TempString);
         UNTIL (Mode <> NoMode) OR EOF (FileRead);
 
@@ -793,7 +790,6 @@ FUNCTION SignatureWithName (Signature: Str80;
                             MaximumNameLength: INTEGER): Str80;
 
 VAR NameString: CallString;
-    Count: INTEGER;
 
     BEGIN
     IF NOT StringHas (Signature, '%') THEN
@@ -819,8 +815,7 @@ VAR NameString: CallString;
 
 PROCEDURE PrintSpecificLabels;
 
-VAR Call, TempString, FileName, FileString: Str80;
-    Band: BandType;
+VAR Call, FileName, FileString: Str80;
     Mode: ModeType;
     MyCall, BandString, ModeString, DateString, CallString,
     TimeString, StationsName, NewName, RSTString, Signature: Str80;
@@ -833,6 +828,7 @@ VAR Call, TempString, FileName, FileString: Str80;
 
 
     BEGIN
+MaximumNameLength := 80; //KS -- this was not initialized
     ClrScr;
     TextColor (Yellow);
     WriteLnCenter ('PRINT SINGLE LABELS FOR SPECIFIC STATIONS');
@@ -1023,7 +1019,7 @@ VAR Call, TempString, FileName, FileString: Str80;
                 RSTString := GetResponse ('Enter RST to be used on label for this contact (none for skip) : ');
                 IF RSTString <> '' THEN
                     BEGIN
-                    Band := GetLogEntryBand (FileString);
+                    GetLogEntryBand (FileString);
                     Mode := GetLogEntryMode (FileString);
 
                     IF Mode <> NoMode THEN
@@ -1069,10 +1065,10 @@ VAR FirstCall, LastCall: CallString;
     FileRead: TEXT;
     Destination, Key: CHAR;
     DoingNames, UseLogRST, PrintEnable, AlphabeticalOrder: BOOLEAN;
-    StartCountry, FinishCountry, Country: INTEGER;
+    Country: INTEGER;
     TempContactData: ContactRecord;
     Call, DefaultRST: Str20;
-    Signature1, Signature2, TempString, FileName, FileString: Str80;
+    Signature1, Signature2, FileName, FileString: Str80;
     TotalNumberQSLs, QSLLabel, Block, Address, QSLLabelAddress, QSO: INTEGER;
     MaximumName1Length, MaximumName2Length, TotalQSOs: INTEGER;
     CountryTotalArray: CountryTotalArrayType;
@@ -1254,14 +1250,14 @@ VAR FirstCall, LastCall: CallString;
     ClrEol;
 
     IF FirstCall = '' THEN
-        StartCountry := 0
+//        StartCountry := 0
     ELSE
-        StartCountry := CountryTable.GetCountry (FirstCall, True);
+        CountryTable.GetCountry (FirstCall, True);
 
     IF LastCall  = '' THEN
-        FinishCountry := CountryTable.NumberCountries - 1
+//        FinishCountry := CountryTable.NumberCountries - 1
     ELSE
-        FinishCountry := CountryTable.GetCountry (LastCall, True);
+        CountryTable.GetCountry (LastCall, True);
 
     WriteLn ('Press ESCAPE to stop print.');
 

@@ -209,3 +209,21 @@
 
 0.28
 - Fixed bug where ptt would not release in yccc box.
+
+0.29
+- Multiple changes so that all the pascal routines can be compiled in objfpc
+  mode. Note this changes some of the binary representations, so old
+  binary files like restart.bin etc. cannot be used. If problems are
+  found please revert to and older version and report bugs.
+- Rewrote code so that loop variables are no longer modified within loops
+- Changed Borland pascal comments where one right brace closed multiple
+  left braces to comments where every left brace has a matching right brace.
+- Fixed dead code where word variables were tested for impossible negative
+  values.
+- Removed unused variables.
+- Removed assigned but never used variables.
+- Sped up multi network and packet. The original DOS code had delays to keep
+  from overrunning the one byte hardware buffers of serial ports at 4800 baud.
+  Since the linux kernel has 1K buffers, and network buffers are even larger,
+  these delays were removed. Reads/writes to the multi network and packet 
+  now work with multiple bytes per simulated DOS interrupt.

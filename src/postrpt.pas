@@ -857,7 +857,6 @@ FUNCTION DetermineNumberOfQTCs: INTEGER;
   were sent or received. }
 
 VAR FileRead: TEXT;
-    FileString: Str80;
     QTCsThisStation, NumberQTCs: INTEGER;
 
     BEGIN
@@ -1102,7 +1101,6 @@ VAR Contest:         ContestType;
     Key:             CHAR;
     MyCall:          CallString;
     MyQTH:           QTHRecord;
-    TotalScore:      LONGINT;
 
     BEGIN
     ClrScr;
@@ -1436,7 +1434,7 @@ PROCEDURE MakeDupeSheet (OutputFileName: Str80; Title: Str80);
   filename is LST:, then the list will be printed.  If it is null string,
   then the list is displayed. }
 
-VAR Call, CountryID: CallString;
+VAR Call: CallString;
     Address, Country, NumberEntries: INTEGER;
     ActiveRecord, PreviousRecord, NewRecord: DupeSheetEntryRecordPointer;
     FileWrite: TEXT;
@@ -1595,7 +1593,7 @@ VAR LastBand, Band: BandType;
     FirstQSO: BOOLEAN;
     QSONumber, NumberBandChanges, NumberTwoXmtrQSOs, LastBandChangeQSO: INTEGER;
     Destination: CHAR;
-    Title, FileName, TempString: Str80;
+    FileName, TempString: Str80;
     FileRead, FileWrite: TEXT;
 
     BEGIN
@@ -1723,7 +1721,7 @@ VAR LastBand, Band: BandType;
 
 PROCEDURE ContinentReport;
 
-TYPE ContListType = (USA, Canada, NA, SA, EU, AF, AS, Japan, OC, UK);
+TYPE ContListType = (USA, Canada, NA, SA, EU, AF, ASI, Japan, OC, UK);
 
 CONST MaxUnknownCalls = 10;
 
@@ -1859,7 +1857,7 @@ VAR Band: BandType;
                            SouthAmerica: ListContinent := SA;
                            Europe:       ListContinent := EU;
                            Africa:       ListContinent := AF;
-                           Asia:         ListContinent := AS;
+                           Asia:         ListContinent := ASI;
                            Oceania:      ListContinent := OC;
                            ELSE          ListContinent := UK;
                            END;
@@ -1980,13 +1978,13 @@ VAR Band: BandType;
         AllBandTotal := 0;
         FOR Band := Band160 TO Band12 DO
             BEGIN
-            Write (FileWrite, ContTotals [Band, AS]:6);
-            AllBandTotal := ContTotals [Band, AS] + AllBandTotal;
+            Write (FileWrite, ContTotals [Band, ASI]:6);
+            AllBandTotal := ContTotals [Band, ASI] + AllBandTotal;
             END;
         WriteLn (FileWrite, AllBandTotal:7);
         END
     ELSE
-        WriteLn (FileWrite, ContTotals [Band, AS]:6);
+        WriteLn (FileWrite, ContTotals [Band, ASI]:6);
 
     Write (FileWrite, '  JA calls    = ');
     IF NOT DoingDupingFile THEN
@@ -2367,7 +2365,6 @@ PROCEDURE MultLogEntries;
 VAR FileRead, FileWrite: TEXT;
     MultString, FileString, FileName, TempString: Str80;
     Destination, BandChar, ModeChar, AlphabetizeChar: CHAR;
-    MultByBand, MultByMode: BOOLEAN;
     SelectedBand, Band: BandType;
     SelectedMode, Mode: ModeType;
     NumberMults, Index, NumberCallsToSort, BubbleCount: INTEGER;
@@ -2621,15 +2618,15 @@ TYPE ListRec = RECORD
          END;
 
 VAR NumberQSOs, Count, CenterSpaces, NumberQTHs, Space, Address: INTEGER;
-    HiTotal, HiAddress, QSONumber: INTEGER;
+    HiTotal, HiAddress: INTEGER;
     Title, FileName, FileString, ExchangeString, QTHString: Str80;
     Band: BandType;
-    Mode: ModeType;
     Destination: CHAR;
     FileRead, FileWrite: TEXT;
     List: ARRAY [0..300] OF ListRec;
 
     BEGIN
+    List [0].QTH := '';//KS silence uninitialized warning
     ClrScr;
     TextColor (Yellow);
     WriteLnCenter ('QSO DISTRIBUTION REPORT');
@@ -2759,7 +2756,7 @@ VAR NumberQSOs, Count, CenterSpaces, NumberQTHs, Space, Address: INTEGER;
 PROCEDURE RateReport;
 
 VAR QSONumber, FirstHourOfTheContest, LastHourOfTheContest, Hour: INTEGER;
-    NumberDifferentBands, NumberHoursWithContacts: INTEGER;
+    NumberDifferentBands: INTEGER;
     Day, LastDay: INTEGER;
     FileName, DayString, Title, TempString: Str80;
     Band: BandType;
@@ -3160,11 +3157,10 @@ VAR FileRead, FileWrite: TEXT;
     FileString, FileName: Str80;
     CallString, ZoneString: Str20;
     Band: BandType;
-    Mode: ModeType;
     Location: QTHRecord;
     CQZones: BOOLEAN;
     QSONumber, NumberBadZones, Zone, Result: INTEGER;
-    Destination, TempKey: CHAR;
+    Destination: CHAR;
 
     BEGIN
     ClrScr;

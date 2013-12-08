@@ -1,6 +1,5 @@
 UNIT PostSubs;
 
-{$F+}
 {$V-}
 
 INTERFACE
@@ -195,7 +194,7 @@ VAR AccumulateQSOPoints:   BOOLEAN;
 
     ReNumberQSONumbers: BOOLEAN;
     ReportEntries:      ReportEntryArrayPointer;
-    Result:             INTEGER;
+    xResult:             INTEGER;
 
     SeparateBandLogs:    BOOLEAN;
     SeparateModeLogs:    BOOLEAN;
@@ -531,8 +530,6 @@ VAR FileName: Str20;
 
 PROCEDURE WriteToLogFile (LogEntry: Str80; Band: BandType; Mode: ModeType);
 
-VAR LogFile: INTEGER;
-
     BEGIN
     CASE FindOpenFile (Band, Mode) OF
 
@@ -613,8 +610,6 @@ VAR LogFile: INTEGER;
 
 
 PROCEDURE DetermineLogTotals;
-
-VAR Band: BandType;
 
     BEGIN
     IF LogTotalsAccurate THEN Exit;
@@ -722,10 +717,8 @@ PROCEDURE BlankOutMultsAndZeroQSOPoints (VAR LogString: Str80; InsertString: Str
 FUNCTION PutLogFileIntoCallBuffer (Mode: ModeType; Band: BandType): BOOLEAN;
 
 VAR FileRead: TEXT;
-    LogBand:  BandType;
     LogMode:  ModeType;
     Call:     CallString;
-    List:     INTEGER;
 
     BEGIN
     TextColor (Cyan);
@@ -816,6 +809,7 @@ VAR Call, FileString: Str80;
     FileRead: TEXT;
 
     BEGIN
+    Buffer[0] := '';//KS to silence uninitialized warning
     ClrScr;
     TextColor (Yellow);
     WriteLnCenter ('VIEW LOG SEGMENT PROCEDURE');
@@ -860,8 +854,8 @@ VAR Call, FileString: Str80;
 
                     IF Line = (NumberLinesInBuffer - 1) THEN
                         NumberLinesInBuffer := 0
-                    ELSE
-                        Line := NumberLinesInBuffer - 1;
+//                    ELSE
+//                        Line := NumberLinesInBuffer - 1;
                     END;
 
         IF NOT SearchStringFound THEN
@@ -1080,11 +1074,6 @@ FUNCTION GetContestExchangeFromLogEntryExchange (LogEntry: STRING;
   the ContestExchange format.  It ignores the multiplier string and
   generates the multiplier flags based upon the exchange string. }
 
-VAR ExchangeString, MultString: Str40;
-    Mult, NumberMults: INTEGER;
-    MultArray: ARRAY [1..2] OF Str20;
-    MultIdentified: BOOLEAN;
-
     BEGIN
     GetContestExchangeFromLogEntryExchange := False;
 
@@ -1263,7 +1252,7 @@ VAR FileNumber: INTEGER;
 
 FUNCTION GetDayOfYear (DateString: Str20; VAR Year: INTEGER): INTEGER;
 
-VAR Day, Result, Month, MonthAdder: INTEGER;
+VAR Day, xResult, Month, MonthAdder: INTEGER;
     DayString, MonthString, YearString: Str20;
 
     BEGIN
@@ -1271,9 +1260,9 @@ VAR Day, Result, Month, MonthAdder: INTEGER;
     MonthString := Copy (DateString, 4, 3);
     YearString  := Copy (DateString, 8, 2);
 
-    Val (DayString, Day, Result);
+    Val (DayString, Day, xResult);
 
-    Val (YearString, Year, Result);
+    Val (YearString, Year, xResult);
 
     MonthString := UpperCase (MonthString);
 
@@ -1463,14 +1452,14 @@ VAR FebDays: INTEGER;
 
 PROCEDURE ChangeTime (VAR DateString: Str20; VAR TimeString: Str20; Offset: INTEGER);
 
-VAR Minute, Hour, TimeMinutes, Result: INTEGER;
+VAR Minute, Hour, TimeMinutes, xResult: INTEGER;
     DayOffset: INTEGER;
-    DayofYear, Month, Year: INTEGER;
+    DayofYear, Year: INTEGER;
     MinuteString, HourString: Str20;
 
     BEGIN
-    Val (PostcedingString (TimeString, ':'), Minute, Result);
-    Val (PrecedingString  (TimeString, ':'), Hour,   Result);
+    Val (PostcedingString (TimeString, ':'), Minute, xResult);
+    Val (PrecedingString  (TimeString, ':'), Hour,   xResult);
 
     TimeMinutes := (Hour * 60) + Minute;
 

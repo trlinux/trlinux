@@ -49,7 +49,7 @@ SRC=\
 
 
 post: $(SRC) dupe.o dt.o findports.o hid.o
-	fpc -B -Mtp -g post -k-lX11
+	fpc -B -Mobjfpc -g post -k-lX11
 	cp post ../log
 
 clean:
