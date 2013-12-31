@@ -214,7 +214,7 @@
 - Multiple changes so that all the pascal routines can be compiled in objfpc
   mode. Note this changes some of the binary representations, so old
   binary files like restart.bin etc. cannot be used. If problems are
-  found please revert to and older version and report bugs.
+  found please revert to an older version and report bugs.
 - Rewrote code so that loop variables are no longer modified within loops
 - Changed Borland pascal comments where one right brace closed multiple
   left braces to comments where every left brace has a matching right brace.
