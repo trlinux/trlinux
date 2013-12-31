@@ -313,7 +313,7 @@ begin
    if monitortone = 0 then
    begin
       tone := paddlemonitortone;
-      if paddlemonitortone <> 0 then st := $80;
+      st := $80;
    end;
    if tone > WinKeyerFreqs[10] then tone := WinKeyerFreqs[10];
    if tone < WinKeyerFreqs[1] then tone := WinKeyerFreqs[1];
@@ -748,7 +748,7 @@ begin
       WinKeyerPort.putchar(Char($01));
       WinKeyerPort.putchar(getSideTone);
       if (MonitorTone = 0) and (PaddleMonitorTone = 0) then
-         pincfg := Char(Integer(pincfg) and $02)
+         pincfg := Char(Integer(pincfg) and (not $02))
       else
          pincfg := Char(Integer(pincfg) or $02);
       WinKeyerPort.putchar(Char($09));
@@ -764,7 +764,7 @@ begin
       WinKeyerPort.putchar(Char($01));
       WinKeyerPort.putchar(getSideTone);
       if (MonitorTone = 0) and (PaddleMonitorTone = 0) then
-         pincfg := Char(Integer(pincfg) and $02)
+         pincfg := Char(Integer(pincfg) and (not $02))
       else
          pincfg := Char(Integer(pincfg) or $02);
       WinKeyerPort.putchar(Char($09));
