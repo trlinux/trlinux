@@ -52,6 +52,7 @@ then possible to encapsulate different parts of the code to make modification
 easier. This however, needs to be done in a way that doesn't break the
 code. That means it will be done slowly.
 
+\section{DOS timer interrupt}
 With DOS being a single process operating system, a second consequence is
 that TR under DOS could have completely well defined timing. TR under DOS
 took over the timer interrupt, and used this to send CW, communicate with
@@ -112,9 +113,23 @@ in an attempt to get better real time performance.
 More work needs to be done on the timer routine to be able to remove
 timers, etc. Right now only the original timer routine is added with addtimer.
 All other timer routines are called by it. That should be changed.
-I think that eventually, the timers should be replaced
-with threads.
 
+Eventually, the timers should be replaced with threads.
 
+\section{Serial and parallel ports}
+The original DOS code communicated with the serial and parallel ports
+directly. It is possible to write linux code that has special
+superuser privileges that communicates directly with these legacy devices.
+However,
+in order to write a well-behaved multiuser code, and to be able to use
+USB serial devices, communicating through the standard linux devices
+and libraries is needed. This is accomplished in the unit
+communication.pas which defines a set of classes which read and write
+from serial and parallel ports. These also implement pseudottys that
+can be used for communication.
+
+The packet shell device, and the multinetwork ncat devices fork new processes
+which the program communicates with through pseudottys. As far as the
+original TR code is concerned, these are just serial ports.
 
 \end{document}

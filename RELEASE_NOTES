@@ -227,3 +227,7 @@
   Since the linux kernel has 1K buffers, and network buffers are even larger,
   these delays were removed. Reads/writes to the multi network and packet 
   now work with multiple bytes per simulated DOS interrupt.
+
+0.30
+- Fixed bug where Winkeyer sidetone pin changes changes were not sent to
+  the Winkeyer. 
