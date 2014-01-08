@@ -376,7 +376,6 @@ begin
    end;
    if KeyerInitialized then 
    begin
-      flushcwbuffer; //probably not necessary
       sendcmd(CMD_SO2R_STATE,so2r_state.val);
    end;
 end;
