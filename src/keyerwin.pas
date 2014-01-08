@@ -373,7 +373,6 @@ end;
 
 Procedure WinKeyer.SetActiveRadio(r: RadioType);
 begin
-   flushcwbuffer; //probably not necessary
    Pincfg := Char(Integer(Pincfg) and $f3); 
    case r of
       RadioOne:
