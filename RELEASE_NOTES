@@ -231,3 +231,6 @@
 0.30
 - Fixed bug where Winkeyer sidetone pin changes changes were not sent to
   the Winkeyer. 
+- Fixed bug where race condition in YCCC box caused some dropped CW
+  characters when interrupting a CQ message on one radio to send
+  an alt-d space bar to work a station on the second radio.

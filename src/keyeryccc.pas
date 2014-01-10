@@ -794,7 +794,7 @@ begin
                begin
                   idle := true;
                   doingpaddle := false;
-                  mirror := 0;
+//                  mirror := 0;
                end;
 
                KEYER_EVENT_CLEAR:
