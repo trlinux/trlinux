@@ -4090,7 +4090,75 @@ VAR FirstString, SecondString, ThirdString: Str20;
         ProcessRSTZoneAndPossibleDomesticQTHExchange := True;
     END;
 
-
+FUNCTION ProcessRSTAndDomesticQTHOrZoneExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
+
+{ Each entry of the exchange must be separated by spaces.  The following
+  formats work:
+
+   Entry  #1   Entry  #2
+   ---------   ---------
+   RS(T)       QTH
+   RS(T)       Zone
+   Zone                                  (RS(T) = default, no QTH)
+   QTH                                   (RS(T) = default)
+   QTH         RS(T)
+   QTH         RST                       Need three digits of RST }
+
+
+VAR FirstString, SecondString, ThirdString: Str20;
+
+    BEGIN
+    ProcessRSTAndDomesticQTHOrZoneExchange := False;
+    IF Exchange = '' THEN Exit;
+
+    RXData.QTHString := '';
+
+    ParseExchange (Exchange, FirstString, SecondString, ThirdString);
+
+    IF ThirdString <> '' THEN
+        BEGIN
+        FirstString := SecondString;
+        SecondString := ThirdString;
+        END;
+
+    IF SecondString <> '' THEN
+        BEGIN
+        IF NOT StringIsAllNumbers (SecondString) THEN  { SecondString = QTH }
+            BEGIN
+            IF NOT ValidRST (FirstString, RXData.RSTReceived, ActiveMode) THEN Exit;
+            RXData.QTHString   := SecondString;
+            ProcessRSTAndDomesticQTHOrZoneExchange := FoundDomesticQTH (RXData);
+            END
+        ELSE
+            BEGIN
+            IF NOT ValidRST (SecondString, RXData.RSTReceived, ActiveMode) THEN Exit;
+            RXData.Zone := FirstString;
+            ProcessRSTAndDomesticQTHOrZoneExchange := StringIsAllNumbers (FirstString) AND
+                                                              (Length (FirstString) <= 2);
+            END;
+
+        Exit;
+        END
+    ELSE
+        BEGIN
+        RXData.RSTReceived := DefaultRST;
+
+        IF StringIsAllNumbers (FirstString) THEN  { Zone }
+            BEGIN
+            RXData.Zone := FirstString;
+            ProcessRSTAndDomesticQTHOrZoneExchange := StringIsAllNumbers (FirstString) AND
+                                                              (Length (FirstString) <= 2);
+            END
+        ELSE
+            BEGIN
+            RXData.QTHString := FirstString;
+            ProcessRSTAndDomesticQTHOrZoneExchange := FoundDomesticQTH (RXData);
+            END;
+
+        Exit;
+        END;
+
+    END;
 
 FUNCTION ProcessRSTAndPowerExchange (Exchange:Str80; VAR RXData: ContestExchange): BOOLEAN;
 
@@ -6387,6 +6455,10 @@ FUNCTION ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BO
 
         RSTAndContinentExchange:
             ProcessExchange := ProcessRSTAndContinentExchange (ExchangeString, RData);
+
+       RSTAndDomesticQTHOrZoneExchange:
+            ProcessExchange := ProcessRSTAndDomesticQTHOrZoneExchange (ExchangeString, RData);
+
 
         RSTAndGridExchange:
             ProcessExchange := ProcessRSTAndGridSquareExchange (ExchangeString, RData);

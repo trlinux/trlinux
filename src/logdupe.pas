@@ -3154,6 +3154,13 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
             ExchangeInformation.PostalCode  := True;
             END;
 
+        RSTAndDomesticQTHOrZoneExchange:
+            BEGIN
+            ExchangeInformation.RST  := True;
+            ExchangeInformation.QTH  := True;
+            ExchangeInformation.Zone := True;
+            END;
+
         RSTQTHExchange,
         RSTDomesticOrDXQTHExchange:
             BEGIN

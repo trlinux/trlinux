@@ -381,6 +381,7 @@ VAR TempQTH: QTHRecord;
             AddDomesticCountry ('VE');
             AddDomesticCountry ('KL');
             AddDomesticCountry ('KH6');
+            AddDomesticCountry ('XE');
 
             IF MyState <> '' THEN
                 BEGIN
@@ -603,7 +604,7 @@ VAR TempQTH: QTHRecord;
             ActiveBand             := Band160;
             ActiveDomesticMult     := DomesticFile;
             ActiveDXMult           := CQDXCCWithNoUSAOrCanada;
-            ActiveExchange         := RSTDomesticOrDXQTHExchange;
+            ActiveExchange         := RSTAndDomesticQTHOrZoneExchange;
             ActiveQSOPointMethod   := CQ160QSOPointMethod;
             ContestName := 'CQ 160 Contest';
             MultByBand := False;

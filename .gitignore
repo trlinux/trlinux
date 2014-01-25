@@ -10,3 +10,4 @@ doc/texput.log
 doc/*.aux
 doc/*.log
 doc/trport.pdf
+log/lib

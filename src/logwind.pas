@@ -352,6 +352,7 @@ TYPE
                     RSTAgeExchange,
                     RSTALLJAPrefectureAndPrecedenceExchange,
                     RSTAndContinentExchange,
+                    RSTAndDomesticQTHOrZoneExchange,
                     RSTAndGridExchange,
                     RSTAndOrGridExchange,
                     RSTAndQSONumberOrDomesticQTHExchange,

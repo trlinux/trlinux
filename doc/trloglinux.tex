@@ -227,10 +227,10 @@ which has permissions from ls -l /dev/ttyUSB0
 \begin{verbatim}
 crw-rw---- 1 root dialout 188, 0 Feb 22 22:12 /dev/ttyUSB0
 \end{verbatim}
-which is owned by the dialout group. I added my user name (schmidt) to
-that entry in /etc/group
+which is owned by the dialout group. I added my user name (w9cf) to
+that entry in /etc/group using the command
 \begin{verbatim}
-dialout:x:16:uucp,schmidt
+sudo gpasswd -a w9cf dialout
 \end{verbatim}
 You must log out and log back in for this to take effect.
 
@@ -624,12 +624,17 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="16c0", ATTR{idProduct}=="065e", MODE="0660"
 \end{verbatim}
 all on one line.
 Only members of the so2rbox group will have read/write permission.
-You will have to create this group. That is on Slackware, with my
-user name w9cf, I would use a text editor to add a line like
+You will have to create this group. You can do this
+using the command groupadd.
+That is on Slackware, with my
+user name w9cf I can add the group with
 \begin{verbatim}
-so2rbox:x:1234:w9cf
+sudo groupadd so2rbox
 \end{verbatim}
-to /etc/group. 1234 is a previously unused group number chosen by you.
+and then add my account to that group using
+\begin{verbatim}
+sudo gpasswd -a w9cf so2rbox
+\end{verbatim}
 You need to log out, and log back in, in order to have your login session
 reread the group file. Make sure that typing
 \begin{verbatim}
@@ -946,8 +951,15 @@ modern /dev/ptmx method, but if not, look in /dev and choose a different
 pty device. Note, you need to have the required permissions to open the
 device. On my systems, they are owned by root and in the tty group, so
 including my username in /etc/group for the tty group gives me permission.
-That is, if my user name is w9cf, then I have a line in /etc/group
-like tty:x:5:w9cf\ .
+You can do this with the command
+\begin{verbatim}
+sudo gpasswd -a w9cf tty
+\end{verbatim}
+You must log out and log back in for this to take effect. You can check
+the groups you are a member of with the command
+\begin{verbatim}
+groups
+\end{verbatim}
 
 I use the following script to fire up trlog (trlog must be in your path)
 \begin{verbatim}

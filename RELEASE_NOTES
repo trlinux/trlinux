@@ -234,3 +234,10 @@
 - Fixed bug where race condition in YCCC box caused some dropped CW
   characters when interrupting a CQ message on one radio to send
   an alt-d space bar to work a station on the second radio.
+
+0.31
+- Added XE as domestic multiplier in ARRL10
+- Fixed CQ160 to properly log the zone
+- Fixed post to produce Cabrillo file for CQ160 with zone
+- Updated the documentation with suggestions from K5TR with less
+  caveman methods of adding users to groups.

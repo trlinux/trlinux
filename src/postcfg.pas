@@ -387,6 +387,9 @@ VAR TempValue, xResult: INTEGER;
             IF CMD = 'RST DOMESTIC QTH OR QSO NUMBER' THEN
                 ActiveExchange := RSTDomesticQTHOrQSONumberExchange;
 
+            IF CMD = 'RST DOMESTIC QTH OR ZONE' THEN
+                ActiveExchange := RSTAndDomesticQTHOrZoneExchange;
+
             IF CMD = 'RST NAME QTH' THEN
                 ActiveExchange := RSTNameAndQTHExchange;
 

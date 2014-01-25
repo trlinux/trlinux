@@ -839,6 +839,7 @@ VAR Key:             CHAR;
             Section := GetResponse ('Enter the QTH you sent : ');
             IF Section = '' THEN Exit;
             SentInformation := '$ ' + Section;
+            NumberExchangeElementsToRecord := 1;
             END;
 
 
