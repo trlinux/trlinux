@@ -738,6 +738,7 @@ VAR Frequency: LONGINT;
             IF ActiveMultiPort <> nil THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
+            millisleep;
         UNTIL ElaspedSec100 (RememberTime) >= 50;
 
         RemoveWindow (NameSentWindow);
