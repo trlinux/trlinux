@@ -1,7 +1,6 @@
 UNIT PostCab;
-
+{$mode objfpc}
 {$O+}
-{$V-}
 
 INTERFACE
 
@@ -26,61 +25,94 @@ uses keycode,sysutils;
 
 CONST
 
-    CabrilloVersion = '2.3';
-                    {KK1L: 6.71 2.1}
-                    {KK1L: 6.73 2.2}
-                    {N6TR: 6.74 2.3 - Added ask for ARRL section in IARU & CW WW
-                                      Added WAE contest }
+    CabrilloVersion = '3.0';
 
     CabrilloNameFileName = 'CABNAME.DAT';
 
-    NumberOperatorCategories = 12;
-    NumberBandCategories     =  8;
-    NumberPowerCategories    =  3;
-    NumberModeCategories     =  4;
-    NumberOverlayCategories  =  5;
+    NumberCategoryAssistedTypes    =  2;
+    NumberCategoryBandTypes        = 13;
+    NumberCategoryModeTypes        =  4;
+    NumberCategoryOperatorTypes    =  3;
+    NumberCategoryPowerTypes       =  3;
+    NumberCategoryStationTypes     =  7;
+    NumberCategoryTimeTypes        =  4;
+    NumberCategoryTransmitterTypes =  5;
+    NumberCategoryOverlayTypes     =  5;
 
-    OperatorCategory: ARRAY [0..NumberOperatorCategories - 1] OF STRING [25] = (
-                        'SINGLE-OP',
-                        'SINGLE-OP-ASSISTED',
-                        'SINGLE-OP-QRP-PORTABLE',
-                        'MULTI-ONE',
-                        'MULTI-TWO',
-                        'MULTI-MULTI',
-                        'MULTI-LIMITED',
-                        'MULTI-UNLIMITED',
-                        'ROVER',
-                        'SCHOOL-CLUB',
-                        'UNLIMITED',
-                        'CHECKLOG');
+    CategoryAssistedType :
+        ARRAY [0..NumberCategoryAssistedTypes - 1] OF STRING [15] = (
+            'ASSISTED',
+            'NON-ASSISTED');
 
-    BandCategory: ARRAY [0..NumberBandCategories - 1] OF STRING [7] = (
-                        'ALL',
-                        '160M',
-                        '80M',
-                        '40M',
-                        '20M',
-                        '15M',
-                        '10M',
-                        'LIMITED');
+    CategoryBandType:
+        ARRAY [0..NumberCategoryBandTypes - 1] OF STRING [4] = (
+            'ALL',
+            '160M',
+            '80M',
+            '40M',
+            '20M',
+            '15M',
+            '10M',
+            '6M',
+            '2M',
+            '222',
+            '432',
+            '903',
+            '1.2G');
 
-    PowerCategory: ARRAY [0..NumberPowerCategories - 1] OF STRING [4] = (
-                        'HIGH',
-                        'LOW',
-                        'QRP');
+    CategoryModeType:
+        ARRAY [0..NumberCategoryModeTypes - 1] OF STRING [5] = (
+            'SSB',
+            'CW',
+            'RTTY',
+            'MIXED');
 
-    ModeCategory: ARRAY [0..NumberModeCategories - 1] OF STRING [5] = (
-                        'CW',
-                        'SSB',
-                        'RY',
-                        'MIXED');
+    CategoryOperatorType:
+        ARRAY [0..NumberCategoryOperatorTypes - 1] OF STRING [9] = (
+            'SINGLE-OP',
+            'MULTI-OP',
+            'CHECKLOG');
 
-    OverlayCategory: ARRAY [0..NumberOverlayCategories - 1] OF STRING [12] = (
-                        'NONE',
-                        'ROOKIE',
-                        'BAND-LIMITED',
-                        'TB-WIRES',
-                        'OVER-50');
+    CategoryPowerType:
+        ARRAY [0..NumberCategoryPowerTypes - 1] OF STRING [4] = (
+            'HIGH',
+            'LOW',
+            'QRP');
+
+    CategoryStationType:
+        ARRAY [0..NumberCategoryStationTypes - 1] OF STRING [10] = (
+            'FIXED',
+            'MOBILE',
+            'PORTABLE',
+            'ROVER',
+            'EXPEDITION',
+            'HQ',
+            'SCHOOL');
+
+    CategoryTimeType:
+        ARRAY [0..NumberCategoryTimeTypes - 1] OF STRING [8] = (
+            'NONE',
+            '6-HOURS',
+            '12-HOURS',
+            '24-HOURS');
+
+
+    CategoryTransmitterType:
+        ARRAY [0..NumberCategoryTransmitterTypes - 1] OF STRING [9] = (
+            'ONE',
+            'TWO',
+            'LIMITED',
+            'UNLIMITED',
+            'SWL');
+
+    CategoryOverlayType:
+        ARRAY [0..NumberCategoryOverlayTypes - 1] OF STRING [11] = (
+            'NONE',
+            'ROOKIE',
+            'TB-WIRES',
+            'NOVICE-TECH',
+            'OVER-50');
+
 
 TYPE QTCEntryRecord = RECORD
          Time: CallString;
@@ -100,6 +132,8 @@ VAR CallSignLength:  INTEGER;
 
     NumberExchangeElementsToRecord: INTEGER;
 
+    PreviousName: Str20;  { Used for Interent Sprint }
+
     QTCEnable: BOOLEAN;
     QTCList: QTCEntryArrayPtr;
 
@@ -116,9 +150,8 @@ VAR CallSignLength:  INTEGER;
 
     TempString:      Str40;
 
-
 
-FUNCTION GetFrequencyStringFromBand (Band: BandType): Str20;
+FUNCTION GetFrequencyStringFromBand (Band: BandType; PossibleFreqString: Str20): Str20;
 
 VAR TempString: Str20;
 
@@ -147,6 +180,13 @@ VAR TempString: Str20;
         Band10G:  TempString := '10';   {KK1L: 6.71 Changes from Trey from old lettering style}
         Band24G:  TempString := '24';   {KK1L: 6.71 Changes from Trey from old lettering style}
         BandLight: TempString := 'LIGHT'; {KK1L: 6.71 Changes from Trey from old lettering style}
+        END;
+
+    IF StringHas (PossibleFreqString, '.') THEN
+        BEGIN
+        Delete (PossibleFreqString, 1, 1);
+        Delete (TempString, Length (TempString) - 2, 3);
+        TempString := TempString + PossibleFreqString;
         END;
 
     WHILE Length (TempString) < 5 DO
@@ -211,7 +251,6 @@ FUNCTION GetCabrilloDateStringFromLogEntry (LogEntryString: STRING): Str20;
     GetCabrilloDateStringFromLogEntry := GetCabrilloDateStringFromDateString (LogEntryString);
     END;
 
-
 
 FUNCTION ClaimedScore: LONGINT;
 
@@ -232,293 +271,353 @@ VAR TotalMultipliers: LONGINT;
         ClaimedScore := TotalQSOPoints;
     END;
 
-
 
-PROCEDURE ShowCategoryData (StartY, OperatorCursor, BandCursor, PowerCursor, ModeCursor, OverlayCursor: INTEGER);
-
-VAR StartX, Address, DoBlink, MaxFieldWidth: INTEGER;
+PROCEDURE ShowCategoryData (StartY, AssistedCursor, BandCursor, ModeCursor,
+                            OperatorCursor, PowerCursor, StationCursor,
+                            TimeCursor, TransmitterCursor, OverlayCursor: INTEGER);
 
 { Add 100 to the cursor who's column you want to be active }
 
     BEGIN
-    MaxFieldWidth := 0;
-
     GoToXY (1, StartY);
 
-    IF OperatorCursor >= 100 THEN
+    TextColor (Cyan);
+    TextBackground (Black);
+
+    ClrEol;
+
+    IF AssistedCursor >= 100 THEN
         BEGIN
-        DoBlink := Blink;
-        OperatorCursor := OperatorCursor - 100;
+        AssistedCursor := AssistedCursor - 100;
+        TextBackground (Cyan);
+        TextColor (Black);
+        WriteLn ('CATEGORY-ASSISTED: ',    CategoryAssistedType [AssistedCursor],Chr(13));
+        TextColor (Cyan);
+        TextBackground (Black);
         END
     ELSE
-        DoBlink := 0;
+        WriteLn ('CATEGORY-ASSISTED: ',    CategoryAssistedType [AssistedCursor],Chr(13));
 
-    FOR Address := 0 TO NumberOperatorCategories - 1 DO
-        BEGIN
-        IF MaxFieldWidth < Length (OperatorCategory [Address]) THEN
-            MaxFieldWidth := Length (OperatorCategory [Address]);
-
-        IF OperatorCursor = Address THEN
-            BEGIN
-            TextColor (Black + DoBlink);
-            TextBackground (Cyan);
-            END
-        ELSE
-            BEGIN
-            TextColor (Cyan);
-            TextBackground (Black);
-            END;
-
-        Write (OperatorCategory [Address]);
-        GoToXY (1, WhereY + 1);
-        END;
-
-    StartX := MaxFieldWidth + 5;
-
-    MaxFieldWidth := 0;
-
-    GoToXY (StartX, StartY);
+    ClrEol;
 
     IF BandCursor >= 100 THEN
         BEGIN
-        DoBlink := Blink;
         BandCursor := BandCursor - 100;
+        TextBackground (Cyan);
+        TextColor (Black);
+        WriteLn ('CATEGORY-BAND: ',        CategoryBandType [BandCursor],Chr(13));
+        TextColor (Cyan);
+        TextBackground (Black);
         END
     ELSE
-        DoBlink := 0;
+        WriteLn ('CATEGORY-BAND: ',        CategoryBandType [BandCursor],Chr(13));
 
-    FOR Address := 0 TO NumberBandCategories - 1 DO
-        BEGIN
-        IF MaxFieldWidth < Length (BandCategory [Address]) THEN
-            MaxFieldWidth := Length (BandCategory [Address]);
-
-        IF BandCursor = Address THEN
-            BEGIN
-            TextColor (Black + DoBlink);
-            TextBackground (Cyan);
-            END
-        ELSE
-            BEGIN
-            TextColor (Cyan);
-            TextBackground (Black);
-            END;
-
-        Write (BandCategory [Address]);
-        GoToXY (StartX, WhereY + 1);
-        END;
-
-    StartX := StartX + MaxFieldWidth + 5;
-
-    MaxFieldWidth := 0;
-
-    GoToXY (StartX, StartY);
-
-    IF PowerCursor >= 100 THEN
-        BEGIN
-        DoBlink := Blink;
-        PowerCursor := PowerCursor - 100;
-        END
-    ELSE
-        DoBlink := 0;
-
-    FOR Address := 0 TO NumberPowerCategories - 1 DO
-        BEGIN
-        IF MaxFieldWidth < Length (PowerCategory [Address]) THEN
-            MaxFieldWidth := Length (PowerCategory [Address]);
-
-        IF PowerCursor = Address THEN
-            BEGIN
-            TextColor (Black + DoBlink);
-            TextBackground (Cyan);
-            END
-        ELSE
-            BEGIN
-            TextColor (Cyan);
-            TextBackground (Black);
-            END;
-
-        Write (PowerCategory [Address]);
-        GoToXY (StartX, WhereY + 1);
-        END;
-
-    StartX := StartX + MaxFieldWidth + 5;
-
-    MaxFieldWidth := 0;
-
-    GoToXY (StartX, StartY);
+    ClrEol;
 
     IF ModeCursor >= 100 THEN
         BEGIN
-        DoBlink := Blink;
         ModeCursor := ModeCursor - 100;
+        TextBackground (Cyan);
+        TextColor (Black);
+        WriteLn ('CATEGORY-MODE: ',        CategoryModeType [ModeCursor],Chr(13));
+        TextColor (Cyan);
+        TextBackground (Black);
         END
     ELSE
-        DoBlink := 0;
+        WriteLn ('CATEGORY-MODE: ',        CategoryModeType [ModeCursor],Chr(13));
 
-    FOR Address := 0 TO NumberModeCategories - 1 DO
+    ClrEol;
+
+    IF OperatorCursor >= 100 THEN
         BEGIN
-        IF MaxFieldWidth < Length (ModeCategory [Address]) THEN
-            MaxFieldWidth := Length (ModeCategory [Address]);
+        OperatorCursor := OperatorCursor - 100;
+        TextBackground (Cyan);
+        TextColor (Black);
+        WriteLn ('CATEGORY-OPERATOR: ',    CategoryOperatorType [OperatorCursor],Chr(13));
+        TextColor (Cyan);
+        TextBackground (Black);
+        END
+    ELSE
+        WriteLn ('CATEGORY-OPERATOR: ',    CategoryOperatorType [OperatorCursor],Chr(13));
 
-        IF ModeCursor = Address THEN
-            BEGIN
-            TextColor (Black + DoBlink);
-            TextBackground (Cyan);
-            END
-        ELSE
-            BEGIN
-            TextColor (Cyan);
-            TextBackground (Black);
-            END;
+    ClrEol;
 
-        Write (ModeCategory [Address]);
-        GoToXY (StartX, WhereY + 1);
-        END;
+    IF PowerCursor >= 100 THEN
+        BEGIN
+        PowerCursor := PowerCursor - 100;
+        TextBackground (Cyan);
+        TextColor (Black);
+        WriteLn ('CATEGORY-POWER: ',       CategoryPowerType [PowerCursor],Chr(13));
+        TextColor (Cyan);
+        TextBackground (Black);
+        END
+    ELSE
+        WriteLn ('CATEGORY-POWER: ',       CategoryPowerType [PowerCursor],Chr(13));
 
-    StartX := StartX + MaxFieldWidth + 5;
+    ClrEol;
 
-    MaxFieldWidth := 0;
+    IF StationCursor >= 100 THEN
+        BEGIN
+        StationCursor := StationCursor - 100;
+        TextBackground (Cyan);
+        TextColor (Black);
+        WriteLn ('CATEGORY-STATION: ',     CategoryStationType [StationCursor],Chr(13));
+        TextColor (Cyan);
+        TextBackground (Black);
+        END
+    ELSE
+        WriteLn ('CATEGORY-STATION: ',     CategoryStationType [StationCursor],Chr(13));
 
-    GoToXY (StartX, StartY);
+    ClrEol;
+
+    IF TimeCursor >= 100 THEN
+        BEGIN
+        TimeCursor := TimeCursor - 100;
+        TextBackground (Cyan);
+        TextColor (Black);
+        WriteLn ('CATEGORY-TIME: ',        CategoryTimeType [TimeCursor],Chr(13));
+        TextColor (Cyan);
+        TextBackground (Black);
+        END
+    ELSE
+        WriteLn ('CATEGORY-TIME: ',        CategoryTimeType [TimeCursor],Chr(13));
+
+    ClrEol;
+
+    IF TransmitterCursor >= 100 THEN
+        BEGIN
+        TransmitterCursor := TransmitterCursor - 100;
+        TextBackground (Cyan);
+        TextColor (Black);
+        WriteLn ('CATEGORY-TRANSMITTER: ', CategoryTransmitterType [TransmitterCursor],Chr(13));
+        TextColor (Cyan);
+        TextBackground (Black);
+        END
+    ELSE
+        WriteLn ('CATEGORY-TRANSMITTER: ', CategoryTransmitterType [TransmitterCursor],Chr(13));
+
+    ClrEol;
 
     IF OverlayCursor >= 100 THEN
         BEGIN
-        DoBlink := Blink;
-        OverlayCursor := OverlayCursor - 100;
+        OverLayCursor := OverLayCursor - 100;
+        TextBackground (Cyan);
+        TextColor (Black);
+        WriteLn ('CATEGORY-OVERLAY: ',     CategoryOverlayType [OverlayCursor],Chr(13));
+        TextColor (Cyan);
+        TextBackground (Black);
         END
     ELSE
-        DoBlink := 0;
+        WriteLn ('CATEGORY-OVERLAY: ',     CategoryOverlayType [OverlayCursor],Chr(13));
 
-    FOR Address := 0 TO NumberOverlayCategories - 1 DO
+    END;
+
+
+PROCEDURE ActivateNextEntry (VAR AssistedCursor,
+                                 BandCursor,
+                                 ModeCursor,
+                                 OperatorCursor,
+                                 PowerCursor,
+                                 StationCursor,
+                                 TimeCursor,
+                                 TransmitterCursor,
+                                 OverlayCursor: INTEGER);
+
+    BEGIN
+    IF AssistedCursor >= 100 THEN
         BEGIN
-        IF MaxFieldWidth < Length (OverlayCategory [Address]) THEN
-            MaxFieldWidth := Length (OverlayCategory [Address]);
-
-        IF OverlayCursor = Address THEN
-            BEGIN
-            TextColor (Black + DoBlink);
-            TextBackground (Cyan);
-            END
-        ELSE
-            BEGIN
-            TextColor (Cyan);
-            TextBackground (Black);
-            END;
-
-        Write (OverlayCategory [Address]);
-        GoToXY (StartX, WhereY + 1);
+        AssistedCursor := AssistedCursor - 100;
+        BandCursor     := BandCursor + 100;
+        Exit;
         END;
-    END;
 
-
+    IF BandCursor >= 100 THEN
+        BEGIN
+        BandCursor := BandCursor - 100;
+        ModeCursor := ModeCursor + 100;
+        Exit;
+        END;
 
-PROCEDURE ActivateNextColumn (VAR OperatorCursor, BandCursor, PowerCursor,
-                                  ModeCursor, OverlayCursor: INTEGER);
+    IF ModeCursor >= 100 THEN
+        BEGIN
+        ModeCursor := ModeCursor - 100;
+        OperatorCursor := OperatorCursor + 100;
+        Exit;
+        END;
 
-    BEGIN
     IF OperatorCursor >= 100 THEN
         BEGIN
         OperatorCursor := OperatorCursor - 100;
-        BandCursor     := BandCursor     + 100;
-        END
-    ELSE
-        IF BandCursor >= 100 THEN
-            BEGIN
-            BandCursor  := BandCursor  - 100;
-            PowerCursor := PowerCursor + 100;
-            END
-        ELSE
-            IF PowerCursor >= 100 THEN
-                BEGIN
-                PowerCursor  := PowerCursor - 100;
-                ModeCursor   := ModeCursor  + 100;
-                END
-            ELSE
-                IF ModeCursor >= 100 THEN
-                    BEGIN
-                    ModeCursor     := ModeCursor     - 100;
-                    OverlayCursor  := OverlayCursor + 100;
-                    END
-                ELSE
-                    IF OverlayCursor >= 100 THEN
-                        BEGIN
-                        OverlayCursor  := OverlayCursor  - 100;
-                        OperatorCursor := OperatorCursor + 100;
-                        END;
+        PowerCursor := PowerCursor + 100;
+        Exit;
+        END;
+
+    IF PowerCursor >= 100 THEN
+        BEGIN
+        PowerCursor := PowerCursor - 100;
+        StationCursor := StationCursor + 100;
+        Exit;
+        END;
+
+    IF StationCursor >= 100 THEN
+        BEGIN
+        StationCursor := StationCursor - 100;
+        TimeCursor := TimeCursor + 100;
+        Exit;
+        END;
+
+    IF TimeCursor >= 100 THEN
+        BEGIN
+        TimeCursor := TimeCursor - 100;
+        TransmitterCursor := TransmitterCursor + 100;
+        Exit;
+        END;
+
+    IF TransmitterCursor >= 100 THEN
+        BEGIN
+        TransmitterCursor := TransmitterCursor - 100;
+        OverLayCursor := OverlayCursor + 100;
+        Exit;
+        END;
+
+    IF OverlayCursor >= 100 THEN
+        BEGIN
+        OverLayCursor := OverLayCursor - 100;
+        AssistedCursor := AssistedCursor + 100;
+        Exit;
+        END;
+
+    ReportError ('ERROR!! - Unexpected Cursor Value in ActivateNextEntry');
+    Halt;
     END;
 
-
 
-PROCEDURE ActivatePreviousColumn (VAR OperatorCursor, BandCursor, PowerCursor,
-                                      ModeCursor, OverlayCursor: INTEGER);
+PROCEDURE ActivatePreviousEntry (VAR AssistedCursor,
+                                     BandCursor,
+                                     ModeCursor,
+                                     OperatorCursor,
+                                     PowerCursor,
+                                     StationCursor,
+                                     TimeCursor,
+                                     TransmitterCursor,
+                                     OverlayCursor: INTEGER);
 
     BEGIN
+    IF AssistedCursor >= 100 THEN
+        BEGIN
+        AssistedCursor := AssistedCursor - 100;
+        OverlayCursor := OverlayCursor + 100;
+        Exit;
+        END;
+
+    IF BandCursor >= 100 THEN
+        BEGIN
+        BandCursor := BandCursor - 100;
+        AssistedCursor := AssistedCursor + 100;
+        Exit;
+        END;
+
+    IF ModeCursor >= 100 THEN
+        BEGIN
+        ModeCursor := ModeCursor - 100;
+        BandCursor := BandCursor + 100;
+        Exit;
+        END;
+
     IF OperatorCursor >= 100 THEN
         BEGIN
         OperatorCursor := OperatorCursor - 100;
-        OverlayCursor  := OverlayCursor  + 100;
-        END
-    ELSE
-        IF BandCursor >= 100 THEN
-            BEGIN
-            BandCursor     := BandCursor     - 100;
-            OperatorCursor := OperatorCursor + 100;
-            END
-        ELSE
-            IF PowerCursor >= 100 THEN
-                BEGIN
-                PowerCursor  := PowerCursor - 100;
-                BandCursor   := BandCursor  + 100;
-                END
-            ELSE
-                IF ModeCursor >= 100 THEN
-                    BEGIN
-                    ModeCursor  := ModeCursor  - 100;
-                    PowerCursor := PowerCursor + 100;
-                    END
-                ELSE
-                    IF OverlayCursor >= 100 THEN
-                        BEGIN
-                        OverlayCursor  := OverlayCursor  - 100;
-                        ModeCursor     := ModeCursor     + 100;
-                        END;
+        ModeCursor := ModeCursor + 100;
+        Exit;
+        END;
+
+    IF PowerCursor >= 100 THEN
+        BEGIN
+        PowerCursor := PowerCursor - 100;
+        OperatorCursor := OperatorCursor + 100;
+        Exit;
+        END;
+
+    IF StationCursor >= 100 THEN
+        BEGIN
+        StationCursor := StationCursor - 100;
+        PowerCursor := PowerCursor + 100;
+        Exit;
+        END;
+
+    IF TimeCursor >= 100 THEN
+        BEGIN
+        TimeCursor := TimeCursor - 100;
+        StationCursor := StationCursor + 100;
+        Exit;
+        END;
+
+    IF TransmitterCursor >= 100 THEN
+        BEGIN
+        TransmitterCursor := TransmitterCursor - 100;
+        TimeCursor := TimeCursor + 100;
+        Exit;
+        END;
+
+    IF OverlayCursor >= 100 THEN
+        BEGIN
+        OverLayCursor := OverLayCursor - 100;
+        TransmitterCursor := TransmitterCursor + 100;
+        Exit;
+        END;
+
+    ReportError ('ERROR!! - Unexpected Cursor Value in ActivatePreviousEntry');
+    Halt;
     END;
 
-
 
-FUNCTION GetCategory (VAR Overlay: Str20): Str80;
+FUNCTION GetCategory (VAR AssistedCursor, BandCursor, ModeCursor,
+                          OperatorCursor, PowerCursor, StationCursor,
+                          TimeCursor, TransmitterCursor, OverlayCursor: INTEGER): BOOLEAN;
 
-VAR StartY, OperatorCursor, BandCursor, PowerCursor, ModeCursor, OverlayCursor: INTEGER;
+VAR StartY: INTEGER;
 
     BEGIN
     ClearScreenAndTitle ('CHOOSE CATEGORY');
 
-    WriteLn ('Move the cursor to the appropriate category for your entry.  Use the TAB key');
-    WriteLn ('to activate the next column.  Use the up and down arrows to make you selection.');
-    WriteLn ('When you are happy with your selection - press RETURN.  Use ESCAPE to abort.');
+    WriteLn ('Move the cursor to the various fields show and use SPACE BAR to');
+    WriteLn ('select the correct values for your Cabrillo entry.  When you');
+    WriteLn ('have the correct values - press the RETURN key to continue.');
+    WriteLn;
+    WriteLn ('Use the ESCAPE key to abort.');
     WriteLn;
 
-    TextColor (Yellow);
-    WriteLn ('CATEGORY                  BANDS       POWER    MODE      SPECIAL');
-    WriteLn ('--------                  -----       -----    ----      -------');
+    TextColor (Cyan);
 
     NoCursor;
 
     StartY := WhereY;
 
-    OperatorCursor := 100;
-    BandCursor     := 0;
-    PowerCursor    := 0;
-    ModeCursor     := 0;
-    OverlayCursor  := 0;
+    AssistedCursor    := 100;
+    BandCursor        := 0;
+    ModeCursor        := 0;
+    OperatorCursor    := 0;
+    PowerCursor       := 0;
+    StationCursor     := 0;
+    TimeCursor        := 0;
+    TransmitterCursor := 0;
+    OverlayCursor     := 0;
 
     REPEAT
-        ShowCategoryData (StartY, OperatorCursor, BandCursor, PowerCursor, ModeCursor, OverlayCursor);
+        ShowCategoryData (StartY, AssistedCursor,
+                                  BandCursor,
+                                  ModeCursor,
+                                  OperatorCursor,
+                                  PowerCursor,
+                                  StationCursor,
+                                  TimeCursor,
+                                  TransmitterCursor,
+                                  OverlayCursor);
 
         CASE ReadKey OF
             EscapeKey:
                 BEGIN
-                GetCategory := '';
+                GetCategory := False;
                 SmallCursor;
                 TextColor (Cyan);
                 TextBackground (Black);
@@ -526,26 +625,96 @@ VAR StartY, OperatorCursor, BandCursor, PowerCursor, ModeCursor, OverlayCursor: 
                 Exit;
                 END;
 
-            TabKey:  ActivateNextColumn (OperatorCursor, BandCursor,
-                                         PowerCursor, ModeCursor, OverlayCursor);
+            SpaceBar:
+                BEGIN
+                IF AssistedCursor >= 100 THEN
+                    BEGIN
+                    Inc (AssistedCursor);
+                    IF AssistedCursor >= NumberCategoryAssistedTypes + 100 THEN
+                        AssistedCursor := 100;
+                    END;
+
+                IF BandCursor >= 100 THEN
+                    BEGIN
+                    Inc (BandCursor);
+                    IF BandCursor >= NumberCategoryBandTypes + 100 THEN
+                        BandCursor := 100;
+                    END;
+
+                IF ModeCursor >= 100 THEN
+                    BEGIN
+                    Inc (ModeCursor);
+                    IF ModeCursor >= NumberCategoryModeTypes + 100 THEN
+                        ModeCursor := 100;
+                    END;
+
+                IF OperatorCursor >= 100 THEN
+                    BEGIN
+                    Inc (OperatorCursor);
+                    IF OperatorCursor >= NumberCategoryOperatorTypes + 100 THEN
+                        OperatorCursor := 100;
+                    END;
+
+                IF PowerCursor >= 100 THEN
+                    BEGIN
+                    Inc (PowerCursor);
+                    IF PowerCursor >= NumberCategoryPowerTypes + 100 THEN
+                        PowerCursor := 100;
+                    END;
+
+                IF StationCursor >= 100 THEN
+                    BEGIN
+                    Inc (StationCursor);
+                    IF StationCursor >= NumberCategoryStationTypes + 100 THEN
+                        StationCursor := 100;
+                    END;
+
+                IF TimeCursor >= 100 THEN
+                    BEGIN
+                    Inc (TimeCursor);
+                    IF TimeCursor >= NumberCategoryTimeTypes + 100 THEN
+                        TimeCursor := 100;
+                    END;
+
+                IF TransmitterCursor >= 100 THEN
+                    BEGIN
+                    Inc (TransmitterCursor);
+                    IF TransmitterCursor >= NumberCategoryTransmitterTypes + 100 THEN
+                        TransmitterCursor := 100;
+                    END;
+
+                IF OverlayCursor >= 100 THEN
+                    BEGIN
+                    Inc (OverlayCursor);
+                    IF OverlayCursor >= NumberCategoryOverlayTypes + 100 THEN
+                        OverlayCursor := 100;
+                    END;
+
+                END;
+
+            TabKey:  ActivateNextEntry (AssistedCursor,
+                                        BandCursor,
+                                        ModeCursor,
+                                        OperatorCursor,
+                                        PowerCursor,
+                                        StationCursor,
+                                        TimeCursor,
+                                        TransmitterCursor,
+                                        OverlayCursor);
 
             CarriageReturn:
                 BEGIN
-                IF OperatorCursor >= 100 THEN OperatorCursor := OperatorCursor - 100;
-                IF BandCursor     >= 100 THEN BandCursor     := BandCursor - 100;
-                IF PowerCursor    >= 100 THEN PowerCursor    := PowerCursor - 100;
-                IF ModeCursor     >= 100 THEN ModeCursor     := ModeCursor - 100;
-                IF OverlayCursor  >= 100 THEN OverlayCursor  := OverLayCursor - 100;
+                IF AssistedCursor    >= 100 THEN AssistedCursor := AssistedCursor - 100;
+                IF BandCursor        >= 100 THEN BandCursor := BandCursor - 100;
+                IF ModeCursor        >= 100 THEN ModeCursor := ModeCursor - 100;
+                IF OperatorCursor    >= 100 THEN OperatorCursor := OperatorCursor - 100;
+                IF PowerCursor       >= 100 THEN PowerCursor := PowerCursor - 100;
+                IF StationCursor     >= 100 THEN StationCursor := StationCursor - 100;
+                IF TimeCursor        >= 100 THEN TimeCursor := TimeCursor - 100;
+                IF TransmitterCursor >= 100 THEN TransmitterCursor := TransmitterCursor - 100;
+                IF OverlayCursor     >= 100 THEN OverlayCursor := OverlayCursor - 100;
 
-                GetCategory := OperatorCategory [OperatorCursor] + ' ' +
-                               BandCategory     [BandCursor]     + ' ' +
-                               PowerCategory    [PowerCursor]    + ' ' +
-                               ModeCategory     [ModeCursor];
-
-                IF OverlayCursor > 0 THEN
-                    Overlay := OverlayCategory [OverlayCursor]
-                ELSE
-                    Overlay := '';
+                GetCategory := True;
 
                 TextColor (Cyan);
                 TextBackground (Black);
@@ -556,88 +725,28 @@ VAR StartY, OperatorCursor, BandCursor, PowerCursor, ModeCursor, OverlayCursor: 
 
             NullKey:
                 CASE ReadKey OF
-                    RightArrow: ActivateNextColumn (OperatorCursor, BandCursor,
-                                                    PowerCursor, ModeCursor, OverlayCursor);
-
-                    ShiftTab, LeftArrow:
-                        ActivatePreviousColumn (OperatorCursor, BandCursor,
-                                                PowerCursor, ModeCursor, OverlayCursor);
-
                     DownArrow:
-                        BEGIN
-                        IF OperatorCursor >= 100 THEN
-                            BEGIN
-                            Inc (OperatorCursor);
-                            IF OperatorCursor >= NumberOperatorCategories + 100 THEN
-                                OperatorCursor := 100;
-                            END;
+                        ActivateNextEntry (AssistedCursor,
+                                           BandCursor,
+                                           ModeCursor,
+                                           OperatorCursor,
+                                           PowerCursor,
+                                           StationCursor,
+                                           TimeCursor,
+                                           TransmitterCursor,
+                                           OverlayCursor);
 
-                        IF BandCursor >= 100 THEN
-                            BEGIN
-                            Inc (BandCursor);
-                            IF BandCursor >= NumberBandCategories + 100 THEN
-                                BandCursor := 100;
-                            END;
 
-                        IF PowerCursor >= 100 THEN
-                            BEGIN
-                            Inc (PowerCursor);
-                            IF PowerCursor >= NumberPowerCategories + 100 THEN
-                                PowerCursor := 100;
-                            END;
-
-                        IF ModeCursor >= 100 THEN
-                            BEGIN
-                            Inc (ModeCursor);
-                            IF ModeCursor >= NumberModeCategories + 100 THEN
-                                ModeCursor := 100;
-                            END;
-
-                        IF OverlayCursor >= 100 THEN
-                            BEGIN
-                            Inc (OverlayCursor);
-                            IF OverlayCursor >= NumberOverlayCategories + 100 THEN
-                                OverlayCursor := 100;
-                            END;
-                        END;
-
-                    UpArrow:
-                        BEGIN
-                        IF OperatorCursor >= 100 THEN
-                            BEGIN
-                            Dec (OperatorCursor);
-                            IF OperatorCursor < 100 THEN
-                                OperatorCursor := NumberOperatorCategories + 99;
-                            END;
-
-                        IF BandCursor >= 100 THEN
-                            BEGIN
-                            Dec (BandCursor);
-                            IF BandCursor < 100 THEN
-                                BandCursor := NumberBandCategories + 99;
-                            END;
-
-                        IF PowerCursor >= 100 THEN
-                            BEGIN
-                            Dec (PowerCursor);
-                            IF PowerCursor < 100 THEN
-                                PowerCursor := NumberPowerCategories + 99;
-                            END;
-
-                        IF ModeCursor >= 100 THEN
-                            BEGIN
-                            Dec (ModeCursor);
-                            IF ModeCursor < 100 THEN
-                                ModeCursor := NumberModeCategories + 99;
-                            END;
-
-                        IF OverlayCursor >= 100 THEN
-                            BEGIN
-                            Dec (OverlayCursor);
-                            IF OverlayCursor < 100 THEN
-                                OverlayCursor := NumberOverlayCategories + 99;
-                            END;
-                        END;
+                    ShiftTab, UpArrow:
+                        ActivatePreviousEntry (AssistedCursor,
+                                               BandCursor,
+                                               ModeCursor,
+                                               OperatorCursor,
+                                               PowerCursor,
+                                               StationCursor,
+                                               TimeCursor,
+                                               TransmitterCursor,
+                                               OverlayCursor);
 
                     END; { of null key case }
 
@@ -646,19 +755,22 @@ VAR StartY, OperatorCursor, BandCursor, PowerCursor, ModeCursor, OverlayCursor: 
     UNTIL False;
     END;
 
-
 
 
 FUNCTION GenerateSummaryPortionOfCabrilloFile (CabrilloFileName: Str80;
                                                VAR FileWrite: TEXT): BOOLEAN;
 
 VAR Key:             CHAR;
-    Address1, Address2, Address3, Address4, TempString, Category:      Str80;
+    Address1, Address2, Address3, Address4, TempString:      Str80;
     Operators:       STRING;
-    Precedence, Check, Section, Power, Name, QTH, Overlay: Str40;
+    Precedence, Check, Section, Power, Name, QTH: Str40;
     NameFileWrite, NameFileRead: TEXT;
     ModeString, NameFileDirectory: Str40;
     Year, Month, Day, DayOfWeek: WORD;
+
+    AssistedCursor, BandCursor, ModeCursor, OperatorCursor: INTEGER;
+    PowerCursor, StationCursor, TimeCursor, TransmitterCursor: INTEGER;
+    OverlayCursor: INTEGER;
 
     BEGIN
     GenerateSummaryPortionOfCabrilloFile := False;
@@ -693,6 +805,7 @@ VAR Key:             CHAR;
         Region1FD: CountryTable.CountryMode := CQCountryMode;
         CQWW:      CountryTable.CountryMode := CQCountryMode;
         IARU:      CountryTable.ZoneMode    := ITUZoneMode;
+        Russian:   CountryTable.CountryMode := CQCountryMode;
         WAE:       CountryTable.CountryMode := CQCountryMode;
         END;
 
@@ -716,8 +829,18 @@ VAR Key:             CHAR;
     Write (' QSOs were found in your log.');
     WriteLn;
 
+    IF NOT GetCategory (AssistedCursor,BandCursor, ModeCursor,
+                        OperatorCursor, PowerCursor, StationCursor,
+                        TimeCursor, TransmitterCursor, OverlayCursor) THEN
+                            BEGIN
+                            GenerateSummaryPortionOfCabrilloFile := False;
+                            Exit;
+                            END;
+
+
     Section := '';
     Power   := '';
+    PreviousName := '';
 
     SniffForTransmitter := False;
 
@@ -839,6 +962,7 @@ VAR Key:             CHAR;
             Section := GetResponse ('Enter the QTH you sent : ');
             IF Section = '' THEN Exit;
             SentInformation := '$ ' + Section;
+
             NumberExchangeElementsToRecord := 1;
             END;
 
@@ -885,6 +1009,22 @@ VAR Key:             CHAR;
             END;
 
 
+        IntSprint:      { Okay - somewhat modified format - name length }
+            BEGIN
+            CallsignLength := 10;
+            SentQSONumberLength := 4;
+            ReceivedCallCursorPosition := 62;
+
+            PreviousName := GetResponse ('Enter the name you sent for the first QSO : ');
+            IF PreviousName = '' THEN Exit;
+
+            QTH := GetResponse ('Enter the QTH you sent (DX if outside W/VE) : ');
+            IF QTH = '' THEN Exit;
+
+            SentInformation := '# ' + ControlN + ' ' + QTH;
+            ReceivedQSONumberLength := 4;
+            END;
+
         NAQSO:       { Doesn't comply with field length for name }
             BEGIN
             CallsignLength := 10;
@@ -907,7 +1047,9 @@ VAR Key:             CHAR;
                 IF Key = EscapeKey THEN Exit;
             UNTIL (Key = 'Y') OR (Key = 'N');
             WriteLn;
+
             Section := GetResponse ('Enter your state: ');
+
             IF Section = '' THEN Exit;
 
             IF Key = 'Y' THEN
@@ -919,9 +1061,32 @@ VAR Key:             CHAR;
                 SentInformation := '$ ' + Section;
 
             RSTIsPartOfTheExchange := True;
-            {SuppressRST := True;}
             END;
 
+
+        Russian:
+            BEGIN
+            NumberExchangeElementsToRecord := 1;
+
+            SentQSONumberLength := 6;
+            ReceivedCallCursorPosition := 56;
+            RSTIsPartOfTheExchange := True;
+
+            REPEAT
+                Key := UpCase (GetKey ('Were you operating from Russia? (Y/N) : '));
+                IF Key = EscapeKey THEN Exit;
+            UNTIL (Key = 'Y') OR (Key = 'N');
+            WriteLn;
+
+            IF Key = 'Y' THEN
+                BEGIN
+                QTH := GetResponse ('Enter your two letter region : ');
+                SentInformation := '$ ' + QTH;
+                END
+            ELSE
+                SentInformation := '$ #';
+
+            END;
 
         Sprint:      { Okay - somewhat modified format - name length }
             BEGIN
@@ -969,27 +1134,17 @@ VAR Key:             CHAR;
             END;
         END;
 
-
-    { This is big enough to get its own routine }
-
-    Category := GetCategory (Overlay);
-
-    IF Category = '' THEN Exit;
-
-    IF SniffForTransmitter THEN
-        SniffForTransmitter := StringHas (Category, 'MULTI-TWO');
-
-    { Open up the output file }
-
     IF NOT OpenFileForWrite (FileWrite, CabrilloFileName) THEN Exit;
 
     WriteLn (FileWrite, 'START-OF-LOG: ', CabrilloVersion,Chr(13));
     WriteLn (FileWrite, 'CREATED-BY: TR Log POST Version ', PostVersion,Chr(13));
     WriteLn (FileWrite, 'CALLSIGN: ', MyCall,Chr(13));
 
-    IF StringHas (Category, 'CW') THEN ModeString := 'CW' ELSE
-        IF StringHas (Category, 'SSB') THEN ModeString := 'SSB' ELSE
-            IF StringHas (Category, 'RY') THEN ModeString := 'RY';
+    CASE ModeCursor OF
+        0: ModeString := 'SSB';
+        1: ModeString := 'CW';
+        2: ModeString := 'RTTY';
+        END;
 
     QTCEnable := False;
 
@@ -1018,10 +1173,12 @@ VAR Key:             CHAR;
             CQWPX:       WriteLn (FileWrite, 'CONTEST: CQ-WPX-', ModeString,Chr(13));
             CQWW:        WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
             IARU:        WriteLn (FileWrite, 'CONTEST: IARU-HF',Chr(13));
+            IntSprint:   WriteLn (FileWrite, 'CONTEST: INTERNET-SPRINT',Chr(13));
             NAQSO:       WriteLn (FileWrite, 'CONTEST: NAQP-', ModeString,Chr(13));
             NEQSO:       WriteLn (FileWrite, 'CONTEST: New England QSO Party',Chr(13));
             OceaniaVKZL: WriteLn (FileWrite, 'CONTEST: OCEANIA',Chr(13));
             Region1FD:   WriteLn (FileWrite, 'CONTEST: REGION ONE FIELD DAY',Chr(13));
+            Russian:     WriteLn (FileWrite, 'CONTEST: RDXC',Chr(13));
             SAC:         WriteLn (FileWrite, 'CONTEST: SAC',Chr(13));
             Sprint:      WriteLn (FileWrite, 'CONTEST: NA-SPRINT-', ModeString,Chr(13));
             SS:          WriteLn (FileWrite, 'CONTEST: ARRL-SS-', ModeString,Chr(13));
@@ -1036,10 +1193,21 @@ VAR Key:             CHAR;
     IF Section <> '' THEN
         WriteLn (FileWrite, 'ARRL-SECTION: ', Section,Chr(13));
 
-    WriteLn (FileWrite, 'CATEGORY: ', Category,Chr(13));
 
-    IF Overlay <> '' THEN
-        WriteLn (FileWrite, 'CATEGORY-OVERLAY: ', Overlay,Chr(13));
+    WriteLn (FileWrite, 'CATEGORY-ASSISTED: ',    CategoryAssistedType [AssistedCursor],Chr(13));
+    WriteLn (FileWrite, 'CATEGORY-BAND: ',        CategoryBandType [BandCursor],Chr(13));
+    WriteLn (FileWrite, 'CATEGORY-MODE: ',        CategoryModeType [ModeCursor],Chr(13));
+    WriteLn (FileWrite, 'CATEGORY-OPERATOR: ',    CategoryOperatorType [OperatorCursor],Chr(13));
+    WriteLn (FileWrite, 'CATEGORY-POWER: ',       CategoryPowerType [PowerCursor],Chr(13));
+    WriteLn (FileWrite, 'CATEGORY-STATION: ',     CategoryStationType [StationCursor],Chr(13));
+
+    IF TimeCursor > 0 THEN
+        WriteLn (FileWrite, 'CATEGORY-TIME: ',        CategoryTimeType [TimeCursor],Chr(13));
+
+    WriteLn (FileWrite, 'CATEGORY-TRANSMITTER: ', CategoryTransmitterType [TransmitterCursor],Chr(13));
+
+    IF OverLayCursor > 0 THEN
+        WriteLn (FileWrite, 'CATEGORY-OVERLAY: ',     CategoryOverlayType [OverlayCursor],Chr(13));
 
     WriteLn (FileWrite, 'CLAIMED-SCORE: ', ClaimedScore,Chr(13));
 
@@ -1090,20 +1258,15 @@ VAR Key:             CHAR;
 
         IF 'Y' = GetKeyResponse ('Would you like me to save this information for next time? (Y, N) : ') THEN
             BEGIN
-            NameFileDirectory := GetEnv('HOME')+DirectorySeparator + '.trlog';
-            IF NOT DirectoryExists(NameFileDirectory) then
-               BEGIN
-               IF NOT CreateDir(NameFileDirectory) then
-                  WriteLn('Failed to create $HOME/.trlog');
-               END;
+            NameFileDirectory := FindDirectory ('POST.OVR');
 
             OpenFileForWrite (NameFileWrite, NameFileDirectory + DirectorySeparator + CabrilloNameFileName);
             WriteLn (NameFileWrite, 'This is your default name and address that is used by the Cabrillo procedure.');
-            WriteLn (NameFileWrite, Name,Chr(13));
-            WriteLn (NameFileWrite, Address1,Chr(13));
-            WriteLn (NameFileWrite, Address2,Chr(13));
-            WriteLn (NameFileWrite, Address3,Chr(13));
-            WriteLn (NameFileWrite, Address4,Chr(13));
+            WriteLn (NameFileWrite, Name);
+            WriteLn (NameFileWrite, Address1);
+            WriteLn (NameFileWrite, Address2);
+            WriteLn (NameFileWrite, Address3);
+            WriteLn (NameFileWrite, Address4);
             Close (NameFileWrite);
             END;
         END;
@@ -1140,7 +1303,6 @@ VAR Key:             CHAR;
     GenerateSummaryPortionOfCabrilloFile := True;
     END;
 
-
 
 {START-OF-LOG: 2.0
 CONTEST: WAEDC
@@ -1230,7 +1392,7 @@ VAR QTCFileRead, FileRead: TEXT;
     QTCBand: BandType;
     QTCMode: ModeType;
 
-    QTCEntry, QTCIndexNumber: INTEGER;
+    QTCEntry, QTCIndexNumber, xResult: INTEGER;
 
     BEGIN
     Transmitter0Char := Chr (0);
@@ -1281,16 +1443,6 @@ VAR QTCFileRead, FileRead: TEXT;
                 IF QTCEnable THEN
                     IF StringHas (FileString, '; QTC') THEN
                         BEGIN
-
-{ This is what the log entry looks like for a QTC entry
-
-; QTC 1/10 with ES1QD on 16-Aug-03 at 14:27 on  80CW
-
-  and this is what the corresponding entry in the QTC.DAT file looks like:
-
-QTC 1/10 with ES1QD on 16-Aug-03 at 14:27 on  80CW
-
-}
                         Delete (FileString, 1, 2);  { ; and space }
                         GetRidOfPostcedingSpaces (FileString);
                         WriteLn;
@@ -1340,16 +1492,6 @@ QTC 1/10 with ES1QD on 16-Aug-03 at 14:27 on  80CW
 
                         QTCBand := GetLogEntryBand (' ' + QTCBandModeString + ' ');
                         QTCMode := GetLogEntryMode (' ' + QTCBandModeString + ' ');
-
-{ This is what the QTC.DAT entry looks like
-
- 1: 1426  F2CW  3                        6: 1426  SP5NIQ  34
- 2: 1426  G3FXB  34                      7: 1426  HB9AMO  34
- 3: 1426  DL1IAO  32                     8: 1426  OH1VR  234
- 4: 1426  EA6NB  34                      9: 1426  SM2EKM  234
- 5: 1426  I2UIY  234                    10: 1426  SM5ABC  34
-
-}
 
                         FOR QTCEntry := 0 TO 9 DO         { Clear the array }
                             WITH QTCList^ [QTCEntry] DO
@@ -1428,7 +1570,7 @@ Call fields end here for length=12                                
                                         Number := ' ' + Number;
 
                                     QTCWriteString := 'QTC: ' +
-                                                      GetFrequencyStringFromBand (QTCBand) +
+                                                      GetFrequencyStringFromBand (QTCBand, '') +
                                                       ' ' +
                                                       GetModeStringFromMode (QTCMode) +
                                                       ' ' +
@@ -1531,12 +1673,11 @@ Call fields end here for length=12                                
 
                 { Generate a fake frequency for the band/mode }
 
-                FrequencyString := GetFrequencyStringFromBand (Band);
+                FrequencyString := GetFrequencyStringFromBand (Band, Copy (FileString, 24, 4));
 
                 CabrilloString := 'QSO: ' + FrequencyString + ' ' + ModeString + ' ';
 
                 DateString := GetCabrilloDateStringFromLogEntry (FileString);
-
 
 
                 CabrilloString := CabrilloString + DateString + ' ';
@@ -1587,6 +1728,13 @@ Call fields end here for length=12                                
                         Insert (QSONumberSentString, SentData, CursorPosition);
                         END;
 
+                    IF StringHas (SentData, ControlN) THEN
+                        BEGIN
+                        CursorPosition := Pos (ControlN, SentData);
+                        Delete (SentData, CursorPosition, 1);
+                        Insert (PreviousName, SentData, CursorPosition);
+                        END;
+
                     WHILE Length (SentData) < SentDataLength DO
                         SentData := SentData + ' ';
 
@@ -1604,7 +1752,6 @@ Call fields end here for length=12                                
                     WHILE Length (CallReceivedString) < CallsignLength DO
                         CallReceivedString := CallReceivedString + ' ';
 
-
                 CabrilloString := CabrilloString + CallReceivedString + ' ';
 
                 IF RSTIsPartOfTheExchange THEN
@@ -1612,10 +1759,17 @@ Call fields end here for length=12                                
                 ELSE
                     CabrilloString := CabrilloString + ExchangeString;
 
+                IF PreviousName <> '' THEN
+                    BEGIN
+                    RemoveFirstString (ExchangeString);
+                    PreviousName := RemoveFirstString (ExchangeString);
+                    END;
+
                 IF SniffForTransmitter THEN  { ARRL DX Multi2 } {KK1L: 6.71 Or other contests as needed}
                     BEGIN
                     WHILE Length (CabrilloString) < 79 DO  {KK1L: 6.73 Need to add space for contests >80 columns. Was 80.}
                         CabrilloString := CabrilloString + ' ';
+
                     CabrilloString := CabrilloString + ' ';{KK1L: 6.73 Will always add a space.}
 
                     ComputerId := GetLogEntryComputerID (FileString);
@@ -1651,7 +1805,6 @@ Call fields end here for length=12                                
     IF QTCEnable THEN Dispose (QTCList);
     END;
 
-
 
 
 PROCEDURE CreateCabrilloFile;
@@ -1694,7 +1847,6 @@ VAR CabrilloFileName: Str40;
     WaitForKeyPressed;
     END;
 
-
 
     BEGIN
     END.
