@@ -15,8 +15,10 @@ $(BASE).pdf: $(BASE).tex
 	find . -name \*eps -exec epstopdf {} \;
 	pdflatex $(BASE)
 	pdflatex $(BASE)
+	pdflatex $(BASE)
 
 $(BASE).dvi: $(BASE).tex
+	latex $(BASE)
 	latex $(BASE)
 	latex $(BASE)
 

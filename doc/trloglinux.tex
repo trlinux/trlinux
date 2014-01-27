@@ -13,6 +13,9 @@ Tempe, AZ 85283 USA\\
 }
 \date{}
 \maketitle
+\vskip 2cm
+\tableofcontents
+\vskip 2cm
 \section{Introduction}
 Read the standard legal disclaimer in section \ref{disclaim}.
 \vskip 0.5cm
@@ -755,7 +758,7 @@ RXI puts receive focus on the inactive radio.
 STEREO puts the SO2R box in Stereo mode. 
 
 TR puts the band data on the auxiliary connector (the DB25 connector)
-of the SO2R box. Pins 1-4 are the band data for rig 1, Pins 5-9 are
+of the SO2R box. Pins 1-4 are the band data for rig 1, Pins 5-8 are
 the band data for rig 2. Pin 9 of the axiliary port is the common ground.
 These set such that Aux pins 1, 2, 3, 4,
 are equivalent to the parallel port pins 2, 7, 8, 9, respectively, of DOS TR,
@@ -847,24 +850,24 @@ To legally distribute a binary only version of trlog, some libraries
 of ldd trlog on my system:
 \begin{verbatim}
         linux-gate.so.1 =>  (0xffffe000)
-        libX11.so.6 => /usr/lib/libX11.so.6 (0xb7601000)
-        libasound.so.2 => /usr/lib/libasound.so.2 (0xb7534000)
-        libieee1284.so.3 => /usr/lib/libieee1284.so.3 (0xb752a000)
-        libpthread.so.0 => /lib/libpthread.so.0 (0xb7510000)
-        libsndfile.so.1 => /usr/lib/libsndfile.so.1 (0xb74aa000)
-        libdl.so.2 => /lib/libdl.so.2 (0xb74a6000)
-        libusb-1.0.so.0 => /usr/lib/libusb-1.0.so.0 (0xb749a000)
-        libc.so.6 => /lib/libc.so.6 (0xb7337000)
-        librt.so.1 => /lib/librt.so.1 (0xb732e000)
-        libxcb.so.1 => /usr/lib/libxcb.so.1 (0xb7315000)
-        libXau.so.6 => /usr/lib/libXau.so.6 (0xb7312000)
-        libXdmcp.so.6 => /usr/lib/libXdmcp.so.6 (0xb730d000)
-        libm.so.6 => /lib/libm.so.6 (0xb72e7000)
-        /lib/ld-linux.so.2 (0xb774a000)
-        libFLAC.so.8 => /usr/lib/libFLAC.so.8 (0xb7298000)
-        libvorbisenc.so.2 => /usr/lib/libvorbisenc.so.2 (0xb7121000)
-        libvorbis.so.0 => /usr/lib/libvorbis.so.0 (0xb70fa000)
-        libogg.so.0 => /usr/lib/libogg.so.0 (0xb70f4000)
+        libX11.so.6 => /usr/lib/libX11.so.6 (0xb75e2000)
+        libasound.so.2 => /usr/lib/libasound.so.2 (0xb7515000)
+        libieee1284.so.3 => /usr/lib/libieee1284.so.3 (0xb750b000)
+        libpthread.so.0 => /lib/libpthread.so.0 (0xb74f1000)
+        libsndfile.so.1 => /usr/lib/libsndfile.so.1 (0xb748b000)
+        libdl.so.2 => /lib/libdl.so.2 (0xb7487000)
+        libusb-1.0.so.0 => /usr/local/lib/libusb-1.0.so.0 (0xb747b000)
+        libc.so.6 => /lib/libc.so.6 (0xb7318000)
+        librt.so.1 => /lib/librt.so.1 (0xb730f000)
+        libxcb.so.1 => /usr/lib/libxcb.so.1 (0xb72f6000)
+        libXau.so.6 => /usr/lib/libXau.so.6 (0xb72f3000)
+        libXdmcp.so.6 => /usr/lib/libXdmcp.so.6 (0xb72ee000)
+        libm.so.6 => /lib/libm.so.6 (0xb72c8000)
+        /lib/ld-linux.so.2 (0xb772c000)
+        libFLAC.so.8 => /usr/lib/libFLAC.so.8 (0xb7279000)
+        libvorbisenc.so.2 => /usr/lib/libvorbisenc.so.2 (0xb7102000)
+        libvorbis.so.0 => /usr/lib/libvorbis.so.0 (0xb70db000)
+        libogg.so.0 => /usr/lib/libogg.so.0 (0xb70d5000)
 \end{verbatim}
 Check your versions of these libraries if there are problems on your
 system. These libraries are mostly
@@ -876,6 +879,64 @@ above and do not work, you can put alternative libraries in the lib
 subdirectory. You should then see them dynamically linked
 if you run ldd trlog. The Slackware 13.37.0 libraries work on my
 system.
+
+\section{Reporting a program crash}
+Nothing that you as a user do should cause the program to crash.
+The most likely cause of a program crash is a bug in the program.
+
+Hardware problems (like computer memory that is failing) are a possible,
+but much
+less likely reason for a program crash.
+Usually, if you are having hardware problems,
+multiple programs will crash intermittently.
+
+Starting with version 0.32, the linux version of trlog will try to produce
+a core dump file if it crashes with an illegal instruction, floating
+point exception, or segmentation fault. Most linux distributions are
+set to not allow core dumps by default. If you are experiencing program
+crashes, and are willing to help me find the problem, please do the following:
+\begin{itemize}
+\item
+Start the xterm you use for trlog.
+\item
+In this xterm, before starting trlog, type the command
+\begin{verbatim}
+ulimit -c
+\end{verbatim}
+If this reports anything but ``unlimited'', type
+\begin{verbatim}
+ulimit -c unlimited
+\end{verbatim}
+\item
+Optional:
+you
+can check that trlog can now produce a core file. Start trlog, and in
+another terminal type
+\begin{verbatim}
+killall -s 11 trlog
+\end{verbatim}
+This should cause trlog to crash and create a core file (usually named
+``core'') in the current directory.
+Now remove this file
+\begin{verbatim}
+rm core
+\end{verbatim}
+If the core file is not produced, it is possible that you have a newer
+linux kernel (3.7 or later) that has been configured without the
+CONFIG\_COREDUMP option. If this is the case, you will not be able to
+produce core dumps unless you recompile the kernel with this option turned
+on.
+\item
+When trlog crashes, send me an email with the following attachments
+\begin{itemize}
+\item
+The core file.
+\item
+Your configuration file(s) LOGCFG.DAT or equivalent.
+\item
+Any information on what action you think might have led to the crash.
+\end{itemize}
+\end{itemize}
 
 \section{Using pseudoterminals -- Deprecated}
 {\em This section is now deprecated.} You should use the shell device

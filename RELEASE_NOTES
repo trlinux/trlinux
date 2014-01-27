@@ -237,7 +237,23 @@
 
 0.31
 - Added XE as domestic multiplier in ARRL10
-- Fixed CQ160 to properly log the zone
+- N6TR sent me source for version 6.96 -- ported his fix for CQ160 to properly
+  log the zone
 - Fixed post to produce Cabrillo file for CQ160 with zone
 - Updated the documentation with suggestions from K5TR with less
   caveman methods of adding users to groups.
+
+0.32
+- Ported post Cabrillo routines from 6.96. This gives Cabrillo 3.0 header,
+  and reports frequencies to 1 KHz if log frequencye enable is set to true.
+- Ported post utility routines from 6.96. This gives a simple adif file,
+  among other additions.
+- Added frequencies to adif output.
+- Installed new signal handlers so trlog will try to write a core file when
+  an illegal instruction, floating point exception, or segmentation fault
+  occurs. Typically, you need to set ulimit -c unlimited in order to produce
+  a core file. 
+- Added a manual section to trloglinux.pdf, describing how to generate
+  a core file when the program crashes, and what I need to find the problem
+  that generated it.
+- Added a table of contents to trloglinux.pdf.

@@ -1,7 +1,6 @@
 UNIT PostUtl;
 
 {$O+}
-{$V-}
 
 INTERFACE
 
@@ -23,21 +22,43 @@ FUNCTION UtilityMenu: BOOLEAN;
 IMPLEMENTATION
 uses keycode;
 
-
 CONST BufferSize = 300;
       CallBufferSize = 1000;
 
-TYPE FileBuffer = ARRAY [0..BufferSize] OF Str160;
-     FileBufferPointer = ^FileBuffer;
+      DaysPerMonth : ARRAY [1..12] of SHORTINT =
+                            (031,028,031,030,031,030,031,031,030,031,030,031);
 
-     CallBuffer = ARRAY [0..CallbufferSize] OF CallString;
-     CallBufferPointer = ^CallBuffer;
+      SecsPerYear:     LONGINT = 31536000;
+      SecsPerLeapYear: LONGINT = 31622400;
+      SecsPerDay:      LONGINT = 86400;
+      SecsPerHour:     INTEGER = 3600;
+      SecsPerMinute:   INTEGER = 60;
 
-     SCPArray = ARRAY [0..36, 0..36] OF LONGINT;
-     SCPArrayPtr = ^SCPArray;
+TYPE
+    FileBuffer = ARRAY [0..BufferSize] OF Str160;
+    FileBufferPointer = ^FileBuffer;
+
+    CallBuffer = ARRAY [0..CallbufferSize] OF CallString;
+    CallBufferPointer = ^CallBuffer;
+
+    SCPArray = ARRAY [0..36, 0..36] OF LONGINT;
+    SCPArrayPtr = ^SCPArray;
+
+    CabrilloRecPtr = ^CabrilloRec;
+
+    CabrilloRec = RECORD
+        CabrilloString: STRING [100];
+        Time:           LONGINT;
+        LogsFound:      WORD;           { Bits 0 - 11 true/false }
+        PreviousRecord: CabrilloRecPtr;
+        NextRecord:     CabrilloRecPtr;
+        END;
+
 
 VAR Buffer: FileBufferPointer;
     CheckCallBuffer: CallBufferPointer;
+
+    CabrilloEntryHead: CabrilloRecPtr;
 
 { UTILITY Programs }
 
@@ -1182,7 +1203,7 @@ VAR Grid, MyGrid: Str20;
 
 PROCEDURE DateTimeChange;
 
-VAR OutputFileName, InputFileName : Str40;
+VAR OutputFileName, InputFileName: Str40;
     LogString: STRING;
     OutputFile, InputFile: TEXT;
     Offset: INTEGER;
@@ -1200,6 +1221,12 @@ VAR OutputFileName, InputFileName : Str40;
 
     OutputFileName := GetResponse ('Enter Output log filename (none to exit) : ');
     IF OutputFileName = '' THEN Exit;
+
+    IF OutputFileName = InputFileName THEN
+        BEGIN
+        ReportError ('ERROR - can not use the same filename for both!!');
+        Exit;
+        END;
 
     Offset := GetValue ('Enter time offset in minutes (zero to abort) : ');
 
@@ -1230,6 +1257,946 @@ VAR OutputFileName, InputFileName : Str40;
 
 
 
+FUNCTION IsLeapYear (Year: Word): BOOLEAN;
+
+    BEGIN
+    IF Year MOD 100 = 0 THEN
+        BEGIN
+        IF (Year MOD 400 = 0) THEN
+            IsLeapYear := True
+        ELSE
+            IsLeapYear := False;
+
+        Exit;
+        END;
+
+    IsLeapYear := Year MOD 4 = 0;
+    END;
+
+
+
+FUNCTION GetUnixTimeFromCabrilloEntry (CabrilloString: STRING): LONGINT;
+
+{ QSO:  1800 CW 2003-12-06 2353 K7RAT         599 OR     W7SE          599 Wy}
+
+VAR DateString, TimeString, YearString, MonthString, DayString: Str20;
+    HourString, MinuteString: Str20;
+    Index, Year, Month, Day, Hour, Minute, xResult: WORD;
+    UnixDate: LONGINT;
+
+    BEGIN
+    RemoveFirstString (CabrilloString);  { QSO: }
+    RemoveFirstString (CabrilloString);  { 1800 }
+    RemoveFirstString (CabrilloString);  { CW }
+
+    DateString := RemoveFirstString (CabrilloString);
+    TimeString := RemoveFirstString (CabrilloString);
+
+    YearString  := Copy (DateString, 1, 4);
+    MonthString := Copy (DateString, 6, 2);
+    DayString   := Copy (DateString, 9, 2);
+
+    HourString   := Copy (TimeString, 1, 2);
+    MinuteString := Copy (TimeString, 3, 2);
+
+    Val (YearString,   Year,   xResult);
+    Val (MonthString,  Month,  xResult);
+    Val (DayString,    Day,    xResult);
+    Val (HourString,   Hour,   xResult);
+    Val (MinuteString, Minute, xResult);
+    if xResult <> 0 then Minute := 0; //KS silence compiler
+
+    UnixDate := 0; {initialize}
+
+    Inc (UnixDate, SecsPerMinute * Minute); { add minutes}
+    Inc (UnixDate, SecsPerHour   * Hour);   { add hours}
+
+    { add days }
+
+    Inc (UnixDate, (SecsPerDay * (Day - 1)));
+
+    { We now have how many seconds have passed so far in the month }
+
+    { Figure out how many hours have passed in this year up to the end
+      of the previous day }
+
+    IF IsLeapYear (Year) THEN
+        DaysPerMonth [02] := 29
+    ELSE
+        DaysPerMonth [02] := 28; {Check for Feb. 29th}
+
+    { Add in seconds for completed months so far }
+
+    Index := 1;
+
+    IF Month > 1 THEN
+        FOR Index := 1 TO Month - 1 DO  {has one month already passed?}
+            Inc (UnixDate, (DaysPerMonth [Index] * SecsPerDay));
+
+    { Now do the complete years }
+
+    WHILE Year > 1970 DO
+        BEGIN
+        IF IsLeapYear (Year - 1) THEN
+            Inc (UnixDate, SecsPerLeapYear)
+        ELSE
+            Inc (UnixDate, SecsPerYear);
+
+       Dec (Year, 1);
+       END;
+
+    GetUnixTimeFromCabrilloEntry := UnixDate;
+    END;
+
+
+
+FUNCTION FileStringsMatch (FStr1, FStr2: STRING): BOOLEAN;
+
+{ Matches all except the last 3 digits of frequency
+
+QSO:  1800 CW 2003-12-06 2348 K7RAT         599 OR     N6RK          599 Sv }
+
+    BEGIN
+    Delete (FStr1, 8, 3);
+    Delete (FStr2, 8, 3);
+
+    FileStringsMatch := FStr1 = FStr2;
+    END;
+
+
+
+PROCEDURE AddQSOToLinkedList (FileString: STRING; QSOTime: LONGINT; LogWorkedValue: WORD);
+
+VAR ActiveCabrilloEntry, PreviousCabrilloRecordPtr: CabrilloRecPtr;
+
+    BEGIN
+    { See if we have room for another entry }
+
+//    IF MaxAvail < SizeOf (CabrilloRec) THEN
+//        BEGIN
+//        ReportError ('Out of memory - sorry.');
+//        Halt;
+//        END;
+
+    { See if this is the first entry in the list }
+
+    IF CabrilloEntryHead = nil THEN { Very first entry }
+        BEGIN
+        CabrilloEntryHead := New (CabrilloRecPtr);
+
+        CabrilloEntryHead^.CabrilloString := FileString;
+        CabrilloEntryHead^.Time           := QSOTime;
+        CabrilloEntryHead^.LogsFound      := LogWorkedValue;
+        CabrilloEntryHead^.PreviousRecord := nil;
+        CabrilloEntryHead^.NextRecord     := nil;
+
+        Exit;
+        END;
+
+    ActiveCabrilloEntry := CabrilloEntryHead;
+    PreviousCabrilloRecordPtr := ActiveCabrilloEntry;
+
+    { Increment the ActiveCabrilloEntry until we either find a QSO at the
+      same time (or later) - or we reach the end of the linked list }
+
+    WHILE (ActiveCabrilloEntry <> nil) AND (ActiveCabrilloEntry^.Time < QSOTime) DO
+        BEGIN
+        PreviousCabrilloRecordPtr := ActiveCabrilloEntry;  { Remember }
+        ActiveCabrilloEntry       := ActiveCabrilloEntry^.NextRecord;
+        END;
+
+    { There is one special case here to deal with.  If the entry trying to
+      be added should be put at the start of the list.  This can happen if
+      the QSO time of the QSO trying to be added is earlier than the first
+      entry on the list }
+
+    IF ActiveCabrilloEntry = CabrilloEntryHead THEN
+        BEGIN
+        CabrilloEntryHead := New (CabrilloRecPtr);
+
+        CabrilloEntryHead^.CabrilloString := FileString;
+        CabrilloEntryHead^.Time           := QSOTime;
+        CabrilloEntryHead^.LogsFound      := LogWorkedValue;
+        CabrilloEntryHead^.PreviousRecord := nil;
+        CabrilloEntryHead^.NextRecord     := ActiveCabrilloEntry;
+
+        ActiveCabrilloEntry^.PreviousRecord := CabrilloEntryHead;
+
+        Exit;
+        END;
+
+    { We are either pointing to the first entry in the list where the
+      times match - or the very end of the list.  Let's take care of
+      the case where the QSO simply needs to be added to the end of
+      the linked list first }
+
+    IF ActiveCabrilloEntry = nil THEN   { We are at last entry }
+        BEGIN
+        PreviousCabrilloRecordPtr^.NextRecord := New (CabrilloRecPtr);
+
+        WITH PreviousCabrilloRecordPtr^.NextRecord^ DO
+            BEGIN
+            Time           := QSOTime;
+            LogsFound      := LogWorkedValue;
+            CabrilloString := FileString;
+            PreviousRecord := PreviousCabrilloRecordPtr;
+            NextRecord     := nil;
+            END;
+
+        Exit;
+        END;
+
+    { We are in the middle of the list - we should see if this QSO is
+      already in the list - if so - we just OR in the LogWorkedVale and
+      go away }
+
+    WHILE (ActiveCabrilloEntry <> nil) AND (ActiveCabrilloEntry^.Time = QSOTime) DO
+        BEGIN
+        WITH ActiveCabrilloEntry^ DO
+            IF (Time = QSOTime) AND FileStringsMatch (CabrilloString, FileString) THEN
+                BEGIN
+                LogsFound := LogsFound OR LogWorkedValue;
+                Exit;
+                END;
+
+        PreviousCabrilloRecordPtr := ActiveCabrilloEntry;  { Remember }
+        ActiveCabrilloEntry       := ActiveCabrilloEntry^.NextRecord;
+        END;
+
+    { It does not match any of the QSOs with the same time.  We get to add
+      the QSO at the PreviousCabrilloRecordPtr since we went past the time
+      of the QSO being added }
+
+    PreviousCabrilloRecordPtr^.NextRecord := New (CabrilloRecPtr);
+
+    WITH PreviousCabrilloRecordPtr^.NextRecord^ DO
+        BEGIN
+        CabrilloString := FileString;
+        Time := QSOTime;
+        LogsFound := LogWorkedValue;
+        PreviousRecord := PreviousCabrilloRecordPtr;
+        NextRecord := ActiveCabrilloEntry;
+        END;
+
+    IF ActiveCabrilloEntry <> nil THEN
+        ActiveCabrilloEntry^.PreviousRecord := PreviousCabrilloRecordPtr^.NextRecord;
+    END;
+
+
+
+PROCEDURE MergeCabrilloLogs;
+
+VAR Filenames: ARRAY [0..11] OF Str20;
+    FileNumber, NumberFiles: INTEGER;
+    OutputFileName: Str20;
+    Fileread, FileWrite: TEXT;
+    LogWorkedValue: WORD;
+    FileString: Str160;
+    Time: LONGINT;
+    ActiveCabrilloEntry: CabrilloRecPtr;
+
+    BEGIN
+    ClearScreenAndTitle ('MERGE CABRILLO LOGS');
+    WriteLn ('This routine will merge up to twelve cabrillo files at one time into a single');
+    WriteLn ('Cabrillo file.  The contacts will all be sorted into chronological order and');
+    WriteLn ('duplicate QSOs found in more than one log will not be saved.');
+    WriteLn;
+
+    NumberFiles := 0;
+
+    CabrilloEntryHead := nil;  { Make sure these are nil }
+
+    REPEAT
+        Str (NumberFiles, TempString);
+
+        FileNames [NumberFiles] := GetResponse (TempString + '. Enter filename (none to continue) : ');
+
+        IF FileNames [NumberFiles] = '' THEN
+            BEGIN
+            IF NumberFiles = 0 THEN Exit;
+            END
+        ELSE
+            IF FileExists (FileNames [NumberFiles]) THEN
+                Inc (NumberFiles)
+            ELSE
+                ReportError (FileNames [NumberFiles] + ' not found.');
+
+    UNTIL (NumberFiles = 12) OR (FileNames [NumberFiles] = '');
+
+    OutputFileName := GetResponse ('Enter file to save results to (none to abort) : ');
+
+    IF OutputFileName = '' THEN Exit;
+
+    { Read in each file into the linked list }
+
+    FOR FileNumber := 0 TO NumberFiles - 1 DO
+        BEGIN
+        GoToXY (1, WhereY);
+        ClrEol;
+
+        WriteLn ('Processing file ', FileNames [FileNumber]);
+
+        { Determine binary value to use to set the proper log worked bit in
+          the LogsFound word in the Cabrillo records }
+
+        CASE FileNumber OF
+            0: LogWorkedValue := $0001;
+            1: LogWorkedValue := $0002;
+            2: LogWorkedValue := $0004;
+            3: LogWorkedValue := $0008;
+            4: LogWorkedValue := $0010;
+            5: LogWorkedValue := $0020;
+            6: LogWorkedValue := $0040;
+            7: LogWorkedValue := $0080;
+            8: LogWorkedValue := $0100;
+            9: LogWorkedValue := $0200;
+           10: LogWorkedValue := $0400;
+           11: LogWorkedValue := $0800;
+           END;
+
+        IF NOT OpenFileForRead (FileRead, FileNames [FileNumber]) THEN
+            BEGIN
+            ReportError ('Unable to open ' + FileNames [FileNumber]);
+            Halt;
+            END;
+
+        { Skip over the header }
+
+        REPEAT
+            ReadLn (FileRead, FileString);
+
+            IF Copy (Filestring, 1, 4) = 'QSO:' THEN
+                BEGIN
+                Time := GetUnixTimeFromCabrilloEntry (FileString);
+                AddQSOToLinkedList (FileString, Time, LogWorkedValue);
+
+                GoToXY (1, WhereY);
+                ClrEol;
+                END;
+
+            IF KeyPressed THEN IF ReadKey = EscapeKey THEN
+                BEGIN
+                GoToXY (1, WhereY);
+                ClrEol;
+                WriteLn ('Aborted by operator ESCAPE KEY');
+                Break;
+                END;
+
+        UNTIL Eof (FileRead);
+
+        Close (FileRead);
+        END;
+
+    GoToXY (1, WhereY);
+    ClrEol;
+    WriteLn ('All files read in - now writing output file ', OutputFileName);
+
+    { Okay - now we need to spit out the new log }
+
+    OpenFileForWrite (FileWrite, OutputFileName);
+
+    ActiveCabrilloEntry := CabrilloEntryHead;  { Start at the start }
+
+    WHILE ActiveCabrilloEntry <> nil DO
+        BEGIN
+        WriteLn (FileWrite, ActiveCabrilloEntry^.CabrilloString);
+        ActiveCabrilloEntry := ActiveCabrilloEntry^.NextRecord;
+        END;
+
+    Close (FileWrite);
+    END;
+
+Procedure AddAdifFreq(Var AdifString:String; FreqMHz: Real);
+Var
+   FreqKhz: longint;
+   FreqStr,LenStr: string;
+Begin
+   FreqKhz := Round(1000*FreqMhz);
+   Str(FreqKhz,FreqStr);
+   Str(length(FreqStr),LenStr);
+   AdifString := AdifString + '<Freq:' + LenStr +'>' + FreqStr;
+End;
+
+PROCEDURE ConvertLogStringToADIF (LogString: STRING; VAR ADIFString: STRING);
+
+VAR TempString: STRING;
+    Band: BandType;
+    Mode: ModeType;
+    DateString, TimeString, Call, RSTSent, RSTReceived, LengthString: Str20;
+    MonthString, YearString, DayString: STRING [5];
+    FreqMhz: Real;
+    PossibleFreqString : String;
+    xResult: Integer;
+
+    BEGIN
+    TempString := '';
+
+    GetRidOfPostcedingSpaces (LogString);
+
+    IF LogString <> '' THEN
+        BEGIN
+        Band       := GetLogEntryBand       (LogString);
+        Mode       := GetLogEntryMode       (LogString);
+        DateString := GetLogEntryDateString (LogString);
+        TimeString := GetLogEntryTimeString (LogString);
+        Call       := GetLogEntryCall       (LogString);
+        PossibleFreqString := Copy(LogString,23,5);
+        FreqMhz := 0.0;
+        IF StringHas (PossibleFreqString, '.')  THEN
+        Begin
+           Val(PossibleFreqString,FreqMHz,xResult);
+           if xResult <> 0 then FreqMHz := 0.0;
+        end;
+
+        RSTSent     := Copy (LogString, 45, 3);
+        RSTReceived := Copy (LogString, 50, 3);
+
+        GetRidOfPostcedingSpaces (RSTSent);
+        GetRidOfPostcedingSpaces (RSTReceived);
+
+        IF (Band = NoBand) OR (Mode = NoMode) THEN
+            BEGIN
+            ADIFString := '';
+            Exit;
+            END;
+
+        Str (Length (Call), LengthString);
+
+        TempString := '<Call:' + LengthString + '>' + Call;
+
+        CASE Band OF
+            BAND160:
+               Begin
+                  TempString := TempString + '<Band:4>160M';
+                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+1.0);
+               End;
+             BAND80:
+               Begin
+                  TempString := TempString + '<Band:3>80M';
+                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+3.0);
+               End;
+             BAND40:
+                Begin
+                  TempString := TempString + '<Band:3>40M';
+                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+7.0);
+                End;
+             BAND30:
+                Begin
+                  TempString := TempString + '<Band:3>30M';
+                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+10.0);
+                End;
+             BAND20:
+                Begin
+                  TempString := TempString + '<Band:3>20M';
+                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+14.0);
+                End;
+             BAND17:
+                Begin
+                  TempString := TempString + '<Band:3>17M';
+                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+18.0);
+                End;
+             BAND15:
+                Begin
+                  TempString := TempString + '<Band:3>15M';
+                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+21.0);
+                End;
+             BAND12:
+                Begin
+                  TempString := TempString + '<Band:3>12M';
+                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+24.0);
+                End;
+             BAND10:
+                Begin
+                  TempString := TempString + '<Band:3>10M';
+                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+28.0);
+                End;
+              BAND6:
+                 Begin
+                   TempString := TempString + '<Band:2>6M';
+                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+50.0);
+                 End;
+              BAND2:
+                 Begin
+                   TempString := TempString + '<Band:2>2M';
+                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+144.0);
+                 End;
+            BAND222:
+                 Begin
+                    TempString := TempString + '<Band:5>1.25M';
+                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+222.0);
+                 End;
+            BAND432:
+                 Begin
+                   TempString := TempString + '<Band:4>70CM';
+                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+432.0);
+                 End;
+            BAND902:
+                 Begin
+                   TempString := TempString + '<Band:4>35CM';
+                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+902.0);
+                 End;
+           BAND1296:
+                 Begin
+                   TempString := TempString + '<Band:4>23CM';
+                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+1296.0);
+                 End;
+           BAND2304:
+                 Begin
+                   TempString := TempString + '<Band:4>13CM';
+                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+2304.0);
+                 End;
+           BAND3456:
+                 Begin
+                   TempString := TempString + '<Band:3>9CM';
+                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+3456.0);
+                 End;
+           BAND5760:
+              Begin
+                 TempString := TempString + '<Band:3>6CM';
+                 if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+5760.0);
+              End;
+            BAND10G:
+               Begin
+                 TempString := TempString + '<Band:3>3CM';
+                 if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+10000.0);
+               End;
+            BAND24G:
+               Begin
+                 TempString := TempString + '<Band:6>1.25CM';
+                 if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+24000.0);
+               End;
+            END;
+
+
+
+        CASE Mode OF
+            CW:      TempString := TempString + '<Mode:2>CW';
+            Digital: TempString := TempString + '<Mode:4>RTTY';
+            Phone:   TempString := TempString + '<Mode:3>SSB';
+            FM:      TempString := TempString + '<Mode:2>FM';
+            END;
+
+
+        DateString := UpperCase (DateString);
+
+        IF StringHas (DateString, 'JAN') THEN MonthString := '01' ELSE
+        IF StringHas (DateString, 'FEB') THEN MonthString := '02' ELSE
+        IF StringHas (DateString, 'MAR') THEN MonthString := '03' ELSE
+        IF StringHas (DateString, 'APR') THEN MonthString := '04' ELSE
+        IF StringHas (DateString, 'MAY') THEN MonthString := '05' ELSE
+        IF StringHas (DateString, 'JUN') THEN MonthString := '06' ELSE
+        IF StringHas (DateString, 'JUL') THEN MonthString := '07' ELSE
+        IF StringHas (DateString, 'AUG') THEN MonthString := '08' ELSE
+        IF StringHas (DateString, 'SEP') THEN MonthString := '09' ELSE
+        IF StringHas (DateString, 'OCT') THEN MonthString := '10' ELSE
+        IF StringHas (DateString, 'NOV') THEN MonthString := '11' ELSE
+        IF StringHas (DateString, 'DEC') THEN MonthString := '12';
+
+        IF Copy (DateString, 8, 1) >= '8' THEN
+            YearString := '19' + Copy (DateString, 8, 2)
+        ELSE
+            YearString := '20' + Copy (DateString, 8, 2);
+
+        DayString := Copy (DateString, 1, 2);
+
+        TempString := TempString + '<QSO_Date:8>' + YearString + MonthString + DayString;
+
+        Delete (TimeString, 3, 1);
+
+        TempString := TempString + '<Time_on:4>' + TimeString;
+
+        IF StringIsAllNumbers (RSTSent) AND StringIsAllNumbers (RSTReceived) THEN
+            BEGIN
+            IF (Length (RSTSent) = 2) AND (Length (RSTReceived) = 2) THEN
+               BEGIN
+               TempString := TempString + '<RST_SENT:2>' + RSTSent;
+               TempString := TempString + '<RST_RCVD:2>' + RSTReceived;
+               END;
+
+            IF (Length (RSTSent) = 3) AND (Length (RSTReceived) = 3) THEN
+               BEGIN
+               TempString := TempString + '<RST_SENT:3>' + RSTSent;
+               TempString := TempString + '<RST_RCVD:3>' + RSTReceived;
+               END;
+            END;
+
+        TempString := TempString + '<eor>';
+        END;
+
+    ADIFString := TempString;
+    END;
+
+
+
+PROCEDURE ADIFConvert;
+
+VAR OutputFileName, InputFileName: Str40;
+    LogString, ADIFString: STRING;
+    OutputFile, InputFile: TEXT;
+    NumberQSOs: LONGINT;
+
+    BEGIN
+    ClearScreenAndTitle ('ADIF CONVERSION TOOL');
+
+    WriteLn ('This procedure will convert a TR Log file to an ADIF file.  The band, mode,');
+    WriteLn ('date, time and callsign will be converted.  If RSTs are found in the log,');
+    WriteLn ('they will be converted as well.');
+    WriteLn;
+
+    InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
+    IF InputFileName = '' THEN Exit;
+
+    OutputFileName := GetResponse ('Enter ADIF output filename (none to exit) : ');
+    IF OutputFileName = '' THEN Exit;
+
+    IF OutputFileName = InputFileName THEN
+        BEGIN
+        ReportError ('ERROR - can not use the same filename for both!!');
+        Exit;
+        END;
+
+    IF NOT OpenFileForRead (InputFile, InputFileName) THEN
+        BEGIN
+        ReportError (InputFileName + ' not found!!');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    OpenFileForWrite (OutputFile, OutputFileName);
+    WriteLn (OutputFile,'<ADIF_VER:5>2.2.1');
+    WriteLn (OutputFile,'<EOH>');
+
+    NumberQSOs := 0;
+
+    WHILE NOT Eof (InputFile) DO
+        BEGIN
+        ReadLn (InputFile, LogString);
+        ConvertLogStringToADIF (LogString, ADIFString);
+
+        IF ADIFString <> '' THEN
+            BEGIN
+            WriteLn (OutputFile, ADIFString);
+            Inc (NumberQSOs);
+            END;
+        END;
+
+    Close (OutputFile);
+    Close (InputFile);
+
+    WriteLn ('All done.  There were ', NumberQSOs, ' QSOs converted.');
+    WaitForKeyPressed;
+    END;
+
+
+
+PROCEDURE ConvertCabrilloToTR;
+
+VAR InputFileName, OutputFileName: Str40;
+    FileRead, FileWrite: TEXT;
+    NumberQSOs: INTEGER;
+    FileString: STRING;
+    Frequency: LONGINT;
+    NumberSent, NumberReceived: Str20;
+    Band: BandType;
+    Mode: ModeType;
+    MonthNumber, DateString, TimeString, RSTSent, RSTReceived: Str20;
+    CallWorked, TempString: Str40;
+    TRLogString: STRING;
+
+    BEGIN
+    NumberQSOs := 0;
+
+    ClearScreenAndTitle ('CONVERT CABRILLO LOG TO TR FORMAT');
+
+    WriteLn ('This procedure will convert a Cabrillo log to something close to a TR .DAT');
+    WriteLn ('file.  It was designed for the WPX contest.');
+    WriteLn;
+
+    InputFileName := GetResponse ('Enter input filename (none to abort) : ');
+
+    IF InputFileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (FileRead, InputFileName) THEN
+        BEGIN
+        ReportError (InputFileName + ' does not exist.');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    OutputFileName := GetResponse ('Enter output filename (none to abort) :');
+
+    IF OutputFileName = '' THEN Exit;
+
+    OpenFileForWrite (FileWrite, OutputFileName);
+
+    WHILE NOT Eof (FileRead) DO
+        BEGIN
+        ReadLn (FileRead, FileString);
+
+        TempString := RemoveFirstString (FileString);
+
+        WriteLn (TempString);
+
+        IF TempString <> 'QSO:' THEN Continue;
+
+        { Read frequency }
+
+        Frequency := RemoveFirstLongInteger (FileString);
+
+        IF Frequency < 3000 THEN Band := Band160 ELSE
+          IF Frequency < 6000 THEN Band := Band80 ELSE
+            IF Frequency < 8000 THEN Band := Band40 ELSE
+              IF Frequency < 11000 THEN Band := Band30 ELSE
+                IF Frequency < 15000 THEN Band := Band20 ELSE
+                  IF Frequency < 20000 THEN Band := Band17 ELSE
+                    IF Frequency < 22000 THEN Band := Band15 ELSE
+                      IF Frequency < 25000 THEN Band := Band12 ELSE
+                          Band := Band10;
+
+        TempString := RemoveFirstString (FileString);
+
+        IF TempString = 'CW' THEN Mode := CW ELSE
+          IF TempString = 'PH' THEN Mode := Phone ELSE
+            Mode := Digital;
+
+        TempString := RemoveFirstString (FileString);
+
+        DateString := Copy (TempString, Length (TempString) - 1, 2);
+
+        MonthNumber := Copy (TempString, 6, 2);
+
+        IF MonthNumber = '01' THEN DateString := DateString + '-Jan-' ELSE
+        IF MonthNumber = '02' THEN DateString := DateString + '-Feb-' ELSE
+        IF MonthNumber = '03' THEN DateString := DateString + '-Mar-' ELSE
+        IF MonthNumber = '04' THEN DateString := DateString + '-Apr-' ELSE
+        IF MonthNumber = '05' THEN DateString := DateString + '-May-' ELSE
+        IF MonthNumber = '06' THEN DateString := DateString + '-Jun-' ELSE
+        IF MonthNumber = '07' THEN DateString := DateString + '-Jul-' ELSE
+        IF MonthNumber = '08' THEN DateString := DateString + '-Aug-' ELSE
+        IF MonthNumber = '09' THEN DateString := DateString + '-Sep-' ELSE
+        IF MonthNumber = '10' THEN DateString := DateString + '-Oct-' ELSE
+        IF MonthNumber = '11' THEN DateString := DateString + '-Nov-' ELSE
+        IF MonthNumber = '12' THEN DateString := DateString + '-Dec-';
+
+        DateString := DateString + Copy (TempString, 3, 2);
+
+        TimeString := RemoveFirstString (FileString);
+        Insert (':', TimeString, 3);
+
+        RemoveFirstString (FileString); { Dump my call }
+
+        RSTSent := RemoveFirstString (FileString);
+        NumberSent := RemoveFirstString (FileString);
+
+        CallWorked := RemoveFirstString (FileString);
+
+        RSTReceived := RemoveFirstString (FileString);
+        NumberReceived := RemoveFirstString (FileString);
+
+        WHILE Length (NumberSent) < 5 DO NumberSent := ' ' + NumberSent;
+
+        WHILE Length (CallWorked) < 14 DO CallWorked := CallWorked + ' ';
+
+        WHILE Length (RSTSent) < 3 DO RSTSent := RSTSent + ' ';
+
+        WHILE Length (RSTReceived) < 3 DO RSTReceived := RSTReceived + ' ';
+
+        WHILE Length (NumberReceived) < 5 DO NumberReceived := ' ' + NumberReceived;
+
+        TRLogString := BandString [Band] + ModeString [Mode] + ' ' +
+                       DateString + ' ' + TimeString + NumberSent + '  ' +
+                       CallWorked + RSTSent + '  ' + RSTReceived + NumberReceived;
+
+        WHILE Length (TRLogString) < 77 DO TRLogString := TRLogString + ' ';
+
+        TRLogString := TRLogString + '1';
+
+        WriteLn (FileWrite, TRLogString);
+
+        Inc (NumberQSOs);
+        END;
+
+    Close (FileWrite);
+    Close (FileRead);
+
+    WriteLn ('There were ', NumberQSOs, ' QSOs written to ', OutputFileName);
+    WaitForKeyPressed;
+    END;
+
+
+
+PROCEDURE ADIFToTRLog;
+
+VAR InputFileName, FieldCommand, OutputFileName: Str40;
+    FileRead, FileWrite: TEXT;
+    StringLength, NumberQSOs: INTEGER;
+    FileString: STRING;
+    QSONumberString: Str20;
+    DateString, TimeString, RSTSent, RSTReceived, Callsign: Str20;
+    TRLogString: STRING;
+    MonthString, YearString, FieldID, LengthString: Str40;
+    BandString, ModeString: Str20;
+
+    BEGIN
+    NumberQSOs := 0;
+
+    ClearScreenAndTitle ('CONVERT ADIF FILE TO TR FORMAT');
+
+    WriteLn ('This procedure will convert a ADIF file to something close to a TR .DAT');
+    WriteLn ('file.  It only supports RST exchange information.');
+    WriteLn;
+
+    InputFileName := GetResponse ('Enter input filename (none to abort) : ');
+
+    IF InputFileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (FileRead, InputFileName) THEN
+        BEGIN
+        ReportError (InputFileName + ' does not exist.');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    OutputFileName := GetResponse ('Enter output filename (none to abort) :');
+
+    IF OutputFileName = '' THEN Exit;
+
+    OpenFileForWrite (FileWrite, OutputFileName);
+
+    NumberQSOs := 0;
+
+    WHILE NOT Eof (FileRead) DO
+        BEGIN
+        ReadLn (FileRead, FileString);
+
+        Callsign := '';
+
+        WHILE FileString <> '' DO
+            BEGIN
+            FieldCommand := BracketedString (FileString, '<', '>');
+
+            IF FieldCommand = 'EOR' THEN Break;
+
+            Delete (FileString, 1, Length (FieldCommand) + 2);
+
+            FieldID := UpperCase (PrecedingString (FieldCommand, ':'));
+            LengthString := PostcedingString (FieldCommand, ':');
+
+            Val (LengthString, StringLength, xResult);
+
+            IF FieldID = 'CALL' THEN
+                BEGIN
+                Callsign := Copy (FileString, 1, StringLength);
+                Delete (FileString, 1, StringLength);
+                END;
+
+            IF FieldID = 'BAND' THEN
+                BEGIN
+                BandString := Copy (FileString, 1, StringLength);
+                Delete (FileString, 1, StringLength);
+                Delete (BandString, Length (BandString), 1);  { get rid of M }
+                END;
+
+            IF FieldID = 'MODE' THEN
+                BEGIN
+                ModeString := Copy (FileString, 1, StringLength);
+                Delete (FileString, 1, StringLength);
+                END;
+
+            IF FieldID = 'QSO_DATE' THEN
+                BEGIN
+                DateString := Copy (FileString, 1, StringLength);
+                Delete (FileString, 1, StringLength);
+
+                YearString := Copy (DateString, 1, 4);
+                Delete (DateString, 1, 4);
+                YearString := Copy (YearString, 3, 2);
+
+                MonthString := Copy (DateString, 1, 2);
+                Delete (DateString, 1, 2);
+
+                IF MonthString = '01' THEN DateString := DateString + '-Jan-' ELSE
+                IF MonthString = '02' THEN DateString := DateString + '-Feb-' ELSE
+                IF MonthString = '03' THEN DateString := DateString + '-Mar-' ELSE
+                IF MonthString = '04' THEN DateString := DateString + '-Apr-' ELSE
+                IF MonthString = '05' THEN DateString := DateString + '-May-' ELSE
+                IF MonthString = '06' THEN DateString := DateString + '-Jun-' ELSE
+                IF MonthString = '07' THEN DateString := DateString + '-Jul-' ELSE
+                IF MonthString = '08' THEN DateString := DateString + '-Aug-' ELSE
+                IF MonthString = '09' THEN DateString := DateString + '-Sep-' ELSE
+                IF MonthString = '10' THEN DateString := DateString + '-Oct-' ELSE
+                IF MonthString = '11' THEN DateString := DateString + '-Nov-' ELSE
+                IF MonthString = '12' THEN DateString := DateString + '-Dec-';
+
+                DateString := DateString + YearString;
+                END;
+
+
+            IF FIeldID = 'TIME_ON' THEN
+                BEGIN
+                TimeString := Copy (FileString, 1, StringLength);
+
+                IF StringLength = 6 THEN Delete (TimeString, 5, 2);
+
+                WHILE Length (TimeString) < 4 DO TimeString := '0' + TimeString;
+                Insert (':', TimeString, 3);
+                Delete (FileString, 1, StringLength);
+                END;
+
+
+            IF FieldID = 'RST_SENT' THEN
+                BEGIN
+                RSTSent := Copy (FileString, 1, StringLength);
+                Delete (FileString, 1, StringLength);
+                END;
+
+            IF FieldID = 'RST_RCVD' THEN
+                BEGIN
+                RSTReceived := Copy (FileString, 1, StringLength);
+                Delete (FileString, 1, StringLength);
+                END;
+
+
+            IF FieldID = 'EOR' THEN Break;
+            END;
+
+        IF Callsign <> '' THEN
+            BEGIN
+            Inc (NumberQSOs);
+
+            WHILE Length (BandString) < 3  DO BandString := ' ' + BandString;
+            WHILE Length (ModeString) < 4  DO ModeString := ModeString + ' ';
+            WHILE Length (DateString) < 10 DO DateString := DateString + ' ';
+            WHILE Length (Callsign)   < 15 DO Callsign   := Callsign + ' ';
+
+            Str (NumberQSOs:5, QSONumberString);
+
+            TRLogString := BandString + ModeString + DateString + TimeString + QSONumberString;
+            TRLogString := TRLogString + '  ' + Callsign;
+
+            WHILE Length (RSTSent)     < 3 DO RSTSent := RSTSent + ' ';
+            WHILE Length (RSTReceived) < 3 DO RSTReceived := RSTReceived + ' ';
+
+            TRLogString := TRLogString + RSTSent + '  ' + RSTReceived;
+
+            WHILE Length (TRLogString) < 77 DO TRLogString := TRLogString + ' ';
+
+            TRLogString := TRLogString + '1';
+
+            WriteLn (FileWrite, TRLogString);
+            END;
+        END;
+
+    Close (FileWrite);
+    Close (FileRead);
+
+    WriteLn ('There were ', NumberQSOs, ' QSOs written to ', OutputFileName);
+    WaitForKeyPressed;
+    END;
+
+
+
+
 FUNCTION UtilityMenu: BOOLEAN;
 
 VAR Key: CHAR;
@@ -1242,11 +2209,15 @@ VAR Key: CHAR;
     WriteLn;
     TextColor (Cyan);
     WriteLn ('  A - Append program (append LOG.DAT to history files).');
+    WriteLn ('  B - ADIF file to TR Log file convert.');
     WriteLn ('  C - Check country and zone for specified callsign.');
     WriteLn ('  D - Date/time change for a log.');
     WriteLn ('  E - Edit TRMASTER.ASC file (menu).');
+    WriteLn ('  F - ADIF convert tool.');
     WriteLn ('  G - Global log search (list of calls not in a log.');
     WriteLn ('  H - Get beam headings and distance between grids.');
+    WriteLn ('  L - Convert Cabrillo Log to TR Log.');
+    WriteLn ('  M - Merge Cabrillo files into single file.');
     WriteLn ('  N - NameEdit (old NAMES.CMQ database editor).');
     WriteLn ('  S - Show contents of RESTART.BIN file.');
     WriteLn ('  X - Exit utility program menu.');
@@ -1259,14 +2230,19 @@ VAR Key: CHAR;
         Key := UpCase (ReadKey);
 
         CASE Key OF
-            'A': BEGIN AppendProcedure;   Exit; END;
-            'C': BEGIN CountryCheck;      Exit; END;
-            'D': BEGIN DateTimeChange;    Exit; END;
-            'E': BEGIN DTAEditor;         Exit; END;
-            'G': BEGIN GlobalLogSearch;   Exit; END;
-            'H': BEGIN GetBeamHeadings;   Exit; END;
-            'N': BEGIN NameEditor;        Exit; END;
-            'S': BEGIN ShowRestartDotBin; Exit; END;
+            'A': BEGIN AppendProcedure;      Exit; END;
+            'B': BEGIN ADIFToTRLog;          Exit; END;
+            'C': BEGIN CountryCheck;         Exit; END;
+            'D': BEGIN DateTimeChange;       Exit; END;
+            'E': BEGIN DTAEditor;            Exit; END;
+            'F': BEGIN ADIFConvert;          Exit; END;
+            'G': BEGIN GlobalLogSearch;      Exit; END;
+            'H': BEGIN GetBeamHeadings;      Exit; END;
+            'L': BEGIN ConvertCabrilloToTR;  Exit; END;
+            'M': BEGIN MergeCabrilloLogs;    Exit; END;
+            'N': BEGIN NameEditor;           Exit; END;
+            'S': BEGIN ShowRestartDotBin;    Exit; END;
+
             'X', EscapeKey:
                 BEGIN
                 UtilityMenu := False;
@@ -1281,3 +2257,4 @@ VAR Key: CHAR;
 
     BEGIN
     END.
+

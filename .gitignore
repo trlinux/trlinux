@@ -9,5 +9,6 @@ test/
 doc/texput.log
 doc/*.aux
 doc/*.log
+doc/*.toc
 doc/trport.pdf
 log/lib
