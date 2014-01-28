@@ -9,8 +9,6 @@ all:
 	
 trlinux-r$(RELEASE).txz:
 	( cd .. ; \
-          strip trlinux/log/trlog;\
-          strip trlinux/log/post;\
           mkdir trlinux-r$(RELEASE); \
           cp -r trlinux/doc trlinux-r$(RELEASE)/doc ;\
           cp -r trlinux/log trlinux-r$(RELEASE)/log ;\
@@ -22,8 +20,6 @@ trlinux-r$(RELEASE).txz:
 
 trlinuxsrc-r$(RELEASE).tgz:
 	( cd .. ; \
-          strip trlinux/log/trlog;\
-          strip trlinux/log/post;\
           mkdir trlinuxsrc-r$(RELEASE); \
           cp -r trlinux/doc trlinuxsrc-r$(RELEASE)/doc ;\
           cp -r trlinux/log trlinuxsrc-r$(RELEASE)/log ;\
