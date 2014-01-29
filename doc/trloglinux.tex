@@ -4,6 +4,8 @@
 \usepackage{amssymb}
 \usepackage{url}
 \usepackage[margin=.9in]{geometry}
+\usepackage{makeidx}
+\makeindex
 \begin{document}
 \title{A TR log linux port}
 \author{
@@ -13,6 +15,9 @@ Tempe, AZ 85283 USA\\
 }
 \date{}
 \maketitle
+\vskip 2cm
+\tableofcontents
+\vskip 2cm
 \section{Introduction}
 Read the standard legal disclaimer in section \ref{disclaim}.
 \vskip 0.5cm
@@ -37,7 +42,9 @@ code to TR log version 6.76, along with the comment ``I suppose I can
 zip up the source code -- but I think you are nuts!''
 
 TR log is written in Pascal. In particular, I learned that it
-is written in Borland Pascal 7.0. Happily, Free Pascal, available at
+is written in Borland Pascal 7.0. Happily, Free Pascal,\index{Free Pascal
+Compiler}
+available at
 \url{<http://freepascal.org>},
 is an excellent multiplatform pascal compiler that supports
 nearly all the Borland Pascal 7.0 features. This made porting
@@ -67,13 +74,15 @@ code intentionally.
 \begin{enumerate}
 \item
 Download the latest trlinux-rN.NN.txz, where the N.NN is the version number.
+The TR linux web site is \url{<http://www.kkn.net/trlinux/>}\index{Web Site},
 \item
 Untar this in a convenient location at the command line
 \begin{verbatim}
 tar -xJf trlinux-rN.NN.txz
 \end{verbatim}
 \item
-In the trlinux-rN.NN/files subdirectory find the Xresources file. Include
+In the trlinux-rN.NN/files subdirectory find the Xresources file\index{
+.Xresources file}. Include
 these lines in the .Xresources file in your \$HOME directory, (or
 create this file if it doesn't exist), for example type:
 \begin{verbatim}
@@ -96,7 +105,8 @@ and
 \begin{verbatim}
 xterm -class BigDosTerm
 \end{verbatim}
-Feel free to change the font specified in the .Xresources file for these
+Feel free to change the font\index{Changing the font}
+specified in the .Xresources file for these
 to get a convenient size. A list of font names you can try is given by typing
 \begin{verbatim}
 fc-list :scalable=true:spacing=mono: family
@@ -113,7 +123,8 @@ set |grep LINES
 the first should print COLUMNS=80 and the second LINES=25 or LINES=50 depending
 on whether you are in a DosTerm or a BigDosTerm. If these do not
 match, you likely have a font that is too big to allow the xterm its
-full size. In that case change the faceSize value in the .Xresources file.
+full size. In that case change the faceSize\index{Changing the font size}
+value in the .Xresources file.
 
 \item
 All of the files that you need to run TRlog are in the subdirectory
@@ -143,7 +154,8 @@ You should get the prompt
 \begin{verbatim}
 Do you want to step through setting up a new contest? (Y/N) :
 \end{verbatim}
-answer Y, and choose a contest -- try CQWW to test things out. 
+answer Y, and choose a contest\index{New contest prompt}
+-- try CQWW to test things out. 
 Give your call when prompted, and follow the directions more or less
 as in DOS TR log to do a basic set up.
 \item
@@ -152,7 +164,7 @@ Try logging a few contacts.
 \item
 If this works you're essentially ready to go. See the later
 sections for more details, and how to set up a multi network if you
-want to connect more than one version of trlog together.
+want to connect more than one instance of trlog together.
 \end{enumerate}
 
 \section{Setting up TR log on linux}
@@ -169,7 +181,8 @@ LOGCFG.DAT, LOG.DAT, LOG.TMP, RESTART.BIN, BANDMAP.BIN etc.
 
 
 \section{Window manager hot keys}
-Most window managers grab various function key presses before they
+Most window managers\index{Window Manager hot keys}
+grab various function key presses before they
 are sent to applications. Since TRlog uses all the combinations of
 function, ctrl-function, alt-function, shift-function, you should turn
 off the window manager hot keys (or at least the ones you want to use
@@ -181,7 +194,8 @@ normal computing when you want the hot keys to work, and another when you
 want to run TRlog.
 
 \section{PC speaker}
-Under linux, the PC speaker is accessed through /dev/console which, for
+Under linux, the PC speaker\index{PC Speaker}
+is accessed through /dev/console which, for
 security reasons, can only be read or written by root. If you
 want to use the PC speaker for beeps like in DOS, you must run the linux trlog 
 executable as the root user.
@@ -190,7 +204,8 @@ later. Nothing else should require root permissions!
 
 \section{New configuration commands}
 The main change to the LOGCFG.DAT is that since the program now goes through
-the standard drivers, the serial and parallel port devices must use linux
+the standard drivers, the serial\index{Serial ports}
+and parallel port\index{Parallel ports} devices must use linux
 device names. Whenever a port number was given in the DOS TR configuration
 command, a full device path needs to be given under linux. {\em These
 are case sensitive and must match the linux device names.}
@@ -219,7 +234,9 @@ The parallel port names are the device names reported by
 libieee1284. Usually these will be /dev/parport0, /dev/parport1, etc.
 
 \section{Port permissions}
-You will need appropriate permission to read and write to the ports.
+You will need appropriate
+permission\index{Serial port permissions}\index{Parallel port permissions}
+to read and write to the ports.
 The simplest way is to add the username of the account to the groups
 that own the ports. For example, when plugging in a USB to serial
 port adapter on my Slackware 13.37.0 system, the device is /dev/ttyUSB0
@@ -227,15 +244,16 @@ which has permissions from ls -l /dev/ttyUSB0
 \begin{verbatim}
 crw-rw---- 1 root dialout 188, 0 Feb 22 22:12 /dev/ttyUSB0
 \end{verbatim}
-which is owned by the dialout group. I added my user name (w9cf) to
-that entry in /etc/group using the command
+which is owned by the dialout group\index{dialout group}.
+I added my user name (w9cf) to
+that entry in /etc/group using the command\index{Adding user to group}
 \begin{verbatim}
 sudo gpasswd -a w9cf dialout
 \end{verbatim}
 You must log out and log back in for this to take effect.
 
 \section{K1EL Winkeyer support}
-Initial limited support of the K1EL Winkeyer has been added.
+Initial limited support of the K1EL Winkeyer\index{Winkeyer} has been added.
 I have done limited testing with
 with my Winkeyer2 v2.3 chip. It should support two radios, both with
 ptt, and a single sidetone if desired.
@@ -251,7 +269,8 @@ command. Add a line like:
 \begin{verbatim}
 winkeyer port = serial /dev/ttyUSB0
 \end{verbatim}
-to your LOGCFG.DAT file, substituting your serial port device that
+to your LOGCFG.DAT file\index{WINKEYER PORT},
+substituting your serial port device that
 is connected to the Winkeyer for /dev/ttyUSB0 above.
 
 Most of the standard TR commands should still work. Some things that
@@ -314,13 +333,15 @@ and W9CFA through W9CFZ would be
 flagged as being in zones 3 and 6 too. With the equal sign in front
 of my call there has to be an exact match.
 \item
-The dvp commands can be used to play files. Currently
-these must be at 44100 Hz stereo, i.e. cd quality audio. They can
+The dvp commands can be used to play files\include{DVP commands}. Currently
+these must be at 44100 Hz stereo, i.e. cd quality
+audio\include{DVP file format}. They can
 be wave files, or, if your distribution has compiled ogg support
 into libsndfile, they can be ogg files. (You can take your
 wave file temp.wav and encode it with oggenc temp.wav then rename
 it to CQF1.DVP etc., or just rename temp.wav to CQF1.DVP.) The sound
-uses the ALSA (advanced linux sound architecture) libraries so
+uses the ALSA (advanced linux sound architecture)
+libraries\index{ALSA libraries} so
 the kernel must have ALSA support. By default it opens the hw:0,0 device
 so the first soundcard will be used. It must support 44100 Hz stereo.
 You can change the device with the configuration file command like
@@ -334,7 +355,8 @@ If you are not using the dvp files, you can give the command
 \begin{verbatim}
 beep soundcard enable = true
 \end{verbatim}
-which will play the pc speaker beeps through the sound card.
+which will play the pc speaker beeps\index{BEEP SOUNDCARD ENABLE}
+through the sound card.
 Again this requires ALSA and 44100 Hz stereo support.
 Note that, just like the original pc speaker,
 no shaping is done, so the clicks when using this as a sidetone or 
@@ -343,7 +365,8 @@ with the simulator get annoying quickly.
 \item
 Since parallel ports are getting rare, and USB to parallel adaptors
 don't work very well for non printer applications, I added paddle
-input on serial ports. This violates the RS-232 standard which defines
+input on serial ports\index{Paddle input on serial ports}.
+This violates the RS-232 standard which defines
 the two logic levels as positive and negative voltages, while the
 paddle will only key a positive voltage to ground. But, according
 to the ARRL
@@ -372,7 +395,8 @@ fine for CW up to about 35 wpm.
 \item
 Since the serial ports are using the linux drivers, you should
 be able to use
-any baud rate supported by your hardware (up to at least 115200 baud
+any baud rate\index{Baud rates}
+supported by your hardware (up to at least 115200 baud
 for modern serial ports). Since the linux kernel can buffer up
 to 4096 bytes, the only caveat is that trlog will have a maximum throughput
 on the serial ports set by the emulated DOS interrupt which
@@ -383,7 +407,8 @@ any rig.
 Winkeyer support has been added.
 
 \item
-Ultimatic mode has been added. This is free with Winkeyer, it now also
+Ultimatic mode has been added\index{Ultimatic mode}.
+This is free with Winkeyer, it now also
 works with the original CPU keyer.
 Add
 \begin{verbatim}
@@ -393,7 +418,7 @@ to your LOGCFG.DAT or use the control-j menu.
 
 \item
 The shift key enable command can be true and false as in DOS TR. I have
-added
+added\index{SHIFT KEY ENABLE additions}
 \begin{verbatim}
 SHIFT KEY ENABLE = ALTSHIFT
 \end{verbatim}
@@ -417,7 +442,8 @@ current directory with LOGCFG.DAT.
 
 
 \section{Packet using the shell device}
-The preferred way to use packet is now with the shell device.
+The preferred way to use packet\index{Packet shell device}\index{Telnet packet}
+is now with the shell device.
 Use the lines
 \begin{verbatim}
 PACKET PORT = SERIAL shell
@@ -435,7 +461,8 @@ can use that.
 \section{Networking with the ncat device}
 My Slackware distribution comes with ncat installed as a part of the
 nmap package, \url{<http://nmap.org/ncat/>}.  I assume, therefore,
-that most other distributions will have ncat available. The network
+that most other distributions will have ncat
+available\index{ncat for networking}. The network
 is set up so each trlog instance talks to the next, forming
 a loop just like the original serial port network. That way most of
 Tree's code can be used without change.
@@ -495,10 +522,12 @@ MULTI PORT = SERIAL ncat;12001;shack1.myhouse.org:12001
 \end{verbatim}
 
 \section{xterm setup}
-The xterm terminal emulator for X is distributed with every linux system,
+The xterm terminal emulator\index{xterm set up}
+for X is distributed with every linux system,
 so I decided to run TRlog inside an xterm.
 TRlog expects VGA sized screens, so you need to set up the xterm with
-the correct options. These are most easily set in the .Xresources file
+the correct options. These are most easily set in the .Xresources
+file\index{.Xresources file}
 in your home directory (notice the ``.'' at the beginning of the
 file name!).  Here is an example which is included in the
 distribution in trlinux-rN.NN/files/Xresources:
@@ -542,13 +571,15 @@ You can use the command
 \begin{verbatim}
 fc-list :scalable=true:spacing=mono: family
 \end{verbatim}
-to list font names. A name before the first colon (:) can be used
+to list font names\index{Changing the font}.
+A name before the first colon (:) can be used
 in place of my choices above for the faceName values. The faceSize
-values can be changed to change the size of the font and the xterm window.
+values can be changed to change the size of the font and the xterm
+window\index{Changing the font size}.
 
 {\em It is absolutely necessary that
 the DosTerm be 80 columns and 25 rows,
-and the BigDosTerm 80 columns and 50 rows. }
+and the BigDosTerm 80 columns and 50 rows. }\index{xterm sizes}
 You can check this with the commands
 \begin{verbatim}
 set |grep LINES
@@ -573,7 +604,7 @@ the root user should be able to change the installation.
 
 The linux version starting with version 0.16, will create a .trlog subdirectory
 in your home directory if needed, i.e. it will create \$HOME/.trlog if
-needed. This will be where changes to
+needed\index{.trlog directory}. This will be where changes to
 the files CABNAME.DAT, ADDRESS.DAT, TRMASTER.DTA will be stored for each
 user. This means that if you have a guest operator, you can make a new
 user account for that operator, and changes made by that user should not
@@ -582,7 +613,8 @@ trlinux in any convenient directory e.g. /usr/local/trlinux which
 can be globally readable and executable, but not writeable.
 
 \section{YCCC SO2R box}
-Information about the YCCC SO2R box, its design, and how to obtain
+Information about the YCCC SO2R box\index{YCCC SO2R box},
+its design, and how to obtain
 one, can be found at
 \url{<http://k1xm.org/SO2R/index.html>}.
 
@@ -593,8 +625,10 @@ know the SO2R box is working.
 \subsection{Setting permissions}
 On linux the first thing to do is to set up permissions for the YCCC SO2R box.
 Trlog must have
-have read/write permission to the SO2R box hardware device.
-The standard way to set this up is to add a udev rule, so when the operating
+have read/write permission to the SO2R box hardware
+device\index{YCCC SO2R box!device permissions}.
+The standard way to set this up is to add a udev\index{udev rules} rule,
+so when the operating
 system detects the YCCC SO2R box, it will set the desired owner, group,
 and permissions for the YCCC SO2R box device.
 \begin{itemize}
@@ -691,13 +725,14 @@ YCCC SO2R box.
 \end{itemize}
 
 \subsection{Using the YCCC SO2R box}
-To use the box, include the configuration line
+To use the box, include the configuration line\index{YCCC SO2R BOX ENABLE}
 \begin{verbatim}
 yccc so2r box enable = true
 \end{verbatim}
 in LOGCFG.DAT
 
-Other LOGCFG.DAT commands that can be used are
+Other LOGCFG.DAT commands that can be used
+are\index{SO2R MICROPHONE RELAY ENABLE}
 \begin{verbatim}
 so2r microphone relay enable = true
 \end{verbatim}
@@ -707,26 +742,31 @@ in the YCCC SO2R box. Default is true.
 \begin{verbatim}
 so2r blend enable = true
 \end{verbatim}
-with value true or false. Default is false. This turns on blending (i.e.
+with\index{SO2R BLEND ENABLE}
+value true or false. Default is false. This turns on blending (i.e.
 some of the left radio in the right ear, and some of the right radio
 in the left ear).
 
 \begin{verbatim}
 so2r blend = 50
 \end{verbatim}
-where the value should be between 0 (for minimal blending) to 255
+where\index{SO2R BLEND}
+the value should be between 0 (for minimal blending) to 255
 (for maximal blending).
 
 \begin{verbatim}
 so2r headphone mode = normal
 \end{verbatim}
-The other values are spatial and symmetric. See the YCCC SO2R box documentation
+The other values\index{
+SO2R HEADPHONE MODE
+} are spatial and symmetric. See the YCCC SO2R box documentation
 for details. Default is normal.
 
 \begin{verbatim}
 so2r rig1 map = 1
-so2r rig1 map = 2
+so2r rig2 map = 2
 \end{verbatim}
+\index{SO2R RIG1 MAP}\index{SO2R RIG2 MAP}
 
 These set the mapping from rig1 and rig2 to the output 1 through 4 on
 the back of the YCCC box. A value of 0 will use whatever the box is
@@ -736,7 +776,8 @@ in the YCCC box's EEPROM. The EEPROM values are loaded on power up.
 
 You can change all of these value using the control-J menu.
 
-The second way to send commands to the SO2R box is to
+The second way to send commands to the SO2R box\index{YCCC SO2R box!message
+commands} is to
 include commands as messages analogously to the way that
 raw rig control commands can be used as messages, i.e.
 $\langle$03$\rangle$SO2R=Command$\langle$04$\rangle$.
@@ -749,20 +790,23 @@ STEREO
 RXA
 RXI
 \end{verbatim}
-RX1 puts receive focus on Rig 1, RX2 puts receive focus on Rig 2.
+RX1\index{RX1}\index{RX2}\index{STEREO}\index{RXA}\index{RXI}
+puts receive focus on Rig 1, RX2 puts receive focus on Rig 2.
 RXA puts receive focus on the active radio.
 RXI puts receive focus on the inactive radio.
 STEREO puts the SO2R box in Stereo mode. 
 
-TR puts the band data on the auxiliary connector (the DB25 connector)
-of the SO2R box. Pins 1-4 are the band data for rig 1, Pins 5-9 are
+TR puts the band data\index{YCCC SO2R box!band data}
+on the auxiliary connector (the DB25 connector)
+of the SO2R box. Pins 1-4 are the band data for rig 1, Pins 5-8 are
 the band data for rig 2. Pin 9 of the axiliary port is the common ground.
 These set such that Aux pins 1, 2, 3, 4,
 are equivalent to the parallel port pins 2, 7, 8, 9, respectively, of DOS TR,
 and Aux pins 5, 6, 7, 8, are equivalent to pins 2, 7, 8, 9 of rig 2's
 band output parallel port.
 
-You can plug a footswitch into the PTT connector of the YCCC SO2R box.
+You can plug a footswitch\index{YCCC SO2R box!footswitch}
+into the PTT connector of the YCCC SO2R box.
 It then becomes the footswitch with operation as explained in the DOS TR
 manual. Except,
 \begin{itemize}
@@ -844,27 +888,27 @@ I therefore am only distributing a binary version.
 
 To legally distribute a binary only version of trlog, some libraries
 (e.g. libsndfile) can only be dynamically linked. Here is the output
-of ldd trlog on my system:
+of ldd trlog on my system:\index{Shared libraries used}
 \begin{verbatim}
         linux-gate.so.1 =>  (0xffffe000)
-        libX11.so.6 => /usr/lib/libX11.so.6 (0xb7601000)
-        libasound.so.2 => /usr/lib/libasound.so.2 (0xb7534000)
-        libieee1284.so.3 => /usr/lib/libieee1284.so.3 (0xb752a000)
-        libpthread.so.0 => /lib/libpthread.so.0 (0xb7510000)
-        libsndfile.so.1 => /usr/lib/libsndfile.so.1 (0xb74aa000)
-        libdl.so.2 => /lib/libdl.so.2 (0xb74a6000)
-        libusb-1.0.so.0 => /usr/lib/libusb-1.0.so.0 (0xb749a000)
-        libc.so.6 => /lib/libc.so.6 (0xb7337000)
-        librt.so.1 => /lib/librt.so.1 (0xb732e000)
-        libxcb.so.1 => /usr/lib/libxcb.so.1 (0xb7315000)
-        libXau.so.6 => /usr/lib/libXau.so.6 (0xb7312000)
-        libXdmcp.so.6 => /usr/lib/libXdmcp.so.6 (0xb730d000)
-        libm.so.6 => /lib/libm.so.6 (0xb72e7000)
-        /lib/ld-linux.so.2 (0xb774a000)
-        libFLAC.so.8 => /usr/lib/libFLAC.so.8 (0xb7298000)
-        libvorbisenc.so.2 => /usr/lib/libvorbisenc.so.2 (0xb7121000)
-        libvorbis.so.0 => /usr/lib/libvorbis.so.0 (0xb70fa000)
-        libogg.so.0 => /usr/lib/libogg.so.0 (0xb70f4000)
+        libX11.so.6 => /usr/lib/libX11.so.6 (0xb75e2000)
+        libasound.so.2 => /usr/lib/libasound.so.2 (0xb7515000)
+        libieee1284.so.3 => /usr/lib/libieee1284.so.3 (0xb750b000)
+        libpthread.so.0 => /lib/libpthread.so.0 (0xb74f1000)
+        libsndfile.so.1 => /usr/lib/libsndfile.so.1 (0xb748b000)
+        libdl.so.2 => /lib/libdl.so.2 (0xb7487000)
+        libusb-1.0.so.0 => /usr/local/lib/libusb-1.0.so.0 (0xb747b000)
+        libc.so.6 => /lib/libc.so.6 (0xb7318000)
+        librt.so.1 => /lib/librt.so.1 (0xb730f000)
+        libxcb.so.1 => /usr/lib/libxcb.so.1 (0xb72f6000)
+        libXau.so.6 => /usr/lib/libXau.so.6 (0xb72f3000)
+        libXdmcp.so.6 => /usr/lib/libXdmcp.so.6 (0xb72ee000)
+        libm.so.6 => /lib/libm.so.6 (0xb72c8000)
+        /lib/ld-linux.so.2 (0xb772c000)
+        libFLAC.so.8 => /usr/lib/libFLAC.so.8 (0xb7279000)
+        libvorbisenc.so.2 => /usr/lib/libvorbisenc.so.2 (0xb7102000)
+        libvorbis.so.0 => /usr/lib/libvorbis.so.0 (0xb70db000)
+        libogg.so.0 => /usr/lib/libogg.so.0 (0xb70d5000)
 \end{verbatim}
 Check your versions of these libraries if there are problems on your
 system. These libraries are mostly
@@ -876,6 +920,65 @@ above and do not work, you can put alternative libraries in the lib
 subdirectory. You should then see them dynamically linked
 if you run ldd trlog. The Slackware 13.37.0 libraries work on my
 system.
+
+\section{Reporting a program crash}
+Nothing that you as a user do should cause the program to crash.
+The most likely cause of a program crash is a bug in the program.
+
+Hardware problems (like computer memory that is failing) are a possible,
+but much
+less likely reason for a program crash.
+Usually, if you are having hardware problems,
+multiple programs will crash intermittently.
+
+Starting with version 0.32, the linux version of trlog will try to produce
+a core dump file\index{core files}
+if it crashes with an illegal instruction, floating
+point exception, or segmentation fault. Most linux distributions are
+set to not allow core dumps by default. If you are experiencing program
+crashes, and are willing to help me find the problem, please do the following:
+\begin{itemize}
+\item
+Start the xterm you use for trlog.
+\item
+In this xterm, before starting trlog, type the command
+\begin{verbatim}
+ulimit -c
+\end{verbatim}
+If this reports anything but ``unlimited'', type
+\begin{verbatim}
+ulimit -c unlimited
+\end{verbatim}
+\item
+Optional:
+you
+can check that trlog can now produce a core file. Start trlog, and in
+another terminal type
+\begin{verbatim}
+killall -s 11 trlog
+\end{verbatim}
+This should cause trlog to crash and create a core file (usually named
+``core'') in the current directory.
+Now remove this file
+\begin{verbatim}
+rm core
+\end{verbatim}
+If the core file is not produced, it is possible that you have a newer
+linux kernel (3.7 or later) that has been configured without the
+CONFIG\_COREDUMP option. If this is the case, you will not be able to
+produce core dumps unless you recompile the kernel with this option turned
+on.
+\item
+When trlog crashes, send me an email with the following attachments
+\begin{itemize}
+\item
+The core file.
+\item
+Your configuration file(s) LOGCFG.DAT or equivalent.
+\item
+Any information on what action you think might have led to the crash.
+\end{itemize}
+\end{itemize}
 
 \section{Using pseudoterminals -- Deprecated}
 {\em This section is now deprecated.} You should use the shell device
@@ -1090,4 +1193,6 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 
+\newpage
+\printindex
 \end{document}

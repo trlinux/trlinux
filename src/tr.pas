@@ -3694,6 +3694,7 @@ VAR FileRead: TEXT;
 
 {$I LogSubs2}
 
+var oa4,na4,oa8,na8,oa11,na11:  PSigActionRec;
 
 //   procedure openconsole;cdecl;external; //need for linux beep
 //   procedure getlegacy;cdecl;external; //read bios memory
@@ -3717,6 +3718,35 @@ VAR FileRead: TEXT;
     FreeStartUpScreen;
 
 {$ENDIF}
+// Free pascal installs its own signal handlers. However, in order for users
+// to get a core dump file that we can analyze in case of a crash, I
+// reinstall the default signal handler for signals 4,8, and 11
+// 4 = SIGILL = illegal instruction
+// 8 = SIGFPE = floating point exception
+// 11 = SIGSEGV = segmentation fault
+    new(na4);
+    new(oa4);
+    na4^.sa_Handler := SigActionHandler(SIG_DFL);
+    fillchar(na4^.Sa_Mask,sizeof(na4^.sa_mask),#0);
+    na4^.Sa_Flags:=0;
+    na4^.Sa_Restorer:=Nil;
+    fpSigAction(SIGILL,na4,oa4);
+
+    new(na8);
+    new(oa8);
+    na8^.sa_Handler := SigActionHandler(SIG_DFL);
+    fillchar(na8^.Sa_Mask,sizeof(na8^.sa_mask),#0);
+    na8^.Sa_Flags:=0;
+    na8^.Sa_Restorer:=Nil;
+    fpSigAction(SIGFPE,na8,oa8);
+
+    new(na11);
+    new(oa11);
+    na11^.sa_Handler := SigActionHandler(SIG_DFL);
+    fillchar(na11^.Sa_Mask,sizeof(na11^.sa_mask),#0);
+    na11^.Sa_Flags:=0;
+    na11^.Sa_Restorer:=Nil;
+    fpSigAction(SIGSEGV,na11,oa11);
 
     RememberCWSpeed := 0;
 //KS console beep only works if root
