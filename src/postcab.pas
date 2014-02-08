@@ -1393,8 +1393,10 @@ VAR QTCFileRead, FileRead: TEXT;
     QTCMode: ModeType;
 
     QTCEntry, QTCIndexNumber, xResult: INTEGER;
+    QNumber: INTEGER;
 
     BEGIN
+    QNumber := 0;
     Transmitter0Char := Chr (0);
 
     GenerateLogPortionOfCabrilloFile := False;
@@ -1723,6 +1725,12 @@ Call fields end here for length=12                                
                         Delete (SentData, CursorPosition, 1);
 
                         QSONumberSent := GetLogEntryQSONumber (FileString);
+                        IF QSONumberSent = -2 then
+                        Begin
+                           Inc(Qnumber);
+                           QSONumberSent := Qnumber;
+                        End;
+
                         Str (QSONumberSent:SentQSONumberLength, QSONumberSentString);
 
                         Insert (QSONumberSentString, SentData, CursorPosition);

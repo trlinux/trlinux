@@ -1827,6 +1827,13 @@ VAR TempString: Str20;
     GetRidOfPrecedingSpaces (TempString);
     GetRidOfPrecedingSpaces (TempString);
 
+//Check if this is a frequency
+    IF StringHas(Tempstring,'.') THEN
+    BEGIN
+       GetLogEntryQSONumber := -2;
+       Exit;
+    END;
+
     TempString := NumberPartOfString (TempString);
 
     Val (TempString, QSONumber, xResult);

@@ -188,6 +188,8 @@ PROCEDURE FlushCWBufferAndClearPTT;
     BEGIN
     ActiveKeyer.PTTUnForce;
     ActiveKeyer.FlushCWBuffer;
+    if (activerttyport <> nil) and (activemode = Digital) then
+        ActiveRttyPort.putchar(chr(27));
     END;
 
 
@@ -419,8 +421,7 @@ VAR Key: CHAR;
             IF ActiveMultiPort <> nil THEN
                 IF ElaspedSec100 (TimeMark) > 3000 THEN  { 30 second timeout }
                     BEGIN
-                    ActiveKeyer.PTTUnForce;
-                    ActiveKeyer.FlushCWBuffer;
+                    FlushCWBufferAndClearPTT;
                     RemoveAndRestorePreviousWindow;
                     Exit;
                     END;
@@ -473,8 +474,7 @@ millisleep;
 
                 EscapeKey:
                     BEGIN
-                    ActiveKeyer.PTTUnForce;
-                    ActiveKeyer.FlushCWBuffer;
+                    FlushCWBufferAndClearPTT;
                     RemoveAndRestorePreviousWindow;
                     Exit;
                     END;
@@ -482,8 +482,7 @@ millisleep;
                 NullKey:
                     CASE NewReadKey OF
                         F10: BEGIN
-                             ActiveKeyer.PTTUnForce;
-                             ActiveKeyer.FlushCWBuffer;
+                             FlushCWBufferAndClearPTT;
                              RemoveAndRestorePreviousWindow;
                              Exit;
                              END;

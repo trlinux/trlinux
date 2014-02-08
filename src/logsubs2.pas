@@ -3275,6 +3275,10 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
           EscapeKey:
               BEGIN
+//quick and dirty escape kills rtty -- also backs up one step, but
+//that's why it's dirty
+   if ((ActiveMode = Digital) and (ActiveRttyPort <> nil)) then
+       activerttyport.putchar(chr(27));
               {KK1L: 6.73 For SO2R will force redisplay SO2R info for BandMapBlinkinCall}
               IF (OpMode = CQOpMode) AND (BandMapBand = BandMemory[InactiveRadio]) THEN
                   CallLastTimeIWasHere := '';
@@ -4697,7 +4701,7 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                     ELSE
                         IF ActiveMode = Digital THEN
                             BEGIN
-                            SendStringAndStop (CallWindowString + ' DE ' + MyCall + ' ' + MyCall + ' KK');
+                            SendStringAndStop (MyCall + ' ' + MyCall + ' ' + MyCall);
                             END
                         ELSE
                             SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
@@ -5316,7 +5320,7 @@ ControlEnterCommand1:
                                    ELSE
                                        IF ActiveMode = Digital THEN
                                            BEGIN
-                                           SendStringAndStop (CallWindowString + ' DE ' + MyCall + ' KK');
+                                           SendStringAndStop (MyCall + ' ' + MyCall);
                                            END
                                        ELSE
                                            BEGIN
@@ -6123,7 +6127,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 END
                             ELSE
                                 IF ActiveMode = Digital THEN
-                                    SendStringAndStop (CallWindowString + ' DE ' + MyCall + ' KK')
+                                    SendStringAndStop (MyCall + ' ' + MyCALL)
                                 ELSE
                                     SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
                             END;
