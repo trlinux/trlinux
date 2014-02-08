@@ -612,7 +612,7 @@ VAR CharacterCount, QSONumber: INTEGER;
                  IF Key = EscapeKey THEN
                      BEGIN
                      FinishRTTYTransmission ('');
-                     Activerttyport.puchar(chr(27));
+                     Activerttyport.putchar(chr(27));
                      Exit;
                      END;
 
