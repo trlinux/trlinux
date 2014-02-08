@@ -461,7 +461,7 @@ PROCEDURE ReadInConfigFile (Call: CallString);
 VAR FileString: STRING;
     FirstCommand: BOOLEAN;
     LineNumber: INTEGER;
-    FileName: Str40;
+    FileName: String;
     TempQTH: QTHRecord;
 
     BEGIN
