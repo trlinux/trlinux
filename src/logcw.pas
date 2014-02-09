@@ -576,8 +576,10 @@ PROCEDURE ShowCQFunctionKeyStatus;
 
 VAR Key: CHAR;
     TempString: Str160;
+    modetmp: modetype;
 
     BEGIN
+    if ActiveMode = Digital then modetmp := CW else modetmp := ActiveMode;
     GoToXY (1, 1);
 
     CASE KeyStatus OF
@@ -590,7 +592,7 @@ VAR Key: CHAR;
                 Str (Ord (Key) - Ord (F1) + 1, TempString);
                 TempString := 'F' + TempString +  ' - ';
 
-                IF ActiveMode = CW THEN
+                IF modetmp = CW THEN
                     BEGIN
                     IF GetCQMemoryString (CW, Key) <> '' THEN {KK1L: 6.73 Added Mode}
                          TempString := TempString + GetCQMemoryString (CW, Key); {KK1L: 6.73 Added Mode}
@@ -616,8 +618,8 @@ VAR Key: CHAR;
                 Str (Ord (Key) - Ord (AltF1) + 1, TempString);
                 TempString := 'Alt-F' + TempString +  ' - ';
 
-                IF GetCQMemoryString (ActiveMode, Key) <> '' THEN {KK1L: 6.73 Added Mode}
-                    TempString := TempString + GetCQMemoryString (ActiveMode, Key); {KK1L: 6.73 Added Mode}
+                IF GetCQMemoryString (modetmp, Key) <> '' THEN {KK1L: 6.73 Added Mode}
+                    TempString := TempString + GetCQMemoryString (modetmp, Key); {KK1L: 6.73 Added Mode}
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
@@ -636,8 +638,8 @@ VAR Key: CHAR;
                 Str (Ord (Key) - Ord (ControlF1) + 1, TempString);
                 TempString := 'Ctrl-F' + TempString +  ' - ';
 
-                IF GetCQMemoryString (ActiveMode, Key) <> '' THEN {KK1L: 6.73 Added mode}
-                    TempString := TempString + GetCQMemoryString (ActiveMode, Key); {KK1L: 6.73 Added mode}
+                IF GetCQMemoryString (modetmp, Key) <> '' THEN {KK1L: 6.73 Added mode}
+                    TempString := TempString + GetCQMemoryString (modetmp, Key); {KK1L: 6.73 Added mode}
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
