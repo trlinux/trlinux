@@ -20,7 +20,7 @@ Uses trCrt,
 FUNCTION UtilityMenu: BOOLEAN;
 
 IMPLEMENTATION
-uses keycode;
+uses keycode,sysutils;
 
 CONST BufferSize = 300;
       CallBufferSize = 1000;
@@ -1608,11 +1608,9 @@ VAR Filenames: ARRAY [0..11] OF Str20;
 
 Procedure AddAdifFreq(Var AdifString:String; FreqMHz: Real);
 Var
-   FreqKhz: longint;
    FreqStr,LenStr: string;
 Begin
-   FreqKhz := Round(1000*FreqMhz);
-   Str(FreqKhz,FreqStr);
+   FreqStr := FormatFloat('######.000###',FreqMhz);
    Str(length(FreqStr),LenStr);
    AdifString := AdifString + '<Freq:' + LenStr +'>' + FreqStr;
 End;

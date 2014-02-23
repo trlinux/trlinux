@@ -261,3 +261,5 @@
 0.33
 - Fixed Cabrillo to renumber QSOs if frequency instead of numbers are included
   in the log.
+- Fixed Adif Frequencies to be in MHz.
+- Some initial modifications to be able to interface to fldigi for RTTY.
