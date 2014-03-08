@@ -38,6 +38,7 @@ TYPE ContestType = (UnknownContest,
                     CQM,
                     CQVHF,
                     CQWPX,
+                    CQWPXRTTY,
                     CQWW,
                     CQWWRTTY,
                     Croatian,
@@ -454,6 +455,7 @@ FUNCTION DetermineContest (Name: Str80): ContestType;
     IF Name = 'CQ M'          THEN DetermineContest := CQM;
     IF Name = 'CQ VHF'        THEN DetermineContest := CQVHF;
     IF Name = 'CQ WPX'        THEN DetermineContest := CQWPX;
+    IF Name = 'CQ WPX RTTY'   THEN DetermineContest := CQWPXRTTY;
     IF Name = 'CQ WW'         THEN DetermineContest := CQWW;
     IF Name = 'CQ WW RTTY'    THEN DetermineContest := CQWWRTTY;
     IF Name = 'CROATIAN'      THEN DetermineContest := Croatian;
@@ -574,6 +576,7 @@ PROCEDURE CalculateAppropriateTotalsForThisContest (Contest: ContestType;
         CQM:       IF NOT CalculateTotals (False,  True, False, False) THEN Exit;
         CQVHF:     IF NOT CalculateTotals ( True, False, False, False) THEN Exit;
         CQWPX:     IF NOT CalculateTotals (False, False,  True, False) THEN Exit;
+        CQWPXRTTY:     IF NOT CalculateTotals (False, False,  True, False) THEN Exit;
         CQWW:      IF NOT CalculateTotals (False,  True, False,  True) THEN Exit;
         CQWWRTTY:  IF NOT CalculateTotals ( True,  True, False,  True) THEN Exit;
         Croatian:  IF NOT CalculateTotals ( True,  True, False,  True) THEN Exit;

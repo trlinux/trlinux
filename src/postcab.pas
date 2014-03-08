@@ -802,6 +802,7 @@ VAR Key:             CHAR;
         CQ160:     CountryTable.CountryMode := CQCountryMode;
         CQVHF:     CountryTable.CountryMode := CQCountryMode;
         CQWPX:     CountryTable.CountryMode := CQCountryMode;
+        CQWPXRTTY: CountryTable.CountryMode := CQCountryMode;
         Region1FD: CountryTable.CountryMode := CQCountryMode;
         CQWW:      CountryTable.CountryMode := CQCountryMode;
         IARU:      CountryTable.ZoneMode    := ITUZoneMode;
@@ -967,7 +968,7 @@ VAR Key:             CHAR;
             END;
 
 
-        CQWPX, OceaniaVKZL, SAC, APSprint, Region1FD, WAE:
+        CQWPX, CQWPXRTTY, OceaniaVKZL, SAC, APSprint, Region1FD, WAE:
             BEGIN
             CallsignLength := 13;
             RSTIsPartOfTheExchange := True;
@@ -1171,6 +1172,7 @@ VAR Key:             CHAR;
             CQ160:       WriteLn (FileWrite, 'CONTEST: CQ-160-', ModeString,Chr(13));
             CQVHF:       WriteLn (FileWrite, 'CONTEST: CQ-VHF',Chr(13));
             CQWPX:       WriteLn (FileWrite, 'CONTEST: CQ-WPX-', ModeString,Chr(13));
+            CQWPXRTTY:       WriteLn (FileWrite, 'CONTEST: CQ-WPX-RTTY',Chr(13));
             CQWW:        WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
             IARU:        WriteLn (FileWrite, 'CONTEST: IARU-HF',Chr(13));
             IntSprint:   WriteLn (FileWrite, 'CONTEST: INTERNET-SPRINT',Chr(13));
