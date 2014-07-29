@@ -6000,6 +6000,15 @@ VAR MyZoneValue, RXDataZoneValue, xResult: INTEGER;
                     RXData.QSOPoints := 1
                 END;
 
+        MMCQSOPointMethod:
+           IF RXData.QTH.Continent <> MyContinent THEN
+              RXData.QSOPoints := 5
+           ELSE
+              IF RXCty = MyCountry THEN
+                 RXData.QSOPoints := 1
+              ELSE
+                 RXData.QSOPoints := 3;
+
         MQPQSOPointMethod:
             IF RXData.Callsign = 'W0EF' THEN
                 RXData.QSOPoints := 10

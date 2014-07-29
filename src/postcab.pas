@@ -968,7 +968,7 @@ VAR Key:             CHAR;
             END;
 
 
-        CQWPX, CQWPXRTTY, OceaniaVKZL, SAC, APSprint, Region1FD, WAE:
+        CQWPX, CQWPXRTTY, OceaniaVKZL, SAC, APSprint, Region1FD, WAE, MMC:
             BEGIN
             CallsignLength := 13;
             RSTIsPartOfTheExchange := True;

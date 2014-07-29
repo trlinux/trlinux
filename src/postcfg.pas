@@ -576,6 +576,9 @@ VAR TempValue, xResult: INTEGER;
             IF CMD = 'KCJ' THEN
                 ActiveQSOPointMethod := KCJQSOPointMethod;
 
+            IF CMD = 'MMC' THEN
+                ActiveQSOPointMethod := MMCQSOPointMethod;
+
             IF CMD = 'MQP' THEN
                 ActiveQSOPointMethod := MQPQSOPointMethod;
 

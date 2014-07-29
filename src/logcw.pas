@@ -198,10 +198,12 @@ PROCEDURE StartRTTYTransmission (MSG: Str160);
 VAR CharPointer: INTEGER;
 
     BEGIN
-    RTTYTransmissionStarted := True;
-
-    RTTYReceiveCharBuffer.AddEntry (Ord (CarriageReturn));
-    RTTYReceiveCharBuffer.AddEntry (Ord (LineFeed));
+    IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) THEN
+       BEGIN
+       RTTYTransmissionStarted := True;
+       RTTYReceiveCharBuffer.AddEntry (Ord (CarriageReturn));
+       RTTYReceiveCharBuffer.AddEntry (Ord (LineFeed));
+       END;
 
     IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) THEN
         BEGIN

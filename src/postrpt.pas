@@ -60,6 +60,7 @@ TYPE ContestType = (UnknownContest,
                     KidsDay,
                     KVP,
                     MIQP,
+                    MMC,
                     MQP,
                     NAQSO,
                     NEQSO,
@@ -479,6 +480,9 @@ FUNCTION DetermineContest (Name: Str80): ContestType;
     IF (Name = 'MICHIGAN QSO PARTY') OR (Name = 'MICH QSO PARTY') OR (Name = 'MI QSO PARTY') THEN
         DetermineContest := MIQP;
 
+    IF (Name = 'MARCONI MEMORIAL') OR (Name = 'MMC') THEN
+       DetermineContest := MMC;
+
     IF (Name = 'MINNESOTA QSO PARTY') OR (Name = 'MINN QSO PARTY') OR (Name = 'MQP') THEN
         DetermineContest := MQP;
 
@@ -618,6 +622,7 @@ PROCEDURE CalculateAppropriateTotalsForThisContest (Contest: ContestType;
         KidsDay:   IF NOT CalculateTotals (False, False, False, False) THEN Exit;
         KVP:       IF NOT CalculateTotals (False, False, False,  True) THEN Exit;
         MIQP:      IF NOT CalculateTotals ( True, False, False, False) THEN Exit;
+        MMC:       IF NOT CalculateTotals ( False, True , False, False) THEN Exit;
         MQP:       IF NOT CalculateTotals ( True, False, False, False) THEN Exit;
         NAQSO:     IF NOT CalculateTotals ( True, False, False, False) THEN Exit;
         NEQSO:     IF NOT CalculateTotals ( True, False, False, False) THEN Exit;

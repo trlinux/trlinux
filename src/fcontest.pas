@@ -1159,6 +1159,22 @@ VAR TempQTH: QTHRecord;
             FoundContest := True;
             END;
 
+        IF (CMD = 'MARCONI MEMORIAL') OR (CMD = 'MMC') THEN
+            BEGIN
+            CountryTable.CountryMode := CQCountryMode;
+            CountryTable.ZoneMode    := CQZoneMode;
+            ActiveExchange := RSTQSONumberExchange;
+            ActiveDXMult := CQDXCC;
+            ActiveQSOPointMethod := MMCQSOPointMethod;
+            ContestName := 'MARCONI MEMORIAL CONTEST';
+            MultByBand := True;
+            MultByMode := False;
+            QSOByBand  := True;
+            QSOByMode  := False;
+            SetUpRSTQSONumberExchange;
+            FoundContest := True;
+            END;
+
         IF (CMD = 'MINNESOTA QSO PARTY') OR (CMD = 'MINN QSO PARTY') OR (CMD = 'MN QSO PARTY') THEN
             BEGIN
             IF UpperCase (Copy (MyState, 1, 2)) = 'MN' THEN

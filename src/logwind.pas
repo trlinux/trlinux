@@ -407,6 +407,7 @@ TYPE
                           IOTAQSOPointMethod,
                           JapanInternationalDXQSOPointMethod,
                           KCJQSOPointMethod,
+                          MMCQSOPointMethod,
                           MQPQSOPointMethod,
                           NZFieldDayQSOPointMethod,
                           OKDXQSOPointMethod,
