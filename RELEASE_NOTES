@@ -263,9 +263,8 @@
   in the log.
 - Fixed Adif Frequencies to be in MHz.
 - Some initial modifications to be able to interface to fldigi for RTTY.
-
-0.34
 - Added Marconi Memorial Contest with 1 point for same country, 3 for same
   continent, 5 for different continent. This is also a choice in LOGCFG.DAT
   using QSO POINT METHOD = MMC.
 - Allowed logging digital Qs without having an rtty port hooked up.
+- Increased MaxCallBlocks, MaxBigCallBlocks.

@@ -32,8 +32,8 @@ CONST
     EightByteBlockSize   = 100;  { Used for calls > 6 characters }
     PartialCallBlockSize = 200;
 
-    MaxCallBlocks        =  20;     { Per band mode }
-    MaxBigCallBlocks     =  20;     { Total in dupesheet }
+    MaxCallBlocks        = 200;     { Per band mode }
+    MaxBigCallBlocks     = 200;     { Total in dupesheet }
     MaxPartialCallBlocks = 100;
 
 TYPE
@@ -1251,6 +1251,13 @@ VAR NumberCalls, NumberDupeBlocks, NumberEntriesInLastBlock, Block, EndAddress, 
     NumberCalls  := DupeSheet.NumberBigCalls;
     NumberDupeBlocks := (NumberCalls DIV EightByteBlockSize) + 1;
     NumberEntriesInLastBlock := NumberCalls MOD EightByteBlockSize;
+    If NumberDupeBlocks > MaxBigCallBlocks then
+    BEGIN
+       Tone.DoABeep (Single);
+       QuickDisplay ('Too many big calls ask maintainer to increase!!');
+       ReminderPostedCount := 30;
+       Exit;
+    END;
 
     IF NumberCalls = 0 THEN
         BEGIN
