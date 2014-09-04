@@ -268,3 +268,7 @@
   using QSO POINT METHOD = MMC.
 - Allowed logging digital Qs without having an rtty port hooked up.
 - Increased MaxCallBlocks, MaxBigCallBlocks.
+
+0.34
+- Fixed bug I added to the linux version where radio interface stopped
+  working at 0000Z.

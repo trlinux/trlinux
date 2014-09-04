@@ -1,4 +1,4 @@
-RELEASE=0.33
+RELEASE=0.34
 
 all:
 	test 2 -eq `grep -c "Linux $(RELEASE)" src/versions.inc`
