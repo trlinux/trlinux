@@ -1307,6 +1307,7 @@ begin
     t0s100 := starttime.sec100;
     GetTime (Hour, Minute, Second, Sec100);
     th := hour;
+    if t0h > th then th := th+24;
     tm := minute;
     ts := second;
     ts100 := sec100;
