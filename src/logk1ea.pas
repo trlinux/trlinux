@@ -655,6 +655,14 @@ VAR Timeout: LONGINT;
 
             IF TimeOut > KenwoodResponseTimeout THEN
                 BEGIN
+                IF RadioDebugMode THEN
+                    BEGIN
+                    FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
+                        DebugString [CharPointer] := Chr (0);
+
+                    DebugString := 'KENWOOD TIMEOUT';
+                    BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
+                    END;
                 CASE Radio OF
                     RadioOne:
                         LastRadioOneMessageRead := '';
@@ -2556,15 +2564,36 @@ VAR LastMessage, TempString: STRING;
     CASE Radio OF
         RadioOne:
             BEGIN
+IF RadioDebugMode THEN
+BEGIN
+   FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
+      DebugString [CharPointer] := Chr (0);
+   DebugString := 'Get Radio1 Information called';
+   BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
+END;
             IF NoPollDuringPTT AND ActiveKeyer.GetPTTAsserted THEN
                 BEGIN
                 GetRadioInformation := LastRadioOneMessageRead;
+IF RadioDebugMode THEN
+BEGIN
+   FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
+      DebugString [CharPointer] := Chr (0);
+   DebugString := 'Radio 1 NoPoll and PTT';
+   BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
+END;
                 Exit;
                 END;
 
             IF Radio1PollDelay > 0 THEN
                 BEGIN
                 Dec (Radio1PollDelay);
+IF RadioDebugMode THEN
+BEGIN
+   FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
+      DebugString [CharPointer] := Chr (0);
+   DebugString := 'Radio1polldelay > 0';
+   BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
+END;
                 GetRadioInformation := LastRadioOneMessageRead;
                 Exit;
                 END;
@@ -2573,6 +2602,13 @@ VAR LastMessage, TempString: STRING;
 
             IF ElaspedSec100 (LastRadioOneMessageTime) < 50 THEN
                 BEGIN
+IF RadioDebugMode THEN
+BEGIN
+   FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
+      DebugString [CharPointer] := Chr (0);
+   DebugString := 'Elaspedsec100 problem';
+   BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
+END;
                 GetRadioInformation := LastRadioOneMessageRead;
                 Exit;
                 END;
@@ -2619,6 +2655,13 @@ VAR LastMessage, TempString: STRING;
 
         GobbleAborted:
             BEGIN
+IF RadioDebugMode THEN
+BEGIN
+   FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
+      DebugString [CharPointer] := Chr (0);
+   DebugString := 'Gobble Aborted';
+   BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
+END;
             CASE Radio OF
                 RadioOne: GetRadioInformation := LastRadioOneMessageRead;
                 RadioTwo: GetRadioInformation := LastRadioTwoMessageRead;
@@ -2628,6 +2671,14 @@ VAR LastMessage, TempString: STRING;
             END;
 
         GobbledTooMuch:   { What is going on here }
+begin
+IF RadioDebugMode THEN
+BEGIN
+   FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
+      DebugString [CharPointer] := Chr (0);
+   DebugString := 'Gobble too much Polling off';
+   BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
+END;
 
             CASE Radio OF
 
@@ -2649,6 +2700,7 @@ VAR LastMessage, TempString: STRING;
 
                 END;
         END;
+end;
 
     { Now - ask the radio for data and collect it into TempString }
 
@@ -2656,6 +2708,13 @@ VAR LastMessage, TempString: STRING;
 
         TS850, K2:
             BEGIN
+IF RadioDebugMode THEN
+BEGIN
+   FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
+      DebugString [CharPointer] := Chr (0);
+   DebugString := 'Sending IF calling getkenwoodresponse ';
+   BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
+END;
             AddRadioCommandString (Radio, 'IF;');
 
             IF NOT GetKenwoodResponse (Radio, TempString) THEN
