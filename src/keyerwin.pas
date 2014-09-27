@@ -69,9 +69,11 @@ TYPE
         LastFootSwitchStatus: BOOLEAN;
 //        SendStatus:           SendStatusType;
         FsCwGrant: Boolean;
+        dvppttstatus: boolean;
         Footsw: FootSwitchx;
         WinkeyerPort: serialportx;
         pincfg: char;
+        pincfgsave: char;
         mirror: array [0..127] of char;
         mirrorstart: integer;
         mirrorend: integer;
@@ -140,6 +142,7 @@ TYPE
         Procedure SetActiveRadio(r: RadioType);override;
         Procedure SetFootSwitch(f: FootSwitchx);override;
         Procedure SetCwGrant(on: boolean);override;
+        Procedure dvpptt(on: boolean);override;
 
         Procedure SetPort(port: serialportx);
 
@@ -166,6 +169,7 @@ begin
    TuningWithDits := False;
    TuneWithDits := False;
    FsCwGrant := False;
+   dvppttstatus := False;
    WinkeyerPort := nil;
    PTTEnable := false;
    xoff := false;
@@ -290,6 +294,7 @@ begin
    WinKeyerPort.putchar(pincfg);
    WinKeyerPort.putchar(Char($ff)); //don't care
    KeyerInitialized := True;
+   pincfgsave := pincfg
 end;
 
 Function WinKeyer.getMode:char;
@@ -390,6 +395,7 @@ begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
    end;
+   pincfgsave := pincfg
 end;
 
 Procedure WinKeyer.SetPaddlePttHoldCount(Count: INTEGER);
@@ -414,6 +420,7 @@ begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
    end;
+   pincfgsave := pincfg
 end;
 
 Function WinKeyer.GetPaddlePttHoldCount:integer;
@@ -664,6 +671,7 @@ begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
    end;
+   pincfgsave := pincfg
 end;
 
 Function WinKeyer.GetPTTEnable:boolean;
@@ -753,6 +761,7 @@ begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
    end;
+   pincfgsave := pincfg
 end;
 
 procedure WinKeyer.SetPaddleMonitorTone(tone: integer);
@@ -769,6 +778,7 @@ begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
    end;
+   pincfgsave := pincfg
 end;
 
 function WinKeyer.GetPaddleMonitorTone:integer;
@@ -784,6 +794,32 @@ end;
 procedure WinKeyer.SetCwGrant(on: boolean);
 begin
    FsCwGrant := on;
+end;
+
+procedure WinKeyer.dvpptt(on: boolean);
+begin
+   if not pttenable then exit;
+   dvppttstatus := on;
+   if on then
+   begin
+      pttasserted := true;
+      flushcwbuffer;
+      pincfgsave := pincfg;
+      pincfg := Char(Integer(pincfg) and $fc);
+      WinKeyerPort.putchar(Char($09));
+      WinKeyerPort.putchar(Pincfg);
+      WinKeyerPort.putchar(Char($18));
+      WinKeyerPort.putchar(Char($01));
+   end
+   else
+   begin
+      WinKeyerPort.putchar(Char($18));
+      WinKeyerPort.putchar(Char($00));
+      pttasserted := false;
+      pincfg := pincfgsave;
+      WinKeyerPort.putchar(Char($09));
+      WinKeyerPort.putchar(Pincfg);
+   end;
 end;
 
 procedure WinKeyer.SetFootSwitch(f: FootSwitchx);
@@ -986,7 +1022,9 @@ begin
    else
       countssincelastcw := 0;
 
-   pttasserted := pttenable and (not (status = $c0));
+   if (dvppttstatus and (not playingfile)) then dvpptt(false);
+   pttasserted := pttenable and ((not (status = $c0))
+      or ((status = $c0) and dvppttstatus));
 end;
 
 function WinKeyer.CWStillBeingSent:boolean;

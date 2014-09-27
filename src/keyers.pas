@@ -63,6 +63,7 @@ TYPE
 
         Procedure SetFootSwitch(f: FootSwitchx);virtual;abstract;
         Procedure SetCwGrant(on: boolean);virtual;abstract;
+        Procedure dvpptt(on: boolean);virtual;abstract;
         END;
 
 implementation

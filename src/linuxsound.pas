@@ -12,7 +12,7 @@ procedure lnosound;
 procedure beginsound;
 procedure endsound;
 procedure openconsole;
-procedure playfile(f: pchar);
+procedure playfile(f: pchar; msdelay: longint);
 procedure soundmode(m: longint);
 function playingfile:boolean;
 
@@ -42,6 +42,7 @@ var
    dspopen: longint = 0;
    fdconsole: longint = -1;
    filename: pchar = nil;
+   delay: longint = 0;
    mode: longint = 0; // 0 = beep 1 = files 2 = stop file
    playing: longint = 0;
    bufsize: longint;
@@ -178,7 +179,6 @@ var hz,hzold: longint;
     soundfile: psndfile;
     info: tsf_info;
     m: longint;
-//  pl: longint;
     s,c,ds,dc,temp: real;
 begin  
   dsp := interlockedcompareexchange(dspopen,1,0);
@@ -255,8 +255,10 @@ begin
         f := interlockedexchange(filename,fx);
         if (f <> nil) then
         begin
-//           pl := interlockedexchange(playing,1);
            interlockedexchange(playing,1);
+           req.tv_sec := 0;
+           req.tv_nsec := 1000000*delay;
+           fpNanoSleep(@req,@rem);
            soundfile := sf_open(f,SFM_READ,@info);
            if ( (info.channels = 2) and (info.samplerate = 44100)) then
            begin
@@ -282,7 +284,6 @@ begin
                  end;
               end;
               snd_pcm_drain(handle);
-//              pl := interlockedexchange(playing,0);
               interlockedexchange(playing,0);
            end
         end
@@ -318,10 +319,13 @@ begin
    fdconsole := fpopen('/dev/console', O_RDONLY or O_NONBLOCK);
 end;
 
-procedure playfile(f: pchar); 
+procedure playfile(f: pchar; msdelay: longint); 
 var ftemp: pchar;
+   dtemp: longint;
 begin
    ftemp := f;
+   dtemp := msdelay;
+   interlockedexchange(delay,dtemp);
    interlockedexchange(filename,ftemp);
 end;
 

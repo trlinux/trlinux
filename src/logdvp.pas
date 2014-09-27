@@ -56,7 +56,7 @@ procedure dvplistenmessage (filename: str80; usedvppath: boolean);
 begin
    if not dvpsetup then exit;
    strpcopy(f,filename);
-   playfile(f);
+   playfile(f,0);
 end;
 
 procedure dvprecordmessage (filename: str80; onair: boolean);
@@ -64,19 +64,18 @@ begin
 end;
 
 procedure dvpplaymessage (filename: str80);
+var delay: longint;
 begin
    if not dvpsetup then exit;
-{
-   if PttEnable then
+   ActiveKeyer.flushcwbuffer;
+   delay := 0;
+   if ActiveKeyer.GetPttEnable then
    begin
-      ActiveKeyerPort.ptt(true);
-want to turn on ptt then delay 
-then start file and flag timer routine to turn off ptt
-      dvpptt := true;
+      ActiveKeyer.dvpptt(true);
+      delay := round(real(ActiveKeyer.getpttturnondelay())*1.7);
    end;
-}
    strpcopy(f,filename);
-   playfile(f);
+   playfile(f,delay);
 end;
 
 procedure dvpinit;

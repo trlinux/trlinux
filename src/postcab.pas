@@ -37,7 +37,7 @@ CONST
     NumberCategoryStationTypes     =  7;
     NumberCategoryTimeTypes        =  4;
     NumberCategoryTransmitterTypes =  5;
-    NumberCategoryOverlayTypes     =  5;
+    NumberCategoryOverlayTypes     =  6;
 
     CategoryAssistedType :
         ARRAY [0..NumberCategoryAssistedTypes - 1] OF STRING [15] = (
@@ -109,6 +109,7 @@ CONST
         ARRAY [0..NumberCategoryOverlayTypes - 1] OF STRING [11] = (
             'NONE',
             'ROOKIE',
+            'CLASSIC',
             'TB-WIRES',
             'NOVICE-TECH',
             'OVER-50');

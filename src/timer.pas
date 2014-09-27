@@ -5,6 +5,7 @@ interface
 type
    timerprocedure = procedure(x: boolean) of object;
 
+procedure checktimer;
 procedure millisleep;
 procedure timerinitialize;
 procedure addtimer(tp: timerprocedure);
@@ -92,6 +93,11 @@ begin
        for i := 1 to ntimers do timers[i](caughtup);
     end
     until caughtup;
+end;
+
+procedure checktimer;
+begin
+   if interruptnow then TimerInterrupt;
 end;
 
 procedure millisleep;

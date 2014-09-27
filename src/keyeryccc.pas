@@ -65,6 +65,7 @@ TYPE
         DoingPaddle:  BOOLEAN;
         LastFootSwitchStatus: BOOLEAN;
         FsCwGrant: Boolean;
+        dvppttstatus: Boolean;
         Footsw: FootSwitchx;
         mirror: byte;
         blend: integer;
@@ -126,6 +127,7 @@ TYPE
         Procedure SetActiveRadio(r: RadioType);override;
         Procedure SetFootSwitch(f: FootSwitchx);override;
         Procedure SetCwGrant(on: boolean);override;
+        Procedure dvpptt(on: boolean);override;
 
         Procedure SetPort(port: serialportx);
 
@@ -195,6 +197,7 @@ begin
    TuningWithDits := False;
    TuneWithDits := False;
    FsCwGrant := False;
+   dvppttstatus := False;
    CurtMode := ModeB;
    PTTEnable := false;
    PTTTurnOnDelay := 0;
@@ -393,6 +396,7 @@ end;
 Procedure YcccKeyer.PTTForceOn;
 begin
    PTTforcedon := true;
+   PTTasserted := true;
 end;
 
 Procedure YcccKeyer.PTTUnForce;
@@ -718,6 +722,25 @@ begin
    FsCwGrant := on;
 end;
 
+procedure YcccKeyer.dvpptt(on: boolean);
+begin
+   dvppttstatus := on;
+   if on then
+   begin
+      pttforcedon := true;
+      pttasserted := true;
+      so2r_state.ptt := 1;
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
+   end
+   else
+   begin
+      pttforcedon := false;
+      pttasserted := false;
+      so2r_state.ptt := 0;
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
+   end;
+end;
+
 procedure YcccKeyer.SetFootSwitch(f: FootSwitchx);
 begin
    Footsw := f;
@@ -889,6 +912,14 @@ begin
    if (not pttforcedon) and (so2r_state.ptt = 1)
       and (paddlepttholdcount <= 0) then
    begin
+      so2r_state.ptt := 0;
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
+   end;
+
+   if (dvppttstatus and (not playingfile)) then
+   begin
+      dvppttstatus := false;
+      pttforcedon := false;
       so2r_state.ptt := 0;
       sendcmd(CMD_SO2R_STATE,so2r_state.val);
    end;

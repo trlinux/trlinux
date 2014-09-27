@@ -240,8 +240,8 @@
 - N6TR sent me source for version 6.96 -- ported his fix for CQ160 to properly
   log the zone
 - Fixed post to produce Cabrillo file for CQ160 with zone
-- Updated the documentation with suggestions from K5TR with less
-  caveman methods of adding users to groups.
+- Updated the documentation with suggestions from K5TR with a less
+  caveman method of adding users to groups.
 
 0.32
 - Ported post Cabrillo routines from 6.96. This gives Cabrillo 3.0 header,
@@ -272,3 +272,8 @@
 0.34
 - Fixed bug I added to the linux version where radio interface stopped
   working at 0000Z.
+
+0.35
+- Added Classic overlay to post.
+- Added ptt when playing dvp files. This is a little tricky, so if there
+  are ptt problems introduced with cw please revert to 0.34

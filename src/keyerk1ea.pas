@@ -73,6 +73,7 @@ TYPE
     RadioOneKeyerOutputPort: keyerportx;
     RadioTwoKeyerOutputPort: keyerportx;
     FsCwGrant: Boolean;
+    dvppttstatus: Boolean;
     Footsw: FootSwitchx;
     BeepTone: Beeper;
     nullp: nullportx;
@@ -141,6 +142,7 @@ TYPE
         Procedure SetActiveRadio(r: RadioType);override;
         Procedure SetFootSwitch(f: FootSwitchx);override;
         Procedure SetCwGrant(on: boolean);override;
+        Procedure dvpptt(on: boolean);override;
 
         Procedure SetBeeper(b: Beeper);
         Procedure SetRadioOnePort(k: keyerportx);
@@ -179,6 +181,7 @@ begin
     TuningWithDits := False;
     TuneWithDits := False;
     FsCwGrant := False;
+    dvppttstatus := False;
     contactstate := 0;
 end;
 
@@ -186,6 +189,12 @@ end;
 Procedure K1EAKeyer.SetCwGrant(on: boolean);
 begin
    FsCwGrant := on;
+end;
+
+Procedure K1EAKeyer.dvpptt(on: boolean);
+begin
+   dvppttstatus := on;
+   pttforceon;
 end;
 
 procedure K1EAKeyer.contacts(var ditcontact: boolean; var dahcontact: boolean);
@@ -239,7 +248,7 @@ PROCEDURE K1EAKeyer.TurnOffActivePort;
     BEGIN
     ActivePortOn := (PTTAsserted OR PTTForcedOn OR PTTFootSwitch) AND PTTEnable;
 
-    IF (PTTAsserted OR PTTForcedOn OR PTTFootSwitch) AND PTTEnable THEN
+    IF ActivePortOn THEN
         BEGIN
         ActiveKeyerPort.key(false);
         ActiveKeyerPort.ptt(true);
@@ -1312,6 +1321,12 @@ begin
                 END;
             END;
         END;
+
+        if pttenable and dvppttstatus and (not playingfile) then
+        begin
+           dvppttstatus := false;
+           pttunforce;
+        end;
 end;
 
 END.
