@@ -802,8 +802,8 @@ begin
    dvppttstatus := on;
    if on then
    begin
-      pttasserted := true;
       flushcwbuffer;
+      pttasserted := true;
       pincfgsave := pincfg;
       pincfg := Char(Integer(pincfg) and $fc);
       WinKeyerPort.putchar(Char($09));
