@@ -275,5 +275,4 @@
 
 0.35
 - Added Classic overlay to post.
-- Added ptt when playing dvp files. This is a little tricky, so if there
-  are ptt problems introduced with cw please revert to 0.34
+- Added ptt when playing dvp files. Enable with ptt enable = true as in cw.
