@@ -18,6 +18,17 @@ trlinux-r$(RELEASE).txz:
               -cJf $@ trlinux-r$(RELEASE)/doc trlinux-r$(RELEASE)/log \
                trlinux-r$(RELEASE)/files trlinux-r$(RELEASE)/RELEASE_NOTES )
 
+trlinux-r$(RELEASE)_64bit.tgz:
+	( cd .. ; \
+          mkdir trlinux-r$(RELEASE); \
+          cp -r trlinux/doc trlinux-r$(RELEASE)/doc ;\
+          cp -r trlinux/log trlinux-r$(RELEASE)/log ;\
+          cp -r trlinux/files trlinux-r$(RELEASE)/files; \
+          cp trlinux/RELEASE_NOTES trlinux-r$(RELEASE) ; \
+          tar --exclude CVS --exclude TRMASTER.DTA.save --exclude TRMASTER.DTA\
+              -czf $@ trlinux-r$(RELEASE)/doc trlinux-r$(RELEASE)/log \
+               trlinux-r$(RELEASE)/files trlinux-r$(RELEASE)/RELEASE_NOTES )
+
 trlinuxsrc-r$(RELEASE).tgz:
 	( cd .. ; \
           mkdir trlinuxsrc-r$(RELEASE); \

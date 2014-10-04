@@ -99,7 +99,8 @@ type
   procedure hangupwithparent;cdecl;external;
 
 implementation 
-uses trcrt; //for delay
+uses trcrt,lowlatency; //trcrt for delay
+
 const EMITTERS = $01;
       CWPIN = $08;
       PTTPIN = $04;
@@ -142,6 +143,7 @@ end;
 constructor serialportx.create(devicename: string);
 var tempfile: text;
     tios: termios;
+    sset: serial_struct;
 //    i,flags: integer;
 begin
    if pos('PTY',upcase(devicename)) = 1 then
@@ -181,6 +183,14 @@ begin
    else
       begin
          fd := fpopen(devicename,O_RDWR or O_NONBLOCK or O_NOCTTY);
+         if (fd >= 0) then //set low latency flag for ftdi chips
+         begin
+            fpioctl(fd,TIOCGSERIAL,@sset);
+            sset.flags := sset.flags or ASYNC_LOW_LATENCY;
+            fpioctl(fd,TIOCSSERIAL,@sset);
+            fpclose(fd);
+            fd := fpopen(devicename,O_RDWR or O_NONBLOCK or O_NOCTTY);
+         end;
       end;
    if fd < 0 then
    begin

@@ -44,6 +44,7 @@ SRC=\
    memlinux.pas\
    linuxsound.pas\
    communication.pas\
+   lowlatency.pas\
    ieee1284.pas\
    so2r.pas\
    timer.pas\
