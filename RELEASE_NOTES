@@ -276,3 +276,7 @@
 0.35
 - Added Classic overlay to post.
 - Added ptt when playing dvp files. Enable with ptt enable = true as in cw.
+
+0.36
+- Included call to ask for low latency for serial ports. This may make
+  FTDI chips more responsive.
