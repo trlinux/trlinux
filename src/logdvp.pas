@@ -106,6 +106,7 @@ procedure dvpstopplayback;
 begin
    if not dvpsetup then exit;
    if dvpmessageplaying then soundmode(2);
+   activekeyer.dvpptt(false);
 end;
 
 function  dvpmessageplaying: boolean;

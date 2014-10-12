@@ -806,6 +806,7 @@ VAR Key:             CHAR;
         CQWPXRTTY: CountryTable.CountryMode := CQCountryMode;
         Region1FD: CountryTable.CountryMode := CQCountryMode;
         CQWW:      CountryTable.CountryMode := CQCountryMode;
+        CQWWRTTY:  CountryTable.CountryMode := CQCountryMode;
         IARU:      CountryTable.ZoneMode    := ITUZoneMode;
         Russian:   CountryTable.CountryMode := CQCountryMode;
         WAE:       CountryTable.CountryMode := CQCountryMode;
@@ -995,6 +996,22 @@ VAR Key:             CHAR;
                 Section := GetResponse ('Enter your ARRL Section abbreviation : ');
             END;
 
+        CQWWRTTY:
+            BEGIN
+            CallsignLength := 13;
+            RSTIsPartOfTheExchange := True;
+            SentDataLength := 10;
+            SniffForTransmitter := True; {KK1L: 6.71 Add Multi-Two check for CQWW}
+
+            QTH := GetResponse ('Enter the zone you were sending : ');
+            IF QTH = '' THEN Exit;
+            IF (MyQTH.CountryId = 'K')   OR (MyQTH.CountryID = 'VE') then
+               Section := GetResponse ('Enter your state: ')
+            else
+               Section := 'DX';
+
+            SentInformation := '$ ' + QTH + ' ' + Section;
+            end;
 
         IARU:        { Okay }
             BEGIN
@@ -1175,6 +1192,7 @@ VAR Key:             CHAR;
             CQWPX:       WriteLn (FileWrite, 'CONTEST: CQ-WPX-', ModeString,Chr(13));
             CQWPXRTTY:       WriteLn (FileWrite, 'CONTEST: CQ-WPX-RTTY',Chr(13));
             CQWW:        WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
+            CQWWRTTY:        WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
             IARU:        WriteLn (FileWrite, 'CONTEST: IARU-HF',Chr(13));
             IntSprint:   WriteLn (FileWrite, 'CONTEST: INTERNET-SPRINT',Chr(13));
             NAQSO:       WriteLn (FileWrite, 'CONTEST: NAQP-', ModeString,Chr(13));
