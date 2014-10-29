@@ -13,10 +13,10 @@ BASE=trloglinux
 
 $(BASE).pdf: $(BASE).tex
 	find . -name \*eps -exec epstopdf {} \;
-	pdflatex $(BASE)
-	makeindex $(BASE)
-	pdflatex $(BASE)
-	pdflatex $(BASE)
+	/usr/share/texmf/bin/pdflatex $(BASE)
+	/usr/share/texmf/bin/makeindex $(BASE)
+	/usr/share/texmf/bin/pdflatex $(BASE)
+	/usr/share/texmf/bin/pdflatex $(BASE)
 
 $(BASE).dvi: $(BASE).tex
 	latex $(BASE)
