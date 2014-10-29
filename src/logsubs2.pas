@@ -2137,7 +2137,7 @@ VAR Result: INTEGER;
             IF ActiveMultiPort <> nil THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
-        UNTIL (NOT CWStillBeingSent) OR NewKeyPressed;
+        UNTIL (NOT CWStillBeingSent and  not dvpmessageplaying) OR NewKeyPressed;
 
         IF NewKeyPressed THEN
             BEGIN

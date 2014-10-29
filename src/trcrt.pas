@@ -1,3 +1,4 @@
+//$Id: trcrt.pas,v 1.7 2013/07/22 23:31:24 schmidt Exp $
 {
     This file is part of the Free Pascal run time library.
     Copyright (c) 1999-2000 by Michael Van Canneyt and Peter Vreman,
@@ -773,9 +774,15 @@ end;
 
 
 const
-  AltKeyStr  : string[38]='qwertyuiopasdfghjklzxcvbnm1234567890-=';
-  AltCodeStr : string[38]=#016#017#018#019#020#021#022#023#024#025#030#031#032#033#034#035#036#037#038+
-                          #044#045#046#047#048#049#050#120#121#122#123#124#125#126#127#128#129#130#131;
+  AltKeyStr  : string[76]='qwertyuiopasdfghjklzxcvbnm1234567890-=QWERTYUIOPASDFGHJKLZXCVBNM!@#$%^&*()_+';
+  AltCodeStr : string[76]=#016#017#018#019#020#021#022#023#024#025+
+     #030#031#032#033#034#035#036#037#038+
+     #044#045#046#047#048#049#050#120#121+
+     #122#123#124#125#126#127#128#129#130#131+
+     #016#017#018#019#020#021#022#023#024#025+
+     #030#031#032#033#034#035#036#037#038+
+     #044#045#046#047#048#049#050#120#121+
+     #122#123#124#125#126#127#128#129#130#131;
 Function FAltKey(ch:char):byte;
 var
   Idx : longint;
@@ -849,12 +856,14 @@ Begin
         1 : begin {Esc}
               case ch of
           'a'..'z',
+          'A'..'N','P'..'Z',
           '0'..'9',
+          '!','@','#','$','%','^','&','*','(',')','_','+',
            '-','=' : PushExt(FAltKey(ch));
                #10 : PushKey(#10);
                '[' : State:=2;
 {$IFDEF Unix}
-              'O': State:=7;
+              'O': if sysKeyPressed then State:=7 else PushExt(FaltKey(ch));
 {$ENDIF}
                else
                 begin
@@ -952,6 +961,7 @@ Begin
                'Q' : PushExt(60); 
                'R' : PushExt(61);
                'S' : PushExt(62);
+//               '' : PushExt(FAltKey('O');
               end;
           end;
 {$endif}
@@ -1242,7 +1252,6 @@ var
     if j=0 then
      j:=length(hstr);
     val(copy(hstr,3,j-3),k,code);
-    if code <> 0 then k := 0; //This shouldn't happen
     Delete(hstr,3,j-2);
     if k=0 then
      k:=1;

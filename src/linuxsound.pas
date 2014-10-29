@@ -284,11 +284,13 @@ begin
                  end;
               end;
               snd_pcm_drain(handle);
+              sf_close(soundfile);
               interlockedexchange(playing,0);
            end
         end
         else
         begin
+           interlockedexchange(playing,0);
            req.tv_sec := 0;
            req.tv_nsec := 100000;
            fpNanoSleep(@req,@rem);
@@ -327,6 +329,7 @@ begin
    dtemp := msdelay;
    interlockedexchange(delay,dtemp);
    interlockedexchange(filename,ftemp);
+   interlockedexchange(playing,1);
 end;
 
 procedure soundmode(m: longint);

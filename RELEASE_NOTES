@@ -278,5 +278,20 @@
 - Added ptt when playing dvp files. Enable with ptt enable = true as in cw.
 
 0.36
-- Included call to ask for low latency for serial ports. This may make
-  FTDI chips more responsive.
+- Included call to ask for low latency for serial ports. This may already
+  be the driver default, but if not, it should make FTDI chips more responsive.
+- Fixed bug where sound files were not being closed after playing.
+- Made shifted alt keys the same as alt, etc. Caps lock can be used without
+  causing the alt keys to stop working.
+- With this version I have changed the compilation environment. Previous
+  32 bit versions were compiled on a Slackware 13.37 machine, and the 64
+  bit versions on a cinnamon Mint machine. For binary compatibility the
+  code must be compiled using shared libraries at least as old as the
+  oldest versions on a user's machine. Since both of these installations
+  were getting out of date for actual operating system use, I have changed
+  to compiling on chroot installations (and therefore with libraries)
+  of Slackware 13.37 for both 32 and 64 bit versions. The compilation
+  machine is running Slackware current. This automates the production
+  of both versions from the git source archive, and should make it
+  easier to make future releases. Please let me know if you find binary
+  compatibility issues.
