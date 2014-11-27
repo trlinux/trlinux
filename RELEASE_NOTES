@@ -295,3 +295,9 @@
   of both versions from the git source archive, and should make it
   easier to make future releases. Please let me know if you find binary
   compatibility issues.
+
+0.37
+- Added a post option under utilities U then Y to automatically download
+  a new CTY.DAT file from http://www.country-files.com/cty/cty.dat
+  which should make it a little easier to stay up to date. This uses
+  libcurl which is a standard linux library.

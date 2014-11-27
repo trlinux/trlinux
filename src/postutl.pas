@@ -1,6 +1,8 @@
 UNIT PostUtl;
 
 {$O+}
+{$L curlroutines}
+{$linklib curl}
 
 INTERFACE
 
@@ -16,6 +18,8 @@ Uses trCrt,
      LogWind,
      LogSCP,
      PostSCP;
+
+FUNCTION urldownload(url, ctyfilename :Pchar):longint;cdecl;external;
 
 FUNCTION UtilityMenu: BOOLEAN;
 
@@ -690,7 +694,65 @@ VAR FileName, Name, TotalString, Call: Str80;
     UNTIL False;
     END;
 
-
+PROCEDURE DownloadCtyFile;
+VAR CtyFile, CtyFileOld, Url: string;
+    res: longint;
+BEGIN
+    Url := 'http://www.country-files.com/cty/cty.dat';
+    ClrScr;
+    TextColor (Yellow);
+    WriteLnCenter ('Download new CTY.DAT file');
+    WriteLn;
+    TextColor (Cyan);
+    WriteLn ('This procedure will download the latest version of CTY.DAT');
+    WriteLn ('From ' + Url);
+    WriteLn;
+    setlength(CtyFile,200);
+    setlength(CtyFileOld,200);
+    CtyFile := FindDirectory ('CTY.DAT') + DirectorySeparator + 'CTY.DAT';
+    WriteLn ('Current CTY.DAT file is:');
+    WriteLn (CtyFile);
+    CtyFileOld := Copy(CtyFile,1,length(CtyFile)-3) + 'BCK';
+    IF CopyFile(CtyFile,CtyFileOld) then
+    Begin
+       WriteLn('CTY.DAT successfully backed up to:');
+       WriteLn (CtyFileOld);
+    End
+    Else
+    Begin
+       WriteLn('Unable to back up CTY.DAT, exiting');
+       WaitForKeyPressed;
+       Exit;
+    End;
+    REPEAT
+        Key := UpCase (GetKey ('Okay to proceed? (Y/N) : '));
+        IF (Key = EscapeKey) OR (Key = 'N') THEN Exit;
+    UNTIL Key = 'Y';
+    WriteLn;
+    WriteLn('Attempting download');
+    res := urldownload(@url[1],@CtyFile[1]);
+    if (res = 0) then
+    Begin
+       WriteLn('Download successful');
+    End;
+    if (res = -1) then
+    Begin
+       WriteLn('Error opening CTY.DAT file -- Exiting');
+    End;
+    if (res = -2) then
+    Begin
+       WriteLn('Error in download -- Copying CTY.BCK to CTY.DAT');
+       IF CopyFile(CtyFileOld,CtyFile) then
+       Begin
+          WriteLn('CTY.DAT successfully copied from CTY.BCK');
+       End
+       Else
+          WriteLn('CTY.DAT not copied from CTY.BCK -- exiting');
+    End;
+    WaitForKeyPressed;
+    Exit;
+END;
+
 
 PROCEDURE ShowRestartDotBin;
 
@@ -2218,6 +2280,7 @@ VAR Key: CHAR;
     WriteLn ('  M - Merge Cabrillo files into single file.');
     WriteLn ('  N - NameEdit (old NAMES.CMQ database editor).');
     WriteLn ('  S - Show contents of RESTART.BIN file.');
+    WriteLn ('  Y - Download new country file.');
     WriteLn ('  X - Exit utility program menu.');
     WriteLn;
     TextColor (Cyan);
@@ -2239,6 +2302,7 @@ VAR Key: CHAR;
             'L': BEGIN ConvertCabrilloToTR;  Exit; END;
             'M': BEGIN MergeCabrilloLogs;    Exit; END;
             'N': BEGIN NameEditor;           Exit; END;
+            'Y': BEGIN DownloadCtyFile;      Exit; END;
             'S': BEGIN ShowRestartDotBin;    Exit; END;
 
             'X', EscapeKey:
