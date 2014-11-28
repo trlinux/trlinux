@@ -709,10 +709,11 @@ BEGIN
     WriteLn;
     setlength(CtyFile,200);
     setlength(CtyFileOld,200);
-    CtyFile := FindDirectory ('CTY.DAT') + DirectorySeparator + 'CTY.DAT';
+    CtyFile := FindDirectory ('CTY.DAT') + DirectorySeparator + 'CTY.DAT'
+       + chr(0);
     WriteLn ('Current CTY.DAT file is:');
     WriteLn (CtyFile);
-    CtyFileOld := Copy(CtyFile,1,length(CtyFile)-3) + 'BCK';
+    CtyFileOld := Copy(CtyFile,1,length(CtyFile)-4) + 'BCK' + chr(0);
     IF CopyFile(CtyFile,CtyFileOld) then
     Begin
        WriteLn('CTY.DAT successfully backed up to:');
