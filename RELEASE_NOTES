@@ -297,7 +297,9 @@
   compatibility issues.
 
 0.37
-- Added a post option under utilities U then Y to automatically download
-  a new CTY.DAT file from http://www.country-files.com/cty/cty.dat
-  which should make it a little easier to stay up to date. This uses
-  libcurl which is a standard linux library.
+- Added a post option under utilities U then Y to download a new CTY.DAT
+  file from http://www.country-files.com/cty/cty.dat which should make
+  it a little easier to stay up to date. This uses libcurl which is a
+  standard linux library.
+- Fixed bug where the display flashed/flickered like mad when a rig was
+  tuned to a duped band map entry. This bug was in the original DOS version.
