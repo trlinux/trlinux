@@ -2333,6 +2333,8 @@ VAR Result: INTEGER;
                             BEGIN
                             SaveSetAndClearActiveWindow (DupeInfoWindow);
                             WriteLn (BandMapBlinkingCall + ' DUPE!!');
+//next line fixed blinking on dupes ks
+                            DupeInfoCallPrompt := BandMapBlinkingCall;
                             Write ('on            ' + BandString [BandMapBand] + ModeString [BandMapMode]);
                             VisibleLog.ShowQSOStatus (BandMapBlinkingCall);
                             VisibleLog.ShowMultiplierStatus (BandMapBlinkingCall);
