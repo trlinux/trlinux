@@ -7,7 +7,7 @@
   tuned to a duped band map entry. This bug was in the original DOS version.
 
 0.36
-- Included call to ask for low latency for serial ports. This may already
+- Included call to ask for low latency for USB serial ports. This may already
   be the driver default, but if not, it should make FTDI chips more responsive.
 - Fixed bug where sound files were not being closed after playing.
 - Made shifted alt keys the same as alt, etc. Caps lock can be used without
