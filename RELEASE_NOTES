@@ -1,281 +1,10 @@
-0.01:
-- Initial release based on DOS TR 6.76
-0.02:
-- Unoptimized the xterm ANSI move cursor commands. My xterm did not always
-  work with the optimized sequences, which caused occasional glitches.
-  Using the unoptimized command makes the display more robust.  I haven't
-  notice any speed difference.
-
-- Added shift key detection under Xwindows so shift key tuning, shift
-  key RIT, and ctrl-shift keying work.
-
-- Added paddle input on serial ports. This violates the RS-232 standard
-  which defines the two logic levels as positive and negative voltages,
-  while the paddle will only key a positive voltage to ground. But,
-  according to the ARRL handbook, none of the serial port chips used
-  actually require a negative voltage on their inputs to get the correct
-  logic level.  Therefore, I have set up the clear to send (CTS) input as
-  the left paddle (normally dot) input, and data set ready (DSR) input as
-  the right paddle (normally dash) input. You need to pull these inputs
-  positive through resistors.  I pull them up to +12 volts through 10K ohm
-  resistors (the RS-232 standard requires anything between 3 and 25 volts),
-  and the paddle keys those inputs to ground. On a DB9 connector they are
-  pins 6 (DSR) and 8 (CTS). Ground is pin 5.
-
-- Fixed bug where exact calls in CTY.DAT with / did not match.
-
-- Changed default to UTC, independent of your system clock.  The hour
-  offset should now never need to be used if your system clock is correct,
-  but I didn't remove it. I also added code so the time set functions
-  work internally to trlog. Originally these set the DOS system time. Now
-  it just changes an internal offset. If you exit TR, this will not be
-  saved. I believe the only reason to change the internal time would be to
-  type in hand-written logs after a contest. Otherwise, you should simply
-  set your system time correctly.
-
-- Fixed several bugs related to auto character count cw.
-
-0.03
-- Changed Cabrillo output in post to have lines ending in carriage return /
-  line feed.  At least some log checking codes running under DOS/Windows
-  do not accept the unix/Mac line feed only end of line character. Thanks
-  to Tim, K9TM for the heads up.
-- Fixed null pointer references giving segmentation faults when adding to
-  the end of the visible dupe sheet.
-
-0.04
-- Added 4 Ontario sections to SS simulator
-- Added support for normal pseudottys. Use any name whose first 3 characters
-  are pty or PTY for the serial device. Trlog will open a master pseudotty
-  and write the slave device in the file given by the name you used.
-
-0.05
-- Fixed problem in two radio alt-d port.
-
-0.06
-- Fixed problem with packet etc., from printing control-g instead of beeping.
-- Allow autocq on phone with function key radio commands.
-
-0.07
-- Fixed bug in radio 2 control communication
-- Fixed uninitialized variable that made sunrise/sunset times wrong on 64 bit
-  versions.
-- Fixed bug where a long packet string would shut down packet on the local
-  machine -- packet through the multi network would still sort of work.
-- Added shell device for packet
-- Added ncat device for multi net
-
-0.08
-- Fixed bug added by changes to packet in 0.07 that sometimes dropped
-  the first character of a spot.
-- Commented lines that prevented K3 DVK commands from working.
-
-0.09
-- Fixed bug which scribbles outside the box when displaying the log with
-  Control-L when a Control-L in the log is encountered.
-
-0.10
-- This version has major changes to the cw keyer parts of the code. Tree's
-  code for keying the serial and parallel ports has been encapsulated in
-  a new keyer class to allow adding other keying options easily. This means
-  that if you are using serial or parallel port keying, this version could
-  break things that worked before. If you find a show stopper in the keyer,
-  please report the bug and revert to using version 0.09.
-- Support for K1EL's Winkeyer has been added. Please see the trloglinux.pdf
-  file for more information.
-- Support for Ultimatic mode has been added.
-
-0.11
-- Slightly different, possibly better, method of initializing Winkeyer
-
-0.12
-- Fixed the command line option ports so "trlog ports" should now report
-  something sensible. As far as I can tell linux does not have a library
-  routine to detect serial ports. trlog therefore searches the /sys pseudo
-  file system (i.e. the /sys/class/tty directory) for ports with attached
-  drivers.
-- Added serial, parallel, winkeyer and packet prompting to set up a new
-  LOGCFG.DAT. The program attempts to detect the serial and parallel ports
-  connected to the computer using the same method as the ports command line
-  option.
-- Updated doc/trloglinux.pdf and files/Xresources to describe how to use
-  nicer xterm fonts.
-- Changed the degree symbol to be decimal 176 as shown in "man iso_8859-15".
-
-0.13
-- Attempt to fix serial port issues on some systems.
-
-0.14
-- Added a test so that /dev/port, which is erroneously reported by
-  ieee1284_find_ports as a parallel port on systems with no parallel ports,
-  is not displayed.
-
-0.15
-- Added a test for utf-8 locales. The degree symbol is hex 0xb0 in iso8859
-  locales, and hex 0xc2 0xb0 in utf-8 locales. It should now print correctly
-  on all systems.
-
-0.16
-- Fixed bug added with Winkeyer support where parallel paddle port
-  configuration had to be before keyer output port in LOGCFG.DAT or the paddle
-  port was ignored.
-- First pass at making this properly multiuser. Writing CABNAME.DAT and
-  ADDRESS.DAT or TRMASTER.DTA will store result in $HOME/.trlog instead
-  of main trlog directory. If correct a normal user will not need write
-  permission for the trlog executable's directory.
-
-0.17
-- Changed the signal sent from trlog to the packet shell process when trlog
-  shuts down from SIGKILL to SIGHUP. SIGHUP causes telnet to quit, while
-  SIGKILL left zombie telnet sessions which would keep new instances of trlog
-  waiting for resources to become available until the zombie telnet sessions
-  were killed.
-
-0.18
-- Improved X11 handling of some special keys to minimize polling. This makes
-  running trlog over a network remotely work much better, and CW sending with
-  serial/parallel ports is less affected by cpu activity.
-
-- Added AltShift option to Shift Key Enable. This changes the tuning and
-  RIT keys from Shift left or Shift right to Alt-Shift left and Alt-Shift
-  right. Both shifts together (without Alt) clears RIT. The previous true
-  and false options work as before, with default true as before. The
-  question mark and other shifted characters work normally with
-  Shift Key Enable = AltShift.
-
-0.19
-- Fixed post not reading restart file if log is LOG.DAT
-- Fixed swappaddles and ptt for Winkeyer.
-
-0.20
-- Added right-control carriage return (left-control carriage return worked
-  before) logging without sending CW to be compatible with DOS TR.
-- Fixed bug where the DOS lowercase function in assembly language had
-  been commented out. Contests which used grid squares need this.
-
-0.21
-- Added new line so initial set up of field day is formatted better
-- Fixed some shift and control key combinations to ignore caps lock
-  and num lock.
-- Fixed bug in 64 bit parallel port record size so that parallel port
-  access on 64 bit systems works.
-- Fixed bug in active/inactive radio selection introduced with Winkeyer
-  code.
-
-0.22
-- Fixed bug in Winkeyer code which reported cw not being sent when a message
-  was staged, but not yet started. This kept CW messages on the inactive radio
-  from being sent.
-- Made shifted keys work for message programming.
-
-0.23
-- Added native support for the YCCC SO2R box <http://k1xm.org/SO2R/index.html>.
-  No additional programs needed, just make sure you are set up with
-  permission to use the YCCC SO2R usb device, plug in the usb cable,
-  set YCCC SO2R BOX ENABLE = true in LOGCFG.DAT and it should just work,
-  at least at a basic level. TR sends CW, switches the rigs, puts band
-  data on the SO2R box DB25 connector, has new message commands to switch
-  receive between hearing both main receivers in stereo, or either rig
-  (main and sub receiver if so equipped) in both ears, and blends audio.
-- Added documentation for how to use the YCCC SO2R box in trloglinux.pdf
-- Control-P menu now displays control characters in messages.
-- Fixed footswitch bug
-
-0.24
-- Fixed writing SO2R box commands to LOGCFG.DAT from control-j menu.
-
-0.25
-- Fixed YCCC SO2R box keyer defaults not being set from LOGCFG.DAT
-- Removed USE BIOS KEY CALLS configuration parameter since direct reading
-  of BIOS memory wouldn't work on a real operating system anyway. 
-- Fixed bug in original 6.76 code where packet spots were given the wrong
-  frequency.
-- Fixed bug in original 6.76 code where the check for stable rig frequency
-  was calculated incorrectly.
-- Fixed bug in original 6.76 code where FT847 and FT817 frequencies were
-  not updated correctly.
-
-0.26
-- Fixed YCCC SO2R box keyer weight being reported incorrectly in
-  control-j menu.
-- Fixed YCCC SO2R box PTT turn on time setting.
-- Set YCCC SO2R box PTT turn off time to 15ms
-
-0.27
-- Fixed setting the keyer weight. This fixes a bug in setting keyer weight
-  introduced in the first winkeyer version when the different keyers
-  were separated. 
-- Made PTT PADDLE HOLD COUNT work with the YCCC SO2R box keyer.
-
-0.28
-- Fixed bug where ptt would not release in yccc box.
-
-0.29
-- Multiple changes so that all the pascal routines can be compiled in objfpc
-  mode. Note this changes some of the binary representations, so old
-  binary files like restart.bin etc. cannot be used. If problems are
-  found please revert to an older version and report bugs.
-- Rewrote code so that loop variables are no longer modified within loops
-- Changed Borland pascal comments where one right brace closed multiple
-  left braces to comments where every left brace has a matching right brace.
-- Fixed dead code where word variables were tested for impossible negative
-  values.
-- Removed unused variables.
-- Removed assigned but never used variables.
-- Sped up multi network and packet. The original DOS code had delays to keep
-  from overrunning the one byte hardware buffers of serial ports at 4800 baud.
-  Since the linux kernel has 1K buffers, and network buffers are even larger,
-  these delays were removed. Reads/writes to the multi network and packet 
-  now work with multiple bytes per simulated DOS interrupt.
-
-0.30
-- Fixed bug where Winkeyer sidetone pin changes changes were not sent to
-  the Winkeyer. 
-- Fixed bug where race condition in YCCC box caused some dropped CW
-  characters when interrupting a CQ message on one radio to send
-  an alt-d space bar to work a station on the second radio.
-
-0.31
-- Added XE as domestic multiplier in ARRL10
-- N6TR sent me source for version 6.96 -- ported his fix for CQ160 to properly
-  log the zone
-- Fixed post to produce Cabrillo file for CQ160 with zone
-- Updated the documentation with suggestions from K5TR with a less
-  caveman method of adding users to groups.
-
-0.32
-- Ported post Cabrillo routines from 6.96. This gives Cabrillo 3.0 header,
-  and reports frequencies to 1 KHz if log frequencye enable is set to true.
-- Ported post utility routines from 6.96. This gives a simple adif file,
-  among other additions.
-- Added frequencies and header to adif output.
-- Installed new signal handlers so trlog will try to write a core file when
-  an illegal instruction, floating point exception, or segmentation fault
-  occurs. Typically, you need to set ulimit -c unlimited in order to produce
-  a core file. 
-- Added a manual section to trloglinux.pdf, describing how to generate
-  a core file when the program crashes, and what I need to find the problem
-  that generated it.
-- Added a table of contents to trloglinux.pdf.
-
-0.33
-- Fixed Cabrillo to renumber QSOs if frequency instead of numbers are included
-  in the log.
-- Fixed Adif Frequencies to be in MHz.
-- Some initial modifications to be able to interface to fldigi for RTTY.
-- Added Marconi Memorial Contest with 1 point for same country, 3 for same
-  continent, 5 for different continent. This is also a choice in LOGCFG.DAT
-  using QSO POINT METHOD = MMC.
-- Allowed logging digital Qs without having an rtty port hooked up.
-- Increased MaxCallBlocks, MaxBigCallBlocks.
-
-0.34
-- Fixed bug I added to the linux version where radio interface stopped
-  working at 0000Z.
-
-0.35
-- Added Classic overlay to post.
-- Added ptt when playing dvp files. Enable with ptt enable = true as in cw.
+0.37
+- Added a post option under utilities U then Y to download a new CTY.DAT
+  file from http://www.country-files.com/cty/cty.dat which should make
+  it a little easier to stay up to date. This uses libcurl which is a
+  standard linux library.
+- Fixed bug where the display flashed/flickered like mad when a rig was
+  tuned to a duped band map entry. This bug was in the original DOS version.
 
 0.36
 - Included call to ask for low latency for serial ports. This may already
@@ -296,10 +25,276 @@
   easier to make future releases. Please let me know if you find binary
   compatibility issues.
 
-0.37
-- Added a post option under utilities U then Y to download a new CTY.DAT
-  file from http://www.country-files.com/cty/cty.dat which should make
-  it a little easier to stay up to date. This uses libcurl which is a
-  standard linux library.
-- Fixed bug where the display flashed/flickered like mad when a rig was
-  tuned to a duped band map entry. This bug was in the original DOS version.
+0.35
+- Added Classic overlay to post.
+- Added ptt when playing dvp files. Enable with ptt enable = true as in cw.
+
+0.34
+- Fixed bug I added to the linux version where radio interface stopped
+  working at 0000Z.
+
+0.33
+- Fixed Cabrillo to renumber QSOs if frequency instead of numbers are included
+  in the log.
+- Fixed Adif Frequencies to be in MHz.
+- Some initial modifications to be able to interface to fldigi for RTTY.
+- Added Marconi Memorial Contest with 1 point for same country, 3 for same
+  continent, 5 for different continent. This is also a choice in LOGCFG.DAT
+  using QSO POINT METHOD = MMC.
+- Allowed logging digital Qs without having an rtty port hooked up.
+- Increased MaxCallBlocks, MaxBigCallBlocks.
+
+0.32
+- Ported post Cabrillo routines from 6.96. This gives Cabrillo 3.0 header,
+  and reports frequencies to 1 KHz if log frequencye enable is set to true.
+- Ported post utility routines from 6.96. This gives a simple adif file,
+  among other additions.
+- Added frequencies and header to adif output.
+- Installed new signal handlers so trlog will try to write a core file when
+  an illegal instruction, floating point exception, or segmentation fault
+  occurs. Typically, you need to set ulimit -c unlimited in order to produce
+  a core file. 
+- Added a manual section to trloglinux.pdf, describing how to generate
+  a core file when the program crashes, and what I need to find the problem
+  that generated it.
+- Added a table of contents to trloglinux.pdf.
+
+0.31
+- Added XE as domestic multiplier in ARRL10
+- N6TR sent me source for version 6.96 -- ported his fix for CQ160 to properly
+  log the zone
+- Fixed post to produce Cabrillo file for CQ160 with zone
+- Updated the documentation with suggestions from K5TR with a less
+  caveman method of adding users to groups.
+
+0.30
+- Fixed bug where Winkeyer sidetone pin changes changes were not sent to
+  the Winkeyer. 
+- Fixed bug where race condition in YCCC box caused some dropped CW
+  characters when interrupting a CQ message on one radio to send
+  an alt-d space bar to work a station on the second radio.
+
+0.29
+- Multiple changes so that all the pascal routines can be compiled in objfpc
+  mode. Note this changes some of the binary representations, so old
+  binary files like restart.bin etc. cannot be used. If problems are
+  found please revert to an older version and report bugs.
+- Rewrote code so that loop variables are no longer modified within loops
+- Changed Borland pascal comments where one right brace closed multiple
+  left braces to comments where every left brace has a matching right brace.
+- Fixed dead code where word variables were tested for impossible negative
+  values.
+- Removed unused variables.
+- Removed assigned but never used variables.
+- Sped up multi network and packet. The original DOS code had delays to keep
+  from overrunning the one byte hardware buffers of serial ports at 4800 baud.
+  Since the linux kernel has 1K buffers, and network buffers are even larger,
+  these delays were removed. Reads/writes to the multi network and packet 
+  now work with multiple bytes per simulated DOS interrupt.
+
+0.28
+- Fixed bug where ptt would not release in yccc box.
+
+0.27
+- Fixed setting the keyer weight. This fixes a bug in setting keyer weight
+  introduced in the first winkeyer version when the different keyers
+  were separated. 
+- Made PTT PADDLE HOLD COUNT work with the YCCC SO2R box keyer.
+
+0.26
+- Fixed YCCC SO2R box keyer weight being reported incorrectly in
+  control-j menu.
+- Fixed YCCC SO2R box PTT turn on time setting.
+- Set YCCC SO2R box PTT turn off time to 15ms
+
+0.25
+- Fixed YCCC SO2R box keyer defaults not being set from LOGCFG.DAT
+- Removed USE BIOS KEY CALLS configuration parameter since direct reading
+  of BIOS memory wouldn't work on a real operating system anyway. 
+- Fixed bug in original 6.76 code where packet spots were given the wrong
+  frequency.
+- Fixed bug in original 6.76 code where the check for stable rig frequency
+  was calculated incorrectly.
+- Fixed bug in original 6.76 code where FT847 and FT817 frequencies were
+  not updated correctly.
+
+0.24
+- Fixed writing SO2R box commands to LOGCFG.DAT from control-j menu.
+
+0.23
+- Added native support for the YCCC SO2R box <http://k1xm.org/SO2R/index.html>.
+  No additional programs needed, just make sure you are set up with
+  permission to use the YCCC SO2R usb device, plug in the usb cable,
+  set YCCC SO2R BOX ENABLE = true in LOGCFG.DAT and it should just work,
+  at least at a basic level. TR sends CW, switches the rigs, puts band
+  data on the SO2R box DB25 connector, has new message commands to switch
+  receive between hearing both main receivers in stereo, or either rig
+  (main and sub receiver if so equipped) in both ears, and blends audio.
+- Added documentation for how to use the YCCC SO2R box in trloglinux.pdf
+- Control-P menu now displays control characters in messages.
+- Fixed footswitch bug
+
+0.22
+- Fixed bug in Winkeyer code which reported cw not being sent when a message
+  was staged, but not yet started. This kept CW messages on the inactive radio
+  from being sent.
+- Made shifted keys work for message programming.
+
+0.21
+- Added new line so initial set up of field day is formatted better
+- Fixed some shift and control key combinations to ignore caps lock
+  and num lock.
+- Fixed bug in 64 bit parallel port record size so that parallel port
+  access on 64 bit systems works.
+- Fixed bug in active/inactive radio selection introduced with Winkeyer
+  code.
+
+0.20
+- Added right-control carriage return (left-control carriage return worked
+  before) logging without sending CW to be compatible with DOS TR.
+- Fixed bug where the DOS lowercase function in assembly language had
+  been commented out. Contests which used grid squares need this.
+
+0.19
+- Fixed post not reading restart file if log is LOG.DAT
+- Fixed swappaddles and ptt for Winkeyer.
+
+0.18
+- Improved X11 handling of some special keys to minimize polling. This makes
+  running trlog over a network remotely work much better, and CW sending with
+  serial/parallel ports is less affected by cpu activity.
+- Added AltShift option to Shift Key Enable. This changes the tuning and
+  RIT keys from Shift left or Shift right to Alt-Shift left and Alt-Shift
+  right. Both shifts together (without Alt) clears RIT. The previous true
+  and false options work as before, with default true as before. The
+  question mark and other shifted characters work normally with
+  Shift Key Enable = AltShift.
+
+0.17
+- Changed the signal sent from trlog to the packet shell process when trlog
+  shuts down from SIGKILL to SIGHUP. SIGHUP causes telnet to quit, while
+  SIGKILL left zombie telnet sessions which would keep new instances of trlog
+  waiting for resources to become available until the zombie telnet sessions
+  were killed.
+
+0.16
+- Fixed bug added with Winkeyer support where parallel paddle port
+  configuration had to be before keyer output port in LOGCFG.DAT or the paddle
+  port was ignored.
+- First pass at making this properly multiuser. Writing CABNAME.DAT and
+  ADDRESS.DAT or TRMASTER.DTA will store result in $HOME/.trlog instead
+  of main trlog directory. If correct a normal user will not need write
+  permission for the trlog executable's directory.
+
+0.15
+- Added a test for utf-8 locales. The degree symbol is hex 0xb0 in iso8859
+  locales, and hex 0xc2 0xb0 in utf-8 locales. It should now print correctly
+  on all systems.
+
+0.14
+- Added a test so that /dev/port, which is erroneously reported by
+  ieee1284_find_ports as a parallel port on systems with no parallel ports,
+  is not displayed.
+
+0.13
+- Attempt to fix serial port issues on some systems.
+
+0.12
+- Fixed the command line option ports so "trlog ports" should now report
+  something sensible. As far as I can tell linux does not have a library
+  routine to detect serial ports. trlog therefore searches the /sys pseudo
+  file system (i.e. the /sys/class/tty directory) for ports with attached
+  drivers.
+- Added serial, parallel, winkeyer and packet prompting to set up a new
+  LOGCFG.DAT. The program attempts to detect the serial and parallel ports
+  connected to the computer using the same method as the ports command line
+  option.
+- Updated doc/trloglinux.pdf and files/Xresources to describe how to use
+  nicer xterm fonts.
+- Changed the degree symbol to be decimal 176 as shown in "man iso_8859-15".
+
+0.11
+- Slightly different, possibly better, method of initializing Winkeyer
+
+0.10
+- This version has major changes to the cw keyer parts of the code. Tree's
+  code for keying the serial and parallel ports has been encapsulated in
+  a new keyer class to allow adding other keying options easily. This means
+  that if you are using serial or parallel port keying, this version could
+  break things that worked before. If you find a show stopper in the keyer,
+  please report the bug and revert to using version 0.09.
+- Support for K1EL's Winkeyer has been added. Please see the trloglinux.pdf
+  file for more information.
+- Support for Ultimatic mode has been added.
+
+0.09
+- Fixed bug which scribbles outside the box when displaying the log with
+  Control-L when a Control-L in the log is encountered.
+
+0.08
+- Fixed bug added by changes to packet in 0.07 that sometimes dropped
+  the first character of a spot.
+- Commented lines that prevented K3 DVK commands from working.
+
+0.07
+- Fixed bug in radio 2 control communication
+- Fixed uninitialized variable that made sunrise/sunset times wrong on 64 bit
+  versions.
+- Fixed bug where a long packet string would shut down packet on the local
+  machine -- packet through the multi network would still sort of work.
+- Added shell device for packet
+- Added ncat device for multi net
+
+0.06
+- Fixed problem with packet etc., from printing control-g instead of beeping.
+- Allow autocq on phone with function key radio commands.
+
+0.05
+- Fixed problem in two radio alt-d port.
+
+0.04
+- Added 4 Ontario sections to SS simulator
+- Added support for normal pseudottys. Use any name whose first 3 characters
+  are pty or PTY for the serial device. Trlog will open a master pseudotty
+  and write the slave device in the file given by the name you used.
+
+0.03
+- Changed Cabrillo output in post to have lines ending in carriage return /
+  line feed.  At least some log checking codes running under DOS/Windows
+  do not accept the unix/Mac line feed only end of line character. Thanks
+  to Tim, K9TM for the heads up.
+- Fixed null pointer references giving segmentation faults when adding to
+  the end of the visible dupe sheet.
+
+0.02:
+- Unoptimized the xterm ANSI move cursor commands. My xterm did not always
+  work with the optimized sequences, which caused occasional glitches.
+  Using the unoptimized command makes the display more robust.  I haven't
+  notice any speed difference.
+- Added shift key detection under Xwindows so shift key tuning, shift
+  key RIT, and ctrl-shift keying work.
+- Added paddle input on serial ports. This violates the RS-232 standard
+  which defines the two logic levels as positive and negative voltages,
+  while the paddle will only key a positive voltage to ground. But,
+  according to the ARRL handbook, none of the serial port chips used
+  actually require a negative voltage on their inputs to get the correct
+  logic level.  Therefore, I have set up the clear to send (CTS) input as
+  the left paddle (normally dot) input, and data set ready (DSR) input as
+  the right paddle (normally dash) input. You need to pull these inputs
+  positive through resistors.  I pull them up to +12 volts through 10K ohm
+  resistors (the RS-232 standard requires anything between 3 and 25 volts),
+  and the paddle keys those inputs to ground. On a DB9 connector they are
+  pins 6 (DSR) and 8 (CTS). Ground is pin 5.
+- Fixed bug where exact calls in CTY.DAT with / did not match.
+- Changed default to UTC, independent of your system clock.  The hour
+  offset should now never need to be used if your system clock is correct,
+  but I didn't remove it. I also added code so the time set functions
+  work internally to trlog. Originally these set the DOS system time. Now
+  it just changes an internal offset. If you exit TR, this will not be
+  saved. I believe the only reason to change the internal time would be to
+  type in hand-written logs after a contest. Otherwise, you should simply
+  set your system time correctly.
+- Fixed several bugs related to auto character count cw.
+
+0.01:
+- Initial release based on DOS TR 6.76
