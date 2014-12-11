@@ -1,3 +1,11 @@
+0.38
+- Made the child process that creates the shell in the control-b packet
+  window a new session so its pseudo tty can be its controlling
+  terminal. This allows job control control-c, control-z, etc. to work
+  in the forked shell.
+- Added up arrow and down arrow to the control-b packet window input, so
+  they send the correct sequences to the shell to give a command history.
+
 0.37
 - Added a post option under utilities U then Y to download a new CTY.DAT
   file from http://www.country-files.com/cty/cty.dat which should make

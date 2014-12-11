@@ -234,6 +234,7 @@ begin
    pid := fpfork;
    if (pid = 0) then
    begin
+      fpsetsid; //become a new session so our pty is the controlling tty
       hangupwithparent;
       fdslave := fpopen(slave,O_RDWR);
       fpclose(0);
