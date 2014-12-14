@@ -3169,12 +3169,12 @@ if caughtup then Footsw.timer;
 if caughtup then
     IF DoingPacket THEN
         BEGIN
-//        IF ActivePacketPort.CharReady THEN
           while ActivePacketPort.CharReady do
             BEGIN
             TempChar := ActivePacketPort.ReadChar;
-            PacketReceiveCharBuffer.AddEntry (Ord (TempChar) AND $7F);
-
+//            PacketReceiveCharBuffer.AddEntry (Ord (TempChar) AND $7F);
+// Try to get xterm packet port to work better
+            PacketReceiveCharBuffer.AddEntry (Ord (TempChar));
             IF (TempChar = CarriageReturn) AND PacketAddLF THEN
                 PacketReceiveCharBuffer.AddEntry (Ord (LineFeed));
             END;

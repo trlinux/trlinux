@@ -719,6 +719,7 @@ PROCEDURE PacketObject.CheckPacketBuffer (DisplayNewData: BOOLEAN);
 
 VAR TempString: STRING;
     PacketByte: BYTE;
+    i: integer;
 
     BEGIN
     IF PacketReceiveCharBuffer.IsEmpty THEN Exit;  { No new characters }
@@ -728,21 +729,41 @@ VAR TempString: STRING;
     TempString := '';
 
     WHILE PacketReceiveCharBuffer.GetNextByte (PacketByte) DO
-        BEGIN
-        if ((Chr(PacketByte) <> CarriageReturn) and
+    BEGIN
+        if DisplayNewData then
+           case chr(PacketByte) of
+              controll: begin
+                 PacketDisplayBufferStart := 0;
+                 PacketDisplayBufferEnd := 12;
+                 for i := 0 TO 12 do PacketDisplayBuffer[i] := '';
+                 DisplayPacketDisplayBuffer;
+              end;
+              controlg: begin
+              end;
+              controlh: gotoxy(wherex-1,wherey);
+              linefeed: begin
+                 writeln;
+                 TempString := TempString + Chr (PacketByte);
+                 break;
+              end;
+              carriagereturn: gotoxy(1,wherey);
+           else
+              write(chr(packetbyte));
+              TempString := TempString + Chr (PacketByte);
+              IF Length (TempString) = 255 THEN Break;
+           end
+        else if ((Chr(PacketByte) <> CarriageReturn) and
             (Chr(PacketByte) <> ControlG)) then
-        begin
-           TempString := TempString + Chr (PacketByte);
-           IF Chr(PacketByte) = LineFeed THEN Break;
-           IF Length (TempString) = 255 THEN Break;      { The rest can wait }
-        end;
-        END;
+           begin
+              TempString := TempString + Chr (PacketByte);
+              IF Chr(PacketByte) = LineFeed THEN Break;
+              IF Length (TempString) = 255 THEN Break;
+           end;
+    END;
 
     { If the Control-B window is up, then we will be told to write this
       data so it appears in real time on the screen (instead of waiting
       until the line is complete.  }
-
-    IF DisplayNewData THEN Write (TempString);
 
     { Append data to PacketDisplayLine }
 
@@ -848,6 +869,7 @@ VAR TempString: STRING;
 
 
 PROCEDURE PacketObject.Init;
+var i:integer;
 
     BEGIN
     PacketDisplayLine           := '';
@@ -856,7 +878,8 @@ PROCEDURE PacketObject.Init;
     PacketMemoryStart           := 0;
     PacketMemoryEnd             := 0;
     PacketDisplayBufferStart    := 0;
-    PacketDisplayBufferEnd      := 0;
+    PacketDisplayBufferEnd      := 12;
+    for i := 0 TO 12 do PacketDisplayBuffer[i] := '';
     PacketInputFileName         := '';
     PacketInputFileOpen         := False;
     PacketInputFileDelay        := 1;

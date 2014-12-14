@@ -1,10 +1,14 @@
 0.38
 - Made the child process that creates the shell in the control-b packet
   window a new session so its pseudo tty can be its controlling
-  terminal. This allows job control control-c, control-z, etc. to work
+  terminal. This turns on job control: control-c, control-z, etc.
   in the forked shell.
-- Added up arrow and down arrow to the control-b packet window input, so
-  they send the correct sequences to the shell to give a command history.
+- Added arrow keys to the control-b packet window input, so they send the
+  correct sequences to the shell to give a command history. Note that
+  Tr has to emulate a terminal internally to make this work, so it
+  only emulates the simplest glasstty. The history editing is rather
+  minimal if you use the default emacs inputrc. (vi mode is somewhat more
+  powerful.)
 
 0.37
 - Added a post option under utilities U then Y to download a new CTY.DAT

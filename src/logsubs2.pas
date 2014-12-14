@@ -1303,6 +1303,7 @@ VAR Key: CHAR;
 
         UpdateTimeAndRateDisplays (True, True);
 
+
         IF NewKeyPressed THEN
             BEGIN
             MarkTime (TimeMark);
@@ -1406,17 +1407,30 @@ VAR Key: CHAR;
 
                   PageUpKey:   SpeedUp;
                   PageDownKey: SlowDown;
-//These send the up arrow and down arrow combinations that
+//These send the arrow key combinations that
 //should give the command history for a linux shell
                   UpArrow:  BEGIN
                     SendChar (ActivePacketPort,chr($1b));
                     SendChar (ActivePacketPort,chr($5b));
                     SendChar (ActivePacketPort,chr($41));
                     END;
+
                   DownArrow: BEGIN
                     SendChar (ActivePacketPort,chr($1b));
                     SendChar (ActivePacketPort,chr($5b));
                     SendChar (ActivePacketPort,chr($42));
+                    END;
+
+                  LeftArrow: BEGIN
+                    SendChar (ActivePacketPort,chr($1b));
+                    SendChar (ActivePacketPort,chr($5b));
+                    SendChar (ActivePacketPort,chr($44));
+                    END;
+
+                  RightArrow: BEGIN
+                    SendChar (ActivePacketPort,chr($1b));
+                    SendChar (ActivePacketPort,chr($5b));
+                    SendChar (ActivePacketPort,chr($43));
                     END;
 
                   ELSE
