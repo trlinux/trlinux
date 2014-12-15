@@ -719,7 +719,7 @@ PROCEDURE PacketObject.CheckPacketBuffer (DisplayNewData: BOOLEAN);
 
 VAR TempString: STRING;
     PacketByte: BYTE;
-    i: integer;
+    i,xnow: integer;
 
     BEGIN
     IF PacketReceiveCharBuffer.IsEmpty THEN Exit;  { No new characters }
@@ -732,6 +732,11 @@ VAR TempString: STRING;
     BEGIN
         if DisplayNewData then
            case chr(PacketByte) of
+              tabkey: begin
+                 xnow := wherex;
+                 gotoxy(((wherex div 8)+1)*8+1,wherey);
+                 for i := 1 to wherex-xnow do tempstring := tempstring + ' ';
+              end;
               controll: begin
                  PacketDisplayBufferStart := 0;
                  PacketDisplayBufferEnd := 12;
