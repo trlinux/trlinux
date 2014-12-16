@@ -734,7 +734,7 @@ VAR TempString: STRING;
            case chr(PacketByte) of
               tabkey: begin
                  xnow := wherex;
-                 gotoxy(((wherex div 8)+1)*8+1,wherey);
+                 gotoxy((((wherex-1) div 8)+1)*8+1,wherey);
                  for i := 1 to wherex-xnow do tempstring := tempstring + ' ';
               end;
               controll: begin
