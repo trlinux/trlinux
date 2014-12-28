@@ -2868,67 +2868,35 @@ VAR FileName, CommandString: Str40;
                   so2rbox.setrcvfocus(RX1)
             end;
 
-            IF SendString <> '' THEN
-                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
+//            IF SendString <> '' THEN
+//                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
             END;
 
 
         IF CommandString = 'SRS' THEN
             BEGIN
-            WHILE FileName <> '' DO
-                BEGIN
-                AddRadioCommandCharacter (ActiveRadio, FileName [1]);
-                Delete (FileName, 1, 1);
-                END;
-
-            IF SendString <> '' THEN
-                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
+               if activeradio = radioone then 
+                  rig1.directcommand(filename)
+               else
+                  rig2.directcommand(filename);
             END;
 
         IF CommandString = 'SRS1' THEN
             BEGIN
-            WHILE FileName <> '' DO
-                BEGIN
-                AddRadioCommandCharacter (RadioOne, FileName [1]);
-                Delete (FileName, 1, 1);
-                END;
-
-            IF SendString <> '' THEN
-                REPEAT millisleep UNTIL RadioSendBufferEmpty (RadioOne);
+               rig1.directcommand(filename);
             END;
 
         IF CommandString = 'SRS2' THEN
             BEGIN
-            WHILE FileName <> '' DO
-                BEGIN
-                AddRadioCommandCharacter (RadioTwo, FileName [1]);
-                Delete (FileName, 1, 1);
-                END;
-
-            IF SendString <> '' THEN
-                REPEAT millisleep UNTIL RadioSendBufferEmpty (RadioTwo);
+               rig2.directcommand(filename);
             END;
-
 
         IF CommandString = 'SRSI' THEN
             BEGIN
-            WHILE FileName <> '' DO
-                BEGIN
-                IF ActiveRadio = RadioOne THEN
-                    AddRadioCommandCharacter (RadioTwo, FileName [1])
-                ELSE
-                    AddRadioCommandCharacter (RadioOne, FileName [1]);
-
-                Delete (FileName, 1, 1);
-                END;
-
-            IF SendString <> '' THEN
-                BEGIN
-                IF ActiveRadio = RadioOne THEN
-                    REPEAT millisleep UNTIL RadioSendBufferEmpty (RadioTwo)
-                ELSE
-                    REPEAT millisleep UNTIL RadioSendBufferEmpty (RadioOne);
-                END;
+               if activeradio = radioone then 
+                  rig2.directcommand(filename)
+               else
+                  rig1.directcommand(filename);
             END;
 
         IF CommandString = 'SWAPRADIOS'     THEN

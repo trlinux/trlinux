@@ -51,7 +51,7 @@ CONST Version = '1.06 - Freeware version based on TR Log 6.69';
 var keyerdebug: boolean;
 
 IMPLEMENTATION
-uses keycode,foot,radio;
+uses keycode,foot,radio,rig,kenwood,timer;
 
 {$I CfgDef}
 {$I ColorCfg}
@@ -344,10 +344,16 @@ VAR FileWrite: TEXT;
             IC746, IC746PRO, IC756, IC756PRO, IC756PROII,  IC736, IC737, IC738,
             IC761, IC765, IC775, IC781:
                 Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,1);
- {KK1L: 6.72 was always 2 stop bits}
+            TS850, K2: begin
+                Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
+                rig1 := kenwoodctl.create;
+                rig1.setport(radio1controlport);
+                addtimer(@rig1.timer);
+            end;
             ELSE
                 Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
             END;
+
         END;
 
     IF Radio2ControlPort <> nil THEN
@@ -363,7 +369,12 @@ VAR FileWrite: TEXT;
             IC746, IC746PRO, IC756, IC756PRO, IC756PROII,  IC736, IC737, IC738,
             IC761, IC765, IC775, IC781:
                 Radio2ControlPort.setparams(Radio2BaudRate,8,NoParity,1);
- {KK1L: 6.72 was always 2 stop bits}
+            TS850, K2: begin
+                Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
+                rig2 := kenwoodctl.create;
+                rig2.setport(radio1controlport);
+                addtimer(@rig2.timer);
+            end;
             ELSE
                 Radio2ControlPort.setparams(Radio2BaudRate,8,NoParity,2);
             END;

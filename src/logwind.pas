@@ -1090,9 +1090,6 @@ VAR
     NumberMinutesProgramRunning: INTEGER;
     NumberSavedWindows:          INTEGER;
 
-    Radio1InquireCount:           INTEGER;
-    Radio2InquireCount:           INTEGER;
-
     SavedWindowList:             ARRAY [0..12] OF SavedWindow;
 
 
@@ -2916,45 +2913,18 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
         IF DoRadios AND (Radio1Type <> NoInterfacedRadio) AND PollRadioOne THEN
             BEGIN
-            Inc (Radio1InquireCount);
 
-            IF (Radio1CommandBufferStart = Radio1CommandBufferEnd) AND     {KK1L: 6.71a removed}{KK1L: 6.72}
-               ((Radio1InquireCount > 1) OR (Radio1InquireCount < 0) OR
-               (ActiveRadio = RadioOne)) THEN
+            IF (ActiveRadio = RadioOne) THEN
                 BEGIN
                 IF GetRadioParameters (RadioOne, '', Freq, Band, Mode, TRUE, False) THEN
                     BEGIN
-                    {KK1L: 6.71 Need to have other radio info ready for ExchangeRadios}
-                    {KK1L: 6.72 Don't need now that I understand what I removed above}
-                    {IF (Radio2Type <> NoInterfacedRadio) AND (Radio2CommandBufferStart = Radio2CommandBufferEnd) THEN}
-                    {    IF GetRadioParameters (RadioTwo, '', DummyFreq, DummyBand, DummyMode, TRUE) THEN             }
-                    {        BEGIN                                                                                    }
-                    {        BandMemory [RadioTwo] := DummyBand;                                                      }
-                    {        ModeMemory [RadioTwo] := DummyMode;                                                      }
-                    {        IF FrequencyMemoryEnable THEN                                                            }
-                    {            FreqMemory [DummyBand, DummyMode] := DummyFreq;                                      }
-                    {        END;                                                                                     }
-
-                    { Now in 1999, I know what this was trying to do...
-                      it was trying to avoid things getting screwed up
-                      while transmitting on the split frequency. }
-
-                    { This is taken out - not sure what the split stuff
-                      was trying to do 19-Aug-97  }
-
-                    { Put back in for testing in 6.48 }
-
                     IF (Abs (Freq - SplitFreq) <= 1000) THEN
                            GoTo IgnoreRadioOneFreq;
 
-                    {KK1L: 6.72 Use FreqPollRate instead of 1000 to keep constant response.}
-                    {           FreqPollRate in ms relates to 1KHz per second.}
-                    {KK1L: 6.72 Scale FreqPollRate to allow variable tuning rate sensitivity.}
                     RadioOnTheMove[RadioOne] := ((PreviousRadioOneFreq <> 0) AND
                                          (Abs (PreviousRadioOneFreq - Freq) > (FreqPollRate * AutoSAPEnableRate div 1000))) OR
                                          (ModeMemory [RadioOne] <> Mode);
 
-                    {KK1L: 6.73 Used for AutoSAPEnable. Fixes entry into SAP when just changing bands or modes}
                     RadioMovingInBandMode[RadioOne] := (RadioOnTheMove[RadioOne]) AND
                                                        (ModeMemory [RadioOne] = Mode) AND
                                                        (BandMemory [RadioOne] = Band);
@@ -2965,7 +2935,6 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                     IF FrequencyMemoryEnable THEN
                         FreqMemory [Band, Mode] := Freq;
 
-                    {KK1L: 6.73 Created to allow freq compare of second radio to band map freq. Could use it elswhere too.}
                     CurrentFreq[RadioOne] := Freq;
 
                     DisplayFrequency (Freq, RadioOne); {KK1L: 6.73 Added Radio}
@@ -3058,7 +3027,6 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
         IgnoreRadioOneFreq:
 
-                Radio1InquireCount := 1;
                 END;
             {QuickDisplay('Done with radio one'); }{KK1L: 6.72 DEBUG}
             END;
@@ -3066,45 +3034,20 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
         IF NOT PollRadioTwo THEN
             DisplayFrequency (0, RadioTwo);
 
-        {IF DoRadios AND (Radio2Type <> NoInterfacedRadio) AND (Radio2PollCount = 0) THEN} {KK1L: 6.71a removed}
-        IF DoRadios AND (Radio2Type <> NoInterfacedRadio) AND PollRadioTwo THEN  {KK1L: 6.72 Added PollRadioTwo}
+        IF DoRadios AND (Radio2Type <> NoInterfacedRadio) AND PollRadioTwo THEN
             BEGIN
-            Inc (Radio2InquireCount);
-            {QuickDisplay2('Working with radio two'); }{KK1L: 6.72 DEBUG}
-
-            {Radio2PollCount := Radio2UpdateSeconds;} {KK1L: 6.71a removed}
-
-            IF (Radio2CommandBufferStart = Radio2CommandBufferEnd) AND    {KK1L: 6.71a removed}{KK1L: 6.72 put back}
-               ((Radio2InquireCount > 1) OR (Radio2InquireCount < 0) OR
-               (ActiveRadio = RadioTwo)) THEN
-            {IF (Radio2CommandBufferStart = Radio2CommandBufferEnd) AND   } {KK1L: 6.72 removed...killed update 2nd radio}
-            {   (ActiveRadio = RadioTwo) THEN                             }
+            IF (ActiveRadio = RadioTwo) THEN
                 BEGIN
                 IF GetRadioParameters (RadioTwo, '', Freq, Band, Mode, TRUE, False) THEN
-                {KK1L: 6.71a Added Polling parm to proc}
                     BEGIN
-                    {KK1L: 6.71 Need to have other radio info ready for ExchangeRadios}
-                    {KK1L: 6.72 Don't need now that I understand what I removed above}
-                    {IF (Radio1Type <> NoInterfacedRadio) AND (Radio1CommandBufferStart = Radio1CommandBufferEnd) THEN}
-                    {    IF GetRadioParameters (RadioOne, '', DummyFreq, DummyBand, DummyMode, TRUE) THEN             }
-                    {        BEGIN                                                                                    }
-                    {        BandMemory [RadioOne] := DummyBand;                                                      }
-                    {        ModeMemory [RadioOne] := DummyMode;                                                      }
-                    {        IF FrequencyMemoryEnable THEN                                                            }
-                    {            FreqMemory [DummyBand, DummyMode] := DummyFreq;                                      }
-                    {        END;                                                                                     }
 
                     IF (Abs (Freq - SplitFreq) <= 1000) THEN
                            GoTo IgnoreRadioTwoFreq;
 
-                    {KK1L: 6.72 Use FreqPollRate instead of 1000 to keep constant response}
-                    {           FreqPollRate in ms relates to 1KHz per second.}
-                    {KK1L: 6.72 Scale FreqPollRate to allow variable tuning rate sensitivity.}
                     RadioOnTheMove[RadioTwo] := ((PreviousRadioTwoFreq <> 0) AND
                                          (Abs (PreviousRadioTwoFreq - Freq) > (FreqPollRate * AutoSAPEnableRate div 1000))) OR
                                          (ModeMemory [RadioTwo] <> Mode);
 
-                    {KK1L: 6.73 Used for AutoSAPEnable. Fixes entry into SAP when just changing bands or modes}
                     RadioMovingInBandMode[RadioTwo] := (RadioOnTheMove[RadioTwo]) AND
                                                        (ModeMemory [RadioTwo] = Mode) AND
                                                        (BandMemory [RadioTwo] = Band);
@@ -3115,7 +3058,6 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                     IF FrequencyMemoryEnable THEN
                         FreqMemory [Band, Mode] := Freq;
 
-                    {KK1L: 6.73 Created to allow freq compare of second radio to band map freq. Could use it elswhere too.}
                     CurrentFreq[RadioTwo] := Freq;
 
                     DisplayFrequency (Freq, RadioTwo);
@@ -3205,7 +3147,6 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
         IgnoreRadioTwoFreq:
 
-                Radio2InquireCount := 1;
                 END;
             {QuickDisplay('Done with radio two');} {KK1L: 6.72 DEBUG}
 
@@ -6324,9 +6265,6 @@ VAR Band: BandType;
 
     RadioOnTheMove[RadioOne]    := False;
     RadioOnTheMove[RadioTwo]    := False;
-
-    Radio1InquireCount          := 0;
-    Radio2InquireCount          := 0;
 
     Rate                        := 0;
     ReminderPostedCount         := 0;
