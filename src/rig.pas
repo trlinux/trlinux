@@ -55,13 +55,7 @@ type
 
    end;
 
-//   kenwoodctl = class(radioctl)
-//   end;
-
    yaesuctl = class(radioctl)
-   end;
-
-   icomctl = class(radioctl)
    end;
 
    orionctl = class(radioctl)

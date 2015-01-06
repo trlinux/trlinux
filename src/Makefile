@@ -72,6 +72,7 @@ SRC=\
    portname.pas\
    rig.pas\
    kenwood.pas\
+   icom.pas\
    datetimec.pas
 
 

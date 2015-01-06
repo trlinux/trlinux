@@ -55,7 +55,10 @@ begin
    str(f,freqstr);
    while length(freqstr) < 11 do freqstr := '0' + freqstr;
    sendstring('F' + VFO + freqstr + ';');
-   if vfo = 'B' then sendstring('FR1;FT1;');
+   if vfo = 'B' then begin
+      sendstring('FR1;FT1;');
+   end
+   else freq := f;
    case m of
       CW: sendstring('MD3;');
       Digital: sendstring('MD6;');
@@ -65,6 +68,7 @@ begin
       else 
          sendstring('MD2;'); //usb
    end;
+   mode := m;
    if (vfo = 'B') then sendstring('FA;FR0;FT0;');
 end;
 

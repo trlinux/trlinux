@@ -88,8 +88,6 @@ TYPE
     SendStatusType = (NothingBeingSent, DitBeingSent, DahBeingSent);
     RotatorType = (NoRotator, DCU1Rotator, OrionRotator, YaesuRotator); {KK1L: 6.71 Added YaesuRotator}
 
-    GobbleStatus = (GobbleDone, GobbleAborted, GobbledTooMuch);
-
     ShiftKeyType = (Shift, AltShift, None);
 
     InterfacedRadioType = (NoInterfacedRadio, K2,
@@ -328,10 +326,6 @@ VAR
     DoingRTTY:    BOOLEAN;
     DVKTimeOut:   INTEGER;
 
-    LastRadioOneMessageRead: Str80;
-    LastRadioOneMessageTime: TimeRecord; {KK1L: 6.71}
-    LastRadioTwoMessageRead: Str80;
-    LastRadioTwoMessageTime: TimeRecord; {KK1L: 6.71}
     LastRadioOneFreq: LONGINT;
     LastRadioTwoFreq: LONGINT;
 
@@ -342,9 +336,6 @@ VAR
     MultiDelayCount:              INTEGER;
 
     PacketOutputDelay:        INTEGER;
-
-    Radio1Delay:         INTEGER;
-    Radio2Delay:         INTEGER;
 
     RadioOneBandOutputStatus: BandType;
     RadioTwoBandOutputStatus: BandType;
@@ -369,345 +360,6 @@ VAR Index, Total: BYTE;
 
     Message := Message + Chr (Total);
     END;
-
-
-
-FUNCTION GobbleCharactersFromSerialPort (ControlPort: serialportx;
-                                         MaximumGobbleCount: INTEGER): GobbleStatus;
-
-VAR GobbleCount, DelayCount: INTEGER;
-
-    { If we are not waiting for more data from the radio, we need to
-      gobble up any characters that the radio might be spitting out
-      for whatever reason }
-
-    BEGIN
-    GobbleCount := 0;
-
-    WHILE ControlPort.CharReady DO
-        BEGIN
-        ControlPort.ReadChar;
-        Inc (GobbleCount);
-
-        { A nice little loop to delay a bit, but keeping an eye on the
-          keyboard and footswitch }
-
-        FOR DelayCount := 1 TO 10 DO
-            BEGIN
-            IF NewKeyPressed OR Footsw.getState THEN
-                BEGIN
-                GobbleCharactersFromSerialPort := GobbleAborted;
-                Exit;
-                END;
-
-//            IF CharReady (ControlPort) THEN Break;
-//            Wait (1);
-   millisleep;
-            END;
-
-        { Am I forver gettting characters?  If so, we have a problem }
-
-        IF GobbleCount > MaximumGobbleCount THEN
-            BEGIN
-            GobbleCharactersFromSerialPort := GobbledTooMuch;
-            Exit;
-            END;
-        END;
-
-    { Okay now }
-
-    GobbleCharactersFromSerialPort := GobbleDone;
-    END;
-
-
-
-
-
-
-FUNCTION GetIcomResponse (Radio: RadioType; VAR IcomAckString: STRING): BOOLEAN;
-
-{ This function reads in data from an Icom radio.  It seems to expect an
-  echo of the command sent to the radio - which I am not sure always
-  occurs }
-
-VAR Timeout: LONGINT;
-    ControlPort: serialportx;
-    FoundTheEcho: BOOLEAN;
-    Resultx, CharPointer: INTEGER;
-    DebugString: STRING;
-
-    BEGIN
-    GetIcomResponse := False;
-    FoundTheEcho := False;
-    IcomAckString := '';
-
-    CASE Radio OF
-        RadioOne: BEGIN
-                  ControlPort  := Radio1ControlPort;
-                  END;
-
-        RadioTwo: BEGIN
-                  ControlPort  := Radio2ControlPort;
-                  END;
-        END;
-
-    REPEAT
-        TimeOut := 0;
-
-        REPEAT
-            Inc (TimeOut);
-
-            IF TimeOut > IcomResponseTimeout THEN
-                BEGIN
-                { Clear last message so if fail next time, we get null string }
-
-                CASE Radio OF
-                    RadioOne:
-                        LastRadioOneMessageRead := '';
-
-                    RadioTwo:
-                        LastRadioTwoMessageRead := '';
-                    END;
-
-                Exit;
-                END;
-
-            IF KeyPressed OR Footsw.getState THEN
-                BEGIN
-                IF RadioDebugMode THEN
-                    BEGIN
-                    FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
-                        DebugString [CharPointer] := Chr (0);
-
-                    DebugString := 'KEY OR FOOTSWITCH PRESSED';
-                    BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
-                    END;
-
-                Exit;
-                END;
-
-//            IF ControlPort.CharReady THEN Break;
-
-//            Wait (1);
-        millisleep;
-
-        UNTIL ControlPort.CharReady;
-
-        { Read in the data }
-
-        IcomAckString := IcomAckString + ControlPort.ReadChar;
-
-        { Don't start an Icom string without $FE being the first byte }
-
-        IF (Length (IcomAckString) = 1) AND (IcomAckString [1] <> Chr ($FE)) THEN
-            IcomAckString := '';
-
-        { You know, the first two bytes should be $FE really. Let's get fancy
-          and fix the string that way. }
-
-        IF (Length (IcomAckString) = 2) AND (IcomAckString [2] <> Chr ($FE)) THEN
-            Insert (Chr ($FE), IcomAckString, 1);
-
-        { The first $FD is assumed to end the Icom echo }
-
-        IF NOT FoundTheEcho THEN
-            IF IcomAckString [Length (IcomAckString)] = Chr ($FD) THEN
-                BEGIN
-                IcomAckString := '';   { Start again!! }
-                FoundTheEcho := True;
-                END;
-
-        { See if we have gotten all the way to the end of it }
-
-        IF IcomAckString [Length (IcomAckString)] = Chr ($FD) THEN
-            BEGIN
-            GetIcomResponse := True;
-            Exit;
-            END;
-
-    UNTIL Length (IcomAckString) > 160;
-
-    { We didn't find what we were looking for }
-
-    END;
-
-
-
-FUNCTION GetOrionResponse (Radio: RadioType; VAR OrionData: STRING): BOOLEAN;
-
-{ This function reads in data from an Orion radio.  It seems to expect an
-  echo of the command sent to the radio - which I am not sure always
-  occurs }
-
-VAR TimeoutTrigger, Timeout: LONGINT;
-    ControlPort: serialportx;
-    Resultx, CharPointer: INTEGER;
-    DebugString: STRING;
-
-    BEGIN
-    GetOrionResponse := False;
-    OrionData := '';
-
-    CASE Radio OF
-        RadioOne: ControlPort  := Radio1ControlPort;
-        RadioTwo: ControlPort  := Radio2ControlPort;
-        END;
-
-    TimeOutTrigger := OrionResponseTimeout * 1000;
-
-    REPEAT
-        TimeOut := 0;
-
-        REPEAT
-            Inc (TimeOut);
-
-            IF TimeOut > TimeOutTrigger THEN
-                BEGIN
-
-                CASE Radio OF
-                    RadioOne:
-                        LastRadioOneMessageRead := '';
-
-                    RadioTwo:
-                        LastRadioTwoMessageRead := '';
-
-                    END;
-
-                IF RadioDebugMode THEN
-                    BEGIN
-                    FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
-                        DebugString [CharPointer] := Chr (0);
-
-                    DebugString := 'TIMEOUT ' + OrionData;
-                    BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
-                    END;
-
-                Exit;
-                END;
-
-            IF KeyPressed OR Footsw.getState THEN
-                BEGIN
-                IF RadioDebugMode THEN
-                    BEGIN
-                    FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
-                        DebugString [CharPointer] := Chr (0);
-
-                    DebugString := 'KEY OR FOOTSWITCH PRESSED';
-                    BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
-                    END;
-
-                Exit;
-                END;
-
-        UNTIL ControlPort.CharReady;
-
-        { Read in the data }
-
-        OrionData := OrionData + ControlPort.ReadChar;
-
-        { See if we have gotten all the way to the end of it }
-
-        IF OrionData [Length (OrionData)] = CarriageReturn THEN
-            BEGIN
-            GetOrionResponse := True;
-            Exit;
-            END;
-
-    UNTIL Length (OrionData) > 160;
-
-    { We didn't find what we were looking for }
-
-    END;
-
-
-
-FUNCTION GetKenwoodResponse (Radio: RadioType; VAR KenwoodData: STRING): BOOLEAN;
-
-{ This function reads in data from an Kenwood radio.  It seems to expect an
-  echo of the command sent to the radio - which I am not sure always
-  occurs }
-
-VAR Timeout: LONGINT;
-    ControlPort: serialportx;
-    Resultx, CharPointer: INTEGER;
-    DebugString: STRING;
-
-    BEGIN
-    GetKenwoodResponse := False;
-    KenwoodData := '';
-
-    CASE Radio OF
-        RadioOne: ControlPort  := Radio1ControlPort;
-        RadioTwo: ControlPort  := Radio2ControlPort;
-        END;
-
-    REPEAT
-        TimeOut := 0;
-
-        REPEAT
-            Inc (TimeOut);
-
-            IF TimeOut > KenwoodResponseTimeout THEN
-                BEGIN
-                IF RadioDebugMode THEN
-                    BEGIN
-                    FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
-                        DebugString [CharPointer] := Chr (0);
-
-                    DebugString := 'KENWOOD TIMEOUT';
-                    BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
-                    END;
-                CASE Radio OF
-                    RadioOne:
-                        LastRadioOneMessageRead := '';
-
-                    RadioTwo:
-                        LastRadioTwoMessageRead := '';
-                    END;
-
-                Exit;
-                END;
-
-            IF KeyPressed OR Footsw.getState THEN
-                BEGIN
-                IF RadioDebugMode THEN
-                    BEGIN
-                    FOR CharPointer := 1 TO SizeOf (DebugString) - 1 DO
-                        DebugString [CharPointer] := Chr (0);
-
-                    DebugString := 'KEY OR FOOTSWITCH PRESSED';
-                    BlockWrite (RadioDebugWrite, DebugString, SizeOf (DebugString), Resultx);
-                    END;
-
-                Exit;
-                END;
-
-//            IF ControlPort.CharReady THEN Break;
-
-//            Wait (1);
-        millisleep;
-
-        UNTIL ControlPort.CharReady;
-
-        { Read in the data }
-
-        KenwoodData := KenwoodData + ControlPort.ReadChar;
-
-        { See if we have gotten all the way to the end of it }
-
-        IF KenwoodData [Length (KenwoodData)] = ';' THEN
-            BEGIN
-            GetKenwoodResponse := True;
-            Exit;
-            END;
-
-    UNTIL Length (KenwoodData) > 160;
-
-    { We didn't find what we were looking for }
-
-    END;
-
-
 
 
 PROCEDURE PutRadioIntoSplit (Radio: RadioType);
@@ -1050,10 +702,6 @@ PROCEDURE SetRadioFreq (Radio: RadioType; Freq: LONGINT; Mode: ModeType; VFO: Ch
 
  { Freq is in hertz - without frequency adder removed yet. }
 
-VAR FreqStr: Str20;
-    CharPointer: INTEGER;
-    SendByte, TempByte: BYTE;
-
     BEGIN
     CASE Radio OF
 
@@ -1136,9 +784,37 @@ FUNCTION GetRadioParameters (Radio: RadioType;
     BEGIN
 
     IF Radio = RadioOne THEN
-        rig1.getradioparameters(freq,band,mode)
+    begin
+        rig1.getradioparameters(freq,band,mode);
+        IF (Abs (LastRadioOneFreq - Freq) > 200000)
+           AND (StableRadio1Freq <> 0) THEN
+           BEGIN
+              LastRadioOneFreq := Freq;
+              Freq := StableRadio1Freq;
+           END
+           ELSE
+           BEGIN
+              LastRadioOneFreq := Freq;
+              StableRadio1Freq := Freq;
+           END;
+           Freq := Freq + Radio1FrequencyAdder;
+    end
     ELSE
+    begin
         rig2.getradioparameters(freq,band,mode);
+        IF (Abs (LastRadioTwoFreq - Freq) > 200000
+           ) AND (StableRadio2Freq <> 0) THEN
+           BEGIN
+              LastRadioTwoFreq := Freq;
+              Freq := StableRadio2Freq;
+           END
+           ELSE
+           BEGIN
+              LastRadioTwoFreq := Freq;
+              StableRadio2Freq := Freq;
+           END;
+           Freq := Freq + Radio2FrequencyAdder;
+    end;
 
     GetRadioParameters := True;
     END;
@@ -1535,21 +1211,6 @@ PROCEDURE K1EAInit;
     DoingRTTY   := False;
 
     DVKTimeOut  := 0;
-
-
-    LastRadioOneMessageRead := '';
-    LastRadioTwoMessageRead := '';
-
-    LastRadioOneMessageTime.Hour   := 0; {KK1L: 6.71}
-    LastRadioOneMessageTime.Minute := 0; {KK1L: 6.71}
-    LastRadioOneMessageTime.Second := 0; {KK1L: 6.71}
-    LastRadioOneMessageTime.Sec100 := 0; {KK1L: 6.71}
-
-    LastRadioTwoMessageTime.Hour   := 0; {KK1L: 6.71}
-    LastRadioTwoMessageTime.Minute := 0; {KK1L: 6.71}
-    LastRadioTwoMessageTime.Second := 0; {KK1L: 6.71}
-    LastRadioTwoMessageTime.Sec100 := 0; {KK1L: 6.71}
-
 
     ModemCharacterSentDelayCount := 0;
     MultiCharacterSentDelayCount := 0;

@@ -51,7 +51,7 @@ CONST Version = '1.06 - Freeware version based on TR Log 6.69';
 var keyerdebug: boolean;
 
 IMPLEMENTATION
-uses keycode,foot,radio,rig,kenwood,timer;
+uses keycode,foot,radio,rig,kenwood,icom,timer;
 
 {$I CfgDef}
 {$I ColorCfg}
@@ -342,8 +342,14 @@ VAR FileWrite: TEXT;
         CASE Radio1Type OF
             IC706, IC706II, IC706IIG, IC707, IC725, IC726, IC728, IC729, IC735,
             IC746, IC746PRO, IC756, IC756PRO, IC756PROII,  IC736, IC737, IC738,
-            IC761, IC765, IC775, IC781:
+            IC761, IC765, IC775, IC781: begin
                 Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,1);
+                rig1 := icomctl.create;
+                icomctl(rig1).setcivaddress(radio1receiveraddress);
+                rig1.setport(radio1controlport);
+                addtimer(@rig1.timer);
+            end;
+
             TS850, K2: begin
                 Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
                 rig1 := kenwoodctl.create;
@@ -367,8 +373,14 @@ VAR FileWrite: TEXT;
         CASE Radio2Type OF
             IC706, IC706II, IC706IIG, IC707, IC725, IC726, IC728, IC729, IC735,
             IC746, IC746PRO, IC756, IC756PRO, IC756PROII,  IC736, IC737, IC738,
-            IC761, IC765, IC775, IC781:
+            IC761, IC765, IC775, IC781: begin
                 Radio2ControlPort.setparams(Radio2BaudRate,8,NoParity,1);
+                rig2 := icomctl.create;
+                icomctl(rig2).setcivaddress(radio2receiveraddress);
+                rig2.setport(radio1controlport);
+                addtimer(@rig2.timer);
+            end;
+
             TS850, K2: begin
                 Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
                 rig2 := kenwoodctl.create;
