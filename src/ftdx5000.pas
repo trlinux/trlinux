@@ -37,6 +37,8 @@ begin
       freq := f;
       fromrigstart := 0; //new frequency so clear radio buffer and state
       fromrigend := 0;
+      torigstart := 0;
+      torigend := 0;
       waiting := false;
    end;
    case m of
