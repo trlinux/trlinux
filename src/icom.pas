@@ -64,7 +64,14 @@ procedure icomctl.setradiofreq(f: longint; m: modetype; vfo: char);
 var freqstr: string;
 begin
    if vfo = 'B' then sendstring(chr($fe)+chr($fe)+chr(address)+chr($e0)
-      +chr($07)+chr($01)+chr($fd));
+      +chr($07)+chr($01)+chr($fd))
+   else
+   begin
+      freq := f;
+      fromrigstart := 0; //new frequency so clear radio buffer and state
+      fromrigend := 0;
+      waiting := false;
+   end;
    case m of
       CW: sendstring(chr($fe)+chr($fe)+chr(address)+chr($e0)+chr($06)
          +chr($03)+chr($fd));

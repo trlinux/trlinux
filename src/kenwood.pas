@@ -58,7 +58,13 @@ begin
    if vfo = 'B' then begin
       sendstring('FR1;FT1;');
    end
-   else freq := f;
+   else
+   begin
+      freq := f;
+      fromrigstart := 0; //new frequency so clear radio buffer and state
+      fromrigend := 0;
+      waiting := false;
+   end;
    case m of
       CW: sendstring('MD3;');
       Digital: sendstring('MD6;');
