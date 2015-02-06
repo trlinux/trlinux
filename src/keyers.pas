@@ -64,7 +64,29 @@ TYPE
         Procedure SetFootSwitch(f: FootSwitchx);virtual;abstract;
         Procedure SetCwGrant(on: boolean);virtual;abstract;
         Procedure dvpptt(on: boolean);virtual;abstract;
+        Procedure debug(on: boolean);virtual;
+        protected
+          debugoutput: boolean;
+          debugfile: textfile;
         END;
 
 implementation
+uses sysutils;
+  procedure keyer.debug(on: boolean);
+  begin
+     debugoutput := on;
+     assignfile(debugfile,'keyer_debug.out');
+     {$I+}
+     try
+        rewrite(debugfile);
+     except
+        on E: EInOutError do
+        begin
+           writeln('Error opening keyer_debug.out. Detail: '
+              + E.ClassName + '/' +E.Message);
+           halt;
+        end;
+     end;
+  end;
+
 END.

@@ -219,6 +219,7 @@ begin
    map1 := 0; //keep eeprom default
    map2 := 0; //keep eeprom default
    PTTForcedon := false;
+   debugoutput := false;
 end;
 
 Procedure YcccKeyer.InitializeKeyer;
@@ -251,31 +252,9 @@ begin
    end;
 
    rc := hid_get_manufacturer_string(hiddev,@tempstring[0],MAX_STR);
-//writeln(stderr,' return code ',rc);
-//writeln(stderr,' manufacturer = ',UCS4StringToUnicodeString(tempstring));
    rc := hid_get_product_string(hiddev,@tempstring[0],MAX_STR);
-//writeln(stderr,' return code ',rc);
-//writeln(stderr,' product = ',UCS4StringToUnicodeString(tempstring));
-//rc := hid_get_serial_number_string(hiddev,@tempstring[0],MAX_STR);
-//writeln(stderr,' return code ',rc);
-//writeln(stderr,' serial = ',UCS4StringToUnicodeString(tempstring));
 tempstring := nil;
-
-// get firmware version -- this needs to be done more intelligently
-// in case the box sends unsolicited stuff.
-//snddata[0] := $00;
-//snddata[1] := CMD_QUERY;
-//snddata[2] := CMD_QUERY;
-//rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
-//writeln(stderr,'return code ',rc);
-//rc := hid_read(hiddev,@rcvdata[0],DATA_SIZE);
-//ifirm1 := rcvdata[2] and $0f;
-//ifirm2 := (rcvdata[2] shr 4) and $0f;
-//writeln(stderr,'Firmware version  = ',ifirm2,'.',ifirm1);
-
    rc := hid_set_nonblocking(hiddev,1);
-//writeln(stderr,'set_nonblocking return code ',rc);
-
 // clear out any garbage sent by the so2r box before we connected
    while (hid_read(hiddev,@rcvdata[0],3) > 0) do continue;
    
@@ -648,6 +627,7 @@ begin
       sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
       hid_close(hiddev);
       hid_exit;
+      if debugoutput then closefile(debugfile);
    end;
 end;
 
@@ -982,49 +962,35 @@ begin
 end;
 
 procedure YcccKeyer.sendcmd(cmd: integer; val: integer);
-//var rc: integer;
 begin
    snddata[0] := 0;
    snddata[1] := cmd;
    snddata[2] := val;
-//   rc := hid_write(hiddev,@snddata[0],DATA_SIZE);
    hid_write(hiddev,@snddata[0],DATA_SIZE);
-
-//writeln(stderr,'sndcmd ',Inttohex(cmd,2),' ',Inttohex(val,2));
-//flush(stderr);
-//if (rc <> 3) then
-//   writeln(stderr,'sndcmd ',cmd,' ',val,' wrote ',rc,' bytes');
-
+   if debugoutput then
+   begin
+      writeln(debugfile,'sndcmd ',Inttohex(cmd,2),' ',Inttohex(val,2));
+      flush(debugfile);
+   end;
 end;
 
 procedure YcccKeyer.readresponses;
 var n: integer;
-//var i,i1,i2,i3: integer;
+    i1,i2: integer;
 begin
    while true do
    begin
       n := hid_read(hiddev,@rcvdata[0],3);
       if (n <= 0) then exit;
-//if (n <> 2 ) then writeln(stderr,n,' bytes read');
-//      for i := 0 to n-1 do
-//      begin
-//         hidbytes[nbytes] := rcvdata[i];
-//         inc(nbytes);
-//         if nbytes = 2 then
-//         begin
-//            nbytes := 0;
-//            i1 := hidbytes[0];
-//            i2 := hidbytes[1];
-//            writeln(stderr,'response ',inttohex(i1,2),' ',inttohex(i2,2));
-//            flush(stderr);
-//            responsebuffer[responsebufferend].cmd := hidbytes[0];
-//            responsebuffer[responsebufferend].val := hidbytes[1];
       if (n = 2) then
       begin
-//i1 := rcvdata[0];
-//i2 := rcvdata[1];
-//writeln(stderr,'response ',inttohex(i1,2),' ',inttohex(i2,2));
-//flush(stderr);
+         if debugoutput then
+         begin
+            i1 := rcvdata[0];
+            i2 := rcvdata[1];
+            writeln(debugfile,'response ',inttohex(i1,2),' ',inttohex(i2,2));
+            flush(debugfile);
+         end;
          responsebuffer[responsebufferend].cmd := rcvdata[0];
          responsebuffer[responsebufferend].val := rcvdata[1];
          responsebufferend := (responsebufferend + 1) mod ResponseBufferSize;

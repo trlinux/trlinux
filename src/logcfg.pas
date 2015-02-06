@@ -28,6 +28,7 @@ CONST Version = '1.06 - Freeware version based on TR Log 6.69';
 
 {$ENDIF}
 
+var keyerdebug: boolean;
 
 IMPLEMENTATION
 uses keycode,foot,radio;
@@ -348,6 +349,7 @@ VAR FileWrite: TEXT;
             END;
         END;
 
+    ActiveKeyer.debug(keyerdebug);
     InitializeKeyer;
 
     ActiveKeyer.SetMonitorTone(CWTone);
@@ -757,6 +759,9 @@ VAR Result, ParameterCount: INTEGER;
 
         IF UpperCase (ParamStr (ParameterCount)) = 'RADIODEBUG' THEN RadioDebugMode := True;
 
+        IF UpperCase (ParamStr (ParameterCount)) = 'KEYERDEBUG' THEN
+           keyerdebug := True;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'READ'  THEN
             BEGIN
             ReadInLog := True;
@@ -810,5 +815,6 @@ VAR Result, ParameterCount: INTEGER;
     BEGIN
     RemainingMultDisplayMode := NoRemainingMults;
     RunningConfigFile := False;
+    keyerdebug := false;
     END.
 
