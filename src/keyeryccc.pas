@@ -152,7 +152,7 @@ TYPE
 
 IMPLEMENTATION
 
-Uses keycode,linuxsound,xkb,sysutils,cwstring,hidp;
+Uses keycode,linuxsound,xkb,sysutils,cwstring,hidp,timer;
 
 
 procedure YcccKeyer.setrig1band(band: integer);
@@ -344,6 +344,7 @@ begin
 end;
 
 Procedure YcccKeyer.SetActiveRadio(r: RadioType);
+var i:integer;
 begin
    case r of
       RadioOne:
@@ -358,6 +359,8 @@ begin
    end;
    if KeyerInitialized then 
    begin
+      while (not idle) do millisleep;
+      for i := 0 to (Normalptthold+5) do millisleep;
       sendcmd(CMD_SO2R_STATE,so2r_state.val);
    end;
 end;
