@@ -2,8 +2,8 @@ RELEASE=0.38_1
 
 all:
 	test 2 -eq `grep -c "Linux $(RELEASE)" src/versions.inc`
-	(cd doc; make; make clean)
-	(cd src; make; make install; make clean;\
+	(cd doc; make clean; make; make clean)
+	(cd src; make clean; make; make install; make clean;\
             make -f Makefile.post; make clean)
 	(cd log; strip trlog; strip post)
 	
