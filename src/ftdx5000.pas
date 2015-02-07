@@ -28,11 +28,7 @@ var freqstr: string;
 begin
    str(f,freqstr);
    while length(freqstr) < 8 do freqstr := '0' + freqstr;
-   sendstring('F' + VFO + freqstr + ';');
-   if vfo = 'B' then begin
-      sendstring('FR1;FT1;');
-   end
-   else
+   if (vfo = 'A') then
    begin
       freq := f;
       fromrigstart := 0; //new frequency so clear radio buffer and state
@@ -40,6 +36,10 @@ begin
       torigstart := 0;
       torigend := 0;
       waiting := false;
+   end;
+   sendstring('F' + VFO + freqstr + ';');
+   if vfo = 'B' then begin
+      sendstring('FR1;FT1;');
    end;
    case m of
       CW: begin

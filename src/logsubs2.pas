@@ -2358,8 +2358,10 @@ VAR Result: INTEGER;
         {Of course you need to limit entry here otherwise the display will blink like crazy.}
         IF ((BandMapBlinkingCall <> CallLastTimeIWasHere) OR
            (BandMapBlinkingCall <> DupeInfoCallPrompt)) THEN
+//if bandmapblinkingcall <> calllasttimeiwashere then
             BEGIN
             CallLastTimeIWasHere := BandMapBlinkingCall; {KK1L: 6.73}
+
             IF BandMapBlinkingCall <> '' THEN
                 BEGIN
                 BandMapInitialExchange := InitialExchangeEntry (BandMapBlinkingCall);
