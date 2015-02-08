@@ -1,3 +1,8 @@
+0.39
+- Reverted flashing fix of 0.37 until I study code more.
+- Fixed bug where YCCC SO2R box switched the transmit rig back before
+  the ptt tail time had expired when transmitting on the inactive rig.
+
 0.38
 - Made the child process that creates the shell in the control-b packet
   window a new session so its pseudo tty can be its controlling
