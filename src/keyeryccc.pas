@@ -69,6 +69,7 @@ TYPE
         Footsw: FootSwitchx;
         mirror: byte;
         blend: integer;
+        waitingpaddleptt: boolean;
         map1: integer;
         map2: integer;
         procedure sendcmd(cmd: integer; val: integer);
@@ -220,6 +221,7 @@ begin
    map2 := 0; //keep eeprom default
    PTTForcedon := false;
    debugoutput := false;
+   waitingpaddleptt := false;
 end;
 
 Procedure YcccKeyer.InitializeKeyer;
@@ -346,6 +348,21 @@ end;
 Procedure YcccKeyer.SetActiveRadio(r: RadioType);
 var i:integer;
 begin
+//
+//If the yccc box has ptt on, and the rig is changed, the new rig inherits
+//the ptt state. This is a disaster.  Unfortunately, as far as I can
+//tell, the yccc box does not communicate the ptt state. The work around is
+//two fold.  First, in case the message was aborted by the paddles where TR
+//handles ptt, send a clear ptt command, and wait for this to be processed
+//by the yccc box (with a 255ms time out).  Second, no matter what, wait
+//for the ptt hold time (+ 5ms to avoid a race condition).
+//
+   if KeyerInitialized then
+   begin
+      waitingpaddleptt := true;
+      so2r_state.ptt := 0;
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
+   end;
    case r of
       RadioOne:
       begin
@@ -360,7 +377,12 @@ begin
    if KeyerInitialized then 
    begin
       while (not idle) do millisleep;
-      for i := 0 to (Normalptthold+5) do millisleep;
+      for i := 1 to 255 do 
+      begin
+         if waitingpaddleptt then millisleep else break;
+      end;
+      waitingpaddleptt := false;
+      for i := 1 to (Normalptthold+5) do millisleep;
       sendcmd(CMD_SO2R_STATE,so2r_state.val);
    end;
 end;
@@ -750,6 +772,7 @@ var
     i: integer;
     cs: integer;
     abortreason: keyer_abort_t;
+    statereason: so2r_state_t;
 begin
    if not KeyerInitialized then exit;
    if ctrlshift then //yccc keyer can't tune with dits
@@ -774,6 +797,13 @@ begin
    while responsebufferstart <> responsebufferend do
    begin
       case responsebuffer[responsebufferstart].cmd of
+
+         CMD_SO2R_STATE:
+         begin
+            statereason.val := responsebuffer[responsebufferstart].val;
+            if (waitingpaddleptt and (statereason.ptt = 0)) then
+               waitingpaddleptt := false;
+         end;
 
          CMD_KEYER_ABORT:
          begin
@@ -819,6 +849,7 @@ begin
                   begin
                      paddlepttholdcount := round(714.0/codespeed)*paddlePTThold;
                      so2r_state.ptt := 1; //force ptt on for hold count
+                     waitingpaddleptt := true;
                      sendcmd(CMD_SO2R_STATE,so2r_state.val);
                   end;
                end;
