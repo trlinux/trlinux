@@ -1,3 +1,6 @@
+0.40
+- Fixed missing chr(0) from end of url for country file CTY.DAT.
+
 0.39
 - Reverted flashing fix of 0.37 until I study code more.
 - Fixed bug where YCCC SO2R box switched the transmit rig back before
