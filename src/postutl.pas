@@ -707,6 +707,7 @@ BEGIN
     WriteLn ('This procedure will download the latest version of CTY.DAT');
     WriteLn ('From ' + Url);
     WriteLn;
+    url := url + chr(0);
     setlength(CtyFile,200);
     setlength(CtyFileOld,200);
     CtyFile := FindDirectory ('CTY.DAT') + DirectorySeparator + 'CTY.DAT'
