@@ -382,7 +382,7 @@ VAR FileWrite: TEXT;
             end;
 
             TS850, K2: begin
-                Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
+                Radio2ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
                 rig2 := kenwoodctl.create;
                 rig2.setport(radio1controlport);
                 addtimer(@rig2.timer);
