@@ -360,7 +360,7 @@ VAR FileWrite: TEXT;
                 Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
             END;
 
-        END;
+        END else rig1 := radioctl.create; //dummy
 
     IF Radio2ControlPort <> nil THEN
         BEGIN
@@ -390,7 +390,7 @@ VAR FileWrite: TEXT;
             ELSE
                 Radio2ControlPort.setparams(Radio2BaudRate,8,NoParity,2);
             END;
-        END;
+        END else rig2 := radioctl.create; //dummy
 
     ActiveKeyer.debug(keyerdebug);
     InitializeKeyer;

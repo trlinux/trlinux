@@ -5,7 +5,7 @@ interface
 uses communication,tree;
 
 const
-   rigbuffersize = 256;
+   rigbuffersize = 1024;
 
 type
 //   ModeType = (CW, Digital, Phone, Both, NoMode, FM);
@@ -19,20 +19,19 @@ type
    radioctl = class
       public
       constructor create;virtual;
-      procedure putradiointosplit;virtual;abstract;
-      procedure putradiooutofsplit;virtual;abstract;
+      procedure putradiointosplit;virtual;
+      procedure putradiooutofsplit;virtual;
       procedure setradiofreq(f: longint; m: modetype; vfo: char);virtual;
-         abstract;
-      procedure clearrit;virtual;abstract;
-      procedure bumpritup;virtual;abstract;
-      procedure bumpritdown;virtual;abstract;
-      procedure bumpvfoup;virtual;abstract;
-      procedure bumpvfodown;virtual;abstract;
+      procedure clearrit;virtual;
+      procedure bumpritup;virtual;
+      procedure bumpritdown;virtual;
+      procedure bumpvfoup;virtual;
+      procedure bumpvfodown;virtual;
       procedure setpollradio(polling: boolean);virtual;
       function getradioparameters(var f: longint; var b: bandtype;
          var m: modetype): boolean;virtual;
-      procedure responsetimeout(ms: integer);virtual;abstract;
-      procedure directcommand(s: string);virtual;abstract;
+      procedure responsetimeout(ms: integer);virtual;
+      procedure directcommand(s: string);virtual;
       procedure timer(caughtup: boolean);virtual;
       procedure setport(port: serialportx);virtual;
       procedure setpolltime(ms: integer);virtual;
@@ -145,6 +144,46 @@ begin
       end;
    end;
    getband := NoBand;
+end;
+
+procedure radioctl.putradiointosplit;
+begin
+end;
+
+procedure radioctl.putradiooutofsplit;
+begin
+end;
+
+procedure radioctl.setradiofreq(f: longint; m: modetype; vfo: char);
+begin
+end;
+
+procedure radioctl.clearrit;
+begin
+end;
+
+procedure radioctl.bumpritup;
+begin
+end;
+
+procedure radioctl.bumpritdown;
+begin
+end;
+
+procedure radioctl.bumpvfoup;
+begin
+end;
+
+procedure radioctl.bumpvfodown;
+begin
+end;
+
+procedure radioctl.responsetimeout(ms: integer);
+begin
+end;
+
+procedure radioctl.directcommand(s: string);
+begin
 end;
 
 end.

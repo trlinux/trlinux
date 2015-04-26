@@ -81,6 +81,7 @@ type
        paritytype; stopbits: integer);
     function devname: string; override;
     procedure refork;
+    procedure rcvflush;
   end;
 
   parallelportx = class(keyerportx)
@@ -365,6 +366,11 @@ begin
    end;
 end;
 
+procedure serialportx.rcvflush;
+begin
+   tcflush(fd,TCIFLUSH);
+end;
+
 destructor serialportx.destroy;
 begin
    fpClose(fd);
@@ -431,7 +437,7 @@ begin
 //    tios.c_cflag := tios.c_cflag or CRTSCTS;
 
   tcflush(fd, TCIOFLUSH);
-  tcsetattr(fd, TCSANOW, tios)
+  tcsetattr(fd, TCSANOW, tios);
 end;
 
 procedure serialportx.invert(inv: boolean);
