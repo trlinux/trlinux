@@ -1,4 +1,3 @@
-//$Id: trcrt.pas,v 1.7 2013/07/22 23:31:24 schmidt Exp $
 {
     This file is part of the Free Pascal run time library.
     Copyright (c) 1999-2000 by Michael Van Canneyt and Peter Vreman,

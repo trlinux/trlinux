@@ -1,8 +1,6 @@
 //
 //Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015.
 //
-//This file is part of TR log for linux.
-//
 //TR log for linux is free software: you can redistribute it and/or
 //modify it under the terms of the GNU General Public License as
 //published by the Free Software Foundation, either version 2 of the
@@ -17,14 +15,3 @@
 //    Public License along with TR log for linux.  If not, see
 //<http://www.gnu.org/licenses/>.
 //
-
-UNIT radio;
-{$mode objfpc}
-
-INTERFACE
-
-TYPE
-    RadioType = (NoRadio, RadioOne, RadioTwo);
-
-IMPLEMENTATION
-END.
