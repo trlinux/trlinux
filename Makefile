@@ -55,6 +55,8 @@ trlinuxsrc-r$(RELEASE).tgz:
           cp -r trlinux/src trlinuxsrc-r$(RELEASE)/src;\
           cp -r trlinux/files trlinuxsrc-r$(RELEASE)/files; \
           cp trlinux/RELEASE_NOTES trlinuxsrc-r$(RELEASE) ; \
+          cp trlinux/COPYING trlinuxsrc-r$(RELEASE) ; \
+          cp trlinux/COPYRIGHT trlinuxsrc-r$(RELEASE) ; \
           tar --exclude CVS --exclude TRMASTER.DTA.save --exclude TRMASTER.DTA\
               -czf $@ trlinuxsrc-r$(RELEASE)/doc trlinuxsrc-r$(RELEASE)/log \
                trlinuxsrc-r$(RELEASE)/files \
