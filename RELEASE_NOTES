@@ -18,7 +18,8 @@ You should have received a copy of the GNU General
 
 0.40
 - Fixed missing chr(0) from end of url for country file CTY.DAT.
-- Prepared for open source release under GPL.
+- Prepared for open source release under GPL. Added copyright notices
+  and the license files.
 
 0.39
 - Reverted flashing fix of 0.37 until I study code more.
