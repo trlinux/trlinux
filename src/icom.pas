@@ -65,7 +65,7 @@ begin
    commandretrycount := 0;
    address := $04; //ic-735
    echofound := false;
-   traddress := $e1; //test for n9rv -- normally $e0
+   traddress := $e0;
 end;
 
 procedure icomctl.setcivaddress(addressin: byte);
@@ -93,6 +93,7 @@ end;
 procedure icomctl.setradiofreq(f: longint; m: modetype; vfo: char);
 var freqstr: string;
 begin
+   mode := m;
    if (vfo = 'A') then
    begin
       freq := f;
@@ -183,7 +184,36 @@ begin
          inc(i);
          response[i] := c;
          setlength(response,i);
-         if waiting and (not echofound) and (i = length(lastcommand)) then
+         if (response[1] = chr($fe)) and (response[2] = chr($fe)) and
+            (response[3] = chr($00)) and (response[4] = chr(address)) then
+         begin //transceive mode grab freq/mode
+            case ord(response[5]) of
+               0: if ((i = 10) or (i=11)) then
+                  begin
+                     f1 := ord(response[6]);
+                     f2 := ord(response[7]);
+                     f3 := ord(response[8]);
+                     f4 := ord(response[9]);
+                     f5 := ord(response[10]);
+                     freq := (f1 and $0f)+10*(f1 shr 4)
+                        +100*((f2 and $0f)+10*(f2 shr 4))
+                        +10000*((f3 and $0f)+10*(f3 shr 4))
+                        +1000000*((f4 and $0f)+10*(f4 shr 4));
+                     if (i=11) then freq := freq
+                       +100000000*((f5 and $0f)+10*(f5 shr 4));
+                  end;
+               1: begin
+                     case ord(response[6]) of
+                        0,1: mode := phone;
+                        3: mode := cw;
+                        4: mode := digital;
+                        else mode := cw;
+                     end;
+                     if (i = 8) then filterbyte := ord(response[7]);
+                  end;
+            end;
+         end
+         else if waiting and (not echofound) and (i = length(lastcommand)) then
          begin
             echofound := true;
             for j:=1 to i do
@@ -191,8 +221,7 @@ begin
                echofound := echofound and (response[j] = lastcommand[j])
             end;
          end
-         else
-         if waiting and echofound and (response[1] = chr($fe)) and
+         else if waiting and echofound and (response[1] = chr($fe)) and
             (response[2] = chr($fe)) and (response[3] = chr(traddress)) and
             (response[4] = chr(address)) then
          begin
@@ -261,7 +290,7 @@ begin
       if commandcount >= commandtime then begin
          waiting := false;
          commandcount := 0;
-         writeln(stderr,'timed out');
+//         writeln(stderr,'timed out');
       end;
    end;
    if ((not waiting) and (pollcounter >= polltime)) and pollradio then
