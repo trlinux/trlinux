@@ -2901,8 +2901,8 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
         { Check to see if we should do radio polling stuff or not }
 
-        IF (FullTimeString = LastFullTimeString) AND (Hundredths < LastSecond100 + (FreqPollRate div 10)) THEN
-            Exit;
+//        IF (FullTimeString = LastFullTimeString) AND (Hundredths < LastSecond100 + (FreqPollRate div 10)) THEN
+//            Exit;
 
         LastSecond100 := Hundredths; {KK1L: 6.71a}
 
