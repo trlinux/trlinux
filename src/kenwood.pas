@@ -26,7 +26,7 @@ uses rig,timer,tree;
 type
    kenwoodctl = class(radioctl)
       public
-      constructor create;override;
+      constructor create(debugin: boolean);override;
       procedure putradiointosplit;override;
       procedure putradiooutofsplit;override;
       procedure setradiofreq(f: longint; m: modetype; vfo: char);override;
@@ -71,16 +71,16 @@ type
 
    ftdx5000ctl = class(kenwoodctl)
       public
-      constructor create;override;
+      constructor create(debugin: boolean);override;
    end;
   
 
 
 implementation
 
-constructor kenwoodctl.create;
+constructor kenwoodctl.create(debugin: boolean);
 begin
-   inherited create;
+   inherited create(debugin);
    commandtime := 500;
    commandcount := 0;
    commandmaxretry := 2;
@@ -109,9 +109,9 @@ begin
    bumpignore := false
 end;
 
-constructor ftdx5000ctl.create;
+constructor ftdx5000ctl.create(debugin: boolean);
 begin
-   inherited create;
+   inherited create(debugin);
    commandtime := 500;
    commandcount := 0;
    commandmaxretry := 2;

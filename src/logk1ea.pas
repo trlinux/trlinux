@@ -1154,11 +1154,11 @@ BEGIN
         END;
 
 
-    IF RadioDebugMode THEN
-        BEGIN
-        Assign  (RadioDebugWrite, 'RADIO.DBG');
-        ReWrite (RadioDebugWrite, 1);
-        END;
+//    IF RadioDebugMode THEN
+//        BEGIN
+//        Assign  (RadioDebugWrite, 'RADIO.DBG');
+//        ReWrite (RadioDebugWrite, 1);
+//        END;
 
     IF TalkDebugMode THEN
         BEGIN
@@ -1249,7 +1249,9 @@ PROCEDURE K1EAInit;
 
 PROCEDURE CloseDebug;
     BEGIN
-    IF RadioDebugMode THEN Close (RadioDebugWrite);
+//    IF RadioDebugMode THEN Close (RadioDebugWrite);
+    rig1.closedebug();
+    rig2.closedebug();
     IF TalkDebugMode  THEN Close (TalkDebugWrite);
     END;
 

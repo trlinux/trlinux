@@ -37,7 +37,7 @@ type
 
    radioctl = class
       public
-      constructor create;virtual;
+      constructor create(debugin: boolean);virtual;
       procedure putradiointosplit;virtual;
       procedure putradiooutofsplit;virtual;
       procedure setradiofreq(f: longint; m: modetype; vfo: char);virtual;
@@ -54,10 +54,13 @@ type
       procedure timer(caughtup: boolean);virtual;
       procedure setport(port: serialportx);virtual;
       procedure setpolltime(ms: integer);virtual;
+      procedure closedebug();
 
       protected
       freq: longint;
       mode: modetype;
+      debug: boolean;
+      debugopen: boolean;
       polltime: integer;
       pollcounter: integer;
       pollradio: boolean;
@@ -67,6 +70,7 @@ type
       torig: rigbuffer;
       torigstart,torigend: integer;
       waiting: boolean;
+      debugfile: text;
       lastcommand: string;
       procedure sendstring(s: string);
       function getband(f: longint):bandtype;
@@ -97,7 +101,7 @@ const
       Band15, Band10, Band30, Band17, Band12, Band6, Band2, Band222, Band432,
                Band902, Band1296);
 
-constructor radioctl.create;
+constructor radioctl.create(debugin: boolean);
 begin
    fromrigstart := 0;
    fromrigend := 0;
@@ -111,6 +115,8 @@ begin
    radioport := nil;
    waiting := false;
    lastcommand := '';
+   debug := debugin;
+   debugopen := false;
 end;
 
 procedure radioctl.setpolltime(ms: integer);
@@ -124,9 +130,31 @@ begin
    pollradio := polling;
 end;
 
+procedure radioctl.closedebug();
+begin
+   if debugopen then close(debugfile);
+end;
+
 procedure radioctl.setport(port: serialportx);
+var tempstr: string;
+    i: longint;
 begin
    radioport := port;
+   if (debug) then
+   begin
+      debugopen := true;
+      tempstr := port.devname;
+      for i := length(tempstr) downto 1 do
+      begin
+         if tempstr[i] = directoryseparator then
+         begin
+            delete(tempstr,1,i);
+            break;
+         end
+      end;
+      assign(debugfile,'rig_' + tempstr + '.dbg');
+      rewrite(debugfile);
+   end;
 end;
 
 procedure radioctl.timer(caughtup: boolean);

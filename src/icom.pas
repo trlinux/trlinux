@@ -26,7 +26,7 @@ uses rig,timer,tree;
 type
    icomctl = class(radioctl)
       public
-      constructor create;override;
+      constructor create(debugin: boolean);override;
       procedure putradiointosplit;override;
       procedure putradiooutofsplit;override;
       procedure setradiofreq(f: longint; m: modetype; vfo: char);override;
@@ -56,16 +56,16 @@ type
 implementation
 uses sysutils;
 
-constructor icomctl.create;
+constructor icomctl.create(debugin: boolean);
 begin
-   inherited create;
+   inherited create(debugin);
    commandtime := 40;
    commandcount := 0;
    commandmaxretry := 2;
    commandretrycount := 0;
    address := $04; //ic-735
    echofound := false;
-   traddress := $e0;
+   traddress := $e1;
 end;
 
 procedure icomctl.setcivaddress(addressin: byte);
@@ -172,8 +172,10 @@ begin
    while radioport.charready do
    begin
       c := radioport.readchar();
+      if debugopen then write(debugfile,inttohex(ord(c),2));
       if c = chr($fd) then
       begin
+         if debugopen then writeln(debugfile,inttohex(ord(c),2));
          i := 0;
          while fromrigstart <> fromrigend do
          begin
@@ -190,6 +192,7 @@ begin
             case ord(response[5]) of
                0: if ((i = 10) or (i=11)) then
                   begin
+                     if debugopen then writeln(debugfile,'Transceive mode freq');
                      f1 := ord(response[6]);
                      f2 := ord(response[7]);
                      f3 := ord(response[8]);
@@ -203,6 +206,7 @@ begin
                        +100000000*((f5 and $0f)+10*(f5 shr 4));
                   end;
                1: begin
+                     if debugopen then writeln(debugfile,'Transceive mode');
                      case ord(response[6]) of
                         0,1: mode := phone;
                         3: mode := cw;
@@ -220,28 +224,37 @@ begin
             begin
                echofound := echofound and (response[j] = lastcommand[j])
             end;
+            if debugopen then writeln(debugfile,'echo found ',echofound);
          end
          else if waiting and echofound and (response[1] = chr($fe)) and
             (response[2] = chr($fe)) and (response[3] = chr(traddress)) and
             (response[4] = chr(address)) then
          begin
+            if debugopen then writeln(debugfile,'sent to my address');
             if (i < 6) or  (response[i-1] = chr($fa)) then
             begin
                inc(commandretrycount);
                if commandretrycount <= commandmaxretry then
                begin
+                  if debugopen then writeln(debugfile,'resending command ');
                   for k := 1 to length(lastcommand) do
+                  begin
                      radioport.putchar(lastcommand[k]);
+                     if debugopen then write(debugfile,lastcommand[k]);
+                  end;
+                  if debugopen then writeln(debugfile);
                   waiting := true;
                end
                else
                begin
                   waiting := false;
                   commandretrycount := 0;
+                  if debugopen then writeln(debugfile,'giving up on retries');
                end;
             end
             else if (response[5] = chr($03)) then //frequency
             begin
+               if debugopen then writeln(debugfile,'polled frequency message');
                waiting := false;
                if ((i = 10) or (i=11)) then
                begin
@@ -260,6 +273,7 @@ begin
             end
             else if (response[5] = chr($04)) then //mode and possible filter
             begin
+               if debugopen then writeln(debugfile,'polled mode message');
                waiting := false;
                if ((i = 7) or (i = 8)) then
                begin
@@ -290,7 +304,7 @@ begin
       if commandcount >= commandtime then begin
          waiting := false;
          commandcount := 0;
-//         writeln(stderr,'timed out');
+         if debugopen then writeln(debugfile,'command timed out');
       end;
    end;
    if ((not waiting) and (pollcounter >= polltime)) and pollradio then
@@ -313,7 +327,13 @@ begin
          if command[i] = chr($fd) then begin
             setlength(command,i);
             torigstart := j;
-            for k := 1 to length(command) do radioport.putchar(command[k]);
+            if debugopen then write(debugfile,'sending ');
+            for k := 1 to length(command) do
+            begin
+               radioport.putchar(command[k]);
+               if debugopen then write(debugfile,inttohex(ord(command[k]),2));
+            end;
+            if debugopen then writeln(debugfile);
             lastcommand := command;
             waiting := true;
             echofound := false;
