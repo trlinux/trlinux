@@ -18,13 +18,13 @@
 //<http://www.gnu.org/licenses/>.
 //
 {$mode objfpc}
-unit kenwood;
+unit rigctld;
 
 interface
 uses rig,timer,tree;
 
 type
-   kenwoodctl = class(radioctl)
+   rigctldctl = class(radioctl)
       public
       constructor create(debugin: boolean);override;
       procedure putradiointosplit;override;
@@ -48,149 +48,46 @@ type
          commandmaxretry: longint;
          ignorefreq: boolean;
          ignorefreqcount: longint;
-         intosplit: string;
-         outofsplit: string;
-         tovfob: string;
-         tovfoa: string;
-         ritup: string;
-         ritdn: string;
-         ritclr: string;
-         vfoup: string;
-         vfodn: string;
-         cwmode: string;
-         digitalmode: string;
-         lsbmode: string;
-         usbmode: string;
-         freqpos: longint;
-         freqdigits: longint;
-         modepos: longint;
-         responselength: longint;
          bumpcount: longint;
          bumptime: longint;
          bumpignore: boolean;
+         cwfilter,phfilter,digfilter: longint;
    end;
-
-   ftdx5000ctl = class(kenwoodctl)
-      public
-      constructor create(debugin: boolean);override;
-   end;
-
-   ftdx3000ctl = class(kenwoodctl)
-      public
-      constructor create(debugin: boolean);override;
-   end;
-
 
 implementation
+uses sysutils,strutils,keycode;
 
-constructor kenwoodctl.create(debugin: boolean);
+constructor rigctldctl.create(debugin: boolean);
 begin
    inherited create(debugin);
-   commandtime := 200;
+   commandtime := 500;
    commandcount := 0;
    commandmaxretry := 2;
    commandretrycount := 0;
    ignorefreq := false;
    ignorefreqcount := 0;
-   intosplit := 'FR0;FA;FT1;';
-   outofsplit := 'FR0;FT0;';
-   tovfob := 'FR1;FT1;';
-   tovfoa := 'FA;FR0;FT0;';
-   freqpos := 3;
-   freqdigits := 11;
-   modepos := 30;
-   responselength := 38;
-   ritup := 'RU;';
-   ritdn := 'RD;';
-   ritclr := 'RC;';
-   vfoup := 'UP;';
-   vfodn := 'DN;';
-   cwmode := 'MD3;';
-   digitalmode := 'MD6;';
-   lsbmode := 'MD1;';
-   usbmode := 'MD2;';
    bumpcount := 0;
    bumptime := 200;
-   bumpignore := false
+   bumpignore := true;
+   cwfilter := 0;
+   phfilter := 0;
+   digfilter := 0;
 end;
 
-constructor ftdx5000ctl.create(debugin: boolean);
+procedure rigctldctl.putradiointosplit;
 begin
-   inherited create(debugin);
-   commandtime := 200;
-   commandcount := 0;
-   commandmaxretry := 2;
-   commandretrycount := 0;
-   ignorefreq := false;
-   ignorefreqcount := 0;
-   intosplit := 'FR0;FA;FT1;';
-   outofsplit := 'FR0;FT0;';
-   tovfob := 'FR1;FT1;';
-   tovfoa := 'FA;FR0;FT0;';
-   freqpos := 6;
-   freqdigits := 8;
-   modepos := 21;
-   responselength := 27;
-   ritup := 'RU0010;';
-   ritdn := 'RD0010;';
-   ritclr := 'RC;';
-   vfoup := 'EU001;';
-   vfodn := 'ED001;';
-   cwmode := 'MD03;MD13';
-   digitalmode := 'MD06;MD16;';
-   lsbmode := 'MD01;MD11;';
-   usbmode := 'MD02;MD12;';
-   bumpcount := 0;
-   bumptime := 200;
-   bumpignore := false
+   sendstring('|S 1 VFOB'+linefeed);
 end;
 
-constructor ftdx3000ctl.create(debugin: boolean);
+procedure rigctldctl.putradiooutofsplit;
 begin
-   inherited create(debugin);
-   commandtime := 200;
-   commandcount := 0;
-   commandmaxretry := 2;
-   commandretrycount := 0;
-   ignorefreq := false;
-   ignorefreqcount := 0;
-   intosplit := 'FR0;FT3';
-   outofsplit := 'FR0;FT2;';
-   tovfob := 'FR4;FT3;';
-   tovfoa := 'FR0;FT2;';
-   freqpos := 6;
-   freqdigits := 8;
-   modepos := 21;
-   responselength := 27;
-   ritup := 'RU0010;';
-   ritdn := 'RD0010;';
-   ritclr := 'RC;';
-   vfoup := 'EU001;';
-   vfodn := 'ED001;';
-   cwmode := 'MD03;';
-   digitalmode := 'MD06;';
-   lsbmode := 'MD01;';
-   usbmode := 'MD02;';
-   bumpcount := 0;
-   bumptime := 200;
-   bumpignore := false
+   sendstring('|S 0 VFOA'+linefeed);
 end;
 
-procedure kenwoodctl.putradiointosplit;
-begin
-   sendstring(intosplit);
-end;
-
-procedure kenwoodctl.putradiooutofsplit;
-begin
-   sendstring(outofsplit);
-end;
-
-procedure kenwoodctl.setradiofreq(f: longint; m: modetype; vfo: char);
+procedure rigctldctl.setradiofreq(f: longint; m: modetype; vfo: char);
 var freqstr: string;
 begin
    str(f,freqstr);
-   while length(freqstr) < freqdigits do freqstr := '0' + freqstr;
    pollcounter := -3*polltime; // skip next few polls
    torigstart := 0;
    torigend := 0;
@@ -198,63 +95,63 @@ begin
    begin
       freq := f;
    end;
-   sendstring('F' + VFO + freqstr + ';');
    if vfo = 'B' then begin
-      sendstring(tovfob);
+      sendstring('|V VFOB' + linefeed);
    end;
+   sendstring('|F ' + freqstr + linefeed);
    case m of
-      CW: sendstring(cwmode);
-      Digital: sendstring(digitalmode);
+      CW: sendstring('|M CW ' + inttostr(cwfilter) + linefeed);
+      Digital: sendstring('|M RTTY ' + inttostr(digfilter) + linefeed);
       else
       if (freq < 10000000) then
-         sendstring(lsbmode)
+         sendstring('|M LSB ' + inttostr(phfilter) + linefeed)
       else 
-         sendstring(usbmode);
+         sendstring('|M USB ' + inttostr(phfilter) + linefeed);
    end;
    mode := m;
-   if (vfo = 'B') then sendstring(tovfoa);
+   if (vfo = 'B') then sendstring('|V VFOA' + linefeed);
    ignorefreq := true;
    ignorefreqcount := 0;
 end;
 
-procedure kenwoodctl.clearrit;
+procedure rigctldctl.clearrit;
 begin
-   sendstring(ritclr);
+   sendstring('|J 1' + linefeed); // 0 Hz turns it off, try 1 Hz for clear
 end;
 
-procedure kenwoodctl.bumpritup;
-begin
-   if bumpignore then exit;
-   bumpignore := true;
-   bumpcount := 0;
-   sendstring(ritup);
-end;
-
-procedure kenwoodctl.bumpritdown;
+procedure rigctldctl.bumpritup;
 begin
    if bumpignore then exit;
    bumpignore := true;
    bumpcount := 0;
-   sendstring(ritdn);
+//   sendstring();
 end;
 
-procedure kenwoodctl.bumpvfoup;
+procedure rigctldctl.bumpritdown;
 begin
    if bumpignore then exit;
    bumpignore := true;
    bumpcount := 0;
-   sendstring(vfoup);
+//   sendstring();
 end;
 
-procedure kenwoodctl.bumpvfodown;
+procedure rigctldctl.bumpvfoup;
 begin
    if bumpignore then exit;
    bumpignore := true;
    bumpcount := 0;
-   sendstring(vfodn);
+//   sendstring();
 end;
 
-function kenwoodctl.getradioparameters(var f: longint; var b: bandtype;
+procedure rigctldctl.bumpvfodown;
+begin
+   if bumpignore then exit;
+   bumpignore := true;
+   bumpcount := 0;
+//   sendstring();
+end;
+
+function rigctldctl.getradioparameters(var f: longint; var b: bandtype;
          var m: modetype): boolean;
 begin
    f := freq;
@@ -264,12 +161,13 @@ begin
    getradioparameters := true;
 end;
    
-procedure kenwoodctl.timer(caughtup: boolean);
+procedure rigctldctl.timer(caughtup: boolean);
 var c: char;
     response: string;
     command: string;
     i,j,k: integer;
-    freqnow: longint;
+    freqnow,hznow,hz: longint;
+    modestr: string;
     code: word = 0;
 begin
    inherited timer(caughtup);
@@ -278,14 +176,14 @@ begin
    begin
       c := radioport.readchar();
       if debugopen then write(debugfile,c);
-      if c <> ';' then
+      if c <> linefeed then
       begin
          fromrig[fromrigend] := c;
          fromrigend := (fromrigend + 1) mod rigbuffersize;
       end
       else
       begin
-         if debugopen then writeln(debugfile,c);
+         if debugopen then writeln(debugfile,'');
          waiting := false;
          i := 0;
          while fromrigstart <> fromrigend do
@@ -297,45 +195,73 @@ begin
          inc(i);
          response[i] := c;
          setlength(response,i);
-         if response[1] = '?' then
+         if response[length(response)-1] <> '0' then
          begin
-            if debugopen then writeln(debugfile,'received ? resending');
             inc(commandretrycount);
             if commandretrycount <= commandmaxretry then
             begin
+               if debugopen then writeln(debugfile,'Retrying ' + lastcommand);
                for k := 1 to length(lastcommand) do
-               begin
-                  if debugopen then write(debugfile,lastcommand[k]);
                   radioport.putchar(lastcommand[k]);
-               end;
                waiting := true;
-               if debugopen then writeln(debugfile);
             end
             else
             begin
+               if debugopen then writeln(debugfile,'Timeout 1');
                waiting := false;
                commandretrycount := 0;
                commandcount := 0;
-               if debugopen then writeln(debugfile,'giving up on retries');
             end;
          end;
-         if (response[1] = 'I') and (response[2] = 'F') and
-            (length(response) = responselength) then
+         if ansistartsstr('get_freq:|Frequency: ',response) then
          begin
-            if debugopen then writeln(debugfile,'polled information message');
-            val(copy(response,freqpos,freqdigits),freqnow,code);
+            delete(response,1,length('get_freq:|Frequency: '));
+            code := 1;
+            if pos('|',response) <> 0 then
+               val(copy(response,1,pos('|',response)-1),freqnow,code);
             if ignorefreq then
             begin
                freqnow := freq;
                inc(ignorefreqcount);
                ignorefreq := (ignorefreqcount <= 2);
-               if debugopen then writeln(debugfile,'ignoring frequency');
-           end;
+            end;
             if code = 0 then freq := freqnow;
-            case response[modepos] of
-               '1', '2', '4', '5': mode := Phone;
-               '6', '9': mode := Digital;
-               else mode := cw;
+            if debugopen then writeln(debugfile,'Frequency found ',freq);
+         end else if ansistartsstr('get_mode:|Mode: ',response) then
+         begin
+            delete(response,1,length('get_mode:|Mode: '));
+            if pos('|',response) <> 0 then
+            begin
+               modestr := copy(response,1,pos('|',response)-1);
+               delete(response,1,pos('|',response));
+               hz := 0;
+               if ansistartsstr('Passband: ',response) then
+               begin
+                  delete(response,1,length('Passband: '));
+                  val(copy(response,1,pos('|',response)-1),hznow,code);
+               end;
+               if code = 0 then hz := hznow;
+               if (ansicomparestr(modestr,'USB') = 0) or
+                  (ansicomparestr(modestr,'LSB') = 0) then
+               begin
+                  mode := Phone;
+                  phfilter := hz;
+               end
+               else if (ansicomparestr(modestr,'RTTY') = 0) or
+                 (ansicomparestr(modestr,'RTTYR') = 0) then
+               begin
+                  mode := Digital;
+                  digfilter := hz;
+               end
+               else
+               begin
+                  mode := CW;
+                  cwfilter := hz;
+               end;
+               if debugopen then
+               begin
+                  writeln(debugfile,'Mode Filter found ',mode,hz);
+               end;
             end;
          end;
       end;
@@ -347,20 +273,20 @@ begin
    end;
    if waiting then begin
       inc(commandcount);
-      if commandcount >= commandtime then
-      begin
-         if debugopen then writeln(debugfile,'time out flushing read buffer');
+      if commandcount >= commandtime then begin
          while radioport.charready do radioport.readchar();
          fromrigstart := 0;
          fromrigend := 0;
          commandcount := 0;
          commandretrycount := 0;
          waiting := false;
+         if debugopen then writeln(debugfile,'Timeout 2');
       end;
    end;
    if ((not waiting) and (pollcounter >= polltime)) and pollradio then
    begin
-      sendstring('IF;');
+      sendstring('|f' + linefeed);
+      sendstring('|m' + linefeed);
       pollcounter := 0;
    end;
    inc(pollcounter);
@@ -371,12 +297,12 @@ begin
          inc(i);
          command[i] := torig[j];
          j := (j+1) mod rigbuffersize;
-         if command[i] = ';' then begin
+         if command[i] = linefeed then begin
             setlength(command,i);
             torigstart := j;
-            if debugopen then writeln(debugfile,'sending ' + command);
             for k := 1 to length(command) do radioport.putchar(command[k]);
             lastcommand := command;
+            if debugopen then writeln(debugfile,'Sending ',command);
             waiting := true;
             commandcount := 0;
             break;
@@ -385,19 +311,19 @@ begin
    end;
 end;
 
-procedure kenwoodctl.directcommand(s: string);
+procedure rigctldctl.directcommand(s: string);
 begin
-   if (s[length(s)] <> ';') then exit;
-   sendstring(s);
+//   if (s[length(s)] <> linefeed) then exit;
+   sendstring('|w' + s + linefeed);
 end;
 
-procedure kenwoodctl.responsetimeout(ms: integer);
+procedure rigctldctl.responsetimeout(ms: integer);
 begin
    commandtime := (ms*10) div 17;
    if commandtime <= 0 then commandtime := 1;
 end;
 
-function kenwoodctl.getresponsetimeout:longint;
+function rigctldctl.getresponsetimeout:longint;
 begin
    getresponsetimeout := (commandtime*17) div 10;
 end;

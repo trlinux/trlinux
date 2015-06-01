@@ -73,6 +73,7 @@ SRC=\
    rig.pas\
    kenwood.pas\
    icom.pas\
+   rigctld.pas\
    datetimec.pas
 
 

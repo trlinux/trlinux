@@ -59,11 +59,14 @@ type
        buf1,buf2: buftype;
        istart,iend: integer;
        dev: string;
+       ncport: ansistring;
        inverted: boolean;
        procedure readbuf;
        procedure shellfork;
        procedure ncatforkr;
        procedure ncatforks;
+       procedure rigctldforkr;
+       procedure rigctldforkn;
     public
     constructor create(devicename: string); 
     destructor destroy;override;
@@ -201,6 +204,19 @@ begin
          ncatforkr;
          ncatforks;
       end
+   else if pos('RIGCTLD',upcase(devicename)) = 1 then
+      begin
+         dev := devicename;
+         fd := getpt;
+         grantpt(fd);
+         unlockpt(fd);
+         setlength(slave,200);
+         ptsname_r(fd,@slave[1],200);
+         setlength(slave,strlen(pchar(@slave[0])));
+         rigctldforkr;
+         delay(100);
+         rigctldforkn;
+      end
    else
       begin
          fd := fpopen(devicename,O_RDWR or O_NONBLOCK or O_NOCTTY);
@@ -308,12 +324,66 @@ begin
    if (pid = 0) then
    begin
       diewithparent;
-      fdslave := fpopen(slave,O_WRONLY);
+      fdslave := fpopen(slave,O_RDWR);
       fpclose(1);
       fpdup(fdslave);
       fpclose(0);
       fpclose(2);
       fpExeclp('ncat',['-l','-k','--recv-only',port]);
+   end;
+end;
+
+procedure serialportx.rigctldforkr;
+var temp: ansistring;
+    port,rigdev,rignumber,baud,civ: PChar;
+    colonpos: longint;
+begin
+   temp := dev;
+   delete(temp,1,8);
+   colonpos := pos(';',temp);
+   port := Pchar('--port=' + copy(temp,1,colonpos-1));
+   ncport := copy(temp,1,colonpos-1);
+   delete(temp,1,colonpos);
+   colonpos := pos(';',temp);
+   rigdev := Pchar('--rig-file=' + copy(temp,1,colonpos-1));
+   delete(temp,1,colonpos);
+   colonpos := pos(';',temp);
+   rignumber := Pchar('--model=' + copy(temp,1,colonpos-1));
+   delete(temp,1,colonpos);
+   colonpos := pos(';',temp);
+   baud := Pchar('--serial-speed=' + copy(temp,1,colonpos-1));
+   delete(temp,1,colonpos);
+   colonpos := pos(';',temp);
+   civ := Pchar('--civaddr=' + copy(temp,1,colonpos-1));
+   pid := fpfork;
+   if (pid = 0) then
+   begin
+      diewithparent;
+      fpclose(0);
+      fpclose(1);
+      fpclose(2);
+      if length(baud) = 3 then
+         fpExeclp('rigctld',[port,rigdev,rignumber,civ])
+      else
+         fpExeclp('rigctld',[port,rigdev,rignumber,baud,civ]);
+   end
+end;
+
+procedure serialportx.rigctldforkn;
+var fdslave: longint;
+begin
+   pid2 := fpfork;
+   if (pid2 = 0) then
+   begin
+      diewithparent;
+      fdslave := fpopen(slave,O_RDWR);
+      fpclose(0);
+      fpclose(1);
+      fpclose(2);
+      fpdup(fdslave);
+      fpdup(fdslave);
+      fpdup(fdslave);
+      fpExeclp('ncat',['localhost',Pchar(ncport)]);
    end;
 end;
 
@@ -362,6 +432,17 @@ begin
       if (pid2 <> 0) then
       begin
          if (fpwaitpid(pid2,status,WNOHANG) = pid2) then ncatforks;
+      end;
+   end;
+   if pos('RIGCTLD',upcase(dev)) = 1 then
+   begin
+      if (pid <> 0) then
+      begin
+         if (fpwaitpid(pid,status,WNOHANG) = pid) then rigctldforkr;
+      end;
+      if (pid2 <> 0) then
+      begin
+         if (fpwaitpid(pid2,status,WNOHANG) = pid2) then rigctldforkn;
       end;
    end;
 end;

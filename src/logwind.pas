@@ -2914,7 +2914,8 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
         IF DoRadios AND (Radio1Type <> NoInterfacedRadio) AND PollRadioOne THEN
             BEGIN
 
-            IF (ActiveRadio = RadioOne) THEN
+//            IF (ActiveRadio = RadioOne) THEN
+            IF TRUE THEN
                 BEGIN
                 IF GetRadioParameters (RadioOne, '', Freq, Band, Mode, TRUE, False) THEN
                     BEGIN
@@ -3036,7 +3037,8 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
         IF DoRadios AND (Radio2Type <> NoInterfacedRadio) AND PollRadioTwo THEN
             BEGIN
-            IF (ActiveRadio = RadioTwo) THEN
+//            IF (ActiveRadio = RadioTwo) THEN
+            IF TRUE THEN
                 BEGIN
                 IF GetRadioParameters (RadioTwo, '', Freq, Band, Mode, TRUE, False) THEN
                     BEGIN

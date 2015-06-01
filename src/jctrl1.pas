@@ -101,16 +101,13 @@ TYPE MenuEntryType = (NoMenuEntry,
                       HDP,
                       HOF,
                       ICP,
-                      IRT,
                       ITE,
                       IEX,
                       IXO, {KK1L: 6.70}
                       IEC,
                       IFE,
-                      JRT,
                       KNE,
                       KSI,
-                      KRT,
                       KCM,
                       LDZ,
                       LZC,
@@ -180,6 +177,8 @@ TYPE MenuEntryType = (NoMenuEntry,
                       RCQ,
                       RDS,
                       RMD,
+                      RT1,
+                      RT2,
                       SHE,
                       SO2RHM,
                       SO2RBE,
@@ -223,7 +222,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       WBE,
                       WEI,
                       WCP,
-                      YRT,
                       LastMenuEntry);
 
 
@@ -325,18 +323,14 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       HOF: Description := 'HOUR OFFSET';
 
       ICP: Description := 'ICOM COMMAND PAUSE';
-      IRT: Description := 'ICOM RESPONSE TIMEOUT';
       ITE: Description := 'INCREMENT TIME ENABLE';
       IFE: Description := 'INTERCOM FILE ENABLE';
       IEX: Description := 'INITIAL EXCHANGE';
       IXO: Description := 'INITIAL EXCHANGE OVERWRITE'; {KK1L: 6.70}
       IEC: Description := 'INITIAL EXCHANGE CURSOR POS';
 
-      JRT: Description := 'JST RESPONSE TIMEOUT';
-
       KNE: Description := 'K1EA NETWORK ENABLE';
       KSI: Description := 'K1EA STATION ID';
-      KRT: Description := 'KENWOOD RESPONSE TIMEOUT';
       KCM: Description := 'KEYPAD CW MEMORIES';
 
       LDZ: Description := 'LEADING ZEROS';
@@ -412,6 +406,8 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       RCQ: Description := 'RANDOM CQ MODE';
       RDS: Description := 'RATE DISPLAY';
       RMD: Description := 'REMAINING MULT DISPLAY MODE';
+      RT1: Description := 'RADIO ONE RESPONSE TIMEOUT';
+      RT2: Description := 'RADIO TWO RESPONSE TIMEOUT';
 
       SO2RHM: Description := 'SO2R HEADPHONE MODE';
       SO2RBE: Description := 'SO2R BLEND ENABLE';
@@ -461,7 +457,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       WEI: Description := 'WEIGHT';
       WCP: Description := 'WILDCARD PARTIALS';
 
-      YRT: Description := 'YAESU RESPONSE TIMEOUT';
       LastMenuEntry: Description := 'ZZZ';
       ELSE Description := '???';
       END;
@@ -619,7 +614,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       HOF: Write (HourOffset);
 
       ICP: Write (IcomCommandPause);
-      IRT: Write (IcomResponseTimeout);
 
       ITE: Write (IncrementTimeEnable);
       IFE: Write (IntercomFileEnable);
@@ -649,10 +643,8 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       IXO: Write (InitialExchangeOverwrite); {KK1L: 6.70}
 
-      JRT: Write (JSTResponseTimeout);
       KNE: Write (K1EANetworkEnable);
       KSI: Write (K1EAStationID);
-      KRT: Write (KenwoodResponseTimeout);
       KCM: Write (KeyPadCWMemories);
       LDZ: Write (LeadingZeros);
       LZC: Write (LeadingZeroCharacter);
@@ -754,6 +746,10 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
                HiLight:          Write ('HiLight');
                END;
 
+      RT1: Write (RadioOneResponseTimeout);
+
+      RT2: Write (RadioTwoResponseTimeout);
+
       SO2RHM: Case so2rbox.getheadphonemode of
          HNORMAL: write ('NORMAL');
          HSYMMETRIC: write ('SYMMETRIC');
@@ -844,7 +840,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       WBE: Write (WARCBandsEnabled);
       WEI: Write (ActiveKeyer.GetWeight:3:2);
       WCP: Write (WildCardPartials);
-      YRT: Write (YaesuResponseTimeout);
       ELSE Exit;
       END;
 
@@ -1199,7 +1194,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
 
       ICP: Write ('Command delay in ms (default = 300)');
 
-      IRT: Write ('Response timeout in ms (default = 100)');
 
       ITE: IF IncrementTimeEnable THEN
                Write ('Alt1 to Alt0 keys enabled to bump time')
@@ -1240,16 +1234,12 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                AtEnd:   Write ('Cursor at end of initial exhange');
                END;
 
-      JRT: Write ('Response timeout in ms (default = 100)');
-
       KNE: IF K1EANetworkEnable THEN
                Write ('Use K1EA network protocol')
            ELSE
                Write ('Use N6TR network protocol');
 
       KSI: Write ('Station ID used on K1EA network');
-
-      KRT: Write ('Response timeout in ms (default = 25)');
 
       KCM: IF KeyPadCWMemories THEN
                Write ('Numeric keypad sends CQ Ctrl-F1 to F10')
@@ -1533,6 +1523,10 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                HiLight:          Write ('Unworked remaining mults highlighted');
                END;
 
+      RT1: Write ('Response timeout in ms');
+
+      RT2: Write ('Response timeout in ms');
+
       SO2RHM: case so2rbox.getheadphonemode of
                  HNORMAL: write('Normal Stereo');
                  HSPATIAL: write('Rig 1 always left, Rig 2 always right');
@@ -1764,7 +1758,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Only calls starting with partial shown');
 
-      YRT: Write ('Response timeout in ms (default = 100)');
       END;
 
     IF Active THEN

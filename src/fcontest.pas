@@ -732,6 +732,7 @@ VAR TempQTH: QTHRecord;
             MultByMode := False;
             QSOByBand  := True;
             QSOByMode  := False;
+            LogFrequencyEnable := True;
             FoundContest := True;
             END;
 
@@ -1509,6 +1510,7 @@ VAR TempQTH: QTHRecord;
             MultByMode := False;
             QSOByBand  := True;
             QSOByMode  := True;
+            LogFrequencyEnable := True;
             FoundContest := True;
             END;
 

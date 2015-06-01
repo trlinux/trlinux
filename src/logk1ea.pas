@@ -124,7 +124,8 @@ TYPE
                                               JST245,
                                               OMNI6,  {KK1L: 6.73}
                                               ORION,
-                                              ARGO    {KK1L: 6.73}
+                                              ARGO,    {KK1L: 6.73}
+                                              RIGCTL
                                               );
 
 
@@ -185,12 +186,9 @@ VAR ActiveDVKPort:     parallelportx;
     IcomRetries: INTEGER; {KK1L: 6.72}
     RadioOneIcomFilterByte:      BYTE;
     RadioTwoIcomFilterByte:      BYTE;
-    IcomResponseTimeout: WORD;
-
-    JSTResponseTimeout: WORD;
-
+    RadioOneResponseTimeout: LONGINT;
+    RadioTwoResponseTimeout: LONGINT;
     K1EANetworkEnable: BOOLEAN;
-    KenwoodResponseTimeout: WORD;
 
 
     MultiPortBaudRate:      LONGINT;
@@ -203,7 +201,6 @@ VAR ActiveDVKPort:     parallelportx;
     NetDebugBinaryOutput: FILE;
     NetDebugBinaryInput:  FILE;
 
-    OrionResponseTimeout: WORD;
 
     PacketReceiveCharBuffer: CharacterBuffer;
     PacketSendCharBuffer:    CharacterBuffer;
@@ -218,7 +215,6 @@ VAR ActiveDVKPort:     parallelportx;
     Radio1ControlPort:        serialportx;
     Radio1FrequencyAdder:     LONGINT;
     Radio1IcomFilterByte:     BYTE;
-    Radio1PollDelay:          INTEGER;
     Radio1Type:               InterfacedRadioType;
 
     Radio2BandOutputPort:     parallelportx;
@@ -227,7 +223,6 @@ VAR ActiveDVKPort:     parallelportx;
     Radio2ControlPort:        serialportx;
     Radio2FrequencyAdder:     LONGINT;
     Radio2IcomFilterByte:     BYTE;
-    Radio2PollDelay:          INTEGER;
     Radio2Type:               InterfacedRadioType;
 
     RadioDebugWrite:          FILE;
@@ -266,7 +261,6 @@ VAR ActiveDVKPort:     parallelportx;
 
     Trace:              BOOLEAN;
 
-    YaesuResponseTimeout: WORD;
     rig1,rig2 :radioctl;
 
 
@@ -1071,6 +1065,8 @@ if caughtup then
           ReforkCount := ReforkDelay;
           if (ActivePacketPort <> Nil) then ActivePacketPort.refork;
           if (ActiveMultiPort <> Nil) then ActiveMultiPort.refork;
+          if radio1type = RIGCTL then radio1controlport.refork;
+          if radio2type = RIGCTL then radio2controlport.refork;
        end;
     end;
 
@@ -1307,14 +1303,8 @@ VAR Ticks: LONGINT;
     IcomRetries            := 5;   {KK1L: 6.72 Default number of tries to get an Ack from Icoms}
     Radio1IcomFilterByte   := 2;
     Radio2IcomFilterByte   := 2;
-    IcomResponseTimeout    := 100; {KK1L: 6.71 Testing shows 100 is the best setting (was 300). Now default.}{KK1L:6.72 100}
-    JSTResponseTimeout     := 100;
-    KenwoodResponseTimeout := 100; {KK1L: 6.71 Was 25ms. Made 1000ms because when tuning 25ms caused extra queries}
-    YaesuResponseTimeout   := 100;
-    OrionResponseTimeout   := 100;
-
-    Radio1PollDelay := 0;
-    Radio2PollDelay := 0;
+    RadioOneResponseTimeout := 0;
+    RadioTwoResponseTimeout := 0;
 
     Radio1CommandDelay := 0;
     Radio2CommandDelay := 0;

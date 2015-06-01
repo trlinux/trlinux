@@ -38,6 +38,7 @@ type
       function getradioparameters(var f: longint; var b: bandtype;
          var m: modetype): boolean;override;
       procedure responsetimeout(ms: integer);override;
+      function getresponsetimeout:longint;override;
       procedure timer(caughtup: boolean);override;
       procedure directcommand(s: string);override;
       procedure setcivaddress(addressin: byte);
@@ -51,6 +52,8 @@ type
          traddress: byte;
          filterbyte: byte;
          echofound: boolean;
+         pollwait: longint;
+         f10digit: boolean;
    end;
 
 implementation
@@ -65,7 +68,9 @@ begin
    commandretrycount := 0;
    address := $04; //ic-735
    echofound := false;
-   traddress := $e1;
+   traddress := $e0;
+   f10digit := true;
+   pollwait := 30000 div 17; //wait 3 seconds before polling for K9JM box
 end;
 
 procedure icomctl.setcivaddress(addressin: byte);
@@ -119,13 +124,27 @@ begin
             +chr($01)+chr($fd));
    end;
    str(f,freqstr);
-   while length(freqstr) < 8 do freqstr := '0' + freqstr;
-   sendstring(chr($fe)+chr($fe)+chr(address)+chr(traddress)+chr($05)
-      +chr(ord(freqstr[8])-$30 or ((ord(freqstr[7])-$30) shl 4))
-      +chr(ord(freqstr[6])-$30 or ((ord(freqstr[5])-$30) shl 4))
-      +chr(ord(freqstr[4])-$30 or ((ord(freqstr[3])-$30) shl 4))
-      +chr(ord(freqstr[2])-$30 or ((ord(freqstr[1])-$30) shl 4))
-      +chr($fd));
+   if f10digit then
+   begin
+      while length(freqstr) < 10 do freqstr := '0' + freqstr;
+      sendstring(chr($fe)+chr($fe)+chr(address)+chr(traddress)+chr($05)
+         +chr(ord(freqstr[10])-$30 or ((ord(freqstr[9])-$30) shl 4))
+         +chr(ord(freqstr[8])-$30 or ((ord(freqstr[7])-$30) shl 4))
+         +chr(ord(freqstr[6])-$30 or ((ord(freqstr[5])-$30) shl 4))
+         +chr(ord(freqstr[4])-$30 or ((ord(freqstr[3])-$30) shl 4))
+         +chr(ord(freqstr[2])-$30 or ((ord(freqstr[1])-$30) shl 4))
+         +chr($fd));
+   end
+   else
+   begin
+      while length(freqstr) < 8 do freqstr := '0' + freqstr;
+      sendstring(chr($fe)+chr($fe)+chr(address)+chr(traddress)+chr($05)
+         +chr(ord(freqstr[8])-$30 or ((ord(freqstr[7])-$30) shl 4))
+         +chr(ord(freqstr[6])-$30 or ((ord(freqstr[5])-$30) shl 4))
+         +chr(ord(freqstr[4])-$30 or ((ord(freqstr[3])-$30) shl 4))
+         +chr(ord(freqstr[2])-$30 or ((ord(freqstr[1])-$30) shl 4))
+         +chr($fd));
+   end;
    if vfo = 'B' then sendstring(chr($fe)+chr($fe)+chr(address)+chr(traddress)
       +chr($07)+chr($00)+chr($fd));
 end;
@@ -175,7 +194,7 @@ begin
       if debugopen then write(debugfile,inttohex(ord(c),2));
       if c = chr($fd) then
       begin
-         if debugopen then writeln(debugfile,inttohex(ord(c),2));
+         if debugopen then writeln(debugfile,'');
          i := 0;
          while fromrigstart <> fromrigend do
          begin
@@ -289,6 +308,10 @@ begin
                   waiting := false;
                   filterbyte := ord(response[7]);
                end;
+            end else if (response[5] = chr($fb)) then //good result
+            begin
+               waiting := false;
+               if debugopen then writeln(debugfile,'success');
             end;
          end;
       end
@@ -307,7 +330,8 @@ begin
          if debugopen then writeln(debugfile,'command timed out');
       end;
    end;
-   if ((not waiting) and (pollcounter >= polltime)) and pollradio then
+   if (not waiting) and (pollcounter >= polltime) and pollradio and
+      (pollcounter >= pollwait) then
    begin
 // ask for mode ask for frequency
       sendstring(chr($fe)+chr($fe)+chr(address)+chr(traddress)+chr($04)
@@ -315,6 +339,7 @@ begin
       sendstring(chr($fe)+chr($fe)+chr(address)+chr(traddress)+chr($03)
          +chr($fd));
       pollcounter := 0;
+      pollwait := 0;
    end;
    inc(pollcounter);
    if not waiting then begin
@@ -359,6 +384,11 @@ procedure icomctl.responsetimeout(ms: integer);
 begin
    commandtime := (ms*10) div 17;
    if commandtime <= 0 then commandtime := 1;
+end;
+
+function icomctl.getresponsetimeout:longint;
+begin
+   getresponsetimeout := (commandtime*17) div 10;
 end;
 
 end.

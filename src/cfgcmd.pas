@@ -1326,9 +1326,16 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-    IF ID = 'ICOM RESPONSE TIMEOUT' THEN
+    IF ID = 'RADIO ONE RESPONSE TIMEOUT' THEN
         BEGIN
-        Val (CMD, IcomResponseTimeout, xResult);
+        Val (CMD, RadioOneResponseTimeout, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'RADIO TWO RESPONSE TIMEOUT' THEN
+        BEGIN
+        Val (CMD, RadioTwoResponseTimeout, xResult);
         ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
@@ -1477,13 +1484,6 @@ VAR xResult,tempint: INTEGER;
         END;
 
 
-    IF ID = 'JST RESPONSE TIMEOUT' THEN
-        BEGIN
-        Val (CMD, JSTResponseTimeout, xResult);
-        ProcessConfigInstructions2 := xResult = 0;
-        Exit;
-        END;
-
     IF ID = 'K1EA NETWORK ENABLE' THEN
         BEGIN
         K1EANetworkEnable := UpCase (CMD [1]) = 'T';
@@ -1495,13 +1495,6 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         K1EAStationID := UpCase (CMD [1]);
         ProcessConfigInstructions2 := True;
-        Exit;
-        END;
-
-    IF ID = 'KENWOOD RESPONSE TIMEOUT' THEN
-        BEGIN
-        Val (CMD, KenwoodResponseTimeout, xResult);
-        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -1983,13 +1976,6 @@ VAR xResult,tempint: INTEGER;
            END;
 
         ProcessConfigInstructions2 := (ActiveRotatorPort <> nil) OR (CMD = 'NONE');
-        Exit;
-        END;
-
-    IF ID = 'ORION RESPONSE TIMEOUT' THEN
-        BEGIN
-        Val (CMD, OrionResponseTimeout, xResult);
-        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -2621,6 +2607,12 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         Radio1Type := NoInterfacedRadio;
 
+        if upcase(copy(cmd,1,7)) = 'RIGCTLD' then
+        begin
+            Radio1Type := RIGCTL;
+            radio1controlport := serialportx.create(cmd);
+        end;
+
         Cmd := UpperCase (Cmd);
 
         IF Pos (CMD, '-') > 0 THEN Delete (CMD, Pos (CMD, '-'), 1);
@@ -2855,6 +2847,12 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         Radio2Type := NoInterfacedRadio;
 
+        if upcase(copy(cmd,1,7)) = 'RIGCTLD' then
+        begin
+            Radio2Type := RIGCTL;
+            radio2controlport := serialportx.create(cmd);
+        end;
+
         CMD := UpperCase (CMD);
 
         IF Pos (CMD, '-') > 0 THEN Delete (CMD, Pos (CMD, '-'), 1);
@@ -2863,6 +2861,7 @@ VAR xResult,tempint: INTEGER;
 
         IF Copy (CMD, Length (CMD), 1) = 'A' THEN
             Delete (CMD, Length (CMD), 1);
+
 
         IF Copy (CMD, 1, 2) = 'JS' THEN
             BEGIN
@@ -3779,13 +3778,6 @@ VAR xResult: INTEGER;
         BEGIN
         WildCardPartials := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions3 := True;
-        Exit;
-        END;
-
-    IF ID = 'YAESU RESPONSE TIMEOUT' THEN
-        BEGIN
-        Val (CMD, YaesuResponseTimeout, xResult);
-        ProcessConfigInstructions3 := xResult = 0;
         Exit;
         END;
     END;

@@ -321,7 +321,7 @@ VAR RadioKey: CHAR;
 
     CASE RadioKey OF
         'I': BEGIN
-             TempString := GetResponse ('Enter the Icomomdem number (i.e. IC781) : ');
+             TempString := GetResponse ('Enter the Icom model number (i.e. IC781) : ');
              WriteLn (FileWrite, 'RADIO ONE TYPE = ', TempString);
 
              Address := GetValue ('Enter receiver address for this radio (check you manual) : ');

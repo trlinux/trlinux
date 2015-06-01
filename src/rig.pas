@@ -50,6 +50,7 @@ type
       function getradioparameters(var f: longint; var b: bandtype;
          var m: modetype): boolean;virtual;
       procedure responsetimeout(ms: integer);virtual;
+      function getresponsetimeout():longint;virtual;
       procedure directcommand(s: string);virtual;
       procedure timer(caughtup: boolean);virtual;
       procedure setport(port: serialportx);virtual;
@@ -227,6 +228,11 @@ end;
 
 procedure radioctl.responsetimeout(ms: integer);
 begin
+end;
+
+function radioctl.getresponsetimeout:longint;
+begin
+   getresponsetimeout := 0;
 end;
 
 procedure radioctl.directcommand(s: string);

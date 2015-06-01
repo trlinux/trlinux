@@ -51,7 +51,7 @@ CONST Version = '1.06 - Freeware version based on TR Log 6.69';
 var keyerdebug: boolean;
 
 IMPLEMENTATION
-uses keycode,foot,radio,rig,kenwood,icom,timer;
+uses keycode,foot,radio,rig,kenwood,icom,rigctld,timer;
 
 {$I CfgDef}
 {$I ColorCfg}
@@ -340,21 +340,40 @@ VAR FileWrite: TEXT;
                END;
 
         CASE Radio1Type OF
+
+            RIGCTL: begin
+               rig1 := rigctldctl.create(radiodebugmode);
+               rig1.setport(radio1controlport);
+               if (radiooneresponsetimeout <> 0 ) then
+                  rig1.responsetimeout(radiooneresponsetimeout)
+               else
+                  radiooneresponsetimeout := rig1.getresponsetimeout();
+               addtimer(@rig1.timer);
+            end;
+
             IC706, IC706II, IC706IIG, IC707, IC725, IC726, IC728, IC729, IC735,
             IC746, IC746PRO, IC756, IC756PRO, IC756PROII,  IC736, IC737, IC738,
             IC761, IC765, IC775, IC781: begin
-                Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,1);
-                rig1 := icomctl.create(radiodebugmode);
-                icomctl(rig1).setcivaddress(radio1receiveraddress);
-                rig1.setport(radio1controlport);
-                addtimer(@rig1.timer);
+               Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,1);
+               rig1 := icomctl.create(radiodebugmode);
+               icomctl(rig1).setcivaddress(radio1receiveraddress);
+               rig1.setport(radio1controlport);
+               if (radiooneresponsetimeout <> 0 ) then
+                  rig1.responsetimeout(radiooneresponsetimeout)
+               else
+                  radiooneresponsetimeout := rig1.getresponsetimeout();
+               addtimer(@rig1.timer);
             end;
 
             TS850, K2: begin
-                Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
-                rig1 := kenwoodctl.create(radiodebugmode);
-                rig1.setport(radio1controlport);
-                addtimer(@rig1.timer);
+               Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
+               rig1 := kenwoodctl.create(radiodebugmode);
+               rig1.setport(radio1controlport);
+               if (radiooneresponsetimeout <> 0 ) then
+                  rig1.responsetimeout(radiooneresponsetimeout)
+               else
+                  radiooneresponsetimeout := rig1.getresponsetimeout();
+               addtimer(@rig1.timer);
             end;
             ELSE
                 Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
@@ -371,21 +390,39 @@ VAR FileWrite: TEXT;
             END;
 
         CASE Radio2Type OF
+            RIGCTL: begin
+               rig2 := rigctldctl.create(radiodebugmode);
+               rig2.setport(radio2controlport);
+               if (radiotworesponsetimeout <> 0 ) then
+                  rig2.responsetimeout(radiotworesponsetimeout)
+               else
+                  radiotworesponsetimeout := rig2.getresponsetimeout();
+               addtimer(@rig2.timer);
+            end;
+
             IC706, IC706II, IC706IIG, IC707, IC725, IC726, IC728, IC729, IC735,
             IC746, IC746PRO, IC756, IC756PRO, IC756PROII,  IC736, IC737, IC738,
             IC761, IC765, IC775, IC781: begin
-                Radio2ControlPort.setparams(Radio2BaudRate,8,NoParity,1);
-                rig2 := icomctl.create(radiodebugmode);
-                icomctl(rig2).setcivaddress(radio2receiveraddress);
-                rig2.setport(radio1controlport);
-                addtimer(@rig2.timer);
+               Radio2ControlPort.setparams(Radio2BaudRate,8,NoParity,1);
+               rig2 := icomctl.create(radiodebugmode);
+               icomctl(rig2).setcivaddress(radio2receiveraddress);
+               rig2.setport(radio2controlport);
+               if (radiotworesponsetimeout <> 0 ) then
+                  rig2.responsetimeout(radiotworesponsetimeout)
+               else
+                  radiotworesponsetimeout := rig2.getresponsetimeout();
+               addtimer(@rig2.timer);
             end;
 
             TS850, K2: begin
-                Radio2ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
-                rig2 := kenwoodctl.create(radiodebugmode);
-                rig2.setport(radio1controlport);
-                addtimer(@rig2.timer);
+               Radio2ControlPort.setparams(Radio2BaudRate,8,NoParity,2);
+               rig2 := kenwoodctl.create(radiodebugmode);
+               rig2.setport(radio2controlport);
+               if (radiotworesponsetimeout <> 0 ) then
+                  rig2.responsetimeout(radiotworesponsetimeout)
+               else
+                  radiotworesponsetimeout := rig2.getresponsetimeout();
+               addtimer(@rig2.timer);
             end;
             ELSE
                 Radio2ControlPort.setparams(Radio2BaudRate,8,NoParity,2);
