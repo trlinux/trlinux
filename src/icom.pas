@@ -48,6 +48,8 @@ type
          commandcount: longint;
          commandretrycount: longint;
          commandmaxretry: longint;
+         rcvtime: longint;
+         rcvcount: longint;
          address: byte;
          traddress: byte;
          filterbyte: byte;
@@ -57,13 +59,15 @@ type
    end;
 
 implementation
-uses sysutils;
+uses sysutils,math;
 
 constructor icomctl.create(debugin: boolean);
 begin
    inherited create(debugin);
    commandtime := 40;
    commandcount := 0;
+   rcvtime := 40;
+   rcvcount := 0;
    commandmaxretry := 2;
    commandretrycount := 0;
    address := $04; //ic-735
@@ -183,7 +187,7 @@ procedure icomctl.timer(caughtup: boolean);
 var c: char;
     response: string;
     command: string;
-    i,j,k: integer;
+    i,j,k,m: integer;
     f1,f2,f3,f4,f5: byte;
 begin
    inherited timer(caughtup);
@@ -192,9 +196,19 @@ begin
    begin
       c := radioport.readchar();
       if debugopen then write(debugfile,inttohex(ord(c),2));
-      if c = chr($fd) then
+      if c = chr($fc) then //collision
+      begin
+         fromrigstart := fromrigend;
+         rcvcount := 0;
+         waiting := false;
+         commandretrycount := 0;
+         if debugopen then writeln(debugfile,'');
+         exit;
+      end
+      else if c = chr($fd) then
       begin
          if debugopen then writeln(debugfile,'');
+         rcvcount := 0;
          i := 0;
          while fromrigstart <> fromrigend do
          begin
@@ -212,17 +226,27 @@ begin
                0: if ((i = 10) or (i=11)) then
                   begin
                      if debugopen then writeln(debugfile,'Transceive mode freq');
-                     f1 := ord(response[6]);
-                     f2 := ord(response[7]);
-                     f3 := ord(response[8]);
-                     f4 := ord(response[9]);
-                     f5 := ord(response[10]);
-                     freq := (f1 and $0f)+10*(f1 shr 4)
-                        +100*((f2 and $0f)+10*(f2 shr 4))
-                        +10000*((f3 and $0f)+10*(f3 shr 4))
-                        +1000000*((f4 and $0f)+10*(f4 shr 4));
-                     if (i=11) then freq := freq
-                       +100000000*((f5 and $0f)+10*(f5 shr 4));
+                     m := 0;
+                     for j:=6 to i-1 do
+                     begin
+                        m := max(m,ord(response[j]) and $0f);
+                        m := max(m,ord(response[j]) shr 4);
+                     end;
+                     if (m < 10) then
+                     begin
+                        f1 := ord(response[6]);
+                        f2 := ord(response[7]);
+                        f3 := ord(response[8]);
+                        f4 := ord(response[9]);
+                        f5 := ord(response[10]);
+                     
+                        freq := (f1 and $0f)+10*(f1 shr 4)
+                           +100*((f2 and $0f)+10*(f2 shr 4))
+                           +10000*((f3 and $0f)+10*(f3 shr 4))
+                           +1000000*((f4 and $0f)+10*(f4 shr 4));
+                        if (i=11) then freq := freq
+                          +100000000*((f5 and $0f)+10*(f5 shr 4));
+                     end;
                   end;
                1: begin
                      if debugopen then writeln(debugfile,'Transceive mode');
@@ -277,17 +301,26 @@ begin
                waiting := false;
                if ((i = 10) or (i=11)) then
                begin
-                  f1 := ord(response[6]);
-                  f2 := ord(response[7]);
-                  f3 := ord(response[8]);
-                  f4 := ord(response[9]);
-                  f5 := ord(response[10]);
-                  freq := (f1 and $0f)+10*(f1 shr 4)
-                     +100*((f2 and $0f)+10*(f2 shr 4))
-                     +10000*((f3 and $0f)+10*(f3 shr 4))
-                     +1000000*((f4 and $0f)+10*(f4 shr 4));
-                  if (i=11) then freq := freq
-                    +100000000*((f5 and $0f)+10*(f5 shr 4));
+                  m := 0;
+                  for j:=6 to i-1 do
+                  begin
+                     m := max(m,ord(response[j]) and $0f);
+                     m := max(m,ord(response[j]) shr 4);
+                  end;
+                  if (m < 10) then
+                  begin
+                     f1 := ord(response[6]);
+                     f2 := ord(response[7]);
+                     f3 := ord(response[8]);
+                     f4 := ord(response[9]);
+                     f5 := ord(response[10]);
+                     freq := (f1 and $0f)+10*(f1 shr 4)
+                        +100*((f2 and $0f)+10*(f2 shr 4))
+                        +10000*((f3 and $0f)+10*(f3 shr 4))
+                        +1000000*((f4 and $0f)+10*(f4 shr 4));
+                     if (i=11) then freq := freq
+                       +100000000*((f5 and $0f)+10*(f5 shr 4));
+                  end;
                end;
             end
             else if (response[5] = chr($04)) then //mode and possible filter
@@ -321,7 +354,16 @@ begin
          fromrigend := (fromrigend + 1) mod rigbuffersize;
       end;
    end;
-
+   if (fromrigstart <> fromrigend) then
+   begin
+      inc(rcvcount);
+      if rcvcount >= rcvtime then //give up on current message
+      begin
+         rcvcount := 0;
+         fromrigstart := fromrigend;
+         if debugopen then writeln(debugfile,'receive time out');
+      end;
+   end;
    if waiting then begin
       inc(commandcount);
       if commandcount >= commandtime then begin
@@ -342,7 +384,7 @@ begin
       pollwait := 0;
    end;
    inc(pollcounter);
-   if not waiting then begin
+   if (not waiting) and (fromrigstart = fromrigend) then begin
       i := 0;
       j := torigstart;
       while j <> torigend do begin
