@@ -16,6 +16,10 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+0.41
+- Fixed bug where setting band map dupe display = false caused the
+code to segmentation fault due to dereferenced bandmap nil pointers.
+
 0.40
 - Fixed missing chr(0) from end of url for country file CTY.DAT.
 - Prepared for open source release under GPL. Added copyright notices
