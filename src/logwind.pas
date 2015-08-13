@@ -5314,8 +5314,12 @@ VAR EntryNumber : INTEGER;
             IF (EntryNumber = CursorEntryNumber) THEN
               BEGIN {KK1L: 6.64 found a cursor match. Get Entry^ in synch then set BandMapCursorData}
               IF (NOT BandMapDupeDisplay) THEN {KK1L: 6.64 if not displaying dupes find the next non-dupe}
-                WHILE ((Entry^.StatusByte AND $40) <> 0) AND (Entry <> nil) DO
-                  Entry := Entry^.NextEntry;
+                   repeat
+                      if entry <> nil then
+                         if (entry^.statusbyte and $40) <> 0 then
+                            entry := entry^.nextentry
+                         else break;
+                   until entry = nil;
               IF (Entry <> nil) THEN
                 BEGIN {KK1L: 6.64 Only set data if not nil}
                 BandMapCursorData := Entry;
@@ -5328,8 +5332,12 @@ VAR EntryNumber : INTEGER;
             ELSE {KK1L: 6.64 not a cursor match. Go to next keeping Entry^ and EntryNumber in synch with display}
               BEGIN
               IF (NOT BandMapDupeDisplay) THEN {KK1L: 6.64 if not displaying dupes find the next non-dupe}
-                WHILE ((Entry^.StatusByte AND $40) <> 0) AND (Entry <> nil) DO
-                  Entry := Entry^.NextEntry; {KK1L: 6.64 non-dupe of current cursor}
+                   repeat
+                      if entry <> nil then
+                         if (entry^.statusbyte and $40) <> 0 then
+                            entry := entry^.nextentry
+                         else break;
+                   until entry = nil;
               IF Entry <> nil THEN {KK1L: 6.64 Only increment if not starting a new band/mode}
                 BEGIN
                 Entry := Entry^.NextEntry;
