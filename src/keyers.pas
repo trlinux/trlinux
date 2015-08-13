@@ -95,6 +95,7 @@ uses sysutils;
   procedure keyer.debug(on: boolean);
   begin
      debugoutput := on;
+     if not on then exit;
      assignfile(debugfile,'keyer_debug.out');
      {$I+}
      try
