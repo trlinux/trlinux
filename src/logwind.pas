@@ -5208,6 +5208,9 @@ VAR EntryNumber : INTEGER;
     Mode, StartMode, StopMode: ModeType;
 
   BEGIN
+writeln(stderr,'entry in');
+writeln(stderr,ptruint(entry));
+flush(stderr);
     IF BandMapAllBands THEN
         BEGIN
         IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
@@ -5253,6 +5256,9 @@ VAR EntryNumber : INTEGER;
           Entry := BandMapFirstEntryList [Band, Mode];
           WHILE Entry <> nil DO
             BEGIN
+writeln(stderr,'entry');
+writeln(stderr,ptruint(entry));
+flush(stderr);
 
             IF (EntryNumber = CursorEntryNumber) THEN
               BEGIN {KK1L: 6.64 found a cursor match. Get Entry^ in synch then set BandMapCursorData}
