@@ -29,10 +29,12 @@
 #include <sys/stat.h>
 #include <sys/prctl.h>
 #include <unistd.h>
-#include <X11/Xlib.h>
-#include <X11/keysym.h>
 #include <locale.h>
 #include <langinfo.h>
+
+#ifndef CONSOLEONLY
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
 
 Display *display;
 Window xtermwindow,root;
@@ -42,8 +44,10 @@ int rctrlind,rctrlmask;
 int enterind,entermask;
 short controlshift,altshiftl,altshiftr,focus,bothshift;
 int ishift;
+#endif
 
 short xfocused() {
+#ifndef CONSOLEONLY
    Window root,focused;
    int size;
    Atom request,type;
@@ -56,9 +60,13 @@ short xfocused() {
    focused = *((Window*) prop);
    free(prop);
    return (focused == xtermwindow)?0xff:0x00;
+#else
+   return 0x00;
+#endif
 }
 
 void setupkeyboard() {
+#ifndef CONSOLEONLY
    int i,j,minkc,maxkc,ksperkc;
    KeySym *ks;
    xtermwindow = (Window) strtol(getenv("WINDOWID"),0,0);
@@ -114,9 +122,11 @@ void setupkeyboard() {
    XSelectInput(display,xtermwindow,FocusChangeMask);
    focus = xfocused();
    ishift = 1; //shift key tuning
+#endif
 }
 
 void shiftchange(int is) {
+#ifndef CONSOLEONLY
    switch (ishift) {
       case (0):
          break;
@@ -145,9 +155,11 @@ void shiftchange(int is) {
          XGrabKey(display,shiftr,Mod1Mask,xtermwindow,True
             ,GrabModeAsync,GrabModeAsync);
     }
+#endif
 }
 
 void updatestate() {
+#ifndef CONSOLEONLY
    int i,n;
    XEvent ev;
    unsigned int state;
@@ -220,15 +232,21 @@ void updatestate() {
 //      XAllowEvents(display, ReplayKeyboard, ev.xkey.time);
 //      XFlush(display);
    }
+#endif
 }
 
 
 short ctrlshift() {
+#ifndef CONSOLEONLY
    updatestate();
    return controlshift;
+#else
+   return 0x00;
+#endif
 }
 
 short ctrlenter() {
+#ifndef CONSOLEONLY
    char keys[32];
    updatestate();
    if (focus) {
@@ -238,9 +256,13 @@ short ctrlenter() {
          return 0xff;
    }
    return 0x00;
+#else
+   return 0x00;
+#endif
 }
 
 short ctrl() {
+#ifndef CONSOLEONLY
    char keys[32];
    updatestate();
    if (focus) {
@@ -249,9 +271,13 @@ short ctrl() {
          return 0xff;
    }
    return 0x00;
+#else
+   return 0x00;
+#endif
 }
 
 short ritshift() {
+#ifndef CONSOLEONLY
    updatestate();
    if (focus) {
       if (bothshift) return 0x03;
@@ -259,6 +285,9 @@ short ritshift() {
       if (altshiftr) return 0x01;
    }
    return 0x00;
+#else
+   return 0x00;
+#endif
 }
 
 short BYTDUPE(int *c, short n, int *a) {
