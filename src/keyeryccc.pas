@@ -154,6 +154,7 @@ TYPE
 
         procedure setrig1band(band: integer);
         procedure setrig2band(band: integer);
+        procedure setaux(aux: integer; value: integer);
         procedure setheadphonemode(hmode: hmode_t);
         procedure setblend(on: boolean);
         procedure blendvalue(val: integer);
@@ -175,6 +176,22 @@ IMPLEMENTATION
 
 Uses keycode,linuxsound,xkb,sysutils,cwstring,hidp,timer;
 
+procedure YcccKeyer.setaux(aux: integer; value: integer);
+var aux_info: aux_info_t;
+    i: integer;
+begin
+   if not KeyerInitialized then exit;
+   aux_info.val := 0;
+   aux_info.update := 1;
+   aux_info.aux:= value;
+   i := aux_info.val;
+   case aux of
+       1: sendcmd(CMD_AUX_PORT1,i);
+       2: sendcmd(CMD_AUX_PORT2,i);
+       3: sendcmd(CMD_AUX_PORT3,i);
+       4: sendcmd(CMD_AUX_PORT4,i);
+   end;
+end;
 
 procedure YcccKeyer.setrig1band(band: integer);
 var aux_info: aux_info_t;

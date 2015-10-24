@@ -1016,7 +1016,16 @@ VAR Image: BYTE;
         ELSE Exit;
         END;
 
-    if ActiveDVKPort <> nil then ActiveDVKPORT.writedata($7f,Image);
+    if ActiveDVKPort <> nil then
+    begin
+       if ActiveDVKPort.devname = 'yccc' then
+       begin
+          yccckey.setaux(3,image and $0f);
+          yccckey.setaux(4,(image and $f0) shr 4);
+       end
+       else
+          ActiveDVKPORT.writedata($7f,Image);
+    end;
 
     DVKTimeOut := 40;
     END;
@@ -1052,7 +1061,9 @@ PROCEDURE DVKEnableWrite;
   will set the DVK up to be written into. }
 
     BEGIN
-    if ActiveDVKPort <> nil then ActiveDVKPort.writedata($20,$20);
+    if ActiveDVKPort <>  nil then
+       if ActiveDVKPort.devname <> 'yccc' then
+          ActiveDVKPort.writedata($20,$20);
     END;
 
 
@@ -1061,7 +1072,9 @@ PROCEDURE DVKDisableWrite;
 { This procedure will stop the recording process on the DVK. }
 
     BEGIN
-    if ActiveDVKPort <> nil then ActiveDVKPort.writedata($20,$00);
+    if ActiveDVKPort <> nil  then
+       if ActiveDVKPort.devname <> 'yccc' then
+          ActiveDVKPort.writedata($20,$00);
     END;
 
 
@@ -3334,11 +3347,16 @@ if caughtup then
         Dec (DVKTimeOut);
 
         IF (DVKTimeOut = 0) and (ActiveDVKPort <> nil) THEN
-           IF (Radio1BandOutputPort <> ActiveDVKPort) AND
-               (Radio2BandOutputPort <> ActiveDVKPort) THEN
-               ActiveDVKPort.writedata($7f,$00)
-           else
-               ActiveDVKPort.writedata($7e,$00);
+           if (ActiveDVKPort.devname = 'yccc') then
+           begin
+              yccckey.setaux(3,0);
+              yccckey.setaux(4,0);
+           end else
+              IF (Radio1BandOutputPort <> ActiveDVKPort) AND
+                  (Radio2BandOutputPort <> ActiveDVKPort) THEN
+                  ActiveDVKPort.writedata($7f,$00)
+              else
+                  ActiveDVKPort.writedata($7e,$00);
         END;
 
 if caughtup then

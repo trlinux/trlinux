@@ -535,6 +535,11 @@ constructor parallelportx.create(devicename: string);
 var i:integer;
     portlist: parport_list;
 begin
+   if devicename = 'yccc' then
+   begin
+      dev := devicename; //quick and dirty method to use yccc pins as dvk
+      exit;
+   end;
    ieee1284_find_ports(@portlist,0);
    if portlist.portc = 0 then
    begin

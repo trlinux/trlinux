@@ -815,6 +815,12 @@ VAR xResult, Speed, TempValue: INTEGER;
                  end;
            END;
 
+        IF StringHas(UpperCase(CMD),'YCCC') THEN
+           BEGIN
+              //ugly patch -- makes dummy port with yccc name
+              ActiveDVKPort := parallelportx.create('yccc');
+           END;
+
         IF ActiveDVKPort <> nil THEN
             BEGIN
             SetCQMemoryString (Phone,  F1, 'DVK1');

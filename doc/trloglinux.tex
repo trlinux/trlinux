@@ -841,6 +841,17 @@ connector PTT line to the rig.
 CW grant mode does not work. Footswitch mode Normal is untested.
 \end{itemize}
 
+\subsection{Controlling a digital voice keyer}
+Pins 18-24 on the YCCC SO2R box DB-25 can be used in place of a
+parallel port to control a digital voice keyer. Pin 18 is DVK0 and is
+pulsed to abort the voice keyer. Pins 19-24 are connected to DVK1-DVK6.
+To turn this on use
+\begin{verbatim}
+DVK PORT = YCCC
+\end{verbatim}
+The operation is the same as the W9XT DVK as explained in the DOS TR
+manual. Recording from TR commands is not supported.
+
 \section{Troubleshooting}
 \subsection{Some keys or key combinations don't work}
 This is likely either some program like a window manager or helper

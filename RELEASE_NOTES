@@ -16,6 +16,13 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+0.42
+- Added support for using yccc so2r box pins 18:24 to control an external
+dvk. To enable set:
+dvk port = yccc
+in LOGCFG.DAT. Pin 18 is DVK0, abort. Pins 19-24 or pulsed by DVK1-DVK6.
+- Added source flag to compile for console only.
+
 0.41
 - Fixed bug where setting band map dupe display = false caused the
 code to segmentation fault due to dereferenced bandmap nil pointers.
