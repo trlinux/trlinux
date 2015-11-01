@@ -2165,6 +2165,7 @@ if remmultmatrix[multband,multmode,DX] = nil then exit;
             BEGIN
             IF MaxNumberOfZones = 0 THEN Exit;
 
+if remmultmatrix[multband,multmode,Zone] = nil then exit;
             RemainingMults^ := RemMultMatrix [MultBand, MultMode, Zone]^;
 
             FOR Entry := 1 TO NumberEditableLines DO
