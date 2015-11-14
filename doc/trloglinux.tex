@@ -852,6 +852,15 @@ DVK PORT = YCCC
 The operation is the same as the W9XT DVK as explained in the DOS TR
 manual. Recording from TR commands is not supported.
 
+Normally TR is set up to trigger recording on a W9XT DVK card when the
+corresponding control keys are pressed. You can disable this behavior,
+so that control-f1 through control-f10 can be used for other messages
+with the command
+\begin{verbatim}
+DVK CONTROL KEY RECORD = FALSE
+\end{verbatim}
+This can also be changed in the control-j menu.
+
 \section{Troubleshooting}
 \subsection{Some keys or key combinations don't work}
 This is likely either some program like a window manager or helper

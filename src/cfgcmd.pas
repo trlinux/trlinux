@@ -800,6 +800,14 @@ VAR xResult, Speed, TempValue: INTEGER;
         ProcessConfigInstructions1 := (DistanceMode <> NoDistanceDisplay) OR (CMD = 'NONE');
         END;
 
+    IF ID = 'DVK CONTROL KEY RECORD' THEN
+        BEGIN
+        CMD := UpperCase (CMD);
+        DVKControlKeyRecord := (CMD = 'TRUE');
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
 
     IF ID = 'DVK PORT' THEN
         BEGIN

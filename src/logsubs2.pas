@@ -6075,6 +6075,8 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 IF (DupeInfoCall <> '') AND (CallWindowString = '') THEN
                     BEGIN
                     FlushCWBufferAndClearPTT;
+                    if dvpenable and dvpactive then dvpstopplayback;
+                    if activedvkport <> nil then senddvkmessage('DVK0');
 
                     IF (TwoRadioState = CallReady) THEN
                         CheckTwoRadioState (SpaceBarPressed) {KK1L: 6.73 Should modify to handle Alt-D from SAP mode}

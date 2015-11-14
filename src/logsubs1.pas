@@ -937,7 +937,7 @@ VAR FileName, QSONumberString: Str20;
                END;
 
            {QuickDisplay2('SendFunctionKeyMessage..1..2..3..4');}
-           IF (ActiveMode = Phone) AND (ActiveDVKPort <> nil) AND (Key >= ControlF1) AND (Key <= ControlF10) THEN
+           IF (ActiveMode = Phone) AND (ActiveDVKPort <> nil) AND (Key >= ControlF1) AND (Key <= ControlF10) AND DVKControlKeyRecord THEN
                BEGIN
                {KK1L: 6.73 Added mode}
                IF StringHas (UpperCase (GetCQMemoryString (ActiveMode, Chr (Ord (Key) - 35))), 'DVK') THEN

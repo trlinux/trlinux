@@ -144,6 +144,7 @@ TYPE
 
 
 VAR ActiveDVKPort:     parallelportx;
+    DVKControlKeyRecord: boolean;
     k1eatimerx:        k1eatimer;
 
     ActiveModemPort:   serialportx;
@@ -3653,5 +3654,6 @@ VAR Ticks: LONGINT;
     TimerInitialized := False;
     k1eatimerx := k1eatimer.create;
     addtimer(@k1eatimerx.timer);
+    DVKControlKeyRecord := true;
 
     END.

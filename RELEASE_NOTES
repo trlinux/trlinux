@@ -15,6 +15,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
+0.43
+- Added DVK CONTROL KEY RECORD as a LOGCFG.DAT command. Default is true.
+Setting this to false makes the control keys act normally with a DVK
+rather than triggering record on the corresponding not control key memories.
+It can be set from the control-j menu.
+- Fixed bug where, with the DVK/DVP, when a alt-d call is waiting, hitting the
+space bar did not abort the cq in progress.
 
 0.42
 - Added support for using yccc so2r box pins 18:24 to control an external

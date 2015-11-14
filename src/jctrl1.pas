@@ -80,6 +80,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       DMF,
                       DCS,
                       DSE,
+                      DVC,
                       DVK,
                       DVE,
                       DVP,
@@ -299,6 +300,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       DCS: Description := 'DUPE CHECK SOUND';
       DSE: Description := 'DUPE SHEET ENABLE';
       DVK: Description := 'DVK PORT';
+      DVC: Description := 'DVK CONTROL KEY RECORD';
       DVE: Description := 'DVP ENABLE';
       DVP: Description := 'DVP PATH';
 
@@ -560,6 +562,12 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
                END;
 
       DSE: Write (Sheet.DupeSheetEnable);
+      DVC: begin
+         if DVKControlKeyRecord then
+            write('ENABLED')
+         else
+            write('DISABLED');
+      end;
       DVK: begin
          if ActiveDVKPort = nil then
             write('No Port')
@@ -1084,6 +1092,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Calls will be added to dupesheet')
            ELSE
                Write ('Calls will not be added to dupesheet');
+
+      DVC: IF DVKControlKeyRecord THEN
+               Write ('Control keys trigger recording on DVK')
+           ELSE
+               Write ('Control keys act normally');
 
       DVK: IF ActiveDVKPort = nil THEN
                Write ('No DVK port selected')

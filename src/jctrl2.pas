@@ -309,6 +309,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       DSE: Sheet.DupeSheetEnable := NOT Sheet.DupeSheetEnable;
 
+      DVC: DVKControlKeyRecord := NOT DVKControlKeyRecord;
+
       DVE: BEGIN
            IF NOT DVPActive THEN
                BEGIN
@@ -1036,6 +1038,7 @@ VAR FileWrite: TEXT;
 
       DSE: WriteLn (FileWrite, Sheet.DupeSheetEnable);
 
+      DVC: WriteLn (FileWrite, DVKControlKeyRecord);
       DVE: WriteLn (FileWrite, DVPEnable);
       DVP: WriteLn (FileWrite, DVPPath);
 
@@ -1400,6 +1403,7 @@ VAR TempString: Str40;
 
       DSE: IF Sheet.DupeSheetEnable THEN TempString := 'TRUE';
 
+      DVC: IF DVKControlKeyRecord THEN TempString := 'TRUE';
       DVE: IF DVPEnable THEN TempString := 'TRUE';
       DVP: TempString := DVPPath;
       EES: IF EscapeExitsSearchAndPounce THEN TempString := 'TRUE';
