@@ -15,6 +15,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
+
+0.44
+- Fixed problem with DVK CONTROL KEY RECORD which continued to play F keys
+rather than control keys.
+
 0.43
 - Added DVK CONTROL KEY RECORD as a LOGCFG.DAT command. Default is true.
 Setting this to false makes the control keys act normally with a DVK
