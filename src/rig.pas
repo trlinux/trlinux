@@ -177,6 +177,9 @@ end;
 function radioctl.getradioparameters(var f: longint; var b: bandtype;
          var m: modetype):boolean;
 begin
+   f := 0;
+   b := noband;
+   m := cw;
    getradioparameters := false;
 end;
 
