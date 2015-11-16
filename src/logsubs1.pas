@@ -863,7 +863,8 @@ VAR FileName, QSONumberString: Str20;
            {QuickDisplay2('SendFunctionKeyMessage');}
 
            IF (ActiveMode = Phone) AND (DVPEnable OR (ActiveDVKPort <> nil)) THEN
-               IF (Key >= ControlF1) AND (Key <= ControlF10) THEN
+               IF (Key >= ControlF1) AND (Key <= ControlF10)
+                   and dvkcontrolkeyrecord then
                    MessageKey := Chr (Ord (Key) - 35);
 
            IF OpMode = CQOpMode THEN
