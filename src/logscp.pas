@@ -2045,7 +2045,7 @@ PROCEDURE CallDatabase.GetDataFromASCIIEntry (FileString: STRING; VAR Data: Data
 { This function will decode the ASCII string and put the proper data into
   the Data variable }
 
-VAR Command: Str40;
+VAR TestName, Command: Str40;
     ID: CHAR;
     xResult: INTEGER;
 
@@ -2089,6 +2089,23 @@ VAR Command: Str40;
 
                 'N': IF Ignore <> 'N' THEN
                          BEGIN
+                         IF Length (Command) = 1 THEN
+                             Continue;
+
+                         IF Length (Command) = 2 THEN
+                             BEGIN
+                             TestName := UpperCase (Command);
+
+                             IF (TestName <> 'AL') AND (TestName <> 'ED') AND
+                                (TestName <> 'OZ') AND (TestName <> 'BO') AND
+                                (TestName <> 'TY') AND (TestName <> 'JO') AND
+                                (TestName <> 'GO') AND (TestName <> 'OX') AND
+                                (TestName <> 'CY') AND (TestName <> 'JP') AND
+                                (TestName <> 'MO') AND (TestName <> 'HI') AND
+                                (TestName <> 'OJ') THEN
+                                    Continue;
+                             END;
+
                          Name    := Command;
                          END;
 
