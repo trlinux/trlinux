@@ -26,7 +26,7 @@ UNIT LogWind;
 INTERFACE
 
 Uses LogGrid, LogDom, LogK1EA, SlowTree, Tree, trCrt, Dos, LogSCP,
-     ZoneCont, Country9, Ports, datetimec, radio;
+     ZoneCont, Country9, datetimec, radio;
 
 CONST
     PendingQTCArraySize = 600;

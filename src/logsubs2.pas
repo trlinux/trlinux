@@ -1285,7 +1285,7 @@ VAR Key: CHAR;
             Exit;
             END;
 
-        Port [RTTYPortAddress] := Ord (Key);
+//        Port [RTTYPortAddress] := Ord (Key);
     UNTIL False;
     END;
 
@@ -4501,16 +4501,16 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         CreateAndSendPacketSpot (PacketSpotCall, TempFreq);
                         END;
 
-            IF KeypadCWMemories AND ((KeyChar >= '0') AND (KeyChar <= '9')) THEN
-                BEGIN
-                TestByte := Port [$60];
+//            IF KeypadCWMemories AND ((KeyChar >= '0') AND (KeyChar <= '9')) THEN
+//                BEGIN
+//                TestByte := Port [$60];
 
-                IF (TestByte >= $47) AND (TestByte <= $52) THEN   { Keypad integer pressed }
-                    BEGIN
-                    SendFunctionKeyMessage (Chr (Ord (KeyChar) - Ord ('0') + Ord (ControlF1)), CQOpMode);
-                    Continue;
-                    END;
-                END;
+//                IF (TestByte >= $47) AND (TestByte <= $52) THEN   { Keypad integer pressed }
+//                    BEGIN
+//                    SendFunctionKeyMessage (Chr (Ord (KeyChar) - Ord ('0') + Ord (ControlF1)), CQOpMode);
+//                    Continue;
+//                    END;
+//                END;
 
             IF (KeyChar = 'I') AND (ActiveWindow = ExchangeWindow) AND
                (ActiveExchange = RSTQSONumberExchange) AND

@@ -25,8 +25,7 @@ UNIT LogHelp;
 
 INTERFACE
 
-USES Country9, LogSCP, LogK1EA, DOS, trCrt, SlowTree, Tree, LogGrid, LogWind
-   ,Ports;
+USES Country9, LogSCP, LogK1EA, DOS, trCrt, SlowTree, Tree, LogGrid, LogWind;
 
 CONST
     QTCFileName = 'QTC.DAT';
@@ -60,7 +59,6 @@ VAR
     PROCEDURE HexDump;
     PROCEDURE HexConvert;
     PROCEDURE Inductance;
-    PROCEDURE IOPort;
 
     PROCEDURE LoadQTCDataFile;
     PROCEDURE LoopBackTest;
@@ -2877,105 +2875,6 @@ begin
    for i := 0 to nd-1 do freemem(buf[i],nch);
 end;
 
-
-PROCEDURE IoPort;
-
-VAR TempString, PortString, OutputString: Str80;
-    OutputValue, InputValue, PortAddress, xResult: INTEGER;
-    LoopMode: BOOLEAN;
-    Key: CHAR;
-
-    BEGIN
-    LoopMode := False;
-    TextColor (Cyan);
-    WriteLn;
-    WriteLn ('Use L to change loop mode.');
-
-    REPEAT
-        WriteLn;
-
-        IF LoopMode THEN
-            TempString := UpperCase (GetResponse ('Loop Input or Output : '))
-        ELSE
-            TempString := UpperCase (GetResponse ('Input or Output : '));
-
-        IF TempString = '' THEN Exit;
-
-        IF (TempString [1] = 'I') OR (TempString [1] = 'O') THEN
-            BEGIN
-            PortString := GetResponse ('Hex address : ');
-            HexToInteger (PortString, PortAddress, xResult);
-
-            IF xResult = 0 THEN
-                BEGIN
-                CASE TempString [1] OF
-
-                    'I': BEGIN
-                         IF LoopMode THEN
-                             BEGIN
-                             Key := UpCase (GetKey ('Constant display of value (slows down looping) (Y/N) : ' ));
-                             WriteLn;
-                             Write ('Looping until key pressed.');
-                             END;
-
-                         GoToXY (1, WhereY);
-                         ClrEol;
-
-                         REPEAT
-                             InputValue := Port [PortAddress];
-
-                             IF ((Key = 'Y') AND LoopMode) OR NOT LoopMode THEN
-                                 BEGIN
-                                 GoToXY (1, WhereY);
-                                 Write ('Value from port ', PortString, ' = ');
-                                 WriteHexByte (InputValue);
-                                 END;
-
-                             IF LoopMode THEN
-                                 BEGIN
-                                 IF KeyPressed THEN
-                                     BEGIN
-                                     LoopMode := False;
-                                     ReadKey;
-                                     WriteLn;
-                                     END;
-                                 END
-                             ELSE
-                                 WriteLn;
-
-                         UNTIL NOT LoopMode;
-                         END;
-
-                    'O': BEGIN
-                         OutputString := GetResponse ('Enter hex value to output : ');
-                         HexToInteger (OutputString, OutputValue, xResult);
-
-                         IF xResult = 0 THEN
-                             BEGIN
-                             WriteLn ('Output ', OutputString, ' to ', PortString);
-                             REPEAT
-                                 Port [PortAddress] := OutputValue;
-                                 IF LoopMode THEN
-                                     IF KeyPressed THEN
-                                         BEGIN
-                                         GoToXY (1, WhereY);
-                                         ClrEol;
-                                         LoopMode := False;
-                                         ReadKey;
-                                         END;
-
-                             UNTIL NOT LoopMode;
-                             END;
-                         END;
-
-                     END;
-                END;
-            END
-        ELSE
-            IF TempString = 'L' THEN LoopMode := NOT LoopMode;
-
-    UNTIL False;
-    END;
 
 
 

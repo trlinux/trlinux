@@ -27,7 +27,7 @@ INTERFACE
 
 USES Dos, Tree, Country9, ZoneCont, LogSCP, LogWind, LogCW,
      LogDDX, LogDupe, LogStuff, LogGrid, LogHelp, LogK1EA, LogDVP,
-     LogDom, LogEdit, trCrt, Ports, datetimec;
+     LogDom, LogEdit, trCrt, datetimec;
 
 
 TYPE QTCActionType = (NoQTCAction, AbortThisQTC, SaveThisQTC);
@@ -185,25 +185,25 @@ VAR TempString, InputString: Str80;
                     GoToXY (RememberX, WhereY);
                     END;
 
-            ControlJ:  { Might be ControlCarriageReturn }
-                IF Port [$60] <> $24 THEN
-                    BEGIN
-                    ControlEnterUsed := True;
-
-                    TempString := InputString;
-
-                    RemoveFirstString (TempString);
-                    RemoveFirstString (TempString);
-
-                    IF TempString <> '' THEN
-                        BEGIN
-                        QTCQuickEditResponse := InputString;
-                        RemoveAndRestorePreviousWindow;
-                        Exit;
-                        END;
-
-                    Exit;
-                    END;
+//            ControlJ:  { Might be ControlCarriageReturn }
+//                IF Port [$60] <> $24 THEN
+//                    BEGIN
+//                    ControlEnterUsed := True;
+//
+//                    TempString := InputString;
+//
+//                    RemoveFirstString (TempString);
+//                    RemoveFirstString (TempString);
+//
+//                    IF TempString <> '' THEN
+//                        BEGIN
+//                        QTCQuickEditResponse := InputString;
+//                        RemoveAndRestorePreviousWindow;
+//                        Exit;
+//                        END;
+//
+//                    Exit;
+//                    END;
 
             ControlS:
                 IF WhereX - StartOfInputCursorPosition >= 1 THEN

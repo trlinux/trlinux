@@ -702,12 +702,6 @@ VAR Result, ParameterCount: INTEGER;
             Halt;
             END;
 
-        IF UpperCase (ParamStr (ParameterCount)) = 'IOPORT' THEN
-            BEGIN
-            IOPort;
-            Halt;
-            END;
-
         IF UpperCase (ParamStr (ParameterCount)) = 'LOOPBACK' THEN
             BEGIN
             LoopBackTest;

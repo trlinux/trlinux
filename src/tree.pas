@@ -417,7 +417,7 @@ VAR CodeSpeed:  BYTE;
 
 IMPLEMENTATION
 
-USES DOS, trCrt, Printer, Ports,linuxsound,timer,unix,datetimec,
+USES DOS, trCrt, Printer, linuxsound,timer,unix,datetimec,
      keycode,xkb;
 
 CONST

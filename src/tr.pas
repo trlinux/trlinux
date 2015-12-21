@@ -3411,7 +3411,6 @@ Uses
      Tree,
      ZoneCont,
      LogK1EA,
-     Ports,
      baseunix,
      memlinux,
      linuxsound,
