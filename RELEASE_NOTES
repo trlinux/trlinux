@@ -16,6 +16,11 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+0.45
+- Removed test for short names in TRMASTER.DTA
+- Forced autospace off in YCCC box. Complain if you want this to be a
+LOGCFG.DAT parameter.
+
 0.44
 - Fixed problem with DVK CONTROL KEY RECORD which continued to play F keys
 rather than control keys.

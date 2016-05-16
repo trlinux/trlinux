@@ -16,7 +16,7 @@
 #    Public License along with TR log for linux.  If not, see
 #<http://www.gnu.org/licenses/>.
 
-RELEASE=0.44
+RELEASE=0.45
 
 all:
 	test 2 -eq `grep -c "Linux $(RELEASE)" src/versions.inc`

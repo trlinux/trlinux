@@ -1,3 +1,3 @@
 //based on DOS TR 6.76
-CONST Version = 'Linux 0.44';
-      PostVersion = 'Linux 0.44';
+CONST Version = 'Linux 0.45';
+      PostVersion = 'Linux 0.45';

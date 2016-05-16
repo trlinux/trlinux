@@ -50,12 +50,13 @@ interface
   const
     VENDOR_ID = $16c0;    { See http://www.voti.nl/pids }
     PRODUCT_ID = $065e;    { 1630 }
-    PROTOCOL_VERSION = $01;    
+    PROTOCOL_VERSION = $13;    
   { The query command }
     CMD_QUERY = $00;    
   { The box commands }
     CMD_BOX_PATCHLEVEL = $01;    { Send current patch level }
     CMD_BOX_VERSPECIAL = $02;    { Send the version special info }
+    CMD_BOX_RESET = $03;    { Reset EEPROM  to defaults}
     CMD_BOX_UPDATE = $08;    { Firmware update }
   { These are reserved but probably not implemented in shipped code }
     CMD_BOX_DEBUG1 = $0a;    { Debug 1 }
@@ -77,6 +78,13 @@ interface
     CMD_KEYER_WEIGHT = $1b;    {  Keyer weight }
     CMD_KEYER_POT_SPEED = $1c;    {  Pot speed }
     CMD_KEYER_SENDING_CHAR = $1d;    {  Character is being sent }
+    CMD_KEYER_POT_MIN = $1e; { Keyer pot speed minimum }
+    CMD_KEYER_POT_MAX = $1f; { Keyer pot speed maximum }
+    CMD_KEYER_COMP1 = $50; {Radio 1 keyer compensation }
+    CMD_KEYER_COMP2 = $51; {Radio 2 keyer compensation }
+    CMD_KEYER_COMP3 = $52; {Radio 3 keyer compensation }
+    CMD_KEYER_COMP4 = $53; {Radio 4 keyer compensation }
+    CMD_KEYER_CONFIG2 = $54; { Set/get additional keyer config }
 
 type
     keyer_config_t = bitpacked record
@@ -99,6 +107,19 @@ const
     M_KEYER_CONFIG_TIMING_A = $20;    
     M_KEYER_CONFIG_TIGHT = $40;    
     M_KEYER_CONFIG_PTT = $80;    
+
+type
+    keyer_config2_t = bitpacked record
+       case integer of
+       0: (
+          keyer_autospace: 0..1;
+          reserved_1: 0..127;
+          );
+       1: (val: 0..255);
+    end;
+
+const
+    M_KEYER_CONFIG2_AUTOSPACE = $01;    
 
 type
     keyer_status_t = bitpacked record
@@ -125,7 +146,8 @@ const
     KEYER_TYPE_ULTIMATIC = 1;    {  Both paddles send last pressed }
     KEYER_TYPE_DIT = 2;    {  Both paddles send dit }
     KEYER_TYPE_DAH = 3;    {  Both paddles send dah }
-    KEYER_MAX_TYPE = KEYER_TYPE_DAH;    
+    KEYER_TYPE_STRAIGHTKEY = 4; { Straight key }
+    KEYER_MAX_TYPE = KEYER_TYPE_STRAIGHTKEY;    
   { Keyer visible states }
     KEYER_VSTATE_IDLE = 0;    { Keyer is idle }
     KEYER_VSTATE_PADDLE = 1;    { Keyer is sending from paddle }
@@ -176,6 +198,36 @@ const
     KEYER_EVENT_IDLE = 2;    { Keyer has finished sending }
     KEYER_EVENT_CLEAR = 3;    { Keyer buffer was cleared with overwrite 0 }
     KEYER_EVENT_PADDLE = 4;    { Paddle was used }
+
+type
+    keyer_pot_speed_t = bitpacked record
+       case integer of
+       0: (
+          speed : 0..127;
+          eeprom : 0..1;
+          );
+       1: (val: 0..255);
+    end;
+
+const
+   KEYER_M_POT_SPEED_SPEED = $7f;
+   KEYER_M_POT_SPEED_EEPROM = $80;
+
+type
+    keyer_comp_t = bitpacked record
+       case integer of
+       0: (
+          compensation : 0..127;
+          eeprom : 0..1;
+          );
+       1: (val: 0..255);
+    end;
+
+const
+   KEYER_M_COMP_COMPENSATION = $7f;
+   KEYER_M_COMP_EEPROM = $80;
+
+
   { The aux commands }
     CMD_AUX_PORT1 = $20;    
     CMD_AUX_PORT2 = $21;    
@@ -238,7 +290,8 @@ type
           typex          : 0..7;
           blend          : 0..1;
           relays         : 0..1;
-          reserved_1     : 0..7;
+          aux_tx         : 0..1;
+          reserved_1     : 0..3;
           );
        1: (val: 0..255);
     end;
@@ -247,6 +300,7 @@ const
 
     M_SO2R_CONFIG_TYPE = $07;    
     M_SO2R_CONFIG_BLEND = $08;    
+    M_SO2R_CONFIG_RELAYS = $10;
   { SO2R Configurations }
     SO2R_CONFIG_NORMAL = $00;    { Normal stereo mode }
     SO2R_CONFIG_SYMMETRIC = $01;    { Left and right always same }
@@ -308,6 +362,76 @@ const
 
     M_SO2R_MAP_RET_CURRENT = $0f;    
     M_SO2R_MAP_RET_EEPROM = $f0;    
+
+    CMD_RTTY_CONFIG = $40; { Enabled/disabled, inverted }
+    CMD_RTTY_STATUS = $41; { Idle, sending }
+    CMD_RTTY_SPEED_BITS = $42; { Set/get RTTY speed, length stop }
+    CMD_RTTY_CHAR = $43; {Set next character to send }
+type
+    rtty_config_t = bitpacked record
+       case integer of
+       0: (
+          inverted: 0..15;
+          enabled: 0..1;
+          reserved_1: 0..7
+          );
+       1: (val: 0..255);
+    end;
+
+const
+    M_RTTY_CONFIG_INVERTED = $0f;
+    M_RTTY_CONFIG_ENABLED = $10;
+
+type
+    rtty_status_t = bitpacked record
+       case integer of
+       0: (
+          ready: 0..1;
+          idle: 0..1;
+          reserved_1: 0..63
+          );
+       1: (val: 0..255);
+    end;
+
+const
+    M_RTTY_STATUS_READY = $01;
+    M_RTTY_STATUS_IDLE = $02;
+
+type
+    rtty_speed_bits_t = bitpacked record
+       case integer of
+       0: (
+          speed: 0..15;
+          length: 0..3;
+          stop: 0..3
+          );
+       1: (val: 0..255);
+    end;
+
+const
+    M_RTTY_SPEED_BITS_SPEED = $f0;
+    M_RTTY_SPEED_BITS_LENGTH = $0c;
+    M_RTTY_SPEED_BITS_STOP = $03;
+    RTTY_SPEED_22 = 0;
+    RTTY_SPEED_45 = 1; { 45.45 Baud }
+    RTTY_SPEED_50 = 2;
+    RTTY_SPEED_56 = 3;
+    RTTY_SPEED_75 = 4;
+    RTTY_SPEED_100 = 5;
+    RTTY_SPEED_110 = 6;
+    RTTY_SPEED_150 = 7;
+    RTTY_SPEED_200 = 8;
+    RTTY_SPEED_300 = 9;
+
+    RTTY_LENGTH_5 = 0; { 5 bits }
+    RTTY_LENGTH_6 = 0; { 6 bits }
+    RTTY_LENGTH_7 = 0; { 7 bits }
+    RTTY_LENGTH_8 = 0; { 8 bits }
+    
+    RTTY_STOP_1 = 0; { 1 stop bit }
+    RTTY_STOP_1_5 = 1; { 1.5 stop bit }
+    RTTY_STOP_2 = 2; { 2 stop bits }
+
   { Protocol error }
     CMD_ERROR = $7f;    
   { Status }
@@ -315,6 +439,7 @@ const
     STATUS_BADVALUE = $01;    
     STATUS_BUSY = $02;    
     STATUS_LATE = $03;    
+
 {$endif}
 
 implementation

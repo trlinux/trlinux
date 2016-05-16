@@ -42,6 +42,7 @@ TYPE
      private
         hiddev: Pointer;
         keyer_config: keyer_config_t;
+        keyer_config2: keyer_config2_t;
         keyer_control: keyer_control_t;
         so2r_state: so2r_state_t;
         so2r_config: so2r_config_t;
@@ -245,6 +246,7 @@ begin
    swappaddles := false;
    CurtMode := ModeB;
    keyer_config.val := 0; //zero all bits
+   keyer_config2.val := 0; //zero all bits
    keyer_control.val := 0;
    keyer_control.pot_off := 1;
    so2r_state.val := 0;
@@ -298,6 +300,7 @@ tempstring := nil;
    while (hid_read(hiddev,@rcvdata[0],3) > 0) do continue;
    
    sendcmd(CMD_KEYER_CONFIG,keyer_config.val);
+   sendcmd(CMD_KEYER_CONFIG2,keyer_config2.val);
    sendcmd(CMD_KEYER_CONTROL,keyer_control.val);
    sendcmd(CMD_SO2R_STATE,so2r_state.val);
    sendcmd(CMD_SO2R_CONFIG,so2r_config.val);
