@@ -786,7 +786,8 @@ VAR Key:             CHAR;
     Operators:       STRING;
     Precedence, Check, Section, Power, Name, QTH: Str40;
     NameFileWrite, NameFileRead: TEXT;
-    ModeString, NameFileDirectory: Str40;
+    ModeString : Str40;
+    NameFileDirectory: Str80;
     Year, Month, Day, DayOfWeek: WORD;
 
     AssistedCursor, BandCursor, ModeCursor, OperatorCursor: INTEGER;
@@ -1299,7 +1300,12 @@ VAR Key:             CHAR;
 
         IF 'Y' = GetKeyResponse ('Would you like me to save this information for next time? (Y, N) : ') THEN
             BEGIN
-            NameFileDirectory := FindDirectory ('POST.OVR');
+            NameFileDirectory := GetEnv('HOME')+DirectorySeparator + '.trlog';
+            IF NOT DirectoryExists(NameFileDirectory) then
+            BEGIN
+               IF NOT CreateDir(NameFileDirectory) then
+                  WriteLn('Failed to create $HOME/.trlog');
+            END;
 
             OpenFileForWrite (NameFileWrite, NameFileDirectory + DirectorySeparator + CabrilloNameFileName);
             WriteLn (NameFileWrite, 'This is your default name and address that is used by the Cabrillo procedure.');
