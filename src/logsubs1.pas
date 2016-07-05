@@ -1428,7 +1428,8 @@ VAR Key: CHAR;
                             ELSE
                                 IF ActiveDVKPort <> nil THEN
                                     {KK1L: 6.73 Added mode to GetEXMemoryString}
-                                    SendDVKMessage (GetExMemoryString (ActiveMode, F1));
+                                    SendCrypticMessage (GetExMemoryString (ActiveMode, F1));
+//                                    SendDVKMessage (GetExMemoryString (ActiveMode, F1));
 
                     TwoRadioState := StationCalled;
 

@@ -1001,7 +1001,10 @@ VAR Image: BYTE;
         0: BEGIN
            IF (Radio1BandOutputPort <> ActiveDVKPort) AND
               (Radio2BandOutputPort <> ActiveDVKPort) THEN
-                  Image :=  $1      { Abort message }
+              BEGIN
+                  Image :=  $1;     { Abort message }
+                  DVKDelay := 0;
+              END
               ELSE
                   Exit;
            END;
