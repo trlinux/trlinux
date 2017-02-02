@@ -1,15 +1,17 @@
-50 STATES and 12 PROVINCES (VE8 and VY1 are the same mult)
+50 STATES + DCand 13 PROVINCES
 
 This file is only used for the NA QSO Party.
 
 Al = AL
-Ak = AK, ALK, KL7
+Ak = AK, ALK, KL
 Ar = AR
 Az = AZ, ARI
 
 Ca = CA
 Co = CO
 Ct = CT, CON
+
+Dc = DC
 
 De = DE
 
@@ -73,11 +75,11 @@ vE4 = VE4, MB, MAN
 vE5 = VE5, SK, SAS
 vE6 = VE6, AB, ALT, ALB
 vE7 = VE7, BC
-vE8 = VE8, VY1, NW, YU, YK, YT, NT,
+vE8 = VE8, NW, NT
 vE9 = VE9, NB
-vO1 = VO1, NF
-vO2 = VO2, LAB
+vO = VO, NF, NL, LAB
 vY0 = VY0, NU
+vY1 = VY1, YU, YK, YT
 vY2 = VY2, PEI
 
 Wa = WA
