@@ -180,6 +180,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       RT1,
                       RT2,
                       SHE,
+                      SO2RLM,
                       SO2RHM,
                       SO2RBE,
                       SO2RBV,
@@ -409,6 +410,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       RT1: Description := 'RADIO ONE RESPONSE TIMEOUT';
       RT2: Description := 'RADIO TWO RESPONSE TIMEOUT';
 
+      SO2RLM: Description := 'SO2R LATCH';
       SO2RHM: Description := 'SO2R HEADPHONE MODE';
       SO2RBE: Description := 'SO2R BLEND ENABLE';
       SO2RBV: Description := 'SO2R BLEND';
@@ -749,6 +751,8 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       RT1: Write (RadioOneResponseTimeout);
 
       RT2: Write (RadioTwoResponseTimeout);
+
+      SO2RLM: write(so2rbox.getlatch);
 
       SO2RHM: Case so2rbox.getheadphonemode of
          HNORMAL: write ('NORMAL');
@@ -1526,6 +1530,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
       RT1: Write ('Response timeout in ms');
 
       RT2: Write ('Response timeout in ms');
+
+      SO2RLM: if so2rbox.getlatch then
+                 write('Latch mode on')
+              else
+                 write('Latch mode off');
 
       SO2RHM: case so2rbox.getheadphonemode of
                  HNORMAL: write('Normal Stereo');

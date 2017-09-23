@@ -2855,6 +2855,10 @@ VAR FileName, CommandString: Str40;
             if filename = 'RX1' then so2rbox.setrcvfocus(RX1);
             if filename = 'RX2' then so2rbox.setrcvfocus(RX2);
             if filename = 'STEREO' then so2rbox.setrcvfocus(STEREO);
+            if filename = 'LATCHON' then so2rbox.setlatch(true);
+            if filename = 'LATCHOFF' then so2rbox.setlatch(false);
+            if filename = 'LATCHTOGGLE' then
+               so2rbox.setlatch(not so2rbox.getlatch);
             if filename = 'RXA' then
             begin
                if activeradio = radioone then 

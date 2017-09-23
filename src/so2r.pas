@@ -20,12 +20,14 @@
 
 unit so2r;
 {$mode objfpc}
+{$interfaces corba}
 interface
 type
    rcvfocus_t = (RX1, RX2, STEREO);
    hmode_t = (HNORMAL, HSYMMETRIC, HSPATIAL);
 
    so2rinterface = interface
+      ['{85C18D3F-F198-4681-B9D2-03B38213EA94}']
       procedure setrig1band(band: integer);
       procedure setrig2band(band: integer);
       procedure setheadphonemode(hmode: hmode_t);
@@ -36,6 +38,7 @@ type
       procedure setrig2map(val: integer);
       procedure setrcvfocus(rcvfocus: rcvfocus_t);
       function footswitchpressed:boolean;
+      procedure setlatch(on: boolean);
 
       function getheadphonemode:hmode_t;
       function getblend:boolean;
@@ -43,6 +46,7 @@ type
       function getmicrelay:boolean;
       function getrig1map:integer;
       function getrig2map:integer;
+      function getlatch:boolean;
    end;
 
 implementation

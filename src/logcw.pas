@@ -134,7 +134,7 @@ VAR
 
 IMPLEMENTATION
 
-USES CfgCmd,radio,timer;
+USES CfgCmd,radio,timer,so2r,sysutils;
 
 TYPE
      SendData = RECORD
@@ -417,6 +417,8 @@ VAR Key: CHAR;
     TimeMark: TimeRecord;
     Buffer: SendBufferType;
     BufferStart, BufferEnd: INTEGER;
+    so2r_i: so2rinterface;
+    so2r_l,latchsave: boolean;
 
     BEGIN
     BufferStart := 0;
@@ -429,6 +431,14 @@ VAR Key: CHAR;
 
     CWEnabled := True;
     DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+    so2r_l := supports(activekeyer,'{85C18D3F-F198-4681-B9D2-03B38213EA94}');
+    if so2r_l then
+    begin
+       so2r_i := activekeyer as so2rinterface;
+       latchsave := so2r_i.getlatch;
+       so2r_i := activekeyer as so2rinterface;
+       so2r_i.setlatch(false);
+    end;
 
     ActiveKeyer.PTTForceOn;
 
@@ -445,6 +455,7 @@ VAR Key: CHAR;
                     BEGIN
                     FlushCWBufferAndClearPTT;
                     RemoveAndRestorePreviousWindow;
+                    if so2r_l then so2r_i.setlatch(latchsave);
                     Exit;
                     END;
 
@@ -483,6 +494,7 @@ millisleep;
 
                     ActiveKeyer.PTTUnForce;
                     RemoveAndRestorePreviousWindow;
+                    if so2r_l then so2r_i.setlatch(latchsave);
                     Exit;
                     END;
 
@@ -498,6 +510,7 @@ millisleep;
                     BEGIN
                     FlushCWBufferAndClearPTT;
                     RemoveAndRestorePreviousWindow;
+                    if so2r_l then so2r_i.setlatch(latchsave);
                     Exit;
                     END;
 
@@ -506,6 +519,7 @@ millisleep;
                         F10: BEGIN
                              FlushCWBufferAndClearPTT;
                              RemoveAndRestorePreviousWindow;
+                             if so2r_l then so2r_i.setlatch(latchsave);
                              Exit;
                              END;
 

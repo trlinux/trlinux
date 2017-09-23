@@ -92,9 +92,14 @@ TYPE
         waitingpaddleptt: boolean;
         map1: integer;
         map2: integer;
+        latch: boolean;
+        latched: boolean;
+        so2r_state_save: so2r_state_t;
         procedure sendcmd(cmd: integer; val: integer);
         procedure flushLocal;
         procedure readresponses;
+        procedure setlatched;
+        procedure clearlatched;
         
     public
 
@@ -162,6 +167,8 @@ TYPE
         procedure setrig1map(val: integer);
         procedure setrig2map(val: integer);
         procedure setrcvfocus(rcvfocus: rcvfocus_t);
+        procedure setlatch(on: boolean);
+        function getlatch:boolean;
         function footswitchpressed:boolean;
         function getheadphonemode:hmode_t;
         function getblend:boolean;
@@ -256,6 +263,8 @@ begin
    nbytes := 0;
    map1 := 0; //keep eeprom default
    map2 := 0; //keep eeprom default
+   latch := false;
+   latched := false;
    PTTForcedon := false;
    debugoutput := false;
    waitingpaddleptt := false;
@@ -846,11 +855,13 @@ begin
          begin
             abortreason.val := responsebuffer[responsebufferstart].val;
             if (abortreason.paddle = 1) then flushlocal;
+            clearlatched;
          end;
  
          CMD_SO2R_SWITCHES:
          begin
             so2r_switches.val := responsebuffer[responsebufferstart].val;
+//            clearlatched;
          end;
 
          CMD_KEYER_EVENT:
@@ -867,6 +878,7 @@ begin
                begin
                   idle := true;
                   doingpaddle := false;
+                  clearlatched;
 //                  mirror := 0;
                end;
 
@@ -875,6 +887,7 @@ begin
                   idle := true;
                   doingpaddle := false;
                   mirror := 0;
+                  clearlatched;
                end;
 
                KEYER_EVENT_PADDLE:
@@ -932,6 +945,7 @@ begin
             cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
             mirror := i;
             idle := false;
+            setlatched;
             sendcmd(CMD_KEYER_CHAR,i);
          end;
 
@@ -1237,6 +1251,43 @@ end;
 function YcccKeyer.footswitchpressed:boolean;
 begin
    footswitchpressed := so2r_switches.ptt = 1;
+end;
+
+procedure YcccKeyer.setlatched;
+begin
+   if (not latch) then exit;
+   if (latched) then exit;
+   latched := true;
+   so2r_state_save.val := so2r_state.val;
+   so2r_state.rx2 := not so2r_state.tx2; //should check if switch in stereo?
+   so2r_state.stereo := 0;
+   if KeyerInitialized then
+   begin
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
+   end;
+end;
+
+procedure YcccKeyer.clearlatched;
+begin
+   if (not latch) then exit;
+   if (not latched) then exit;
+   latched := false;
+   so2r_state.rx2 := so2r_state_save.rx2;
+   so2r_state.stereo := so2r_state_save.stereo;
+   if KeyerInitialized then
+   begin
+      sendcmd(CMD_SO2R_STATE,so2r_state.val);
+   end;
+end;
+
+procedure YcccKeyer.setlatch(on: boolean);
+begin
+   latch := on;
+end;
+
+function YcccKeyer.getlatch:boolean;
+begin
+   getlatch := latch;
 end;
 
 END.

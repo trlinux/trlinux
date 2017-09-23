@@ -732,6 +732,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
            END;
 
+      SO2RLM: so2rbox.setlatch(not so2rbox.getlatch);
+
       SO2RHM: case so2rbox.getheadphonemode of
                  HNORMAL: so2rbox.setheadphonemode(HSPATIAL);
                  HSPATIAL: so2rbox.setheadphonemode(HSYMMETRIC);
@@ -1207,6 +1209,7 @@ VAR FileWrite: TEXT;
       RT2: WriteLn (FileWrite, RadioTwoResponseTimeout);
 
       SHE: WriteLn (FileWrite, SayHiEnable);
+      SO2RLM: writeln(FileWrite,so2rbox.getlatch);
       SO2RHM: case so2rbox.getheadphonemode of
           HNORMAL: WriteLn (FileWrite,'NORMAL');
           HSPATIAL: WriteLn (FileWrite,'SPATIAL');

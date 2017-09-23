@@ -1527,6 +1527,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF (ID = 'SO2R LATCH') THEN
+        BEGIN
+            so2rbox.setlatch(UpCase (CMD [1]) = 'T');
+            ProcessConfigInstructions2 := true;
+            Exit;
+        END;
+
     IF (ID = 'SO2R HEADPHONE MODE') THEN
         BEGIN
         IF StringHas(UpperCase(CMD),'NORMAL') THEN
