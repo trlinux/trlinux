@@ -782,6 +782,16 @@ SO2R HEADPHONE MODE
 } are spatial and symmetric. See the YCCC SO2R box documentation
 for details. Default is normal.
 
+
+In latch mode the transmitting rig is normally muted in the headphones.
+If the headphone mode is normal (stereo), the nontransmitting rig
+will be in both ears. On cw, if the paddle or keyboard cw is used, the
+transmitting rig is not muted. You can turn on latch mode with
+\begin{verbatim}
+so2r latch = true
+\end{verbatim}
+\index{SO2R LATCH}
+
 \begin{verbatim}
 so2r rig1 map = 1
 so2r rig2 map = 2
@@ -804,6 +814,9 @@ $\langle$03$\rangle$SO2R=Command$\langle$04$\rangle$.
 The $\langle$03$\rangle$ and $\langle$04$\rangle$  are CTRL-C and CTRL-D.
 The current commands are:
 \begin{verbatim}
+LATCHON
+LATCHOFF
+LATCHTOGGLE
 RX1
 RX2
 STEREO
@@ -860,6 +873,36 @@ with the command
 DVK CONTROL KEY RECORD = FALSE
 \end{verbatim}
 This can also be changed in the control-j menu.
+
+\section{Using a rig's internal voice keyer}
+You can use a rig's internal voice as the DVK by first setting
+\begin{verbatim}
+dvk radio enable = true
+\end{verbatim}
+You must also set up the strings to send as
+rig commands to trigger the DVK messages using
+\begin{verbatim}
+dvk radio1 stop cmd =
+dvk radio1 play dvk1 cmd =
+dvk radio1 play dvk2 cmd =
+dvk radio1 play dvk3 cmd =
+dvk radio1 play dvk4 cmd =
+dvk radio1 play dvk5 cmd =
+dvk radio1 play dvk6 cmd =
+
+dvk radio2 stop cmd =
+dvk radio2 play dvk1 cmd =
+dvk radio2 play dvk2 cmd =
+dvk radio2 play dvk3 cmd =
+dvk radio2 play dvk4 cmd =
+dvk radio2 play dvk5 cmd =
+dvk radio2 play dvk6 cmd =
+\end{verbatim}
+These are then accessed in the funciton key messages as for a external
+DVK with something like
+\begin{verbatim}
+cq ssb memory f1 = dvk1
+\end{verbatim}
 
 \section{Troubleshooting}
 \subsection{Some keys or key combinations don't work}

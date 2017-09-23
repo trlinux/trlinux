@@ -15,6 +15,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
+0.47 
+- Added latch mode for yccc so2r box.
+- Added DVK radio commands to access rig's voice keyer as a DVK
+
 0.46
 - Changed postcab to write CABNAME.DAT to $HOME/.trlog if it isn't already
 somewhere else that the program can find.
