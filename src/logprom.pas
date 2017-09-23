@@ -314,14 +314,14 @@ VAR RadioKey: CHAR;
     IF RadioKey = 'N' THEN Exit;
 
     REPEAT
-        RadioKey := UpCase (GetKey ('First letter of radio brand (K)enwood or K2, (Y)aesu, (I)com, (T)en-Tec, (J)RC : '));
+        RadioKey := UpCase (GetKey ('First letter of radio brand (K)enwood or K2, (I)com: '));
         IF RadioKey = EscapeKey THEN Exit;
-    UNTIL (RadioKey = 'K') OR (RadioKey = 'Y') OR (RadioKey = 'I') OR (RadioKey = 'T') OR (RadioKey = 'J');
+    UNTIL (RadioKey = 'K') OR (RadioKey = 'I');
     WriteLn;
 
     CASE RadioKey OF
         'I': BEGIN
-             TempString := GetResponse ('Enter the Icomomdem number (i.e. IC781) : ');
+             TempString := GetResponse ('Enter the Icom model number (i.e. IC781) : ');
              WriteLn (FileWrite, 'RADIO ONE TYPE = ', TempString);
 
              Address := GetValue ('Enter receiver address for this radio (check you manual) : ');
@@ -331,16 +331,8 @@ VAR RadioKey: CHAR;
 
              END;
 
-        'J': WriteLn (FileWrite, 'RADIO ONE TYPE = JST245');
-
         'K': WriteLn (FileWrite, 'RADIO ONE TYPE = TS850S');
 
-        'T': WriteLn (FileWrite, 'RADIO ONE TYPE = IC735');
-
-        'Y': BEGIN
-             TempString := GetResponse ('Enter Yaesu model number (i.e. FT1000MP) : ');
-             WriteLn (FileWrite, 'RADIO ONE TYPE = ', TempString);
-             END;
         END;
 
         writeln('Which serial port are you connecting radio one to?');
@@ -357,9 +349,9 @@ VAR RadioKey: CHAR;
     IF RadioKey = 'N' THEN Exit;
 
     REPEAT
-        RadioKey := UpCase (GetKey ('First letter of radio two brand (K)enwood or K2, (Y)aesu, (I)com, (T)en-Tec, (J)RC : '));
+        RadioKey := UpCase (GetKey ('First letter of radio two brand (K)enwood or K2, (I)com: '));
         IF RadioKey = EscapeKey THEN Exit;
-    UNTIL (RadioKey = 'K') OR (RadioKey = 'Y') OR (RadioKey = 'I') OR (RadioKey = 'T') OR (RadioKey = 'J');
+    UNTIL (RadioKey = 'K') OR (RadioKey = 'I');
     WriteLn;
 
     CASE RadioKey OF
@@ -374,16 +366,8 @@ VAR RadioKey: CHAR;
 
              END;
 
-        'J': WriteLn (FileWrite, 'RADIO TWO TYPE = JST245');
-
         'K': WriteLn (FileWrite, 'RADIO TWO TYPE = TS850S');
 
-        'T': WriteLn (FileWrite, 'RADIO TWO TYPE = IC735');
-
-        'Y': BEGIN
-             TempString := GetResponse ('Enter Yaesu model number (i.e. FT1000MP) : ');
-             WriteLn (FileWrite, 'RADIO TWO TYPE = ', TempString);
-             END;
         END;
 
         writeln('Which serial port are you connecting radio two to?');

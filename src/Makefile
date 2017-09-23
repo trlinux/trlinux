@@ -70,6 +70,10 @@ SRC=\
    ycccprotocol.pas\
    zonecont.pas\
    portname.pas\
+   rig.pas\
+   kenwood.pas\
+   icom.pas\
+   rigctld.pas\
    datetimec.pas
 
 

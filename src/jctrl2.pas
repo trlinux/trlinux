@@ -429,15 +429,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
            END;
 
-      IRT: BEGIN
-           TempString := QuickEditResponse ('Enter Icom timeout in milliseconds (normal = 300) : ', 5);
-
-           IF TempString <> '' THEN
-               BEGIN
-               Val (TempString, TempInt, Result);
-               IF Result = 0 THEN IcomResponseTimeout := TempInt;
-               END;
-           END;
 
       ITE: IncrementTimeEnable     := NOT IncrementTimeEnable;
 
@@ -471,16 +462,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            ELSE
                InitialExchangeCursorPos := AtEnd;
 
-      JRT: BEGIN
-           TempString := QuickEditResponse ('Enter new JST timeout in milliseconds (normal = 100) : ', 5);
-
-           IF TempString <> '' THEN
-               BEGIN
-               Val (TempString, TempInt, Result);
-               IF Result = 0 THEN JSTResponseTimeout := TempInt;
-               END;
-           END;
-
       KNE: K1EANetworkEnable := NOT K1EANetworkEnable;
 
       KSI: BEGIN
@@ -497,16 +478,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END
            ELSE
                K1EAStationID := Chr (0);
-           END;
-
-      KRT: BEGIN
-           TempString := QuickEditResponse ('Enter new Kenwood timeout in milliseconds (normal = 25) : ', 5);
-
-           IF TempString <> '' THEN
-               BEGIN
-               Val (TempString, TempInt, Result);
-               IF Result = 0 THEN KenwoodResponseTimeout := TempInt;
-               END;
            END;
 
       KCM: KeypadCWMemories        := NOT KeypadCWMemories;
@@ -733,6 +704,35 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                Erase:               RemainingMultDisplayMode := HiLight;
                HiLight:             RemainingMultDisplayMode := NoRemainingMults;
                END;
+      RT1: BEGIN
+           TempString := QuickEditResponse ('Enter timeout in milliseconds: ', 5);
+
+           IF TempString <> '' THEN
+               BEGIN
+                  Val (TempString, TempInt, Result);
+                  IF Result = 0 THEN
+                  begin
+                     RadioOneResponseTimeout := TempInt;
+                     rig1.responsetimeout(radiooneresponsetimeout);
+                  end;
+               END;
+           END;
+
+      RT2: BEGIN
+           TempString := QuickEditResponse ('Enter timeout in milliseconds: ', 5);
+
+           IF TempString <> '' THEN
+               BEGIN
+                  Val (TempString, TempInt, Result);
+                  IF Result = 0 THEN
+                  begin
+                     RadioTwoResponseTimeout := TempInt;
+                     rig2.responsetimeout(radiotworesponsetimeout);
+                  end;
+               END;
+           END;
+
+      SO2RLM: so2rbox.setlatch(not so2rbox.getlatch);
 
       SO2RHM: case so2rbox.getheadphonemode of
                  HNORMAL: so2rbox.setheadphonemode(HSPATIAL);
@@ -923,16 +923,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       WCP: WildCardPartials := NOT WildCardPartials;
 
-      YRT: BEGIN
-           TempString := QuickEditResponse ('Enter new Yaesu timeout in milliseconds (normal = 100) : ', 5);
-
-           IF TempString <> '' THEN
-               BEGIN
-               Val (TempString, TempInt, Result);
-               IF Result = 0 THEN YaesuResponseTimeout := TempInt;
-               END;
-           END;
-
 
       END;
 
@@ -1083,7 +1073,6 @@ VAR FileWrite: TEXT;
 
       HOF: WriteLn (FileWrite, HourOffset);
       ICP: WriteLn (FileWrite, IcomCommandPause);
-      IRT: WriteLn (FileWrite, IcomResponseTimeout);
 
       ITE: WriteLn (FileWrite, IncrementTimeEnable);
       IFE: WriteLn (FileWrite, IntercomFileEnable);
@@ -1113,11 +1102,8 @@ VAR FileWrite: TEXT;
            ELSE
                WriteLn (FileWrite, 'AT END');
 
-      JRT: WriteLn (FileWrite, JSTResponseTimeout);
-
       KNE: WriteLn (FileWrite, K1EANetworkEnable);
       KSI: WriteLn (FileWrite, K1EAStationID);
-      KRT: WriteLn (FileWrite, KenwoodResponseTimeout);
       KCM: WriteLn (FileWrite, KeypadCWMemories);
 
       LDZ: WriteLn (FileWrite, LeadingZeros);
@@ -1218,7 +1204,12 @@ VAR FileWrite: TEXT;
                HiLight:             WriteLn (FileWrite, 'HiLight');
                END;
 
+      RT1: WriteLn (FileWrite, RadioOneResponseTimeout);
+
+      RT2: WriteLn (FileWrite, RadioTwoResponseTimeout);
+
       SHE: WriteLn (FileWrite, SayHiEnable);
+      SO2RLM: writeln(FileWrite,so2rbox.getlatch);
       SO2RHM: case so2rbox.getheadphonemode of
           HNORMAL: WriteLn (FileWrite,'NORMAL');
           HSPATIAL: WriteLn (FileWrite,'SPATIAL');
@@ -1304,7 +1295,6 @@ VAR FileWrite: TEXT;
       WBE: WriteLn (FileWrite, WARCBandsEnabled);
       WEI: WriteLn (FileWrite, ActiveKeyer.GetWeight:3:2);
       WCP: WriteLn (FileWrite, WildCardPartials);
-      YRT: WriteLn (FileWrite, YaesuResponseTimeout);
       END;
 
     Close (FileWrite);
@@ -1448,7 +1438,6 @@ VAR TempString: Str40;
       HOF: Str (HourOffset, TempString);
 
       ICP: Str (IcomCommandPause, TempString);
-      IRT: Str (IcomResponseTimeout, TempString);
 
       ITE: IF IncrementTimeEnable THEN TempString := 'TRUE';
       IFE: IF IntercomFileEnable THEN TempString := 'TRUE';
@@ -1478,10 +1467,8 @@ VAR TempString: Str40;
                AtEnd:   TempString := 'AT END';
                END;
 
-      JRT: Str (JSTResponseTimeout, TempString);
       KNE: IF K1EANetworkEnable THEN TempString := 'TRUE';
       KSI: TempString := K1EAStationID;
-      KRT: Str (KenwoodResponseTimeout, TempString);
       KCM: IF KeyPadCWMemories THEN TempString := 'TRUE';
       LDZ: Str (LeadingZeros, TempString);
       LZC: TempString := LeadingZeroCharacter;
@@ -1575,6 +1562,9 @@ VAR TempString: Str40;
                HiLight:          TempString := 'HiLight';
                END;
 
+      RT1: Str (RadioOneResponseTimeout, TempString);
+      RT2: Str (RadioTwoResponseTimeout, TempString);
+
       SHE: IF SayHiEnable THEN TempString := 'TRUE';
       SHC: Str (SayHiRateCutoff, TempString);
       SCS: TempString := CD.CountryString;
@@ -1652,7 +1642,6 @@ VAR TempString: Str40;
       WBE: IF WARCBandsEnabled THEN TempString := 'TRUE';
       WEI: Str (ActiveKeyer.GetWeight:3:2, TempString);
       WCP: IF WildCardPartials THEN TempString := 'TRUE';
-      YRT: Str (YaesuResponseTimeout, TempString);
       ELSE TempString := '';
       END;
 

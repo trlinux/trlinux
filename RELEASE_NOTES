@@ -36,6 +36,22 @@ It can be set from the control-j menu.
 - Fixed bug where, with the DVK/DVP, when a alt-d call is waiting, hitting the
 space bar did not abort the cq in progress.
 
+0.43
+- Changed default LogFrequencyEnable to true for CQWW and Russian DX,
+  so that exact frequencies (to 1KHz) will be logged by default as now
+  required for competitive entries. For other contests the default
+  remains false.
+- Changed the rig control so that it will be easier to add new rigs
+  and updates. This has been limited testing with Elecraft/Kenwood
+  and Icom rigs.  FTDX5000 and FTDX3000 rigs have been added but not
+  tested. There is also a new RIGCTLD rig which invokes the hamlib
+  rigctld program. Hamlib needs to be installed if you want/need to use
+  RIGCTLD. Otherwise, it is not needed. Support for the Tentec Orion,
+  JST245 and some older Yaesu rigs (FT100, FT1000, etc.)  have not yet
+  been updated to the new rig control. These will require rigctld and
+  hamlib until their classes are written. (Or revert to an old version.)
+  Various changes to get icom/kenwood/rigctld to work.
+
 0.42
 - Added support for using yccc so2r box pins 18:24 to control an external
 dvk. To enable set:

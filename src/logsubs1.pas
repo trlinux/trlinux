@@ -832,7 +832,7 @@ VAR TimeOut: BYTE;
                 SendCrypticDVPString (Message);
                 END
             ELSE
-                IF ActiveDVKPort <> nil THEN
+                IF DVKEnable THEN
                     SendDVKMessage (Message);
             END;
 
@@ -862,7 +862,7 @@ VAR FileName, QSONumberString: Str20;
            MessageKey := Key;
            {QuickDisplay2('SendFunctionKeyMessage');}
 
-           IF (ActiveMode = Phone) AND (DVPEnable OR (ActiveDVKPort <> nil)) THEN
+           IF (ActiveMode = Phone) AND (DVPEnable OR DVKEnable) THEN
                IF (Key >= ControlF1) AND (Key <= ControlF10)
                    and dvkcontrolkeyrecord then
                    MessageKey := Chr (Ord (Key) - 35);
@@ -938,7 +938,7 @@ VAR FileName, QSONumberString: Str20;
                END;
 
            {QuickDisplay2('SendFunctionKeyMessage..1..2..3..4');}
-           IF (ActiveMode = Phone) AND (ActiveDVKPort <> nil) AND (Key >= ControlF1) AND (Key <= ControlF10) AND DVKControlKeyRecord THEN
+           IF (ActiveMode = Phone) AND DVKEnable AND (Key >= ControlF1) AND (Key <= ControlF10) AND DVKControlKeyRecord THEN
                BEGIN
                {KK1L: 6.73 Added mode}
                IF StringHas (UpperCase (GetCQMemoryString (ActiveMode, Chr (Ord (Key) - 35))), 'DVK') THEN
@@ -1426,7 +1426,7 @@ VAR Key: CHAR;
                                 Wait (50);
                                 END
                             ELSE
-                                IF ActiveDVKPort <> nil THEN
+                                IF DVKEnable THEN
                                     {KK1L: 6.73 Added mode to GetEXMemoryString}
                                     SendCrypticMessage (GetExMemoryString (ActiveMode, F1));
 //                                    SendDVKMessage (GetExMemoryString (ActiveMode, F1));
@@ -1439,7 +1439,7 @@ VAR Key: CHAR;
                       Radio }
 
                     {KK1L: 6.71 Added DoingDVK so DVKDelay is used too!}
-                    IF DVPEnable OR (ActiveMode = CW) OR (ActiveDVKPort <> nil) THEN
+                    IF DVPEnable OR (ActiveMode = CW) OR DVKEnable THEN
                         BEGIN
                         REPEAT
                             IF KeyPressed THEN
@@ -1563,7 +1563,7 @@ VAR Key: CHAR;
                             UNTIL DVPMessagePlaying OR (TimeOut > 30);
                             END;
 
-                        IF ActiveDVKPort <> nil THEN
+                        IF DVKEnable THEN
                             {SendDVKMessage (GetEXMemoryString (F2));} {KK1L: 6.71 removed}
                             {KK1L: 6.73 Added mode to GetEXMemoryString}
                             SendDVKMessage (GetEXMemoryString (ActiveMode, F1)); {KK1L: 6.71 added to be consistent!}
@@ -1571,7 +1571,7 @@ VAR Key: CHAR;
                         END;
 
                     {KK1L: 6.71 Added DoingDVK so DVKDelay is used too!}
-//                    IF (ActiveMode = CW) OR DVPEnable OR (ActiveDVKPort <> nil) THEN
+//                    IF (ActiveMode = CW) OR DVPEnable OR DVKEnable THEN
                     IF (true) THEN
                         BEGIN
                         REPEAT
@@ -1717,7 +1717,7 @@ VAR Key: CHAR;
                 IF ActiveMode = Phone THEN Wait (50);
 
                 {KK1L: 6.71 Added DoingDVK so DVKDelay is used too!}
-//                IF (ActiveMode = CW) OR DVPEnable OR (ActiveDVKPort <> nil) THEN
+//                IF (ActiveMode = CW) OR DVPEnable OR DVKEnable THEN
                 IF (true) THEN
                     BEGIN
                     REPEAT

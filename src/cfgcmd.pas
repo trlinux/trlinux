@@ -829,6 +829,7 @@ VAR xResult, Speed, TempValue: INTEGER;
               ActiveDVKPort := parallelportx.create('yccc');
            END;
 
+        DVKEnable := ActiveDVKPort <> nil;
         IF ActiveDVKPort <> nil THEN
             BEGIN
             SetCQMemoryString (Phone,  F1, 'DVK1');
@@ -877,6 +878,101 @@ VAR xResult, Speed, TempValue: INTEGER;
             END;
 
         ProcessConfigInstructions1 := (ActiveDVKPort <> nil) OR (CMD = 'NONE');
+        Exit;
+        END;
+
+    IF ID = 'DVK RADIO ENABLE' THEN
+        BEGIN
+        DVKRadioEnable := UpCase (CMD [1]) = 'T';
+        DVKEnable := DVKRadioEnable;
+        DVPOn := DVKEnable;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'DVK RADIO1 STOP CMD' THEN
+        BEGIN
+        DVKRadio1StopCmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK1 CMD' THEN
+        BEGIN
+        DVKRadio1DVK1Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK2 CMD' THEN
+        BEGIN
+        DVKRadio1DVK2Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK3 CMD' THEN
+        BEGIN
+        DVKRadio1DVK3Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK4 CMD' THEN
+        BEGIN
+        DVKRadio1DVK4Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK5 CMD' THEN
+        BEGIN
+        DVKRadio1DVK5Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK6 CMD' THEN
+        BEGIN
+        DVKRadio1DVK6Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'DVK RADIO2 STOP CMD' THEN
+        BEGIN
+        DVKRadio2StopCmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK1 CMD' THEN
+        BEGIN
+        DVKRadio2DVK1Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK2 CMD' THEN
+        BEGIN
+        DVKRadio2DVK2Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK3 CMD' THEN
+        BEGIN
+        DVKRadio2DVK3Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK4 CMD' THEN
+        BEGIN
+        DVKRadio2DVK4Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK5 CMD' THEN
+        BEGIN
+        DVKRadio2DVK5Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK6 CMD' THEN
+        BEGIN
+        DVKRadio2DVK6Cmd := CMD;
+        ProcessConfigInstructions1 := True;
         Exit;
         END;
 
@@ -1326,9 +1422,16 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-    IF ID = 'ICOM RESPONSE TIMEOUT' THEN
+    IF ID = 'RADIO ONE RESPONSE TIMEOUT' THEN
         BEGIN
-        Val (CMD, IcomResponseTimeout, xResult);
+        Val (CMD, RadioOneResponseTimeout, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'RADIO TWO RESPONSE TIMEOUT' THEN
+        BEGIN
+        Val (CMD, RadioTwoResponseTimeout, xResult);
         ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
@@ -1477,13 +1580,6 @@ VAR xResult,tempint: INTEGER;
         END;
 
 
-    IF ID = 'JST RESPONSE TIMEOUT' THEN
-        BEGIN
-        Val (CMD, JSTResponseTimeout, xResult);
-        ProcessConfigInstructions2 := xResult = 0;
-        Exit;
-        END;
-
     IF ID = 'K1EA NETWORK ENABLE' THEN
         BEGIN
         K1EANetworkEnable := UpCase (CMD [1]) = 'T';
@@ -1495,13 +1591,6 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         K1EAStationID := UpCase (CMD [1]);
         ProcessConfigInstructions2 := True;
-        Exit;
-        END;
-
-    IF ID = 'KENWOOD RESPONSE TIMEOUT' THEN
-        BEGIN
-        Val (CMD, KenwoodResponseTimeout, xResult);
-        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -1532,6 +1621,13 @@ VAR xResult,tempint: INTEGER;
         Footsw := footso2r;
         ProcessConfigInstructions2 := true;
         Exit;
+        END;
+
+    IF (ID = 'SO2R LATCH') THEN
+        BEGIN
+            so2rbox.setlatch(UpCase (CMD [1]) = 'T');
+            ProcessConfigInstructions2 := true;
+            Exit;
         END;
 
     IF (ID = 'SO2R HEADPHONE MODE') THEN
@@ -1983,13 +2079,6 @@ VAR xResult,tempint: INTEGER;
            END;
 
         ProcessConfigInstructions2 := (ActiveRotatorPort <> nil) OR (CMD = 'NONE');
-        Exit;
-        END;
-
-    IF ID = 'ORION RESPONSE TIMEOUT' THEN
-        BEGIN
-        Val (CMD, OrionResponseTimeout, xResult);
-        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
@@ -2621,6 +2710,12 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         Radio1Type := NoInterfacedRadio;
 
+        if upcase(copy(cmd,1,7)) = 'RIGCTLD' then
+        begin
+            Radio1Type := RIGCTL;
+            radio1controlport := serialportx.create(cmd);
+        end;
+
         Cmd := UpperCase (Cmd);
 
         IF Pos (CMD, '-') > 0 THEN Delete (CMD, Pos (CMD, '-'), 1);
@@ -2629,12 +2724,6 @@ VAR xResult,tempint: INTEGER;
 
         IF Copy (CMD, Length (CMD), 1) = 'A' THEN
             Delete (CMD, Length (CMD), 1);
-
-        IF Copy (CMD, 1, 2) = 'JS' THEN
-            BEGIN
-            Radio1Type := JST245;
-            Radio1ControlDelay := 1;
-            END;
 
         IF Copy (CMD, 1, 2) = 'K2' THEN
             BEGIN
@@ -2646,53 +2735,6 @@ VAR xResult,tempint: INTEGER;
         IF Copy (CMD, 1, 2) = 'TS' THEN
             BEGIN
             Radio1Type := TS850;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF Copy (CMD, 1, 3) = 'FT1' THEN
-            BEGIN
-            IF StringHas (CMD, 'MP') THEN
-                Radio1Type := FT1000MP
-            ELSE
-                Radio1Type := FT1000;
-
-            Radio1ControlDelay := 1;
-            END;
-
-        IF (CMD = 'FT840') OR (CMD = 'FT890') OR (CMD = 'FT900') THEN
-            BEGIN
-            Radio1Type := FT890;
-
-            Radio1ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT920' THEN
-            BEGIN
-            Radio1Type := FT920;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT100' THEN
-            BEGIN
-            Radio1Type := FT100;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF (CMD = 'FT817') OR (CMD = 'FT897') THEN {KK1L: 6.73 Added FT897 support. Reports say FT817 works well for it.}
-            BEGIN
-            Radio1Type := FT817;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT847' THEN
-            BEGIN
-            Radio1Type := FT847;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT990' THEN
-            BEGIN
-            Radio1Type := FT990;
             Radio1ControlDelay := 1;
             END;
 
@@ -2827,25 +2869,6 @@ VAR xResult,tempint: INTEGER;
             Radio1ControlDelay := 8;
             END;
 
-        {KK1L: 6.73 Added direct TenTec support}
-
-        IF StringHas (CMD, 'OMNI') THEN
-            BEGIN
-            Radio1Type := OMNI6;
-            Radio1ReceiverAddress := $04;
-            END;
-
-        IF CMD = 'ORION' THEN
-            BEGIN
-            Radio1Type := Orion;
-            Radio1BaudRate := 57600;
-            END;
-
-        IF CMD = 'ARGO' THEN
-            BEGIN
-            Radio1Type := ARGO;
-            Radio1ReceiverAddress := $04;
-            END;
 
         ProcessConfigInstructions2 := (Radio1Type <> NoInterfacedRadio) OR
                                       (CMD = 'NONE');
@@ -2855,6 +2878,12 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         Radio2Type := NoInterfacedRadio;
 
+        if upcase(copy(cmd,1,7)) = 'RIGCTLD' then
+        begin
+            Radio2Type := RIGCTL;
+            radio2controlport := serialportx.create(cmd);
+        end;
+
         CMD := UpperCase (CMD);
 
         IF Pos (CMD, '-') > 0 THEN Delete (CMD, Pos (CMD, '-'), 1);
@@ -2863,12 +2892,6 @@ VAR xResult,tempint: INTEGER;
 
         IF Copy (CMD, Length (CMD), 1) = 'A' THEN
             Delete (CMD, Length (CMD), 1);
-
-        IF Copy (CMD, 1, 2) = 'JS' THEN
-            BEGIN
-            Radio2Type := JST245;
-            Radio2ControlDelay := 1;
-            END;
 
         IF Copy (CMD, 1, 2) = 'K2' THEN
             BEGIN
@@ -2880,46 +2903,6 @@ VAR xResult,tempint: INTEGER;
         IF Copy (CMD, 1, 2) = 'TS' THEN
             BEGIN
             Radio2Type := TS850;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF Copy (CMD, 1, 3) = 'FT1' THEN
-            BEGIN
-            IF StringHas (CMD, 'MP') THEN
-                Radio2Type := FT1000MP
-            ELSE
-                Radio2Type := FT1000;
-
-            Radio2ControlDelay := 1;
-            END;
-
-        IF (CMD = 'FT840') OR (CMD = 'FT890') OR (CMD = 'FT900') THEN
-            BEGIN
-            Radio2Type := FT890;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT920' THEN
-            BEGIN
-            Radio2Type := FT920;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF (CMD = 'FT817') OR (CMD = 'FT897') THEN {KK1L: 6.73 Added FT897 support. Reports say FT817 works well for it.}
-            BEGIN
-            Radio2Type := FT817;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT847' THEN
-            BEGIN
-            Radio2Type := FT847;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT990' THEN
-            BEGIN
-            Radio2Type := FT990;
             Radio2ControlDelay := 1;
             END;
 
@@ -3053,26 +3036,6 @@ VAR xResult,tempint: INTEGER;
 
 
             Radio2ControlDelay := 8;
-            END;
-
-        {KK1L: 6.73 Added direct TenTec support}
-
-        IF StringHas (CMD, 'OMNI') THEN
-            BEGIN
-            Radio2Type := OMNI6;
-            Radio2ReceiverAddress := $04;
-            END;
-
-        IF CMD = 'ORION' THEN
-            BEGIN
-            Radio2Type := Orion;
-            Radio2BaudRate := 57600;
-            END;
-
-        IF CMD = 'ARGO' THEN
-            BEGIN
-            Radio2Type := ARGO;
-            Radio2ReceiverAddress := $04;
             END;
 
         ProcessConfigInstructions2 := (Radio2Type <> NoInterfacedRadio) OR
@@ -3779,13 +3742,6 @@ VAR xResult: INTEGER;
         BEGIN
         WildCardPartials := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions3 := True;
-        Exit;
-        END;
-
-    IF ID = 'YAESU RESPONSE TIMEOUT' THEN
-        BEGIN
-        Val (CMD, YaesuResponseTimeout, xResult);
-        ProcessConfigInstructions3 := xResult = 0;
         Exit;
         END;
     END;

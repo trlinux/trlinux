@@ -1884,14 +1884,14 @@ VAR CQMemory, SendChar: CHAR;
                     UNTIL NOT DVPMessagePlaying
                 ELSE
                     BEGIN
-                    IF (NOT SkipFirstMessage) AND (ActiveDVKPort <> nil) THEN
+                    IF (NOT SkipFirstMessage) AND DVKEnable THEN
                         SendDVKMessage (TempString)
                     ELSE
                         FoundCommand(TempString);
 
                     IF CheckNullKeys = EscapeKey THEN
                         BEGIN
-                        IF (ActiveDVKPort <> nil) THEN StartDVK(0); {KK1L: 6.71b Kill DVK}
+                        IF DVKEnable THEN StartDVK(0); {KK1L: 6.71b Kill DVK}
                         Exit;
                         END;
                     END;
@@ -2328,7 +2328,7 @@ VAR Result: INTEGER;
         IF (ActiveMode = Phone) THEN
             BEGIN
             IF DVPActive AND NOT DVPMessagePlaying THEN SetUpToSendOnActiveRadio;
-            IF (ACtiveDVKPort <> nil) AND NOT DVKMessagePlaying THEN SetUpToSendOnActiveRadio;
+            IF DVKEnable AND NOT DVKMessagePlaying THEN SetUpToSendOnActiveRadio;
             END;
         END;
 
@@ -2358,8 +2358,10 @@ VAR Result: INTEGER;
         {Of course you need to limit entry here otherwise the display will blink like crazy.}
         IF ((BandMapBlinkingCall <> CallLastTimeIWasHere) OR
            (BandMapBlinkingCall <> DupeInfoCallPrompt)) THEN
+//if bandmapblinkingcall <> calllasttimeiwashere then
             BEGIN
             CallLastTimeIWasHere := BandMapBlinkingCall; {KK1L: 6.73}
+
             IF BandMapBlinkingCall <> '' THEN
                 BEGIN
                 BandMapInitialExchange := InitialExchangeEntry (BandMapBlinkingCall);
@@ -2853,6 +2855,10 @@ VAR FileName, CommandString: Str40;
             if filename = 'RX1' then so2rbox.setrcvfocus(RX1);
             if filename = 'RX2' then so2rbox.setrcvfocus(RX2);
             if filename = 'STEREO' then so2rbox.setrcvfocus(STEREO);
+            if filename = 'LATCHON' then so2rbox.setlatch(true);
+            if filename = 'LATCHOFF' then so2rbox.setlatch(false);
+            if filename = 'LATCHTOGGLE' then
+               so2rbox.setlatch(not so2rbox.getlatch);
             if filename = 'RXA' then
             begin
                if activeradio = radioone then 
@@ -2868,67 +2874,35 @@ VAR FileName, CommandString: Str40;
                   so2rbox.setrcvfocus(RX1)
             end;
 
-            IF SendString <> '' THEN
-                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
+//            IF SendString <> '' THEN
+//                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
             END;
 
 
         IF CommandString = 'SRS' THEN
             BEGIN
-            WHILE FileName <> '' DO
-                BEGIN
-                AddRadioCommandCharacter (ActiveRadio, FileName [1]);
-                Delete (FileName, 1, 1);
-                END;
-
-            IF SendString <> '' THEN
-                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
+               if activeradio = radioone then 
+                  rig1.directcommand(filename)
+               else
+                  rig2.directcommand(filename);
             END;
 
         IF CommandString = 'SRS1' THEN
             BEGIN
-            WHILE FileName <> '' DO
-                BEGIN
-                AddRadioCommandCharacter (RadioOne, FileName [1]);
-                Delete (FileName, 1, 1);
-                END;
-
-            IF SendString <> '' THEN
-                REPEAT millisleep UNTIL RadioSendBufferEmpty (RadioOne);
+               rig1.directcommand(filename);
             END;
 
         IF CommandString = 'SRS2' THEN
             BEGIN
-            WHILE FileName <> '' DO
-                BEGIN
-                AddRadioCommandCharacter (RadioTwo, FileName [1]);
-                Delete (FileName, 1, 1);
-                END;
-
-            IF SendString <> '' THEN
-                REPEAT millisleep UNTIL RadioSendBufferEmpty (RadioTwo);
+               rig2.directcommand(filename);
             END;
-
 
         IF CommandString = 'SRSI' THEN
             BEGIN
-            WHILE FileName <> '' DO
-                BEGIN
-                IF ActiveRadio = RadioOne THEN
-                    AddRadioCommandCharacter (RadioTwo, FileName [1])
-                ELSE
-                    AddRadioCommandCharacter (RadioOne, FileName [1]);
-
-                Delete (FileName, 1, 1);
-                END;
-
-            IF SendString <> '' THEN
-                BEGIN
-                IF ActiveRadio = RadioOne THEN
-                    REPEAT millisleep UNTIL RadioSendBufferEmpty (RadioTwo)
-                ELSE
-                    REPEAT millisleep UNTIL RadioSendBufferEmpty (RadioOne);
-                END;
+               if activeradio = radioone then 
+                  rig2.directcommand(filename)
+               else
+                  rig1.directcommand(filename);
             END;
 
         IF CommandString = 'SWAPRADIOS'     THEN
@@ -3349,7 +3323,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
               ELSE
                   IF ((ActiveMode = CW) AND CWStillBeingSent) OR
                      ((ActiveMode = Phone) AND DVPEnable AND (DVPMessagePlaying OR DVKMessagePlaying)) OR
-                     (ActiveMode = Phone) AND (ActiveDVKPort <> nil) AND
+                     (ActiveMode = Phone) AND DVKEnable AND
                       DVKRecentlyStarted (400) THEN  { Within 4 seconds }
                           BEGIN
                           IF ActiveMode = CW THEN
@@ -5375,7 +5349,7 @@ ControlEnterCommand1:
                                            IF DVPEnable AND MessageEnable AND NOT BeSilent THEN
                                                SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
 
-                                           IF (ActiveDVKPort <> nil) AND NOT BeSilent THEN
+                                           IF DVKEnable AND NOT BeSilent THEN
                                                {KK1L: 6.73 Added mode to GetExMemoryString}
                                                SendDVKMessage (GetEXMemoryString (ActiveMode, F1));
                                            END;
@@ -6076,7 +6050,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                     BEGIN
                     FlushCWBufferAndClearPTT;
                     if dvpenable and dvpactive then dvpstopplayback;
-                    if activedvkport <> nil then senddvkmessage('DVK0');
+                    if DVKEnable then senddvkmessage('DVK0');
 
                     IF (TwoRadioState = CallReady) THEN
                         CheckTwoRadioState (SpaceBarPressed) {KK1L: 6.73 Should modify to handle Alt-D from SAP mode}
@@ -6344,7 +6318,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                             UpArrow: RestorePreviousWindow;
 
-//                            AltC: IF (ActiveMode = CW) OR (ActiveDVKPort <> nil) OR DVPEnable THEN
+//                            AltC: IF (ActiveMode = CW) OR DVKEnable OR DVPEnable THEN
                               AltC:
                                       BEGIN
                                       AutoCQResume (False);
@@ -6356,7 +6330,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                           END;
                                       END;
 
-//                            AltQ: IF (ActiveMode = CW) OR (ActiveDVKPort <> nil) OR (DVPEnable) THEN
+//                            AltQ: IF (ActiveMode = CW) OR DVKEnable OR (DVPEnable) THEN
                               AltQ:
                                       BEGIN
                                       EscapeDeletedCallEntry := CallWindowString;
@@ -6384,7 +6358,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                     END
                 ELSE
                     IF Length (CallWindowString) = 0 THEN
-//                        IF (ActiveMode = CW) OR DVPEnable OR (ActiveDVKPort <> nil) THEN
+//                        IF (ActiveMode = CW) OR DVPEnable OR DVKEnable THEN
                         IF (true) THEN
                             BEGIN
                             InactiveRigCallingCQ := False;
