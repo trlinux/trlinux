@@ -567,7 +567,10 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       end;
       DVK: begin
          if ActiveDVKPort = nil then
-            write('No Port')
+            if DVKRadioEnable then
+               write ('Radio DVK')
+            else
+               write('No Port')
          else
             write(ActiveDVKPort.devname);
       end;
@@ -1098,7 +1101,10 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Control keys act normally');
 
       DVK: IF ActiveDVKPort = nil THEN
-               Write ('No DVK port selected')
+               IF DVKRadioEnable then
+                  Write('Radio DVK Enabled')
+               else
+                  Write ('No DVK port selected')
            ELSE
                Write ('DVK enabled on the port shown');
 

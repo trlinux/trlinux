@@ -829,6 +829,7 @@ VAR xResult, Speed, TempValue: INTEGER;
               ActiveDVKPort := parallelportx.create('yccc');
            END;
 
+        DVKEnable := ActiveDVKPort <> nil;
         IF ActiveDVKPort <> nil THEN
             BEGIN
             SetCQMemoryString (Phone,  F1, 'DVK1');
@@ -877,6 +878,101 @@ VAR xResult, Speed, TempValue: INTEGER;
             END;
 
         ProcessConfigInstructions1 := (ActiveDVKPort <> nil) OR (CMD = 'NONE');
+        Exit;
+        END;
+
+    IF ID = 'DVK RADIO ENABLE' THEN
+        BEGIN
+        DVKRadioEnable := UpCase (CMD [1]) = 'T';
+        DVKEnable := DVKRadioEnable;
+        DVPOn := DVKEnable;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'DVK RADIO1 STOP CMD' THEN
+        BEGIN
+        DVKRadio1StopCmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK1 CMD' THEN
+        BEGIN
+        DVKRadio1DVK1Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK2 CMD' THEN
+        BEGIN
+        DVKRadio1DVK2Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK3 CMD' THEN
+        BEGIN
+        DVKRadio1DVK3Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK4 CMD' THEN
+        BEGIN
+        DVKRadio1DVK4Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK5 CMD' THEN
+        BEGIN
+        DVKRadio1DVK5Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO1 PLAY DVK6 CMD' THEN
+        BEGIN
+        DVKRadio1DVK6Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'DVK RADIO2 STOP CMD' THEN
+        BEGIN
+        DVKRadio2StopCmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK1 CMD' THEN
+        BEGIN
+        DVKRadio2DVK1Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK2 CMD' THEN
+        BEGIN
+        DVKRadio2DVK2Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK3 CMD' THEN
+        BEGIN
+        DVKRadio2DVK3Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK4 CMD' THEN
+        BEGIN
+        DVKRadio2DVK4Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK5 CMD' THEN
+        BEGIN
+        DVKRadio2DVK5Cmd := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+    IF ID = 'DVK RADIO2 PLAY DVK6 CMD' THEN
+        BEGIN
+        DVKRadio2DVK6Cmd := CMD;
+        ProcessConfigInstructions1 := True;
         Exit;
         END;
 

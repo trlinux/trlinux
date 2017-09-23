@@ -119,6 +119,22 @@ TYPE
 
 
 VAR ActiveDVKPort:     parallelportx;
+    DVKEnable:         boolean;
+    DVKRadioEnable:    boolean;
+    DVKRadio1StopCmd:  STR80;
+    DVKRadio1DVK1Cmd:  STR80;
+    DVKRadio1DVK2Cmd:  STR80;
+    DVKRadio1DVK3Cmd:  STR80;
+    DVKRadio1DVK4Cmd:  STR80;
+    DVKRadio1DVK5Cmd:  STR80;
+    DVKRadio1DVK6Cmd:  STR80;
+    DVKRadio2StopCmd:  STR80;
+    DVKRadio2DVK1Cmd:  STR80;
+    DVKRadio2DVK2Cmd:  STR80;
+    DVKRadio2DVK3Cmd:  STR80;
+    DVKRadio2DVK4Cmd:  STR80;
+    DVKRadio2DVK5Cmd:  STR80;
+    DVKRadio2DVK6Cmd:  STR80;
     DVKControlKeyRecord: boolean;
     k1eatimerx:        k1eatimer;
 
@@ -467,6 +483,60 @@ VAR Image: BYTE;
 
     BEGIN
     IF NOT DVPOn THEN Exit;
+    IF DVKRadioEnable then
+    begin
+       CASE MemorySwitch OF
+        0: begin
+           if activeradio = radioone then
+              rig1.directcommand(DVKRadio1StopCmd);
+           if activeradio = radiotwo then
+              rig2.directcommand(DVKRadio2StopCmd);
+           end;
+
+        1: begin
+           if activeradio = radioone then
+              rig1.directcommand(DVKRadio1DVK1Cmd);
+           if activeradio = radiotwo then
+              rig2.directcommand(DVKRadio2DVK1Cmd);
+           end;
+
+        2: begin
+           if activeradio = radioone then
+              rig1.directcommand(DVKRadio1DVK2Cmd);
+           if activeradio = radiotwo then
+              rig2.directcommand(DVKRadio2DVK2Cmd);
+           end;
+
+        3: begin
+           if activeradio = radioone then
+              rig1.directcommand(DVKRadio1DVK3Cmd);
+           if activeradio = radiotwo then
+              rig2.directcommand(DVKRadio2DVK3Cmd);
+           end;
+
+        4: begin
+           if activeradio = radioone then
+              rig1.directcommand(DVKRadio1DVK4Cmd);
+           if activeradio = radiotwo then
+              rig2.directcommand(DVKRadio2DVK4Cmd);
+           end;
+       
+        5: begin
+           if activeradio = radioone then
+              rig1.directcommand(DVKRadio1DVK5Cmd);
+           if activeradio = radiotwo then
+              rig2.directcommand(DVKRadio2DVK5Cmd);
+           end;
+
+        6: begin
+           if activeradio = radioone then
+              rig1.directcommand(DVKRadio1DVK6Cmd);
+           if activeradio = radiotwo then
+              rig2.directcommand(DVKRadio2DVK6Cmd);
+           end;
+        END;
+        exit;
+    end;
 
     CASE MemorySwitch OF
         0: BEGIN

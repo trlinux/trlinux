@@ -127,6 +127,22 @@ PROCEDURE SetConfigurationDefaultValues;
     DVPEnable               := False;
 
     Packet.EightBitPacketPort := False;
+    DVKEnable               := False;
+    DVKRadioEnable          := False;
+    DVKRadio1StopCmd        := '';
+    DVKRadio1DVK1Cmd        := '';
+    DVKRadio1DVK2Cmd        := '';
+    DVKRadio1DVK3Cmd        := '';
+    DVKRadio1DVK4Cmd        := '';
+    DVKRadio1DVK5Cmd        := '';
+    DVKRadio1DVK6Cmd        := '';
+    DVKRadio2StopCmd        := '';
+    DVKRadio2DVK1Cmd        := '';
+    DVKRadio2DVK2Cmd        := '';
+    DVKRadio2DVK3Cmd        := '';
+    DVKRadio2DVK4Cmd        := '';
+    DVKRadio2DVK5Cmd        := '';
+    DVKRadio2DVK6Cmd        := '';
 
     EightBitRTTYPort := False; {KK1L: 6.71}
 

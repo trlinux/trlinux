@@ -590,10 +590,10 @@ PROCEDURE DisplayCrypticSSBMenu;
         Write   ('');
         END
     ELSE
-        IF ActiveDVKPort <> nil THEN
+        IF DVKEnable THEN
             BEGIN
             GoToXY (1, Hi (WindMax) - 4);
-            WriteLn ('Alt-W = Write selected message to DVK (DVP1 to DVP4 only');
+            WriteLn ('Alt-W = Write selected message to DVK (DVK1 to DVK4 only');
             WriteLn ('Alt-R = Play selected message from DVK (to transmitter)');
             Write   ('');
             END
@@ -1073,7 +1073,7 @@ millisleep;
                          TempString := LineInput ('Msg = ',
                                                   GetCQMemoryString (ActiveMode, FunctionKey),  {KK1L: 6.73 Added mode}
                                                   True,
-                                                  (ActiveMode = Phone) AND (DVPEnable OR (ActiveDVKPort <> nil)));
+                                                  (ActiveMode = Phone) AND (DVPEnable OR DVKEnable));
 
                          IF TempString [1] = NullKey THEN
                              IF DVPEnable THEN
@@ -1087,7 +1087,7 @@ millisleep;
                                  END
                              ELSE
                                  BEGIN
-                                 IF ActiveDVKPort <> nil THEN
+                                 IF DVKEnable THEN
                                      CASE TempString [2] OF
                                          {KK1L: 6.73 Added mode}
                                          AltW: DVKRecordMessage (GetCQMemoryString (ActiveMode, FunctionKey));
@@ -1180,7 +1180,7 @@ millisleep;
                                                   {KK1L: 6.73 Added mode to GetExMemoryString}
                                                   GetEXMemoryString (ActiveMode, FunctionKey),
                                                   True,
-                                                  (ActiveMode = Phone) AND (DVPEnable OR (ActiveDVKPort <> nil )));
+                                                  (ActiveMode = Phone) AND (DVPEnable OR DVKEnable));
 
                          IF TempString [1] = NullKey THEN
                              IF DVPEnable THEN
@@ -1192,7 +1192,7 @@ millisleep;
                                      END;
                                  END
                              ELSE
-                                 IF ActiveDVKPort <> nil THEN
+                                 IF DVKEnable THEN
                                      CASE TempString [2] OF
                                          {KK1L: 6.73 Added mode to GetExMemoryString}
                                          AltW: DVKRecordMessage (GetEXMemoryString (ActiveMode, FunctionKey));
@@ -1283,7 +1283,7 @@ millisleep;
                                                 END;
                                             END
                                         ELSE
-                                            IF ActiveDVKPort <> nil THEN
+                                            IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (CorrectedCallPhoneMessage);
                                                     AltR: DVKListenMessage (CorrectedCallPhoneMessage);
@@ -1328,7 +1328,7 @@ millisleep;
                                                 END;
                                             END
                                         ELSE
-                                            IF ActiveDVKPort <> nil THEN
+                                            IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (CQPhoneExchange);
                                                     AltR: DVKListenMessage (CQPhoneExchange);
@@ -1371,7 +1371,7 @@ millisleep;
                                                 END;
                                             END
                                         ELSE
-                                            IF ActiveDVKPort <> nil THEN
+                                            IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (CQPhoneExchangeNameKnown);
                                                     AltR: DVKListenMessage (CQPhoneExchangeNameKnown);
@@ -1413,7 +1413,7 @@ millisleep;
                                                 END;
                                             END
                                         ELSE
-                                            IF ActiveDVKPort <> nil THEN
+                                            IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (QSLPhoneMessage);
                                                     AltR: DVKListenMessage (QSLPhoneMessage);
@@ -1455,7 +1455,7 @@ millisleep;
                                                 END;
                                             END
                                         ELSE
-                                            IF ActiveDVKPort <> nil THEN
+                                            IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (QSOBeforePhoneMessage);
                                                     AltR: DVKListenMessage (QSOBeforePhoneMessage);
@@ -1497,7 +1497,7 @@ millisleep;
                                                 END;
                                             END
                                         ELSE
-                                            IF ActiveDVKPort <> nil THEN
+                                            IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (QuickQSLPhoneMessage);
                                                     AltR: DVKListenMessage (QuickQSLPhoneMessage);
@@ -1539,7 +1539,7 @@ millisleep;
                                                 END;
                                             END
                                         ELSE
-                                            IF ActiveDVKPort <> nil THEN
+                                            IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (RepeatSearchAndPouncePhoneExchange);
                                                     AltR: DVKListenMessage (RepeatSearchAndPouncePhoneExchange);
@@ -1581,7 +1581,7 @@ millisleep;
                                                 END;
                                             END
                                         ELSE
-                                            IF ActiveDVKPort <> nil THEN
+                                            IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (SearchAndPouncePhoneExchange);
                                                     AltR: DVKListenMessage (SearchAndPouncePhoneExchange);
@@ -1623,7 +1623,7 @@ millisleep;
                                                 END;
                                             END
                                         ELSE
-                                            IF ActiveDVKPort <> nil THEN
+                                            IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (TailEndPhoneMessage);
                                                     AltR: DVKListenMessage (TailEndPhoneMessage);
@@ -1902,11 +1902,14 @@ PROCEDURE ToggleCW (DisplayPrompt: BOOLEAN);
             CWEnabled := True;
         END
     ELSE
-        IF DVPEnable OR (ActiveDVKPort <> nil ) THEN
+        IF DVPEnable OR DVKEnable THEN
             BEGIN
             DVPOn := NOT DVPOn;
 
             IF DisplayPrompt THEN
+               if DVPOn then
+                QuickDisplay ('Voice keyer enabled with Alt-K!!  Use Alt-K again to disable.')
+              else
                 QuickDisplay ('Voice keyer disabled with Alt-K!!  Use Alt-K again to enable.');
             END;
 
