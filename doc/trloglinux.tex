@@ -904,6 +904,40 @@ DVK with something like
 cq ssb memory f1 = dvk1
 \end{verbatim}
 
+\section{Using rigctld}
+Elecraft/Kenwood and Icom rigs are supported natively. For other rigs,
+you need to install the hamlib library which comes with the rigctld
+daemon. You can then specify the rig with a configuration command like:
+\begin{verbatim}
+radio one type = rigctld;4532;/dev/ttyUSB0;1608;57600;38;
+radio two type = rigctld;4534;/dev/ttyS0;221;4800;38;
+\end{verbatim}
+
+Starting the radio type with rigctld tells TR to start the rigctld
+program for that radio. The semicolon separated values following are
+the port to use (these need to be different if more than one rigctld is
+started), the serial port that connects to the radio, the hamlib
+radio model number,
+the baud rate, and finally the CIV address.  A list of radio model numbers
+supported by hamlib can be found by typing
+\begin{verbatim}
+rigctl -l
+\end{verbatim}
+at the linux command-line prompt in a terminal window. You can usually
+find the model number quickly with something like the examples below
+\begin{verbatim}
+rigctl -l 2>/dev/null |grep -i k2
+rigctl -l 2>/dev/null |grep -i orion
+rigctl -l 2>/dev/null |grep -i kx3
+rigctl -l 2>/dev/null |grep -i ic-7700
+\end{verbatim}
+The CIV address only matters for Icom rigs, and should match the rig's
+CIV address. For other brands, any value will work.
+
+The hamlib recommended rigctld port are the even numbered ports
+4532, 4534, 4536, etc. You can,
+of course, use any unused nonprivileged port.
+
 \section{Troubleshooting}
 \subsection{Some keys or key combinations don't work}
 This is likely either some program like a window manager or helper
@@ -1003,6 +1037,7 @@ above and do not work, you can put alternative libraries in the lib
 subdirectory. You should then see them dynamically linked
 if you run ldd trlog. The Slackware 13.37.0 libraries work on my
 system.
+
 
 \section{Reporting a program crash}
 Nothing that you as a user do should cause the program to crash.
