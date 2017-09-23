@@ -1693,45 +1693,16 @@ VAR Key: CHAR;
         END;
 
     REPEAT
-        Key := UpCase (GetKey ('Enter Radio1Type type: (K)enwood (Y)aesu (J)ST (I)com or (T)enTec : '));
+        Key := UpCase (GetKey ('Enter Radio1Type type: (K)enwood or (I)com: '));
         IF Key = EscapeKey THEN Exit;
-    UNTIL (Key = 'K') OR (Key = 'Y') OR (Key = 'J') OR (Key = 'I') OR (Key = 'T');
+    UNTIL (Key = 'K') OR (Key = 'I');
     WriteLn;
 
     CASE Key OF
         'K': Radio1Type := TS850; {KK1L: 6.73 NOTE This covers the K2 case as well!}
 
-        'J': Radio1Type := JST245;
-
         'I': Radio1Type := IC781; {KK1L: 6.73 Was IC735. This rig uses the wrong freq data length}
 
-        'T': BEGIN
-             REPEAT
-                 Key := UpCase (GetKey ('Enter 1 for Omni-VI or 2 for Orion : '));
-                 IF Key = EscapeKey THEN Exit;
-             UNTIL (Key = '1') OR (Key = '2');
-             WriteLn;
-
-             IF Key = '1' THEN Radio1Type := OMNI6 ELSE Radio1Type := Orion;
-             END;
-
-        'Y': BEGIN
-             REPEAT
-                 TempString := UpperCase (GetResponse ('Enter full model number (i.e., FT1000MP) : '));
-
-                 IF TempString = '' THEN Exit;
-
-                 Radio1Type := NoInterfacedRadio;
-
-                 IF TempString = 'FT1000MP' THEN Radio1Type := FT1000MP;
-                 IF TempString = 'FT1000'   THEN Radio1Type := FT1000;
-                 IF TempString = 'FT100'    THEN Radio1Type := FT100;
-                 IF TempString = 'FT847'    THEN Radio1Type := FT847;
-                 IF TempString = 'FT890'    THEN Radio1Type := FT890;
-                 IF TempString = 'FT920'    THEN Radio1Type := FT920;
-                 IF TempString = 'FT990'    THEN Radio1Type := FT990;
-             UNTIL Radio1Type <> NoInterfacedRadio;
-             END;
         END;
 
     Assign  (FileRead, FileName);

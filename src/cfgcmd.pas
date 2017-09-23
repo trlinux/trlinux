@@ -2629,12 +2629,6 @@ VAR xResult,tempint: INTEGER;
         IF Copy (CMD, Length (CMD), 1) = 'A' THEN
             Delete (CMD, Length (CMD), 1);
 
-        IF Copy (CMD, 1, 2) = 'JS' THEN
-            BEGIN
-            Radio1Type := JST245;
-            Radio1ControlDelay := 1;
-            END;
-
         IF Copy (CMD, 1, 2) = 'K2' THEN
             BEGIN
             {Radio1Type := K2;}
@@ -2645,53 +2639,6 @@ VAR xResult,tempint: INTEGER;
         IF Copy (CMD, 1, 2) = 'TS' THEN
             BEGIN
             Radio1Type := TS850;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF Copy (CMD, 1, 3) = 'FT1' THEN
-            BEGIN
-            IF StringHas (CMD, 'MP') THEN
-                Radio1Type := FT1000MP
-            ELSE
-                Radio1Type := FT1000;
-
-            Radio1ControlDelay := 1;
-            END;
-
-        IF (CMD = 'FT840') OR (CMD = 'FT890') OR (CMD = 'FT900') THEN
-            BEGIN
-            Radio1Type := FT890;
-
-            Radio1ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT920' THEN
-            BEGIN
-            Radio1Type := FT920;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT100' THEN
-            BEGIN
-            Radio1Type := FT100;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF (CMD = 'FT817') OR (CMD = 'FT897') THEN {KK1L: 6.73 Added FT897 support. Reports say FT817 works well for it.}
-            BEGIN
-            Radio1Type := FT817;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT847' THEN
-            BEGIN
-            Radio1Type := FT847;
-            Radio1ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT990' THEN
-            BEGIN
-            Radio1Type := FT990;
             Radio1ControlDelay := 1;
             END;
 
@@ -2826,25 +2773,6 @@ VAR xResult,tempint: INTEGER;
             Radio1ControlDelay := 8;
             END;
 
-        {KK1L: 6.73 Added direct TenTec support}
-
-        IF StringHas (CMD, 'OMNI') THEN
-            BEGIN
-            Radio1Type := OMNI6;
-            Radio1ReceiverAddress := $04;
-            END;
-
-        IF CMD = 'ORION' THEN
-            BEGIN
-            Radio1Type := Orion;
-            Radio1BaudRate := 57600;
-            END;
-
-        IF CMD = 'ARGO' THEN
-            BEGIN
-            Radio1Type := ARGO;
-            Radio1ReceiverAddress := $04;
-            END;
 
         ProcessConfigInstructions2 := (Radio1Type <> NoInterfacedRadio) OR
                                       (CMD = 'NONE');
@@ -2869,13 +2797,6 @@ VAR xResult,tempint: INTEGER;
         IF Copy (CMD, Length (CMD), 1) = 'A' THEN
             Delete (CMD, Length (CMD), 1);
 
-
-        IF Copy (CMD, 1, 2) = 'JS' THEN
-            BEGIN
-            Radio2Type := JST245;
-            Radio2ControlDelay := 1;
-            END;
-
         IF Copy (CMD, 1, 2) = 'K2' THEN
             BEGIN
             {Radio2Type := K2;}
@@ -2886,46 +2807,6 @@ VAR xResult,tempint: INTEGER;
         IF Copy (CMD, 1, 2) = 'TS' THEN
             BEGIN
             Radio2Type := TS850;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF Copy (CMD, 1, 3) = 'FT1' THEN
-            BEGIN
-            IF StringHas (CMD, 'MP') THEN
-                Radio2Type := FT1000MP
-            ELSE
-                Radio2Type := FT1000;
-
-            Radio2ControlDelay := 1;
-            END;
-
-        IF (CMD = 'FT840') OR (CMD = 'FT890') OR (CMD = 'FT900') THEN
-            BEGIN
-            Radio2Type := FT890;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT920' THEN
-            BEGIN
-            Radio2Type := FT920;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF (CMD = 'FT817') OR (CMD = 'FT897') THEN {KK1L: 6.73 Added FT897 support. Reports say FT817 works well for it.}
-            BEGIN
-            Radio2Type := FT817;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT847' THEN
-            BEGIN
-            Radio2Type := FT847;
-            Radio2ControlDelay := 1;
-            END;
-
-        IF CMD = 'FT990' THEN
-            BEGIN
-            Radio2Type := FT990;
             Radio2ControlDelay := 1;
             END;
 
@@ -3059,26 +2940,6 @@ VAR xResult,tempint: INTEGER;
 
 
             Radio2ControlDelay := 8;
-            END;
-
-        {KK1L: 6.73 Added direct TenTec support}
-
-        IF StringHas (CMD, 'OMNI') THEN
-            BEGIN
-            Radio2Type := OMNI6;
-            Radio2ReceiverAddress := $04;
-            END;
-
-        IF CMD = 'ORION' THEN
-            BEGIN
-            Radio2Type := Orion;
-            Radio2BaudRate := 57600;
-            END;
-
-        IF CMD = 'ARGO' THEN
-            BEGIN
-            Radio2Type := ARGO;
-            Radio2ReceiverAddress := $04;
             END;
 
         ProcessConfigInstructions2 := (Radio2Type <> NoInterfacedRadio) OR

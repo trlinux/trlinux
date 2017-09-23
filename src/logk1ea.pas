@@ -92,14 +92,6 @@ TYPE
 
     InterfacedRadioType = (NoInterfacedRadio, K2,
                                               TS850,
-                                              FT100,
-                                              FT817, {KK1L: 6.73 Also used for FT897}
-                                              FT847,
-                                              FT890,  { Also used for FT900 }
-                                              FT920,
-                                              FT990,
-                                              FT1000,
-                                              FT1000MP,
                                               IC706,
                                               IC706II,
                                               IC706IIG,
@@ -121,25 +113,9 @@ TYPE
                                               IC765,
                                               IC775,
                                               IC781,
-                                              JST245,
-                                              OMNI6,  {KK1L: 6.73}
-                                              ORION,
-                                              ARGO,    {KK1L: 6.73}
                                               RIGCTL
                                               );
 
-
-    { Notes:
-
-            FT980 - I decided this wasn't going to work out very well.
-                    The radio has to be put into a mode to enable
-                    computer control (sending five 00 bytes = External
-                    On command) - then the radio sends 148 bytes of
-                    status update bits.  During the time the radio is
-                    in this mode, the EXT indicator is lit, and the
-                    front panel controls are disabled.
-
-    }
 
 
 VAR ActiveDVKPort:     parallelportx;
