@@ -26,7 +26,7 @@ UNIT LogK1EA;
 INTERFACE
 
 USES LogGrid, Dos, trCrt, SlowTree, Tree, communication, beep, foot, radio,
-   keyerk1ea,keyerwin,keyers,so2r,keyeryccc,footyccc,rig;
+   keyerk1ea,keyerwin,keyers,so2r,keyeryccc,footyccc,rig,scorereporter;
 
 CONST
     RadioCommandBufferSize = 100;
@@ -159,6 +159,7 @@ VAR ActiveDVKPort:     parallelportx;
     YcccKey:           YcccKeyer;
     ActiveKeyer:       Keyer;
     so2rbox:           so2rinterface;
+    scorerpt:          scorereport;
 
     CQRITEnabled:      BOOLEAN;
 
@@ -1116,6 +1117,7 @@ if caughtup then
           if (ActiveMultiPort <> Nil) then ActiveMultiPort.refork;
           if radio1type = RIGCTL then radio1controlport.refork;
           if radio2type = RIGCTL then radio2controlport.refork;
+          if scorerpt.enabled then scorerpt.refork;
        end;
     end;
 
@@ -1232,6 +1234,7 @@ PROCEDURE K1EAInit;
     WinKey := WinKeyer.create;
     YcccKey := YcccKeyer.create;
     so2rbox := so2rinterface(YcccKey);
+    scorerpt := scorereport.create;
     Footparallel := FootSwitchx.create;
     Footso2r := FootSwitchYcccx.create(so2rbox);
     Footsw := Footparallel;
