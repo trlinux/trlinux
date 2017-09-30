@@ -258,7 +258,7 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
          n2 := Doc.CreateElement('qso');
          TDOMElement(n2).SetAttribute('band','total');
          TDOMElement(n2).SetAttribute('mode','ALL');
-         n3 := Doc.CreateTextNode('137');
+         n3 := Doc.CreateTextNode(inttostr(QSOTotals[All,Both]));
          n2.Appendchild(n3);
          n0.ChildNodes.Item[i].Appendchild(n2);
 
@@ -364,7 +364,6 @@ VAR QPoints, TotalMults: LongInt;
             END;
 
     TotalScore := QPoints * TotalMults;
-writeln(QSOTotals[Band160,CW]);
     END;
 
    procedure scorereport.timer(caughtup: boolean);
