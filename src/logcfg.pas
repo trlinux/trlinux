@@ -433,7 +433,6 @@ VAR FileWrite: TEXT;
     begin
        scorerpt.setcall(MyCall);
        scorerpt.setup;
-       scorerpt.writexmlmessage; //send out initial score report
        addtimer(@scorerpt.timer);
     end;
     ActiveKeyer.debug(keyerdebug);

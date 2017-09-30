@@ -3338,6 +3338,13 @@ VAR xResult: INTEGER;
         Exit;
         END;
 
+    IF ID = 'SCORE REPORT DEBUG ENABLE' then
+        BEGIN
+        scorerpt.setdebugenable(UpCase (CMD [1]) = 'T');
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
     IF ID = 'SCORE REPORT CONTEST' then
         BEGIN
         scorerpt.setcontest(cmd);
@@ -3412,8 +3419,6 @@ VAR xResult: INTEGER;
         BEGIN
         Val (CMD, tempint, xResult);
         scorerpt.setinterval(tempint);
-writeln(stderr,'interval ',tempint);
-flush(stderr);
         ProcessConfigInstructions3 := xResult = 0;
         Exit;
         END;

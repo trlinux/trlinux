@@ -7,7 +7,7 @@
 static CURL *curl;
 static struct curl_slist *list = NULL;
 static unsigned char buf[BUFLEN];
-FILE *debug;
+FILE *debug = NULL;
 
 struct WriteThis {
    const char *readptr;
@@ -47,12 +47,12 @@ static size_t write_memory_callback(void *contents, size_t size, size_t nmemb
    return realsize;
 }
 
-int initscoreposter(char *url, char *user) {
+int initscoreposter(char *url, char *user, int debugin) {
    struct curl_slist *list = NULL;
    const char *https = "https:";
    output.memory = malloc(1);
    output.size = 0;
-   debug = fopen("curl.dbg","w");
+   if (debugin) debug = fopen("curl.dbg","w");
    curl = curl_easy_init();
    if (curl) {
       curl_easy_setopt(curl,CURLOPT_URL,url);
@@ -69,7 +69,7 @@ int initscoreposter(char *url, char *user) {
       curl_easy_setopt(curl,CURLOPT_HTTPHEADER,list);
       curl_easy_setopt(curl,CURLOPT_VERBOSE,1L);
       curl_easy_setopt(curl,CURLOPT_READFUNCTION,read_callback);
-      fflush(debug);
+      if (debug != NULL) fflush(debug);
       return 0;
    }
    return -1;
@@ -86,20 +86,31 @@ void poster() {
    CURLcode res;
    struct WriteThis wt;
    while ((c = getchar()) != EOF) {
+//fprintf(debug,"c = %c %d\n",c,c);
+//fflush(debug);
       if (i < BUFLEN) buf[i++] = (unsigned char) c;
       if (c==0) {
          output.size = 0;
          wt.readptr = buf;
          wt.sizeleft = strlen(buf);
+         if (debug != NULL) {
+            fprintf(debug,"Posting the following XML score data:\n");
+            fprintf(debug,"%s",buf);
+            fprintf(debug,"\n");
+         }
          curl_easy_setopt(curl,CURLOPT_READDATA,&wt);
          curl_easy_setopt(curl,CURLOPT_POSTFIELDSIZE, (long) wt.sizeleft);
          res = curl_easy_perform(curl);
          if (res != CURLE_OK) {
-            fprintf(debug,"curl failed: %s\n",curl_easy_strerror(res));
+            if (debug != NULL) {
+               fprintf(debug,"curl failed: %s\n",curl_easy_strerror(res));
+            }
          }
          i = 0;
-         fprintf(debug,"curl response: %s\n",output.memory);
-         fflush(debug);
+         if (debug != NULL) {
+            fprintf(debug,"curl response: %s\n",output.memory);
+            fflush(debug);
+         }
       }
    }
 }

@@ -20,6 +20,7 @@ type
          overlay: string;
          breakdown: boolean;
          enable: boolean;
+         debugenable: boolean;
          intervalcount: integer;
          icount: integer;
          url: ansistring;
@@ -34,6 +35,7 @@ type
       public
          constructor create;
          procedure setenable(b: boolean);
+         procedure setdebugenable(b: boolean);
          procedure setcall(s: string);
          procedure setclub(s: string);
          procedure setcontest(s: string);
@@ -57,7 +59,8 @@ type
    end;
 
    procedure diewithparent;cdecl;external;
-   function initscoreposter(url: pchar; user:pchar):integer;cdecl;external;
+   function initscoreposter(url: pchar; user:pchar;
+      debugin:integer):integer;cdecl;external;
    procedure endscoreposter;cdecl;external;
    procedure poster;cdecl;external;
    function getpt:cint;cdecl;external;
@@ -85,8 +88,9 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
       overlay := '';
       breakdown := false;
       enable := false;
+      debugenable := false;
       intervalcount := 2*34000;
-      icount := 0;
+      icount := (95*intervalcount) div 100; // make first report soon
       url := '';
       user := '';
       password := '';
@@ -96,6 +100,11 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
    procedure scorereport.setenable(b: boolean);
    begin
       enable := b;
+   end;
+
+   procedure scorereport.setdebugenable(b: boolean);
+   begin
+      debugenable := b;
    end;
 
    function scorereport.enabled:boolean;
@@ -137,6 +146,7 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
    begin
       intervalcount := i*34000;
       if (intervalcount < 34000) then intervalcount := 34000;
+      icount := (95*intervalcount) div 100; // make first report soon
    end;
 
    procedure scorereport.setposturl(s: string);
@@ -183,7 +193,7 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
    var Doc: TXMLDocument;
       n0,n1,n2,n3: TDOMNode;
       scorestr: string;
-      i: integer;
+      i,j: integer;
       c: byte;
       s: ansistring;
    begin
@@ -282,13 +292,15 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
          writeXMLFile(Doc,tstr);
 
          s := tstr.DataString;
-         for i := 1 to length(s) do
+         for j := 1 to length(s) do
          begin
-            c := ord(s[i]);
+            c := ord(s[j]);
             fpwrite(fd,c,1);
          end;
-         c := 0;
-         fpwrite(fd,c,1);
+         c := 0; // tell poster that data is finished
+         j := fpwrite(fd,c,1);
+         c := 10; // newline to force transmission
+         j := fpwrite(fd,c,1);
       finally
          Doc.Free; // free memory
       end;
@@ -352,6 +364,7 @@ VAR QPoints, TotalMults: LongInt;
             END;
 
     TotalScore := QPoints * TotalMults;
+writeln(QSOTotals[Band160,CW]);
     END;
 
    procedure scorereport.timer(caughtup: boolean);
@@ -385,7 +398,8 @@ VAR QPoints, TotalMults: LongInt;
          fpdup(fdslave);
          fpclose(1);
          fpclose(2);
-         initscoreposter(pchar(url),pchar(user + ':' + password));
+         initscoreposter(pchar(url),pchar(user + ':' + password)
+            ,ord(debugenable));
          poster;
       end;
    end;
