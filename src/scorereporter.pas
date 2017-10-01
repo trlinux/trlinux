@@ -553,6 +553,14 @@ end;
          fpdup(fdslave);
          fpclose(1);
          fpclose(2);
+//
+// The scoreposter process acts like a standalone application. Therefore
+// with minor changes an fpExeclp call could be used as in communication.pas
+// and would clear all memory for this child process.
+// This would have the advantage of using almost no virtual memory, but
+// the disadvantage of having to make sure the scoreposter executable is
+// somewhere in the $PATH.
+//
          initscoreposter(pchar(url),pchar(user + ':' + password)
             ,ord(debugenable));
          poster;
