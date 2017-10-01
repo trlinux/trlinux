@@ -3423,6 +3423,34 @@ VAR xResult: INTEGER;
         Exit;
         END;
 
+    IF ID = 'SCORE REPORT DOMESTIC MULTIPLIERS' then
+        BEGIN
+        scorerpt.setdomesticmult(CMD);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT DX MULTIPLIERS' then
+        BEGIN
+        scorerpt.setdxmult(CMD);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT ZONE MULTIPLIERS' then
+        BEGIN
+        scorerpt.setzonemult(CMD);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT PREFIX MULTIPLIERS' then
+        BEGIN
+        scorerpt.setprefixmult(CMD);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
     IF ID = 'SCORE REPORT POST URL' then
         BEGIN
         scorerpt.setposturl(cmd);

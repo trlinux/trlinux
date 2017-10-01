@@ -30,7 +30,12 @@ type
          fd: longint;
          slave: string;
          pid: TPid;
-         function totalscore:integer;
+         domesticmult: string;
+         dxmult: string;
+         zonemult: string;
+         prefixmult: string;
+         mult: array[1..4] of string;
+         nmulttype: integer;
          procedure postfork;
       public
          constructor create;
@@ -51,6 +56,10 @@ type
          procedure setposturl(s: string);
          procedure setuser(s: string);
          procedure setpassword(s: string);
+         procedure setdomesticmult(s: string);
+         procedure setdxmult(s: string);
+         procedure setzonemult(s: string);
+         procedure setprefixmult(s: string);
          procedure writexmlmessage;
          procedure timer(caughtup: boolean);
          function enabled:boolean;
@@ -95,6 +104,10 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
       user := '';
       password := '';
       tstr := TStringStream.create('');
+      domesticmult := 'none';
+      dxmult := 'none';
+      zonemult := 'none';
+      prefixmult := 'none';
    end;
 
    procedure scorereport.setenable(b: boolean);
@@ -159,6 +172,26 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
       user := s;
    end;
 
+   procedure scorereport.setdomesticmult(s: string);
+   begin
+      domesticmult := s;
+   end;
+
+   procedure scorereport.setdxmult(s: string);
+   begin
+      dxmult := s;
+   end;
+
+   procedure scorereport.setzonemult(s: string);
+   begin
+      zonemult := s;
+   end;
+
+   procedure scorereport.setprefixmult(s: string);
+   begin
+      prefixmult := s;
+   end;
+
    procedure scorereport.setpassword(s: string);
    begin
       password := s;
@@ -196,7 +229,83 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
       i,j: integer;
       c: byte;
       s: ansistring;
+      tempqsototals: QSOTotalArray;
+      band: bandtype;
+      m: modetype;
+      qpoints: longint;
+      MTotals: MultTotalArrayType;
+      totalscore: longint;
+      nmult: array[Bandtype,CW..Both,1..4] of integer;
+      totalmults: array[1..4] of integer;
+      mtot: integer;
+
    begin
+      QPoints := TotalQSOPoints;
+      VisibleLog.IncrementQSOPointsWithContentsOfEditableWindow (QPoints);
+      IF QTCsEnabled THEN QPoints := QPoints + TotalNumberQTCsProcessed;
+      tempqsototals := QSOTotals;
+      visiblelog.incrementqsototalswithcontentsofeditablewindow(tempqsototals);
+      IF ((ActiveDomesticMult = NoDomesticMults) AND
+         (ActiveDXMult       = NoDXMults) AND
+         (ActivePrefixMult   = NoPrefixMults) AND
+         (ActiveZoneMult     = NoZoneMults)) or
+         (ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange) THEN
+      BEGIN
+         mtot := 1;
+      END
+      ELSE
+      BEGIN
+         Sheet.MultSheetTotals (MTotals);
+         VisibleLog.IncrementMultTotalsWithContentsOfEditableWindow (MTotals);
+         for j := 1 to nmulttype do
+         begin
+            for band := band160 to all do
+            begin
+               for m := cw to both do
+               begin
+                  nmult[band,m,j] := 0;
+                  if domesticmult = mult[j] then nmult[band,m,j] := 
+                     nmult[band,m,j]+Mtotals[band,m].numberdomesticmults;
+                  if dxmult = mult[j] then nmult[band,m,j] :=
+                     nmult[band,m,j]+Mtotals[band,m].numberdxmults;
+                  if zonemult = mult[j] then nmult[band,m,j] :=
+                     nmult[band,m,j]+Mtotals[band,m].numberzonemults;
+                  if prefixmult = mult[j] then nmult[band,m,j] :=
+                     nmult[band,m,j]+Mtotals[band,m].numberprefixmults;
+               end;
+            end;
+         end;
+         IF SingleBand <> All THEN
+         BEGIN
+           for j:=1 to nmulttype do totalmults[j] := nmult[singleband,both,j];
+         END
+         ELSE IF ActiveQSOPointMethod = WAEQSOPointMethod THEN
+         BEGIN
+           for j:=1 to nmulttype do totalmults[j] := nmult[band80,both,j]*4
+               +nmult[band40,both,j]*3+nmult[band20,both,j]*2
+               +nmult[band15,both,j]*2+nmult[band10,both,j]*2;
+         END
+         ELSE
+         BEGIN
+           for j:=1 to nmulttype do totalmults[j] := nmult[all,both,j];
+         END;
+         mtot := 0;
+         for j:=1 to nmulttype do mtot := mtot + totalmults[j];
+      END;
+      totalscore := qpoints*mtot;
+      
+{
+for band:=band160 to all do
+begin
+   for m:=cw to both do
+   begin
+      for j:=1 to nmulttype do
+      begin
+       writeln(stderr,j,' ',bandstring[band],modestring[m],' ',nmult[band,m,j]);
+      end;
+   end;
+end;
+}
       try
          i := 0;
          tstr.size := 0;
@@ -255,25 +364,102 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
          n1 := Doc.CreateElement('breakdown');
          n0.Appendchild(n1);
 
+
          n2 := Doc.CreateElement('qso');
          TDOMElement(n2).SetAttribute('band','total');
-         TDOMElement(n2).SetAttribute('mode','ALL');
-         n3 := Doc.CreateTextNode(inttostr(QSOTotals[All,Both]));
+         TDOMElement(n2).SetAttribute('mode','All');
+         n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[All,Both]));
          n2.Appendchild(n3);
          n0.ChildNodes.Item[i].Appendchild(n2);
 
-         n2 := Doc.CreateElement('mult');
-         TDOMElement(n2).SetAttribute('band','total');
-         TDOMElement(n2).SetAttribute('mode','ALL');
-         TDOMElement(n2).SetAttribute('type','state');
-         n3 := Doc.CreateTextNode('17');
-         n2.Appendchild(n3);
-         n0.ChildNodes.Item[i].Appendchild(n2);
+         if breakdown then
+         begin
+            for band := Band160 to Band10 do
+            begin
+               if (tempqsototals[band,cw] > 0) then
+               begin
+                  n2 := Doc.CreateElement('qso');
+                  TDOMElement(n2).SetAttribute('band',BandString[band]);
+                  TDOMElement(n2).SetAttribute('mode','CW');
+                  n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,CW]));
+                  n2.Appendchild(n3);
+                  n0.ChildNodes.Item[i].Appendchild(n2);
+               end;
+               if (tempqsototals[band,phone] > 0) then
+               begin
+                  n2 := Doc.CreateElement('qso');
+                  TDOMElement(n2).SetAttribute('band',BandString[band]);
+                  TDOMElement(n2).SetAttribute('mode','PH');
+                  n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,Phone]));
+                  n2.Appendchild(n3);
+                  n0.ChildNodes.Item[i].Appendchild(n2);
+               end;
+               if (tempqsototals[band,both] > 0) then
+               begin
+                  n2 := Doc.CreateElement('qso');
+                  TDOMElement(n2).SetAttribute('band',BandString[band]);
+                  TDOMElement(n2).SetAttribute('mode','All');
+                  n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,both]));
+                  n2.Appendchild(n3);
+                  n0.ChildNodes.Item[i].Appendchild(n2);
+               end;
+            end;
+         end;
+
+         for j:=1 to nmulttype do
+         begin
+            n2 := Doc.CreateElement('mult');
+            TDOMElement(n2).SetAttribute('band','total');
+            TDOMElement(n2).SetAttribute('mode','All');
+            TDOMElement(n2).SetAttribute('type',mult[j]);
+            n3 := Doc.CreateTextNode(inttostr(totalmults[j]));
+            n2.Appendchild(n3);
+            n0.ChildNodes.Item[i].Appendchild(n2);
+            if breakdown then
+            begin
+               for band := Band160 to Band10 do
+               begin
+                  if multbymode then
+                  begin
+                     if (nmult[band,cw,j] > 0) then
+                     begin
+                        n2 := Doc.CreateElement('mult');
+                        TDOMElement(n2).SetAttribute('band',BandString[band]);
+                        TDOMElement(n2).SetAttribute('mode','CW');
+                        TDOMElement(n2).SetAttribute('type',mult[j]);
+                        n3 := Doc.CreateTextNode(inttostr(nmult[band,cw,j]));
+                        n2.Appendchild(n3);
+                        n0.ChildNodes.Item[i].Appendchild(n2);
+                     end;
+                     if (nmult[band,phone,j] > 0) then
+                     begin
+                        n2 := Doc.CreateElement('mult');
+                        TDOMElement(n2).SetAttribute('band',BandString[band]);
+                        TDOMElement(n2).SetAttribute('mode','PH');
+                        TDOMElement(n2).SetAttribute('type',mult[j]);
+                        n3 := Doc.CreateTextNode(inttostr(nmult[band,phone,j]));
+                        n2.Appendchild(n3);
+                        n0.ChildNodes.Item[i].Appendchild(n2);
+                     end;
+                  end;
+                  if (nmult[band,both,j] > 0) then
+                  begin
+                     n2 := Doc.CreateElement('mult');
+                     TDOMElement(n2).SetAttribute('band',BandString[band]);
+                     TDOMElement(n2).SetAttribute('mode','All');
+                     TDOMElement(n2).SetAttribute('type',mult[j]);
+                     n3 := Doc.CreateTextNode(inttostr(nmult[band,both,j]));
+                     n2.Appendchild(n3);
+                     n0.ChildNodes.Item[i].Appendchild(n2);
+                  end;
+               end;
+            end;
+         end;
 
          n2 := Doc.CreateElement('point');
          TDOMElement(n2).SetAttribute('band','total');
-         TDOMElement(n2).SetAttribute('mode','ALL');
-         n3 := Doc.CreateTextNode('137');
+         TDOMElement(n2).SetAttribute('mode','All');
+         n3 := Doc.CreateTextNode(inttostr(qpoints));
          n2.Appendchild(n3);
          n0.ChildNodes.Item[i].Appendchild(n2);
  
@@ -306,66 +492,6 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
       end;
    end;
          
-FUNCTION scorereport.TotalScore: LONGINT;
-
-{ This routine will return the current contest score }
-
-VAR QPoints, TotalMults: LongInt;
-    MTotals:    MultTotalArrayType;
-
-    BEGIN
-    QPoints := TotalQSOPoints;
-
-    VisibleLog.IncrementQSOPointsWithContentsOfEditableWindow (QPoints);
-
-    IF QTCsEnabled THEN QPoints := QPoints + TotalNumberQTCsProcessed;
-
-    IF (ActiveDomesticMult = NoDomesticMults) AND
-       (ActiveDXMult       = NoDXMults) AND
-       (ActivePrefixMult   = NoPrefixMults) AND
-       (ActiveZoneMult     = NoZoneMults) THEN
-           BEGIN
-           TotalScore := QPoints;
-           Exit;
-           END;
-
-    {KK1L: 6.70 Ugly fix for FISTS because mults don't work...too long an exchange}
-    IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN
-        BEGIN
-        TotalScore := QPoints;
-        Exit;
-        END;
-
-    Sheet.MultSheetTotals (MTotals);
-    VisibleLog.IncrementMultTotalsWithContentsOfEditableWindow (MTotals);
-
-    IF SingleBand <> All THEN
-        BEGIN
-        TotalMults := MTotals [SingleBand, Both].NumberDomesticMults;
-        TotalMults := TotalMults + MTotals [SingleBand, Both].NumberDXMults;
-        TotalMults := TotalMults + MTotals [SingleBand, Both].NumberPrefixMults;
-        TotalMults := TotalMults + MTotals [SingleBand, Both].NumberZoneMults;
-        END
-    ELSE
-        IF ActiveQSOPointMethod = WAEQSOPointMethod THEN
-            BEGIN
-            TotalMults := MTotals [Band80, Both].NumberDXMults * 4;
-            TotalMults := TotalMults + MTotals [Band40, Both].NumberDXMults * 3;
-            TotalMults := TotalMults + MTotals [Band20, Both].NumberDXMults * 2;
-            TotalMults := TotalMults + MTotals [Band15, Both].NumberDXMults * 2;
-            TotalMults := TotalMults + MTotals [Band10, Both].NumberDXMults * 2;
-            END
-        ELSE
-            BEGIN
-            TotalMults := MTotals [All, Both].NumberDomesticMults;
-            TotalMults := TotalMults + MTotals [All, Both].NumberDXMults;
-            TotalMults := TotalMults + MTotals [All, Both].NumberPrefixMults;
-            TotalMults := TotalMults + MTotals [All, Both].NumberZoneMults;
-            END;
-
-    TotalScore := QPoints * TotalMults;
-    END;
-
    procedure scorereport.timer(caughtup: boolean);
    begin
       inc(icount);
@@ -375,7 +501,37 @@ VAR QPoints, TotalMults: LongInt;
    end;
 
    procedure scorereport.setup;
+   var i:integer;
    begin
+      nmulttype := 0;
+      if ActiveDomesticMult = NoDomesticMults then domesticmult := 'none';
+      if ActiveDXMult = NoDXMults then dxmult := 'none';
+      if ActivePrefixMult = NoPrefixMults then prefixmult := 'none';
+      if ActiveZoneMult = NoZoneMults then zonemult := 'none';
+
+      if (UPCASE(domesticmult) <> 'NONE') then
+      begin
+         inc(nmulttype);
+         mult[nmulttype] := domesticmult;
+      end;
+      if ((UPCASE(dxmult) <> 'NONE') and (dxmult <> domesticmult)) then
+      begin
+         inc(nmulttype);
+         mult[nmulttype] := dxmult;
+      end;
+      if ((UPCASE(zonemult) <> 'NONE') and (zonemult <> domesticmult)
+          and (zonemult <> dxmult)) then
+      begin
+         inc(nmulttype);
+         mult[nmulttype] := zonemult;
+      end;
+      if ((UPCASE(prefixmult) <> 'NONE') and (prefixmult <> domesticmult)
+          and (prefixmult <> dxmult) and (prefixmult <> zonemult)) then
+      begin
+         inc(nmulttype);
+         mult[nmulttype] := prefixmult;
+      end;
+      
       fd := getpt;
       grantpt(fd);
       unlockpt(fd);
