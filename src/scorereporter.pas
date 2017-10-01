@@ -367,7 +367,7 @@ end;
 
          n2 := Doc.CreateElement('qso');
          TDOMElement(n2).SetAttribute('band','total');
-         TDOMElement(n2).SetAttribute('mode','All');
+         TDOMElement(n2).SetAttribute('mode','ALL');
          n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[All,Both]));
          n2.Appendchild(n3);
          n0.ChildNodes.Item[i].Appendchild(n2);
@@ -398,7 +398,7 @@ end;
                begin
                   n2 := Doc.CreateElement('qso');
                   TDOMElement(n2).SetAttribute('band',BandString[band]);
-                  TDOMElement(n2).SetAttribute('mode','All');
+                  TDOMElement(n2).SetAttribute('mode','ALL');
                   n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,both]));
                   n2.Appendchild(n3);
                   n0.ChildNodes.Item[i].Appendchild(n2);
@@ -410,7 +410,7 @@ end;
          begin
             n2 := Doc.CreateElement('mult');
             TDOMElement(n2).SetAttribute('band','total');
-            TDOMElement(n2).SetAttribute('mode','All');
+            TDOMElement(n2).SetAttribute('mode','ALL');
             TDOMElement(n2).SetAttribute('type',mult[j]);
             n3 := Doc.CreateTextNode(inttostr(totalmults[j]));
             n2.Appendchild(n3);
@@ -446,7 +446,7 @@ end;
                   begin
                      n2 := Doc.CreateElement('mult');
                      TDOMElement(n2).SetAttribute('band',BandString[band]);
-                     TDOMElement(n2).SetAttribute('mode','All');
+                     TDOMElement(n2).SetAttribute('mode','ALL');
                      TDOMElement(n2).SetAttribute('type',mult[j]);
                      n3 := Doc.CreateTextNode(inttostr(nmult[band,both,j]));
                      n2.Appendchild(n3);
@@ -458,7 +458,7 @@ end;
 
          n2 := Doc.CreateElement('point');
          TDOMElement(n2).SetAttribute('band','total');
-         TDOMElement(n2).SetAttribute('mode','All');
+         TDOMElement(n2).SetAttribute('mode','ALL');
          n3 := Doc.CreateTextNode(inttostr(qpoints));
          n2.Appendchild(n3);
          n0.ChildNodes.Item[i].Appendchild(n2);
