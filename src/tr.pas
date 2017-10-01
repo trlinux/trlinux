@@ -20,7 +20,7 @@
 
 PROGRAM ContestLoggingProgram;
 {$mode objfpc}
-
+{$linklib curl}
 {$V-}
 
 {  To make TRTTY, change TREE.PAS so that RTY shows up between CW and SSB.
@@ -3424,6 +3424,7 @@ Uses
      radio,
      so2r,
      keycode,
+     libcurl,
      sysutils;
 
 procedure dumpexceptioncallstack(e: exception);
@@ -3737,6 +3738,9 @@ var oa4,na4,oa8,na8,oa11,na11:  PSigActionRec;
     FreeStartUpScreen;
 
 {$ENDIF}
+
+   curl_global_init(CURL_GLOBAL_ALL); //must be called while just 1 thread.
+
 // Free pascal installs its own signal handlers. However, in order for users
 // to get a core dump file that we can analyze in case of a crash, I
 // reinstall the default signal handler for signals 4,8, and 11

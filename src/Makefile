@@ -25,6 +25,7 @@ SRC=\
    keyerwin.pas\
    keyeryccc.pas\
    radio.pas\
+   scorereporter.pas\
    cfgcmd.pas\
    cfgdef.pas\
    colorcfg.pas\
@@ -77,7 +78,7 @@ SRC=\
    datetimec.pas
 
 
-trlog: $(SRC) hidapi.h hid.o dupe.o dt.o findports.o
+trlog: $(SRC) hidapi.h hid.o dupe.o dt.o findports.o scoreposter.o
 #	fpc -Xt -B -Mtp -g -otrlog tr\
              -k-logg -k-lvorbis -k-lFLAC -k-lvorbisenc -k-lm
 #	fpc -dBUSYWAIT -B -Mtp -g -otrlog tr -k-rpath=\$$ORIGIN/lib -k'-z origin' -k-lX11
@@ -98,6 +99,9 @@ dupe.o:dupe.c
 
 hid.o:hid.c
 	gcc -c hid.c
+
+scoreposter.o:scoreposter.c
+	gcc -c scoreposter.c
 
 findports.o:findports.c
 	gcc -c findports.c

@@ -429,6 +429,12 @@ VAR FileWrite: TEXT;
             END;
         END else rig2 := radioctl.create(radiodebugmode); //dummy
 
+    if scorerpt.enabled then
+    begin
+       scorerpt.setcall(MyCall);
+       scorerpt.setup;
+       addtimer(@scorerpt.timer);
+    end;
     ActiveKeyer.debug(keyerdebug);
     InitializeKeyer;
 

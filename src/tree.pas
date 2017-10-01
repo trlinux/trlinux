@@ -276,6 +276,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  GetFileSize (FileName: Str80): LONGINT;
     FUNCTION  GetFirstString (LongString: STRING): Str80;
     FUNCTION  GetFullTimeString: Str80;
+    FUNCTION  GetFullDateString: Str80;
     FUNCTION  GetIntegerTime: INTEGER;
 
     FUNCTION  GetLastString (LongString: STRING): Str80;
@@ -597,7 +598,7 @@ FUNCTION WordValueFromCharacter (Character: CHAR): WORD;
         Exit;
         END;
 
-    IF Character = 'í' THEN
+    IF Character = '?' THEN
         BEGIN
         WordValueFromCharacter := 1;
         Exit;
@@ -1481,6 +1482,121 @@ FUNCTION GetColorInteger (ColorString: Str80): INTEGER;
     END;
 
 
+
+FUNCTION GetFullDateString: Str80;
+
+{ This function goes off and reads the DOS clock and generates a nice
+  looking ASCII string using the format 25-DEC-90.  It takes the Time
+  Offset variable into account.
+
+  If the HOUR OFFSET variable is non zero, the hours will get 24 added
+  to it and then the HOUR OFFSET added.  This is done to keep the
+  HOURS word variable from wrapping around to 65536 since there are no
+  negative numbers for a WORD variable.  Thus a value greater than 47
+  after adding the HOUR OFFSET indicates that a day must be added.  If
+  the value is less than 24, then a day must be subtracted.
+   }
+
+VAR TempString, DString: Str80;
+
+//CONST
+//    DayTags: ARRAY [0..6] OF STRING [9] = ('Sunday', 'Monday', 'Tuesday',
+//          'Wednesday', 'Thursday', 'Friday', 'Saturday');
+
+VAR Year, Month, Day, DayOfWeek: WORD;
+    Hours, Minutes, Seconds, Hundredths: WORD;
+    I: INTEGER;
+
+    BEGIN
+    GetDate (Year, Month, Day, DayOfWeek);
+
+    IF HourOffset <> 0 THEN
+        BEGIN
+        GetTime (Hours, Minutes, Seconds, Hundredths);
+        I := Hours;
+        I := I + HourOffset;
+
+        IF I > 23 THEN                     { Add a day }
+            BEGIN
+            Inc (Day);
+            Inc (DayOfWeek);
+            IF DayOfWeek = 8 THEN DayOfWeek := 1;
+
+            CASE Month OF
+                4, 6, 9, 11:                   { 30 day month }
+                    IF Day > 30 THEN
+                        BEGIN
+                        Day := 1;
+                        Inc (Month);
+                        END;
+
+                2: IF ((Year MOD 4) = 0) AND (Year <> 2000) THEN  { tricky }
+                       BEGIN
+                       IF Day > 29 THEN
+                           BEGIN
+                           Day := 1;
+                           Inc (Month);
+                           END;
+                       END
+                   ELSE
+                       BEGIN
+                       IF Day > 28 THEN
+                           BEGIN
+                           Day := 1;
+                           Inc (Month);
+                           END;
+                       END;
+
+                ELSE                           { 31 day month }
+                    IF Day > 31 THEN
+                        BEGIN
+                        Day := 1;
+                        Inc (Month);
+                        IF Month = 13 THEN
+                            BEGIN
+                            Month := 1;
+                            Inc (Year);
+                            END;
+                        END;
+                END;
+
+            END;
+
+        IF I < 0 THEN                      { Subtract a day }
+            BEGIN
+            Dec (Day);
+            Dec (DayOfWeek);
+            IF DayOfWeek = 0 THEN DayOfWeek := 7;
+
+            IF Day = 0 THEN
+                BEGIN
+                Dec (Month);
+
+                CASE Month OF
+                    4, 6, 9, 11: Day := 30;
+                    2: IF ((Year MOD 4) = 0) AND (Year <> 2000) THEN  { tricky }
+                           Day := 29
+                       ELSE
+                           Day := 28;
+                    ELSE
+                        BEGIN
+                        IF Month = 12 THEN Dec (Year);
+                        Day := 31;
+                        END;
+                    END;
+                END;
+
+            END;
+        END;
+
+    Str (Day, TempString);
+    Str (Month,DString);
+    IF Day < 10 THEN TempString := '0' + TempString;
+    IF Month < 10 THEN DString := '0' + DString;
+    DString := DString + '-' + TempString;
+    STR (Year, TempString);
+    GetFullDateString := TempString + '-'+ DString;
+    END;
 
 FUNCTION GetDateString: Str80;
 
