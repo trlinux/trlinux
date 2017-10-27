@@ -1,0 +1,27 @@
+The compiler CRT unit interprets most of the control, alt, function keys
+etc. from the linux console as well as giving cursor and color control.
+Using this with an xterm did not give the full capabilities needed by
+TR. Therefore TR linux uses a modified free pascal CRT unit.
+
+That is, the crt.pp file here was taken from fpc-2.4.2/rtl/unix/crt.pp
+and modified to produce the trcrt.pas file in the source directory.  The
+original crt.pp file also includes various source files from the source
+compiler include directory. These are crt.inc, crth.inc and textrec.inc.
+The modified version needs to include these files, so they were copied
+from the free pascal source to the TR linux src directory. This has all
+worked without change through version 2.6 of the free pascal compiler.
+
+With the release of the 3.0.2 version of the free pascal compiler,
+the trcrt.pas file would no longer compile due to changes to the
+compiler source.  Comparing the 2.4.2 crt.pp to the equivalent file in
+version 3.0.2, fpc-3.0.2/packages/rtl-console/src/unix/crt.pp, which is
+crt3.pp.3 here, an extra test was added, a few functions were changed to
+procedures, and the textrec.inc file had major changes.  The test seemed
+to be a bug fix, so it was added to trcrt.pas.  The other changes have
+been incorporated into the source by including both compiler versions
+of textrec.inc (with names textrec.inc and textrec3.inc) and including a
+few {$ifdef VER3} {$else} {$endif} blocks to choose the correct files and
+function/procedure definitions to be consistent with the compiler version.
+
+With these changes, the code compiles with both version 2 and 3 of the
+compiler.

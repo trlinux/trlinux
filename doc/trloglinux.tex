@@ -52,7 +52,7 @@ For many years I have run TRlog under linux using dosemu, a program that
 runs a version of DOS in linux. While this works for the most part,
 the timing for sending CW requires taking care that dosemu gets high
 priority, and even so occasionally poor cw is sent. Getting a sound card
-working is difficult, and the whole thing is a ugly.
+working is difficult, and the whole thing is ugly.
 
 In November 2011, I asked Tree if he would be willing to let me try to
 port TR log to linux. He very generously sent me the complete source
@@ -823,6 +823,9 @@ STEREO
 RXA
 RXI
 \end{verbatim}
+LATCHON\index{LATCHON}\index{LATCHOFF}\index{LATCHTOGGLE}
+turns on latch mode, LATCHOFF turns off latch mode, while LATCHTOGGLE
+toggles the latch mode.
 RX1\index{RX1}\index{RX2}\index{STEREO}\index{RXA}\index{RXI}
 puts receive focus on Rig 1, RX2 puts receive focus on Rig 2.
 RXA puts receive focus on the active radio.

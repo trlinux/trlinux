@@ -1,4 +1,3 @@
-//$Id: trcrt.pas,v 1.7 2013/07/22 23:31:24 schmidt Exp $
 {
     This file is part of the Free Pascal run time library.
     Copyright (c) 1999-2000 by Michael Van Canneyt and Peter Vreman,
@@ -12,8 +11,7 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-{$mode objfpc}
-unit trcrt;
+unit Crt;
 
 Interface
 
@@ -41,15 +39,6 @@ var
 Implementation
 
 uses BaseUnix ,unix, termio;
-
-{
-  The definitions of TextRec and FileRec are in separate files.
-}
-{$ifdef VER3}
-{$i textrec3.inc}
-{$else}
-{$i textrec.inc}
-{$endif}
 
 Const
   OldTextAttr : byte = $07;
@@ -112,11 +101,66 @@ end;
 {*****************************************************************************
                       Optimal AnsiString Conversion Routines
 *****************************************************************************}
+
 Function XY2Ansi(x,y,ox,oy:longint):String;
+{
+  Returns a string with the escape sequences to go to X,Y on the screen
+}
 Begin
+  { in case of potential ox overflow, send full position information
+    (mantis #20880) }
+  if (y=oy) and
+     (ox<>$ff) then
+   begin
+     if x=ox then
+      begin
+        // this workaround should improve behaviour on some terminals.
+        // debian bug 216057 but I also observed this with video on FreeBSD
+        if x=screenwidth then
+          XY2Ansi:=#27'['+Str(y)+';'+Str(x)+'H'
+        else
+       // end workaround
+          XY2Ansi:='';
+        exit;
+      end;
+    {$ifdef Linux}      // linux CRT shortcut
+     if x=1 then
+      begin
+        XY2Ansi:=#13;
+        exit;
+      end;
+    {$endif}
+     if x>ox then
+      begin
+        XY2Ansi:=#27'['+Str(x-ox)+'C';
+        exit;
+      end
+     else
+      begin
+        XY2Ansi:=#27'['+Str(ox-x)+'D';
+        exit;
+      end;
+   end;
+  if x=ox then
+   begin
+     if y>oy then
+      begin
+        XY2Ansi:=#27'['+Str(y-oy)+'B';
+        exit;
+      end
+     else
+      begin
+        XY2Ansi:=#27'['+Str(oy-y)+'A';
+        exit;
+      end;
+   end;
+  {$ifdef Linux}                        // this shortcut isn't for everybody
+  if (x=1) and (oy+1=y) then
+   XY2Ansi:=#13#10
+  else
+  {$endif}
    XY2Ansi:=#27'['+Str(y)+';'+Str(x)+'H';
 End;
-
 
 
 
@@ -875,17 +919,65 @@ Begin
                'B' : PushExt(80);
                'C' : PushExt(77);
                'D' : PushExt(75);
+               {$IFDEF FREEBSD}
+               {'E' - Center key, not handled in DOS TP7}
+               'F' : PushExt(79); {End}
+               'G': PushExt(81); {PageDown}
+               {$ELSE}
                'G' : PushKey('5'); {Center key, Linux}
+               {$ENDIF}
                'H' : PushExt(71);
+               {$IFDEF FREEBSD}
+               'I' : PushExt(73); {PageUp}
+               {$ENDIF}
                'K' : PushExt(79);
+               {$IFDEF FREEBSD}
+               'L' : PushExt(82);   {Insert - Deekoo}
+               'M' : PushExt(59);   {F1-F10 - Deekoo}
+               'N' : PushExt(60);   {F2}
+               'O' : PushExt(61);   {F3}
+               'P' : PushExt(62);   {F4}
+               'Q' : PushExt(63);   {F5}
+               'R' : PushExt(64);   {F6}
+               'S' : PushExt(65);   {F7}
+               'T' : PushExt(66);   {F8}
+               'U' : PushExt(67);   {F9}
+               'V' : PushExt(68);   {F10}
+               {Not sure if TP/BP handles F11 and F12 like this normally;
+                   In pcemu, a TP7 executable handles 'em this way, though.}
+               'W' : PushExt(133);   {F11}
+               'X' : PushExt(134);   {F12}
+               'Y' : PushExt(84);   {Shift-F1}
+               'Z' : PushExt(85);   {Shift-F2}
+               'a' : PushExt(86);   {Shift-F3}
+               'b' : PushExt(87);   {Shift-F4}
+               'c' : PushExt(88);   {Shift-F5}
+               'd' : PushExt(89);   {Shift-F6}
+               'e' : PushExt(90);   {Shift-F7}
+               'f' : PushExt(91);   {Shift-F8}
+               'g' : PushExt(92);   {Shift-F9}
+               'h' : PushExt(93);   {Shift-F10}
+               'i' : PushExt(135);   {Shift-F11}
+               'j' : PushExt(136);   {Shift-F12}
+               'k' : PushExt(94);        {Ctrl-F1}
+               'l' : PushExt(95);
+               'm' : PushExt(96);
+               'n' : PushExt(97);
+               'o' : PushExt(98);
+               'p' : PushExt(99);
+               'q' : PushExt(100);
+               'r' : PushExt(101);
+               's' : PushExt(102);
+               't' : PushExt(103);   {Ctrl-F10}
+               'u' : PushExt(137);   {Ctrl-F11}
+               'v' : PushExt(138);   {Ctrl-F12}
+               {$ENDIF}
                '1' : State:=4;
                '2' : State:=5;
                '3' : State:=6;
                '4' : PushExt(79);
-               '5' : state := 30;
-               '6' : state := 32;
-               'Z' : PushExt(15);
-               'F' : PushExt(79);
+               '5' : PushExt(73);
+               '6' : PushExt(81);
               else
                begin
                  PushKey(ch);
@@ -893,8 +985,8 @@ Begin
                  PushKey(#27);
                end;
               end;
-//              if ch in ['4'..'6'] then
-//               State:=255;
+              if ch in ['4'..'6'] then
+               State:=255;
             end;
         3 : begin {Esc[[}
               case ch of
@@ -903,36 +995,35 @@ Begin
                'C' : PushExt(61);
                'D' : PushExt(62);
                'E' : PushExt(63);
-               '6' : PushExt(118);
               end;
-              if not (ch in [';','5','~']) then state := 255;
             end;
         4 : begin {Esc[1}
               case ch of
                '~' : PushExt(71);
                '5' : State := 8;
-               '7' : State := 9;
-               '8' : State := 10;
-               '9' : State := 11;
-               ';' : State := 12;
+               '7' : PushExt(64);
+               '8' : PushExt(65);
+               '9' : PushExt(66);
               end;
+              if not (Ch in ['~', '5']) then
+               State:=255;
             end;
         5 : begin {Esc[2}
               case ch of
                '~' : PushExt(82);
-               '0' : state := 20;
-               '1' : state := 21;
-               '3' : state := 22;
-               '4' : state := 23;
-               ';' : state := 24;
+               '0' : pushExt(67);
+               '1' : PushExt(68);
+               '3' : PushExt(133); {F11}
+                {Esc[23~ is also shift-F1,shift-F11}
+               '4' : PushExt(134); {F12}
                 {Esc[24~ is also shift-F2,shift-F12}
                '5' : PushExt(86); {Shift-F3}
                '6' : PushExt(87); {Shift-F4}
                '8' : PushExt(88); {Shift-F5}
                '9' : PushExt(89); {Shift-F6}
               end;
-//              if (Ch<>'~') then
-//               State:=255;
+              if (Ch<>'~') then
+               State:=255;
             end;
         6 : begin {Esc[3}
               case ch of
@@ -941,10 +1032,9 @@ Begin
                '2' : PushExt(91); {Shift-F8}
                '3' : PushExt(92); {Shift-F9}
                '4' : PushExt(93); {Shift-F10}
-               ';' : state := 29;
               end;
-//              if (Ch<>'~') then
-//               State:=255;
+              if (Ch<>'~') then
+               State:=255;
             end;
 {$ifdef Unix}
         7 : begin {Esc[O}
@@ -963,218 +1053,8 @@ Begin
         8 : begin {Esc[15}
             case ch of
               '~' : PushExt(63);
-              ';' : state := 13;
             end;
           end;
-
-        9 : begin {Esc[17}
-            case ch of
-              '~' : PushExt(64);
-              ';' : state := 14;
-            end;
-          end;
-
-       10 : begin {Esc[18}
-            case ch of
-              '~' : PushExt(65);
-              ';' : state := 15;
-            end;
-          end;
-
-       11 : begin {Esc[19}
-            case ch of
-              '~' : PushExt(66);
-              ';' : state := 16;
-            end;
-          end;
-
-       12 : begin {Esc[1;}
-            case ch of
-              '5' : state := 17;
-              '2' : state := 18;
-              '3' : state := 19;
-            end;
-          end;
-
-       13 : begin {Esc[15;}
-            case ch of
-            '2' : pushext(88);
-            '5' : pushext(98);
-            '3' : pushext(108);
-            end;
-            if not (ch in ['~']) then state := 255;
-          end;
-
-       14 : begin {Esc[17;}
-            case ch of
-            '2' : pushext(89);
-            '5' : pushext(99);
-            '3' : pushext(109);
-            end;
-            if ch <>'~' then state := 255;
-          end;
-
-       15 : begin {Esc[18;}
-            case ch of
-            '2' : pushext(90);
-            '5' : pushext(100);
-            '3' : pushext(110);
-            end;
-            if not (ch in ['~']) then state := 255;
-          end;
-
-       16 : begin {Esc[19;}
-            case ch of
-            '2' : pushext(91);
-            '5' : pushext(101);
-            '3' : pushext(111);
-            end;
-            if not (ch in ['~']) then state := 255;
-          end;
-
-       17 : begin {Esc[1;5}
-            case ch of
-            'P' : pushext(94);
-            'Q' : pushext(95);
-            'R' : pushext(96);
-            'S' : pushext(97);
-            'B' : pushext(145);
-            'A' : pushext(141);
-            'D' : pushext(115);
-            'C' : pushext(116);
-            'F' : pushext(117);
-            'H' : pushext(119);
-            end;
-          end;
-
-       18 : begin {Esc[1;2}
-            case ch of
-            'P' : pushext(84);
-            'Q' : pushext(85);
-            'R' : pushext(86);
-            'S' : pushext(87);
-            end;
-          end;
-
-       19 : begin {Esc[1;3}
-            case ch of
-            'P' : pushext(104);
-            'Q' : pushext(105);
-            'R' : pushext(106);
-            'S' : pushext(107);
-            'B' : pushext(160);
-            'A' : pushext(152);
-            end;
-          end;
-
-        20 : begin {Esc[20}
-            case ch of
-              '~' : PushExt(67);
-              ';' : state := 25;
-            end;
-          end;
-
-        21 : begin {Esc[21}
-            case ch of
-              '~' : PushExt(68);
-              ';' : state := 26;
-            end;
-          end;
-
-        22 : begin {Esc[23}
-            case ch of
-              '~' : PushExt(133);
-              ';' : state := 27;
-            end;
-          end;
-
-        23 : begin {Esc[24}
-            case ch of
-              '~' : PushExt(134);
-              ';' : state := 28;
-            end;
-          end;
-
-        24 : begin {Esc[2;}
-            case ch of
-              '5' : PushExt(146);
-              '3' : PushExt(162);
-            end;
-            if ch <> '~' then state := 255;
-          end;
-
-       25 : begin {Esc[20;}
-            case ch of
-            '2' : pushext(92);
-            '5' : pushext(102);
-            '3' : pushext(112);
-            end;
-            if ch <>'~'then state := 255;
-          end;
-
-       26 : begin {Esc[21;}
-            case ch of
-            '2' : pushext(93);
-            '5' : pushext(103);
-            '3' : pushext(113);
-            end;
-            if ch <>'~'then state := 255;
-          end;
-
-       27 : begin {Esc[23;}
-            case ch of
-            '2' : pushext(135);
-            '5' : pushext(137);
-            '3' : pushext(139);
-            end;
-            if ch <>'~'then state := 255;
-          end;
-
-       28 : begin {Esc[24;}
-            case ch of
-            '2' : pushext(136);
-            '5' : pushext(138);
-            '3' : pushext(140);
-            end;
-            if ch <>'~'then state := 255;
-          end;
-
-       29 : begin {Esc[3;}
-            case ch of
-            '3' : pushext(163);
-            '5' : pushext(147);
-            end;
-            if ch <>'~'then state := 255;
-          end;
-
-       30 : begin {Esc[5}
-            case ch of
-            '~' : pushext(73);
-            ';' : state := 31;
-            end;
-          end;
-
-       31 : begin {Esc[5;}
-            case ch of
-            '5' : pushext(132);
-            end;
-            if ch <>'~'then state := 255;
-          end;
- 
-       32 : begin {Esc[6}
-            case ch of
-            '~' : pushext(81);
-            ';' : state := 33;
-            end;
-          end;
-
-       33 : begin {Esc[6;}
-            case ch of
-            '5' : pushext(118);
-            end;
-            if ch <>'~'then state := 255;
-          end;
-  
       255 : ;
         end;
         if State<>0 then
@@ -1366,11 +1246,8 @@ begin
   ttySetFlush(oldFLush);
 end;
 
-{$ifdef VER3}
+
 Procedure CrtWrite(Var F: TextRec);
-{$else}
-Function CrtWrite(Var F: TextRec): Integer;
-{$endif}
 {
   Top level write function for CRT
 }
@@ -1394,18 +1271,10 @@ Begin
    end;
 
   ttySetFlush(oldFLush);
-{$ifdef VER3}
-{$else}
-  CrtWrite:=0;
-{$endif}
 End;
 
 
-{$ifdef VER3}
 Procedure CrtRead(Var F: TextRec);
-{$else}
-Function CrtRead(Var F: TextRec): Integer;
-{$endif}
 {
   Read from CRT associated file.
 }
@@ -1451,10 +1320,6 @@ Begin
         end;
       until (c in [#10,#13]) or (i >= F.BufSize);
       F.BufEnd := i;
-{$ifdef VER3}
-{$else}
-      CrtRead := 0;
-{$endif}
       exit;
     end;
   F.BufEnd:=fpRead(F.Handle, F.BufPtr^, F.BufSize);
@@ -1468,48 +1333,24 @@ Begin
   if not(OutputRedir or InputRedir) then
     CrtWrite(F)
   else F.BufPos := 0;
-{$ifdef VER3}
-{$else}
-  CrtRead:=0;
-{$endif}
 End;
 
 
-{$ifdef VER3}
 Procedure CrtReturn(Var F:TextRec);
-{$else}
-Function CrtReturn(Var F:TextRec):Integer;
-{$endif}
 Begin
-{$ifdef VER3}
-{$else}
-  CrtReturn:=0;
-{$endif}
 end;
 
 
-{$ifdef VER3}
 Procedure CrtClose(Var F: TextRec);
-{$else}
-Function CrtClose(Var F: TextRec): Integer;
-{$endif}
 {
   Close CRT associated file.
 }
 Begin
   F.Mode:=fmClosed;
-{$ifdef VER3}
-{$else}
-  CrtClose:=0;
-{$endif}
 End;
 
 
-{$ifdef VER3}
 Procedure CrtOpen(Var F: TextRec);
-{$else}
-Function CrtOpen(Var F: TextRec): Integer;
-{$endif}
 {
   Open CRT associated file.
 }
@@ -1526,10 +1367,6 @@ Begin
      TextRec(F).FlushFunc:=@CrtReturn;
    end;
   TextRec(F).CloseFunc:=@CrtClose;
-{$ifdef VER3}
-{$else}
-  CrtOpen:=0;
-{$endif}
 End;
 
 
@@ -1813,59 +1650,3 @@ Finalization
    FreeMem(ConsoleBuf,ScreenHeight*ScreenWidth*2);
 
 End.
-Function XY2Ansi(x,y,ox,oy:longint):String;
-{
-  Returns a string with the escape sequences to go to X,Y on the screen
-}
-Begin
-  if y=oy and (ox<>$ff) then
-   begin
-     if x=ox then
-      begin
-        // this workaround should improve behaviour on some terminals.
-        // debian bug 216057 but I also observed this with video on FreeBSD
-        if x=screenwidth then
-          XY2Ansi:=#27'['+Str(y)+';'+Str(x)+'H'
-        else
-       // end workaround
-          XY2Ansi:='';
-        exit;
-      end;
-    {$ifdef Linux}      // linux CRT shortcut
-     if x=1 then
-      begin
-        XY2Ansi:=#13;
-        exit;
-      end;
-    {$endif}
-     if x>ox then
-      begin
-        XY2Ansi:=#27'['+Str(x-ox)+'C';
-        exit;
-      end
-     else
-      begin
-        XY2Ansi:=#27'['+Str(ox-x)+'D';
-        exit;
-      end;
-   end;
-  if x=ox then
-   begin
-     if y>oy then
-      begin
-        XY2Ansi:=#27'['+Str(y-oy)+'B';
-        exit;
-      end
-     else
-      begin
-        XY2Ansi:=#27'['+Str(oy-y)+'A';
-        exit;
-      end;
-   end;
-  {$ifdef Linux}                        // this shortcut isn't for everybody
-  if (x=1) and (oy+1=y) then
-   XY2Ansi:=#13#10
-  else
-  {$endif}
-   XY2Ansi:=#27'['+Str(y)+';'+Str(x)+'H';
-End;

@@ -1366,8 +1366,11 @@ begin
   ttySetFlush(oldFLush);
 end;
 
-
+{$ifdef VER3}
+Procedure CrtWrite(Var F: TextRec);
+{$else}
 Function CrtWrite(Var F: TextRec): Integer;
+{$endif}
 {
   Top level write function for CRT
 }
@@ -1391,11 +1394,18 @@ Begin
    end;
 
   ttySetFlush(oldFLush);
+{$ifdef VER3}
+{$else}
   CrtWrite:=0;
+{$endif}
 End;
 
 
+{$ifdef VER3}
+Procedure CrtRead(Var F: TextRec);
+{$else}
 Function CrtRead(Var F: TextRec): Integer;
+{$endif}
 {
   Read from CRT associated file.
 }
@@ -1441,7 +1451,10 @@ Begin
         end;
       until (c in [#10,#13]) or (i >= F.BufSize);
       F.BufEnd := i;
+{$ifdef VER3}
+{$else}
       CrtRead := 0;
+{$endif}
       exit;
     end;
   F.BufEnd:=fpRead(F.Handle, F.BufPtr^, F.BufSize);
@@ -1455,27 +1468,48 @@ Begin
   if not(OutputRedir or InputRedir) then
     CrtWrite(F)
   else F.BufPos := 0;
+{$ifdef VER3}
+{$else}
   CrtRead:=0;
+{$endif}
 End;
 
 
+{$ifdef VER3}
+Procedure CrtReturn(Var F:TextRec);
+{$else}
 Function CrtReturn(Var F:TextRec):Integer;
+{$endif}
 Begin
+{$ifdef VER3}
+{$else}
   CrtReturn:=0;
+{$endif}
 end;
 
 
+{$ifdef VER3}
+Procedure CrtClose(Var F: TextRec);
+{$else}
 Function CrtClose(Var F: TextRec): Integer;
+{$endif}
 {
   Close CRT associated file.
 }
 Begin
   F.Mode:=fmClosed;
+{$ifdef VER3}
+{$else}
   CrtClose:=0;
+{$endif}
 End;
 
 
+{$ifdef VER3}
+Procedure CrtOpen(Var F: TextRec);
+{$else}
 Function CrtOpen(Var F: TextRec): Integer;
+{$endif}
 {
   Open CRT associated file.
 }
@@ -1492,7 +1526,10 @@ Begin
      TextRec(F).FlushFunc:=@CrtReturn;
    end;
   TextRec(F).CloseFunc:=@CrtClose;
+{$ifdef VER3}
+{$else}
   CrtOpen:=0;
+{$endif}
 End;
 
 
@@ -1781,7 +1818,7 @@ Function XY2Ansi(x,y,ox,oy:longint):String;
   Returns a string with the escape sequences to go to X,Y on the screen
 }
 Begin
-  if y=oy then
+  if y=oy and (ox<>$ff) then
    begin
      if x=ox then
       begin
