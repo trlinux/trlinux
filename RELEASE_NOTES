@@ -15,6 +15,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
+0.48
+- Online score reporting added. All options must be manually configured.
+
 0.47 
 - Added latch mode for yccc so2r box.
 - Added DVK radio commands to access rig's voice keyer as a DVK

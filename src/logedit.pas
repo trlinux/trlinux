@@ -270,10 +270,6 @@ VAR InitialCursorX: INTEGER;
         TextColor (ActiveColor);
         TextBackground (ActiveBackground);
         Write ('  ');
-{KS vga font displays this correctly, but hyphens below
-    allow more fonts and is only a little uglier
-        WriteColor ('컴컴', ActiveBackground, ActiveColor);
-}
         WriteColor ('----', ActiveBackground, ActiveColor);
         TextColor (ActiveColor);
         TextBackground (ActiveBackground);
@@ -284,9 +280,6 @@ VAR InitialCursorX: INTEGER;
         ELSE Write ('   ');
         Write (BandString [Band]);
         GoToXY (InitialCursorX, WhereY + 1);
-{KS
-        Write ('  컴컴');
-}
         Write ('  ----');
         END;
 

@@ -938,6 +938,268 @@ The hamlib recommended rigctld port are the even numbered ports
 4532, 4534, 4536, etc. You can,
 of course, use any unused nonprivileged port.
 
+\section{Real time contest score reporting}
+TR can report contest scores and band breakdowns to one of the contest
+scoreboards if desired. Currently, this is not user friendly at all.
+It must be set up in the LOGCFG.DAT
+or equivalent file at program start up. Equivalent control-J commands have
+not been implemented.  {\em Currently no input checking is enforced,
+and correct input defaults are not set up for any contests. Everything
+must be set manually.}
+
+The commands are described in the next sections:
+
+\subsection{Enabling and specifying the score reporting web site} These
+commands choose the score reporting web site, and sets your credentials,
+if any.
+
+\begin{itemize}
+\item
+\begin{verbatim}
+score report enable =
+\end{verbatim}
+Setting this to true
+turns on score reporting.
+False is the default.
+\item
+\begin{verbatim}
+score report post url =
+\end{verbatim}
+This is the url for the web site used for score reporting. The
+current sites are
+\url{https://contestonlinescore.com/post/}
+and
+\url{https://cqcontest.net/postscore.php}. There are also
+corresponding unencrypted http sites
+\url{http://post.contestonlinescore.com/}
+and
+\url{http://cqcontest.net/postscore.php}.
+
+\item
+\begin{verbatim}
+score report username =
+\end{verbatim}
+The user name used for authentication at the score reporting web site.
+This is typically your call sign. This is only used if
+the url begins with ``https:''. The default is the null string.
+
+\item
+\begin{verbatim}
+score report password = 
+\end{verbatim}
+The password used for authentication at the score reporting web site.
+This is only used if the url begins with ``https:''.
+The default is the null string.
+Please note that since your username and password will be stored {\em
+in the clear} in the TR configuration file, that this is not
+secure.
+
+You should make the file containing your password readable only by you, i.e.
+with a command like
+\begin{verbatim}
+chmod 600 LOGCFG.DAT
+\end{verbatim}
+However,
+any administrator on your computer, or any malware that gains root permission
+would be able to read this trivially.
+You should think of this username password as locking your front door
+and then leaving a key under the door mat or under a nearby flower pot.
+It tells people that you don't want them to barge in on you, but you know
+a burglar will be able to get in. 
+
+Making this secure does not seem like a good use of developer time, since the
+only consequences of stolen credentials is that someone could post wrong
+scores from you until you notified the score reporting
+site to reset your account. If this bothers you, use the unsecured web sites
+that do not require a username and password.
+
+{\em Be sure that the password you use here
+is not used for any important account.}
+\end{itemize}
+
+\subsection{Operator entry class}
+The following commands speficy your entry class. The default for all of
+these is a null string.
+\begin{itemize}
+\item
+\begin{verbatim}
+score report class ops =
+\end{verbatim}
+The choices are SINGLE-OP, MULTI-OP, or CHECKLOG.
+
+\item
+\begin{verbatim}
+score report class bands =
+\end{verbatim}
+The choices are ALL, 160M, 80M, 40M, 20M, 15M, 10M, 6M, 2M.
+
+\item
+\begin{verbatim}
+score report class power =
+\end{verbatim}
+The choices are HIGH, LOW, QRP.
+
+\item
+\begin{verbatim}
+score report class transmitter =
+\end{verbatim}
+The choices are ONE, TWO, LIMITED, UNLIMITED, SWL.
+
+\item
+\begin{verbatim}
+score report class mode =
+\end{verbatim}
+The choices are MIXED, CW, SSB, RTTY
+
+\begin{verbatim}
+score report class assisted =
+\end{verbatim}
+The choices are ASSISTED, and NON-ASSISTED.
+\end{itemize}
+
+\subsection{Contest spefifics}
+\begin{itemize}
+\item
+\begin{verbatim}
+score report breakdown enable =
+\end{verbatim}
+Setting this to true uploads band and mode breakdowns for QSOs and multipliers,
+otherwise just the total QSOs, multipliers,  QSO points and score are reported.
+False is the default.
+\item
+\begin{verbatim}
+score report contest =
+\end{verbatim}
+The is the contest name as specified by the score reporting web site.
+This does not appear to be standardized. It is usually the same string
+that is used by the Cabrillo file, but not always.
+One list can be found here \url{https://contestonlinescore.com/settings/}.
+\end{itemize}
+
+
+\subsection{Multipliers}
+Assigning the 4 kinds of TR multipliers to the score reporting names must
+also be done manually. These are done using
+\begin{verbatim}
+score report dx multipliers =
+score report zone multipliers =
+score report prefix multipliers =
+score report domestic multipliers =
+\end{verbatim}
+
+Only the multipliers used for your particular
+contest must be set. If the same name is used for more than
+one type of multiplier (for example
+in NA Sprint, I think both {\bf score report domestic multipliers} and
+{\bf  score report dx multipliers} should be set to {\bf state}), the
+multipliers are summed in the upload report.
+Multipliers not used by TR for the contest are ignored. The typical values
+from \url{https://contestonlinescore.com/settings/}.
+are {\bf country}, {\bf state}, {\bf zone}, {\bf hq}, {\bf gridsquare}.
+
+So for CQ WW you would use
+\begin{verbatim}
+score report dx multipliers = country
+score report zone multipliers = zone
+\end{verbatim}
+while for IARU you would use
+\begin{verbatim}
+score report domestic multipliers = hq
+score report zone multipliers = zone
+\end{verbatim}
+
+\subsection{Miscellaneous score reporting commands}
+\begin{itemize}
+\item
+\begin{verbatim}
+score report club =
+\end{verbatim}
+Set the name of your club in your score report. The default is null.
+
+\item
+\begin{verbatim}
+score report interval minutes =
+\end{verbatim}
+Any positive integer. This gives the approximate time between score uploads
+in minutes. The default is 2. The first score report is sent at about
+1/20 of this interval after the program starts. So after 6 seconds for
+the default.
+\item
+\begin{verbatim}
+score report debug enable =
+\end{verbatim}
+Setting this to true turns on verbose debugging output which is sent to
+the file curl.dbg in the start up directory. This can be useful if something
+doesn't work. It shows the xml data that will be uploaded, followed by
+libcurl verbose responses.
+False is the default.
+
+If you want to make some quick tests without uploading data, simply redirect
+the uploading. For example, set
+\begin{verbatim}
+score report post url = http://localhost:5555
+\end{verbatim}
+which sends the output to port 5555 on your computer.
+Then, in a terminal window start:
+\begin{verbatim}
+ncat -l -p 5555
+\end{verbatim}
+and
+you will see the transmitted output of TR. Note in this case
+since ncat is not
+a real http server, it will not give a response so the transaction will
+not complete.
+
+\end{itemize}
+\subsection{Examples}
+These were two contests that allowed uploading of data while the code
+was being developed.
+The Russian world-wide multimode contest:
+\begin{verbatim}
+score report enable = true
+score report debug enable = false
+score report breakdown enable = true
+score report contest = RUS-WW-MM
+score report class ops = SINGLE-OP
+score report class bands = ALL
+score report class power = LOW
+score report class transmitter = ONE
+score report class mode = CW
+score report class assisted = NON-ASSISTED
+score report post url = https://contestonlinescore.com/post/
+score report username = w9cf
+score report password = secretpassword
+score report club = Arizona Outlaws Contest Club
+score report interval minutes = 1
+score report domestic multipliers = none
+score report dx multipliers = country
+score report zone multipliers = state
+score report prefix multipliers = none
+\end{verbatim}
+and the Scandinavian activity contest SSB
+\begin{verbatim}
+score report enable = true
+score report debug enable = false
+score report breakdown enable = true
+score report contest = SAC-SSB
+score report class ops = SINGLE-OP
+score report class bands = ALL
+score report class power = LOW
+score report class transmitter = ONE
+score report class mode = SSB
+score report class assisted = NON-ASSISTED
+score report post url = https://cqcontest.net/postscore.php
+score report username = w9cf
+score report password = secretpassword
+score report club = Arizona Outlaws Contest Club
+score report interval minutes = 1
+score report domestic multipliers = none
+score report dx multipliers = country
+score report zone multipliers = none
+score report prefix multipliers = country
+\end{verbatim}
+
+
 \section{Troubleshooting}
 \subsection{Some keys or key combinations don't work}
 This is likely either some program like a window manager or helper

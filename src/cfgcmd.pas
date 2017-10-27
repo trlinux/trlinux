@@ -3297,8 +3297,11 @@ FUNCTION ProcessConfigInstructions3 (ID: Str80; CMD: STRING): BOOLEAN;
 VAR xResult: INTEGER;
     tempstring: string;
     tempreal: real;
+    tempint: integer;
 
     BEGIN
+    ProcessConfigInstructions3 := False;
+
     IF (ID = 'S&P EXCHANGE') OR (ID = 'S&P CW EXCHANGE') THEN
         BEGIN
         SearchAndPounceExchange := CMD;
@@ -3327,6 +3330,148 @@ VAR xResult: INTEGER;
         ProcessConfigInstructions3 := xResult = 0;
         Exit;
         END;
+
+    IF ID = 'SCORE REPORT ENABLE' then
+        BEGIN
+        scorerpt.setenable(UpCase (CMD [1]) = 'T');
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT DEBUG ENABLE' then
+        BEGIN
+        scorerpt.setdebugenable(UpCase (CMD [1]) = 'T');
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT CONTEST' then
+        BEGIN
+        scorerpt.setcontest(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT CLASS OPS' then
+        BEGIN
+        scorerpt.setclassops(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT CLASS POWER' then
+        BEGIN
+        scorerpt.setclasspower(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT CLASS ASSISTED' then
+        BEGIN
+        scorerpt.setclassassisted(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT CLASS TRANSMITTER' then
+        BEGIN
+        scorerpt.setclasstransmitter(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT CLASS BANDS' then
+        BEGIN
+        scorerpt.setclassbands(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT CLASS MODE' then
+        BEGIN
+        scorerpt.setclassmode(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT CLASS OVERLAY' then
+        BEGIN
+        scorerpt.setclassoverlay(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT CLUB' then
+        BEGIN
+        scorerpt.setclub(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT BREAKDOWN ENABLE' then
+        BEGIN
+        scorerpt.setbreakdown(UpCase (CMD [1]) = 'T');
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT INTERVAL MINUTES' then
+        BEGIN
+        Val (CMD, tempint, xResult);
+        scorerpt.setinterval(tempint);
+        ProcessConfigInstructions3 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT DOMESTIC MULTIPLIERS' then
+        BEGIN
+        scorerpt.setdomesticmult(CMD);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT DX MULTIPLIERS' then
+        BEGIN
+        scorerpt.setdxmult(CMD);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT ZONE MULTIPLIERS' then
+        BEGIN
+        scorerpt.setzonemult(CMD);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT PREFIX MULTIPLIERS' then
+        BEGIN
+        scorerpt.setprefixmult(CMD);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT POST URL' then
+        BEGIN
+        scorerpt.setposturl(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT USERNAME' then
+        BEGIN
+        scorerpt.setuser(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'SCORE REPORT PASSWORD' then
+        BEGIN
+        scorerpt.setpassword(cmd);
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+   
 
     IF ID = 'SCP COUNTRY STRING' THEN
         BEGIN
