@@ -179,5 +179,15 @@ int main(int argc, char **argv) {
       n = PNUM;
    }
    for (i=0;i<n;i++) printf("%s\n",buf[i]);
+   n = findparallel(buf,80,PNUM);
+   if (n > PNUM) {
+      printf("array too small %d %d\n",n,PNUM);
+      n = PNUM;
+   }
+   for (i=0;i<n;i++) printf("%s\n",buf[i]);
+   struct parport_list ppl;
+   struct parport pp;
+   printf("size of ppl %d\n",sizeof(ppl));
+   printf("size of pp %d\n",sizeof(pp));
 }
 */

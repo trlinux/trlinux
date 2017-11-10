@@ -636,8 +636,8 @@ begin
    pport := nil;
    for i:=0 to portlist.portc-1 do
    begin
-      if portlist.portv^[i].filename = devicename then
-         pport := portlist.portv^+i;
+      if portlist.portv[i]^.filename = devicename then
+         pport := portlist.portv[i];
    end;
    if pport = nil then
    begin   

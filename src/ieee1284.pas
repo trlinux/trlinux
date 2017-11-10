@@ -19,6 +19,7 @@
 //
 
 unit ieee1284;
+{$mode objfpc}
 {$linklib ieee1284}
 interface
 Type
