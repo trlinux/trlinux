@@ -351,9 +351,9 @@ and W9CFA through W9CFZ would be
 flagged as being in zones 3 and 6 too. With the equal sign in front
 of my call there has to be an exact match.
 \item
-The dvp commands can be used to play files\include{DVP commands}. Currently
+The dvp commands can be used to play files. Currently
 these must be at 44100 Hz stereo, i.e. cd quality
-audio\include{DVP file format}. They can
+audio. They can
 be wave files, or, if your distribution has compiled ogg support
 into libsndfile, they can be ogg files. (You can take your
 wave file temp.wav and encode it with oggenc temp.wav then rename
@@ -1060,7 +1060,7 @@ score report class assisted =
 The choices are ASSISTED, and NON-ASSISTED.
 \end{itemize}
 
-\subsection{Contest spefifics}
+\subsection{Contest specifics}
 \begin{itemize}
 \item
 \begin{verbatim}
@@ -1560,6 +1560,83 @@ port connections around the loop. That is for four computers,
 computer 1 connects to computer 2
 which connects to computer 3, which connects to computer 4, which connects
 back to computer 1.
+
+\section{Additional parallel port information}
+Unless you want to control old hardware that requires a parallel port to
+function, you shouldn't need a parallel port on your shack computer.
+TR can use USB and/or serial ports instead.
+In order to test TR, I have installed parallel ports on my shack computer --
+I don't use them in my normal operating.
+If you still want to add a parallel port, read on.
+
+First, as far as I am aware,
+none of the available USB to printer adapters will work as a parallel port.
+Don't waste your money.
+This pretty much
+eliminates adding a parallel port to a modern laptop.
+
+My current shack computer is a refurbished HP8300
+(8GB memory, quad core Intel I5 processor, one serial port as delivered).
+There seem to be
+a large number of these available currently (November 2017) for around
+\$120 or so (without a monitor). I think
+they are off lease.  Mine
+looks to have been built in 2013. While the BIOS did not report a
+parallel port, the motherboard has a parallel port header. For about
+\$5.00 on Ebay I bought an HP 462537-001, 462537-002, low profile
+parallel port adapter. It is just a cable from the motherboard header
+to a DB-25 that mounts in a spare card slot spot.
+The motherboard connector has a jumper to tell the BIOS
+it is installed. With this installed the HP8300 parallel port 
+comes up and is recognized. It works fine with TR. (There is also
+a second serial port connector on the motherboard, but I haven't
+tried to
+install the equivalent rear panel connector since USB serial ports
+work fine.)
+
+Most computers won't have a parallel port hidden on the motherboard.
+Before realizing mine did, I bought a PCI express parallel port
+card. It also works fine. The one I bought is a
+SYBA SD-PEX10005 PCI-Express Card 1x Parallel Port, MCS9900 Chipset,
+and costs around \$15.00. It also works just fine. I did have to
+tell the parport\_pc kernel module its address manually. That is
+after installing the card and booting up, I typed as root
+\begin{verbatim}
+lspci -v
+\end{verbatim}
+This showed the parallel port card as
+\begin{verbatim}
+02:00.0 Parallel controller: MosChip Semiconductor Technology Ltd. Device 9900 (prog-if 03 [IEEE1284])
+        Subsystem: Device a000:2000
+        Flags: bus master, fast devsel, latency 0, IRQ 11
+        I/O ports at e010 [size=8]
+        I/O ports at e000 [size=8]
+        Memory at f7c01000 (32-bit, non-prefetchable) [size=4K]
+        Memory at f7c00000 (32-bit, non-prefetchable) [size=4K]
+        Capabilities: [50] MSI: Enable- Count=1/1 Maskable- 64bit+
+        Capabilities: [78] Power Management version 3
+        Capabilities: [80] Express Legacy Endpoint, MSI 00
+        Capabilities: [100] Virtual Channel
+        Capabilities: [800] Advanced Error Reporting
+\end{verbatim}
+From that, the possible I/O port addresses are 0xe010 and  0xe000.
+By trying both addresses in turn via commands like
+\begin{verbatim}
+modprobe -r parport_pc
+modprobe parport_pc io=0xe010
+\end{verbatim}
+and then trying TR,
+I found that the 0xe010 address was correct. I then created the file
+/etc/modprobe.d/parport\_pc.conf with the contents
+\begin{verbatim}
+options parport_pc io=0x378,0xe010 irq=7,none
+\end{verbatim}
+where my 0x378 entry is for the motherboard port. If you have just the
+PCI express card, this file would contain something like:
+\begin{verbatim}
+options parport_pc io=0xe010 irq=7
+\end{verbatim}
+The irq can also be set to none without affecting anything.
 
 \section{Disclaimer}
 \label{disclaim}
