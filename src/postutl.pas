@@ -23,7 +23,6 @@ UNIT PostUtl;
 {$O+}
 {$L curlroutines}
 {$linklib curl}
-
 INTERFACE
 
 Uses trCrt,

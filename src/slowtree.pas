@@ -238,9 +238,6 @@ VAR ActivityCounter: INTEGER;
     DitLength:       INTEGER;
     WordSpace:       INTEGER;
 
-//{$L dupe}
-
-
 function serialaddress(i: integer):integer;cdecl;external;
 function paralleladdress(i: integer):integer;cdecl;external;
 

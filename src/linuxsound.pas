@@ -20,6 +20,7 @@
 
 unit linuxsound;
 {$mode objfpc}  
+{$linklib asound}
 interface
 
 var
@@ -40,8 +41,6 @@ implementation
 
 uses  
   sysutils {$ifdef unix},cthreads{$endif},baseunix,unix,sndfile;
-
-{$linklib asound}
 
 Const
   SND_PCM_STREAM_PLAYBACK = 0;
