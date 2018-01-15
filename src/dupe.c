@@ -31,6 +31,8 @@
 #include <unistd.h>
 #include <locale.h>
 #include <langinfo.h>
+#include <sys/ioctl.h>
+#include <string.h>
 
 #ifndef CONSOLEONLY
 #include <X11/Xlib.h>
@@ -45,6 +47,7 @@ int enterind,entermask;
 short controlshift,altshiftl,altshiftr,focus,bothshift;
 int ishift;
 #endif
+int console = 1;
 
 short xfocused() {
 #ifndef CONSOLEONLY
@@ -53,6 +56,7 @@ short xfocused() {
    Atom request,type;
    long nitems,bytesafter;
    unsigned char *prop;
+   if (console) return 0x00;
    request=XInternAtom(display,"_NET_ACTIVE_WINDOW",0);
    root=XDefaultRootWindow(display);
    XGetWindowProperty(display,root,request,0,(~0L),0,AnyPropertyType
@@ -69,6 +73,8 @@ void setupkeyboard() {
 #ifndef CONSOLEONLY
    int i,j,minkc,maxkc,ksperkc;
    KeySym *ks;
+   console = getenv("WINDOWID")?0:1;
+   if (console) return;
    xtermwindow = (Window) strtol(getenv("WINDOWID"),0,0);
    display = XOpenDisplay(0x00);
    XDisplayKeycodes(display,&minkc,&maxkc);
@@ -127,6 +133,7 @@ void setupkeyboard() {
 
 void shiftchange(int is) {
 #ifndef CONSOLEONLY
+   if (console) return;
    switch (ishift) {
       case (0):
          break;
@@ -163,6 +170,7 @@ void updatestate() {
    int i,n;
    XEvent ev;
    unsigned int state;
+   if (console) return;
    n = XPending(display);
    for (i=0;i<n;i++) {
       XNextEvent(display,&ev);
@@ -238,6 +246,7 @@ void updatestate() {
 
 short ctrlshift() {
 #ifndef CONSOLEONLY
+   if (console) return 0x00;
    updatestate();
    return controlshift;
 #else
@@ -248,6 +257,7 @@ short ctrlshift() {
 short ctrlenter() {
 #ifndef CONSOLEONLY
    char keys[32];
+   if (console) return 0x00;
    updatestate();
    if (focus) {
       XQueryKeymap(display,keys);
@@ -264,6 +274,7 @@ short ctrlenter() {
 short ctrl() {
 #ifndef CONSOLEONLY
    char keys[32];
+   if (console) return 0x00;
    updatestate();
    if (focus) {
       XQueryKeymap(display,keys);
@@ -278,6 +289,7 @@ short ctrl() {
 
 short ritshift() {
 #ifndef CONSOLEONLY
+   if (console) return 0x00;
    updatestate();
    if (focus) {
       if (bothshift) return 0x03;
