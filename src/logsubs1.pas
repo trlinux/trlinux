@@ -960,25 +960,46 @@ VAR FileName, QSONumberString: Str20;
                END;
 
            { Finally we are ready to send the message }
-
-           {QuickDisplay2('SendFunctionKeyMessage..1..2..3..4..5');}
            IF ((Key >= F1) AND (Key <= AltF10)) OR ((Key >= F11) AND (Key <= AltF11)) THEN
                 BEGIN
-                {QuickDisplay2('Ready to SendCrypticMessage');}
                 SendCrypticMessage (Message);
 
-                IF (Key >= F1) AND (Key <= F4) THEN
+                IF (OpMode = CQOpMode) AND (Key >= F1) AND (Key <= F4) THEN
                     BEGIN
-                    IF BandMapEnable AND (LastDisplayedFreq[RadioOne] <> 0) AND (OpMode = CQOpMode) AND BandMapDisplayCQ THEN
+                    IF BandMapEnable AND BandMapDisplayCQ THEN
                         BEGIN
-                        Str (TotalContacts + 1, QSONumberString);
-                        BandMapCursorFrequency := LastDisplayedFreq[RadioOne];
-                        NewBandMapEntry ('CQ/' + QSONumberString,
-                                         LastDisplayedFreq[RadioOne], 0, ActiveMode,
-                                         False, False, BandMapDecayTime, True);
-                        LastCQFrequency := DisplayedFrequency; {KK1L: 6.68 Saves LastCQFreq}
-                        LastCQMode      := ActiveMode;         {KK1L: 6.68 and mode}
-                        END;
+                        IF ActiveRadio = RadioOne THEN
+                            BEGIN
+                            IF LastDisplayedFreq [RadioOne] <> 0 THEN
+                                BEGIN
+                                Str (TotalContacts + 1, QSONumberString);
+
+                                {BandMapCursorFrequency := LastDisplayedFreq [RadioOne];}
+
+                                NewBandMapEntry ('CQ/' + QSONumberString,
+                                                 LastDisplayedFreq [RadioOne], 0, ActiveMode,
+                                                 False, False, BandMapDecayTime, True);
+
+                                LastCQFrequency := LastDisplayedFreq [RadioOne]; {KK1L: 6.68 Saves LastCQFreq}
+                                LastCQMode      := ActiveMode;         {KK1L: 6.68 and mode}
+                                END;
+                            END
+
+                        ELSE { Radio two }
+
+                            IF LastDisplayedFreq [RadioTwo] <> 0 THEN
+                                BEGIN
+                                Str (TotalContacts + 1, QSONumberString);
+                                { BandMapCursorFrequency := Frequency;}
+
+                                NewBandMapEntry ('CQ/' + QSONumberString,
+                                                 LastDisplayedFreq [RadioTwo], 0, ActiveMode,
+                                                 False, False, BandMapDecayTime, True);
+                                LastCQFrequency := LastDisplayedFreq [RadioTwo]; {KK1L: 6.68 Saves LastCQFreq}
+                                LastCQMode      := ActiveMode;         {KK1L: 6.68 and mode}
+                                END;
+                           END;
+
 
 
                     IF (ActiveMultiPort <> nil) AND (MultiInfoMessage <> '') THEN
