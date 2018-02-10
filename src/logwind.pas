@@ -480,6 +480,8 @@ VAR
     AlarmMinute:            INTEGER;
     AlarmHour:              INTEGER;
     AltDBufferEnable:       BOOLEAN;
+    AltDDupeCheckCall:      CallString;
+    AltDDupeCheckDisplayedCall: CallString;
     AskForFrequencies:      BOOLEAN;
     AutoReturnToCQMode:     BOOLEAN;
     AutoSAPEnableRate:      LONGINT; {KK1L 6.72}
@@ -1787,6 +1789,7 @@ PROCEDURE ClearWindow (WindowName: WindowType);
 
     BEGIN
     IF WindowName = ExchangeWindow THEN ExchangeWindowCursorPosition := 0;
+    IF ActiveWindow = DupeInfoWindow THEN AltDDupeCheckDisplayedCall := '';
 
     IF ActiveWindow <> WindowName  THEN
         BEGIN
@@ -1806,6 +1809,7 @@ PROCEDURE RemoveWindow (WindowName: WindowType);
     IF WindowName = ExchangeWindow     THEN ExchangeWindowCursorPosition := 0;
     IF WindowName = PossibleCallWindow THEN PossibleCallList.NumberPossibleCalls := 0;
     IF ActiveWindow <> WindowName      THEN SaveAndSetActiveWindow (WindowName);
+    IF ActiveWindow = DupeInfoWindow   THEN AltDDupeCheckDisplayedCall := '';
     RemoveAndRestorePreviousWindow;
     END;
 
@@ -6189,6 +6193,7 @@ VAR Band: BandType;
     ClrEol;
 
     AlarmSet := False;
+    AltDDupeCheckCall := '';
 
     BandChangesThisHour    := 0;
     BandMapBlinkingCall    := '';

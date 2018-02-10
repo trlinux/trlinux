@@ -468,6 +468,7 @@ VAR FileWrite: TEXT;
     FOR Minute := 1 TO 10 DO RateMinuteArray [Minute].Points := 0;
     BigCursor;
     DisplayInsertMode (InsertMode);
+    AltDDupeCheckCall := '';
     DupeInfoCall := '';
 
     IF AutoSendCharacterCount > 0 THEN

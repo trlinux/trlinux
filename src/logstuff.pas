@@ -160,6 +160,8 @@ VAR
 
     AddedNoteString:        STRING [100];
     AllCWMessagesChainable: BOOLEAN;
+    AltDBand:               BandType;
+    AltDMode:               ModeType;
     AlwaysCallBlindCQ:      BOOLEAN;
     AskIfContestOver:       BOOLEAN;
     AutoCallTerminate:      BOOLEAN;

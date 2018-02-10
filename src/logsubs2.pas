@@ -74,7 +74,160 @@ VAR TempStr1, TempStr2, TempString: Str80;
         END;
     END;
 
-
+PROCEDURE SetUpAltDDupeCheck (Call: CallString; AddToBandMap: BOOLEAN);
+
+{ This procedure will setup the AltD DupeInfo window for the callsign passed
+  to it.  It will use the inactive radio's band/mode for dupe determination.
+
+  It will also set AltDDupeCheckCall to the callsign being checked and
+  TwoRadioState to CallReady if it isn't a dupe }
+
+VAR SpeedString, MultString: Str20;
+    Band: BandType;
+    Mode: ModeType;
+    Frequency: LONGINT;
+    Mult: BOOLEAN;
+
+    BEGIN
+    IF Call = '' THEN
+        BEGIN
+        AltDDupeCheckCall := '';
+        RemoveWindow (DupeInfoWindow);
+        Exit;
+        END;
+
+    SaveSetAndClearActiveWindow (DupeInfoWindow);
+
+    Str (SpeedMemory [InactiveRadio], SpeedString);
+
+    IF VisibleLog.CallIsADupe (Call,
+                               BandMemory [InactiveRadio],
+                               ModeMemory [InactiveRadio]) THEN
+
+       BEGIN
+       WriteLn (Call + ' DUPE!! on ' + BandString [BandMemory [InactiveRadio]] + ModeString [ModeMemory [InactiveRadio]]);
+       Write (InitialExchangeEntry (BandMapBlinkingCall));;
+
+       IF (DupeCheckSound <> DupeCheckNoSound) AND AddToBandMap THEN
+           Tone.DoABeep (ThreeHarmonics);
+
+       AltDDupeCheckDisplayedCall := Call;
+
+       { Show some status for the call }
+
+       DisplayGridSquareStatus (Call);
+       VisibleLog.ShowQSOStatus (Call);
+       VisibleLog.ShowMultiplierStatus (Call);
+
+       { Add this to the band map }
+
+       IF BandMapEnable AND AddToBandMap THEN
+           IF GetRadioParameters (InactiveRadio, '', Frequency, Band, Mode, FALSE, False) THEN
+               BEGIN
+               BandMapCursorFrequency := Frequency;
+               NewBandMapEntry (Call, Frequency, 0, Mode, True, False, BandMapDecayTime, True);
+               END
+           ELSE
+               IF AskForFrequencies THEN
+                   BEGIN
+                   Frequency := QuickEditFreq ('Enter frequency for ' + Call + ' in kHz : ', 10);
+
+                   IF Frequency <> -1 THEN
+                       BEGIN
+                       NewBandMapEntry (Call, Frequency, 0, ModeMemory [InactiveRadio],
+                                        True, False, BandMapDecayTime, True);
+
+                       BandMapCursorFrequency := Frequency; {KK1L: 6.68 band map will track manual entry}
+
+                       JustLoadingBandMapWithNoRadio := True; {KK1L: 6.68}
+                       END;
+                   END;
+
+       RestorePreviousWindow;
+
+       IF SendAltDSpotsToPacket AND (Frequency <> -1) THEN
+           CreateAndSendPacketSpot (Call, Frequency);
+
+       Exit;
+       END;
+
+    { This guy is not a dupe - go ahead and setup to work him }
+
+    AltDBand := BandMemory [InactiveRadio];
+    AltDMode := ModeMemory [Inactiveradio];
+
+    IF ModeMemory [InactiveRadio] = CW THEN
+        WriteLn (Call + ' OK!! at ' + SpeedString + ' WPM')
+    ELSE
+        WriteLn (Call + ' OK!!');
+
+    Write ('Space bar for ', BandString [BandMemory [InactiveRadio]],
+            ModeString [ModeMemory [InactiveRadio]], ' QSO');
+
+    AltDDupeCheckDisplayedCall := Call;
+
+    DisplayGridSquareStatus (Call);
+    VisibleLog.ShowQSOStatus (Call);
+    VisibleLog.ShowMultiplierStatus (Call);
+
+    IF TwoRadioState <> TwoRadiosDisabled THEN
+        BEGIN
+        TwoRadioState := Idle;
+        CheckTwoRadioState (CallPutUp);
+        AltDDupeCheckCall := Call;
+        END;
+
+    IF BandMapEnable AND AddToBandMap THEN
+        IF GetRadioParameters (InactiveRadio, '', Frequency, Band, Mode, FALSE, False) THEN
+            BEGIN
+            BandMapCursorFrequency := Frequency;
+
+            VisibleLog.DetermineIfNewMult (Call,
+                                           BandMemory [InactiveRadio],
+                                           ModeMemory [InactiveRadio],
+                                           MultString);
+
+            Mult := MultString <> '';
+
+            NewBandMapEntry (Call, Frequency, 0, Mode, False, Mult, BandMapDecayTime, True);
+            DisplayBandMap;
+            END
+        ELSE
+            IF AskForFrequencies THEN
+                BEGIN
+                Frequency := QuickEditFreq ('Enter frequency for ' + CallWindowString + ' in kHz : ', 10);
+
+                IF Frequency <> -1 THEN
+                    BEGIN
+                    VisibleLog.DetermineIfNewMult (Call, BandMemory [InactiveRadio],
+                                                   ModeMemory [InactiveRadio], MultString);
+
+                    Mult := MultString <> '';
+
+                    {KK1L: 6.73 changed CheckMode to ModeMemory [InactiveRadio]}
+
+                    NewBandMapEntry (Call, Frequency, 0, ModeMemory [InactiveRadio], False, Mult,
+                                     BandMapDecayTime, True);
+
+
+                    BandMapCursorFrequency := Frequency; {KK1L: 6.68 band map will track manual entry}
+
+                    JustLoadingBandMapWithNoRadio := True; {KK1L: 6.68}
+                    END;
+                END;
+
+    IF DupeCheckSound = DupeCheckGratsIfMult THEN
+        BEGIN
+        VisibleLog.DetermineIfNewMult (Call, BandMemory [InactiveRadio], ModeMemory [InactiveRadio], TempString);
+        IF TempString <> '' THEN Tone.DoABeep (BeepCongrats);
+        END;
+
+    IF SendAltDSpotsToPacket AND (Frequency <> -1) THEN
+        CreateAndSendPacketSpot (Call, Frequency);
+
+    RestorePreviousWindow;
+    END;
+
 
 PROCEDURE PutContactIntoLogFile (LogString: Str80);
 
@@ -950,6 +1103,7 @@ VAR Mode: ModeType;
     Frequency: LONGINT;
     MultString, TempString: Str40;
     Mult: BOOLEAN;
+    AltDDupeCheckCall: CallString;
 
     BEGIN
     IF SingleRadioMode THEN
@@ -962,143 +1116,22 @@ VAR Mode: ModeType;
 
     RITEnable := False;
 
-    Str (SpeedMemory [InactiveRadio], SpeedString); {KK1L: 6.73 Used to use a variable CheckSpeed}
+//    Str (SpeedMemory [InactiveRadio], SpeedString); {KK1L: 6.73 Used to use a variable CheckSpeed}
 
     BandMapBand := BandMemory [InactiveRadio];
     BandMapMode := ModeMemory [InactiveRadio];
     DisplayBandMap;
 
-    {KK1L: 6.73 Check for DupeInfoCall coming from bandmap and prompt added to procedure}
-    {KK1L: 6.73 changed CheckMode to ModeMemory[InactiveRadio]}
-
     TempString := UpperCase (QuickEditResponseWithPartials
                    ('Enter call to be checked on ' + BandString [BandMemory[InactiveRadio]] +
                     ModeString [ModeMemory[InactiveRadio]] + ' : ', 12));
-
     IF (TempString <> EscapeKey) AND (TempString <> '') THEN
-        DupeInfoCall := TempString;
+            AltDDupeCheckCall := TempString
+    else
+            AltDDupeCheckCall := '';
 
-    { Put the band map on the band/mode of the inactive radio }
-
-    IF (DupeInfoCall <> '') AND (DupeInfoCall <> EscapeKey) THEN
-        BEGIN
-        SaveSetAndClearActiveWindow (DupeInfoWindow);
-
-        IF VisibleLog.CallIsADupe (DupeInfoCall, BandMemory[InactiveRadio], ModeMemory[InactiveRadio]) THEN
-           BEGIN
-           WriteLn (DupeInfoCall + ' DUPE!!');
-           Write ('on            ' + BandString [BandMemory[InactiveRadio]] + ModeString [ModeMemory[InactiveRadio]]);
-
-           IF DupeCheckSound <> DupeCheckNoSound THEN Tone.DoABeep (ThreeHarmonics);
-
-           DisplayGridSquareStatus (CallWindowString);
-           VisibleLog.ShowQSOStatus (DupeInfoCall);
-           VisibleLog.ShowMultiplierStatus (DupeInfoCall);
-
-           IF BandMapEnable THEN
-               IF GetRadioParameters (InactiveRadio, '', Frequency, Band, Mode, FALSE, False) THEN
-                   BEGIN
-                   BandMapCursorFrequency := Frequency;
-
-                   { Send to multi = TRUE }
-
-                   NewBandMapEntry (DupeInfoCall, Frequency, 0, Mode, True, False, BandMapDecayTime, True);
-                   END
-               ELSE
-                   IF AskForFrequencies THEN
-                       BEGIN
-                       Frequency := QuickEditFreq ('Enter frequency for ' + CallWindowString + ' in kHz : ', 10);
-
-                       IF Frequency <> -1 THEN
-                           BEGIN
-                           NewBandMapEntry (CallWindowString, Frequency, 0, ModeMemory[InactiveRadio],
-                                            True, False, BandMapDecayTime, True);
-                           BandMapCursorFrequency := Frequency; {KK1L: 6.68 band map will track manual entry}
-                           JustLoadingBandMapWithNoRadio := True; {KK1L: 6.68}
-                           END;
-                       END;
-
-           DupeInfoCall := '';
-           END
-        ELSE
-            BEGIN
-            DisplayGridSquareStatus (CallWindowString);
-
-            IF ModeMemory[InactiveRadio] = CW THEN
-                WriteLn (DupeInfoCall + ' OK!! at ' + SpeedString + ' WPM')
-            ELSE
-                WriteLn (DupeInfoCall + ' OK!!');
-
-            Write ('Space bar for ', BandString [BandMemory[InactiveRadio]],
-                    ModeString [ModeMemory[InactiveRadio]], ' QSO');
-
-            VisibleLog.ShowQSOStatus (DupeInfoCall);
-            VisibleLog.ShowMultiplierStatus (DupeInfoCall);
-
-            IF TwoRadioState <> TwoRadiosDisabled THEN
-                TwoRadioState := CallReady;
-
-            IF BandMapEnable THEN
-                IF GetRadioParameters (InactiveRadio, '', Frequency, Band, Mode, FALSE, False) THEN
-                    BEGIN
-                    BandMapCursorFrequency := Frequency;
-
-                    VisibleLog.DetermineIfNewMult (DupeInfoCall, BandMemory[InactiveRadio],
-                                                   ModeMemory[InactiveRadio], MultString);
-
-                    Mult := MultString <> '';
-
-                    NewBandMapEntry (DupeInfoCall, Frequency, 0, Mode, False, Mult, BandMapDecayTime, True);
-                    END
-                ELSE
-                    IF AskForFrequencies THEN
-                        BEGIN
-                        Frequency := QuickEditFreq ('Enter frequency for ' + CallWindowString + ' in kHz : ', 10);
-
-                        IF Frequency <> -1 THEN
-                            BEGIN
-                            VisibleLog.DetermineIfNewMult (DupeInfoCall, BandMemory[InactiveRadio],
-                                                           ModeMemory[InactiveRadio], MultString);
-
-                            Mult := MultString <> '';
-
-                            {KK1L: 6.73 changed CheckMode to ModeMemory[InactiveRadio]}
-                            NewBandMapEntry (DupeInfoCall, Frequency, 0, ModeMemory[InactiveRadio], False, Mult,
-                                             BandMapDecayTime, True);
-
-                            BandMapCursorFrequency := Frequency; {KK1L: 6.68 band map will track manual entry}
-                            JustLoadingBandMapWithNoRadio := True; {KK1L: 6.68}
-                            END;
-                        END;
-
-            IF DupeCheckSound = DupeCheckGratsIfMult THEN
-                BEGIN
-                VisibleLog.DetermineIfNewMult (DupeInfoCall, BandMemory[InactiveRadio], ModeMemory[InactiveRadio], TempString);
-                IF TempString <> '' THEN Tone.DoABeep (BeepCongrats);
-                END;
-
-            END;
-
-        IF SendAltDSpotsToPacket AND (Frequency <> -1) THEN
-            CreateAndSendPacketSpot (DupeInfoCall, Frequency);
-
-        RestorePreviousWindow;
-        END
-
-    ELSE
-        IF BandMapBlinkingCall <> '' THEN
-            BEGIN
-            {KK1L: 6.73 changed CheckMode to ModeMemory[InactiveRadio]}
-
-            VisibleLog.DetermineIfNewMult (BandMapBlinkingCall, BandMemory[InactiveRadio],
-                                           ModeMemory[InactiveRadio], MultString);
-            Mult := MultString <> '';
-            NewBandMapEntry (BandMapBlinkingCall, BandMapCursorFrequency, 0, ModeMemory[InactiveRadio], False,
-                             Mult, BandMapDecayTime, True);
-
-            IF SendAltDSpotsToPacket THEN
-                CreateAndSendPacketSpot (BandMapBlinkingCall, BandMapCursorFrequency);
-            END;
+    IF (AltDDupeCheckCall <> '') AND (AltDDupeCheckCall <> EscapeKey) THEN
+        SetUpAltDDupeCheck (AltDDupeCheckCall, True);
 
     RITEnable := True;
     END;
@@ -2110,6 +2143,7 @@ VAR Result: INTEGER;
     BandMapInitialExchange: Str20;
     TimeOut: BYTE;
     PacketChar: CHAR;
+    InactiveRadioMode: ModeType;
 
     BEGIN
     IF ActiveMultiPort <> nil THEN CheckMultiState;
@@ -4238,10 +4272,13 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                           SpeedMemory[InactiveRadio] := SpeedMemory[InactiveRadio] - CodeSpeedIncrement;
                       Str (SpeedMemory[InactiveRadio], SpeedString); {KK1L: 6.73 Set string to display speed for alt-d}
                       {KK1L: 6.73}
-                      IF (DupeInfoCall <> '') AND (OpMode = CQOpMode) AND (ModeMemory[InactiveRadio] = CW) THEN
+                      IF (AltDDupeCheckDisplayedCall <> '') AND
+                         (OpMode = CQOpMode) AND
+                         (ModeMemory[InactiveRadio] = CW) AND
+                         (TwoRadioState = CallReady) THEN
                           BEGIN
                           SaveAndSetActiveWindow (DupeInfoWindow);
-                          WriteLn (DupeInfoCall + ' OK!! at ' + SpeedString + ' WPM');
+                          WriteLn (AltDDupeCheckDisplayedCall + ' OK!! at ' + SpeedString + ' WPM');
                           RestorePreviousWindow;
                           END;
                       END;
@@ -4252,10 +4289,13 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                           SpeedMemory[InactiveRadio] := SpeedMemory[InactiveRadio] + CodeSpeedIncrement;
                       Str (SpeedMemory[InactiveRadio], SpeedString); {KK1L: 6.73 Set string to display speed for alt-d}
                       {KK1L: 6.73}
-                      IF (DupeInfoCall <> '') AND (OpMode = CQOpMode) AND (ModeMemory[InactiveRadio] = CW) THEN
+                      IF (AltDDupeCheckDisplayedCall <> '') AND
+                         (OpMode = CQOpMode) AND
+                         (ModeMemory[InactiveRadio] = CW) AND
+                         (TwoRadioState = CallReady) THEN
                           BEGIN
                           SaveAndSetActiveWindow (DupeInfoWindow);
-                          WriteLn (DupeInfoCall + ' OK!! at ' + SpeedString + ' WPM');
+                          WriteLn (AltDDupeCheckDisplayedCall + ' OK!! at ' + SpeedString + ' WPM');
                           RestorePreviousWindow;
                           END;
                       END;
@@ -5032,10 +5072,10 @@ VAR Key, ExtendedKey: CHAR;
 
     ExchangeWindowString := '';
 
-    IF DupeInfoCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
+    IF AltDDupeCheckCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
         BEGIN
         SaveAndSetActiveWindow (DupeInfoWindow);
-        WriteLn (DupeInfoCall + ' OK!!          ');
+        WriteLn (AltDDupeCheckCall + ' OK!!          ');
         IF (TwoRadioState = StationCalled) AND (OpMode = CQOpMode) THEN
             Write ('Enter to complete QSO    '); {KK1L: 6.73 The stuff normally following this should remain.}
         RestorePreviousWindow;
@@ -5129,7 +5169,7 @@ VAR Key, ExtendedKey: CHAR;
                         RemoveWindow (ExchangeWindow);
                         {KK1L: 6.73 Clears the DupeInfoStuff I'm working on. Add the DupeInfo check}
                         {IF NOT VisibleDupesheetEnable THEN}
-                        IF (NOT VisibleDupesheetEnable) AND (DupeInfoCall = '') THEN
+                        IF (NOT VisibleDupesheetEnable) AND (AltDDupeCheckDisplayedCall = '') THEN
                             BEGIN
                             RemoveWindow (QSOInformationWindow);
                             RemoveWindow (MultiplierInformationWindow);
@@ -5137,13 +5177,13 @@ VAR Key, ExtendedKey: CHAR;
                         SearchAndPounce := False;
                         OpMode := CQOpMode;
 
-                        IF DupeInfoCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
+                        IF AltDDupeCheckCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
                             BEGIN
                             SaveAndSetActiveWindow (DupeInfoWindow);
                             IF ModeMemory[InactiveRadio] = CW THEN
-                                WriteLn (DupeInfoCall + ' OK!! at ' + SpeedString + ' WPM')
+                                WriteLn (AltDDupeCheckCall + ' OK!! at ' + SpeedString + ' WPM')
                             ELSE
-                                WriteLn (DupeInfoCall + ' OK!!');
+                                WriteLn (AltDDupeCheckCall + ' OK!!');
                             Write ('Space bar for '); {KK1L: 6.73 The stuff normally following this should remain.}
                             RestorePreviousWindow;
                             END;
@@ -5184,13 +5224,13 @@ VAR Key, ExtendedKey: CHAR;
                             SearchAndPounce := False;
                             OpMode := CQOpMode;
 
-                            IF DupeInfoCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
+                            IF AltDDupeCheckCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
                                 BEGIN
                                 SaveAndSetActiveWindow (DupeInfoWindow);
                                 IF ModeMemory[InactiveRadio] = CW THEN
-                                    WriteLn (DupeInfoCall + ' OK!! at ' + SpeedString + ' WPM')
+                                    WriteLn (AltDDupeCheckCall + ' OK!! at ' + SpeedString + ' WPM')
                                 ELSE
-                                    WriteLn (DupeInfoCall + ' OK!!');
+                                    WriteLn (AltDDupeCheckCall + ' OK!!');
                                 Write ('Space bar for '); {KK1L: 6.73 The stuff normally following this should remain.}
                                 RestorePreviousWindow;
                                 END;
@@ -5212,7 +5252,7 @@ VAR Key, ExtendedKey: CHAR;
 
                                 {KK1L: 6.73 Clears the DupeInfoStuff I'm working on. Add the DupeInfo check}
                                 {IF NOT VisibleDupesheetEnable THEN}
-                                IF (NOT VisibleDupesheetEnable) AND (DupeInfoCall = '') THEN
+                                IF (NOT VisibleDupesheetEnable) AND (AltDDupeCheckCall = '') THEN
                                     BEGIN
                                     RemoveWindow (QSOInformationWindow);
                                     RemoveWindow (MultiplierInformationWindow);
@@ -5222,13 +5262,13 @@ VAR Key, ExtendedKey: CHAR;
 
                                 OpMode := CQOpMode;
 
-                                IF DupeInfoCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
+                                IF AltDDupeCheckCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
                                     BEGIN
                                     SaveAndSetActiveWindow (DupeInfoWindow);
                                     IF ModeMemory[InactiveRadio] = CW THEN
-                                        WriteLn (DupeInfoCall + ' OK!! at ' + SpeedString + ' WPM')
+                                        WriteLn (AltDDupeCheckCall + ' OK!! at ' + SpeedString + ' WPM')
                                     ELSE
-                                        WriteLn (DupeInfoCall + ' OK!!');
+                                        WriteLn (AltDDupeCheckCall + ' OK!!');
                                     Write ('Space bar for '); {KK1L: 6.73 The stuff normally following this should remain.}
                                     RestorePreviousWindow;
                                     END;
@@ -5293,18 +5333,18 @@ ControlEnterCommand1:
                             RemoveWindow (ExchangeWindow);
                             {KK1L: 6.73 Clears the DupeInfoStuff I'm working on. Add the DupeInfo check}
                             {IF NOT VisibleDupesheetEnable THEN}
-                            IF (NOT VisibleDupesheetEnable) AND (DupeInfoCall = '') THEN
+                            IF (NOT VisibleDupesheetEnable) AND (AltDDupeCheckCall = '') THEN
                                 BEGIN
                                 RemoveWindow (QSOInformationWindow);
                                 RemoveWindow (MultiplierInformationWindow);
                                 END;
-                            IF DupeInfoCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
+                            IF AltDDupeCheckCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
                                 BEGIN
                                 SaveAndSetActiveWindow (DupeInfoWindow);
                                 IF ModeMemory[InactiveRadio] = CW THEN
-                                    WriteLn (DupeInfoCall + ' OK!! at ' + SpeedString + ' WPM')
+                                    WriteLn (AltDDupeCheckCall + ' OK!! at ' + SpeedString + ' WPM')
                                 ELSE
-                                    WriteLn (DupeInfoCall + ' OK!!');
+                                    WriteLn (AltDDupeCheckCall + ' OK!!');
                                 Write ('Space bar for '); {KK1L: 6.73 The stuff normally following this should remain.}
                                 RestorePreviousWindow;
                                 END;
@@ -5583,13 +5623,13 @@ ControlEnterCommand1:
                             RemoveWindow (ExchangeWindow);
                             OpMode := CQOpMode;
 
-                            IF DupeInfoCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
+                            IF AltDDupeCheckCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
                                 BEGIN
                                 SaveAndSetActiveWindow (DupeInfoWindow);
                                 IF ModeMemory[InactiveRadio] = CW THEN
-                                    WriteLn (DupeInfoCall + ' OK!! at ' + SpeedString + ' WPM')
+                                    WriteLn (AltDDupeCheckCall + ' OK!! at ' + SpeedString + ' WPM')
                                 ELSE
-                                    WriteLn (DupeInfoCall + ' OK!!');
+                                    WriteLn (AltDDupeCheckCall + ' OK!!');
                                 Write ('Space bar for '); {KK1L: 6.73 The stuff normally following this should remain.}
                                 RestorePreviousWindow;
                                 END;
@@ -5611,7 +5651,7 @@ ControlEnterCommand1:
 
                                 {KK1L: 6.73 Clears the DupeInfoStuff I'm working on. Add the DupeInfo check}
                                 {IF NOT VisibleDupesheetEnable THEN}
-                                IF (NOT VisibleDupesheetEnable) AND (DupeInfoCall = '') THEN
+                                IF (NOT VisibleDupesheetEnable) AND (AltDDupeCheckCall = '') THEN
                                     BEGIN
                                     RemoveWindow (QSOInformationWindow);
                                     RemoveWindow (MultiplierInformationWindow);
@@ -5621,13 +5661,13 @@ ControlEnterCommand1:
 
                                 OpMode := CQOpMode;
 
-                                IF DupeInfoCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
+                                IF AltDDupeCheckCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
                                     BEGIN
                                     SaveAndSetActiveWindow (DupeInfoWindow);
                                     IF ModeMemory[InactiveRadio] = CW THEN
-                                        WriteLn (DupeInfoCall + ' OK!! at ' + SpeedString + ' WPM')
+                                        WriteLn (AltDDupeCheckCall + ' OK!! at ' + SpeedString + ' WPM')
                                     ELSE
-                                        WriteLn (DupeInfoCall + ' OK!!');
+                                        WriteLn (AltDDupeCheckCall + ' OK!!');
                                     Write ('Space bar for '); {KK1L: 6.73 The stuff normally following this should remain.}
                                     RestorePreviousWindow;
                                     END;
@@ -6031,14 +6071,12 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                            RemoveWindow (QSOInformationWindow);
                            RemoveWindow (MultiplierInformationWindow);
                            RemoveWindow (QuickCommandWindow);
-                           RemoveWindow (DupeInfoWindow);
                            NameCallsignPutUp := '';
-                           DupeInfoCall := '';
 
                            { This is new for 5.88 }
 
-                           IF TwoRadioState = CallReady THEN
-                               TwoRadioState := Idle;
+//                           IF TwoRadioState = CallReady THEN
+//                               TwoRadioState := Idle;
 
                            CleanUpDisplay;
                            DisplayEditableLog (VisibleLog.LogEntries);
@@ -6046,7 +6084,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 END;
 
             SpaceBar:
-                IF (DupeInfoCall <> '') AND (CallWindowString = '') THEN
+                IF (AltDDupeCheckDisplayedCall <> '') AND (CallWindowString = '') THEN
                     BEGIN
                     FlushCWBufferAndClearPTT;
                     if dvpenable and dvpactive then dvpstopplayback;
@@ -6062,10 +6100,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                     IF TwoRadioState <> CallReady THEN
                         BEGIN
-                        CallWindowString := DupeInfoCall;        {KK1L: 6.73 NOTE Why are these three lines here?. I know}
-                        ResetSavedWindowListAndPutUpCallWindow;  {                it puts a call in the window. Does it  }
-                        Write (CallWindowString);                {                cover the on deck call case???         }
-
+                        CallWindowString := AltDDupeCheckDisplayedCall;
+                        ResetSavedWindowListAndPutUpCallWindow;
+                        Write (CallWindowString);
                         ShowStationInformation (CallWindowString);
                         DisplayGridSquareStatus (CallWindowString);
                         VisibleLog.DoPossibleCalls (CallWindowString);
@@ -6118,7 +6155,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                         IF SearchAndPounceStatus THEN
                             BEGIN
-                            DupeInfoCall := '';
                             RemoveWindow (DupeInfoWindow);
 
                             EscapeDeletedCallEntry := CallWindowString;
@@ -6129,7 +6165,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                         END;
                     END
 
-{ Still a SpaceBar, but not doing DupeInfoCall }
+{ Still a SpaceBar, but not doing AltDDupeCheckCall }
 
                 ELSE
                     IF (CallWindowString = '') OR NOT SpaceBarDupeCheckEnable THEN
@@ -6245,10 +6281,10 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                             BEGIN
                             CWMessageCommand := NoCWCommand;
 
-                            IF DupeInfoCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
+                            IF AltDDupeCheckCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
                                 BEGIN
                                 SaveAndSetActiveWindow (DupeInfoWindow);
-                                WriteLn (DupeInfoCall + ' OK!!          ');
+                                WriteLn (AltDDupeCheckCall + ' OK!!          ');
                                 Write ('CQ mode for   '); {KK1L: 6.73 The stuff normally following this should remain.}
                                 RestorePreviousWindow;
                                 END;
