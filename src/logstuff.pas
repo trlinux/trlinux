@@ -6346,14 +6346,14 @@ VAR MyZoneValue, RXDataZoneValue, xResult: INTEGER;
           IF RXData.Mode = CW THEN RXData.QSOPoints := 5
           ELSE RXData.QSOPoints := 3;
 
-        OneEuropeTwoOther: {KK1L: 6.68 Used for WRTC 2002}
+        TwoEuropeFiveOther: {WRTC 2018}
             IF MarineOrAirMobileStation (RXData.Callsign) THEN
-                RXData.QSOPoints := 2
+                RXData.QSOPoints := 5
             ELSE
                 IF RXData.QTH.Continent = Europe THEN
-                    RXData.QSOPoints := 1
+                    RXData.QSOPoints := 2
                 ELSE
-                    RXData.QSOPoints := 2;
+                    RXData.QSOPoints := 5;
 
 
         END;   { of case }

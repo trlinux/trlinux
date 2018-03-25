@@ -968,8 +968,12 @@ False is the default.
 \begin{verbatim}
 score report post url =
 \end{verbatim}
-This is the url for the web site used for score reporting. The
-current sites are
+This is the url for the web site used for score reporting. This should
+normally be set to the score distributor
+\url{http://www.b41h.net/scoredistributor.php} which will then
+send the results to the other score boards.
+If you want to send to a specific site only, the
+current scoreboard sites are
 \url{https://contestonlinescore.com/post/}
 and
 \url{https://cqcontest.net/postscore.php}. There are also
@@ -977,6 +981,13 @@ corresponding unencrypted http sites
 \url{http://post.contestonlinescore.com/}
 and
 \url{http://cqcontest.net/postscore.php}.
+
+The code also recognizes a udp: url so, for example, setting the
+url to
+\url{udp://192.168.73.255:12060}, will properly configure TR for
+WRTC 2018 score reporting. This will send a UDP packet with the score xml
+on port 12060 on the local network (in this case 192.168.73.xxx)
+broadcast address.
 
 \item
 \begin{verbatim}

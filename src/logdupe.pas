@@ -2414,6 +2414,7 @@ VAR NumberMults: INTEGER;
     MultMode: ModeType;
     CompressedMult: FourBytes;
     DomQTH: Str20;
+    FoundDomesticQTH: boolean;
 
     BEGIN
     RXData.DomesticMult := False;
@@ -2427,6 +2428,7 @@ VAR NumberMults: INTEGER;
     IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
         RXData.DomMultQTH := RXData.DomesticQTH;
 
+    FoundDomesticQTH := RXData.DomMultQTH <> ''; //for WRTC 2018
     IF (RXData.DomMultQTH <> '') AND DoingDomesticMults THEN
         BEGIN
         NumberMults := MultSheet.Totals [MultBand, MultMode].NumberDomesticMults;
@@ -2490,6 +2492,8 @@ VAR NumberMults: INTEGER;
                 RXData.ZoneMult := True;
             END;
         END;
+//WRTC 2018 Remove DX mult if HQ station
+    IF (FoundDomesticQTH and NoMultDXIfDomestic) then RXData.DXMult := False;
     END;
 
 

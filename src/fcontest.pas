@@ -125,15 +125,14 @@ VAR TempQTH: QTHRecord;
 
     FoundContest := False;
     NoMultMarineMobile := False; {KK1L: 6.68 Added for WRTC 2002 as flag to not count /MM or /AM as mults or countries}
-    WRTC2002 := False; {KK1L: 6.68}
+    NoMultDxIfDomestic := False;
+    WRTC2018 := False;
 
     CMD := UpperCase (CMD);
 
     { You get these for free }
 
-        {KK1L: 6.68 Added for Helsinki}
-        {KK1L: 6.69 Moved here to be free}
-        IF CMD = 'WRTC 2002' THEN
+        IF CMD = 'WRTC 2018' THEN
             BEGIN
             LastLocateCall := '';
             LocateCall (MyCall, TempQTH, True);
@@ -145,14 +144,15 @@ VAR TempQTH: QTHRecord;
             ActiveInitialExchange := ZoneInitialExchange; {KK1L: 6.71 NOTE changed in code}
             {ActiveInitialExchange := None;} {May need this to satisfy rules}
             ActiveDXMult := ARRLDXCC;
-            ActiveQSOPointMethod := OneEuropeTwoOther;
+            ActiveQSOPointMethod := TwoEuropeFiveOther;
             ActiveZoneMult := NoZoneMults;
-            ContestName := 'WRTC 2002 - Finland';
+            ContestName := 'WRTC 2018';
             SCPMinimumLetters := 0; {KK1L: 6.68 closes SCP to WRTC}
             CQExchange := ' $5NN ' + MyZone;
             ExchangeFunctionKeyMenu := 'F1-DE  F2-Ex  F3-RST  F4-Zone F5-Cl+Ex F8-EE  F9-?  Alt = Ask for his';
             NoMultMarineMobile := True;
-            WRTC2002 := True;
+            NoMultDxIfDomestic := True;
+            WRTC2018 := True;
             MultByBand := True;
             MultByMode := False;
             QSOByBand  := True;

@@ -66,7 +66,7 @@ SRC=\
    datetimec.pas
 
 
-post: $(SRC) dupe.o dt.o findports.o hid.o curlroutines.o
+post: $(SRC) dupe.o dt.o findports.o hid.o curlroutines.o scoreposter.o
 	fpc -B -Mobjfpc -g post -k-lX11
 	cp post ../log
 
@@ -82,11 +82,15 @@ dupe.o:dupe.c
 hid.o:hid.c
 	gcc -c hid.c
 
+
 findports.o:findports.c
 	gcc -c findports.c
 
 curlroutines.o:curlroutines.c
 	gcc -c curlroutines.c
+
+scoreposter.o:scoreposter.c
+	gcc -c scoreposter.c
 
 tar:
 	rm -f *\.o *\.ppu post trlog

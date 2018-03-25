@@ -784,7 +784,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                    CD.CountryString := CD.CountryString + ',';
            END;
 
-      SML: IF NOT WRTC2002 THEN    {KK1L: 6.68 Keep WRTC folks from using SCP}
+      SML: IF NOT WRTC2018 THEN    {KK1L: 6.68 Keep WRTC folks from using SCP}
                CASE SCPMinimumLetters OF
                    0: SCPMinimumLetters := 3;
                    3: SCPMinimumLetters := 4;

@@ -458,7 +458,7 @@ TYPE
                           ThreePhoneFiveCW,
                           TwoPhoneThreeCW,
                           TenPointsPerQSO,
-                          OneEuropeTwoOther); {KK1L: 6.67 For WRTC 2002}
+                          TwoEuropeFiveOther);
 
     ZoneMultType   = (NoZoneMults, CQZones, ITUZones,
                       JAPrefectures, BranchZones, EUHFCYear);
@@ -628,6 +628,7 @@ VAR
     MyZone:               ZoneMultiplierString;
 
     NoMultMarineMobile: BOOLEAN; {KK1L: 6.68 Added for WRTC 2002 as flag to not count /MM or /AM as mults or countries}
+    NoMultDxIfDomestic: BOOLEAN; {Needed for WRTC2018, HQ are not country mults}
     NumberBandMapEntries: INTEGER; {KK1L: 6.64 needed a global version of NumberVisibleBMEntries}
     NumberContactsThisMinute:  BYTE;
     NumberExchangeTemplates:   SHORTINT;
@@ -728,7 +729,7 @@ VAR
     WakeUpCount:   BYTE;
     WARCBandsEnabled: BOOLEAN;
     WideFreqDisplay:  BOOLEAN; {KK1L: 6.73}
-    WRTC2002: BOOLEAN; {KK1l: 6.68}
+    WRTC2018: BOOLEAN;
 
 
 
@@ -6263,6 +6264,7 @@ VAR Band: BandType;
 
     NeedToSynchBandMap     := True;  {KK1L: 6.69}
     NoMultMarineMobile     := False; {KK1L: 6.68 Added for WRTC 2002 as flag to not count /MM or /AM as mults or countries}
+    NoMultDxIfDomestic := False;
     NumberMinutesProgramRunning := 0;
     NumberReminderRecords       := 0;
     NumberSavedWindows          := 0;

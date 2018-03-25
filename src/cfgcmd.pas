@@ -2337,7 +2337,7 @@ VAR xResult,tempint: INTEGER;
 
     IF ID = 'POSSIBLE CALL MODE' THEN
         BEGIN
-        IF WRTC2002 THEN   {KK1L: 6.69 Don't allow WRTC folks to get SCP data from TRMaster}
+        IF WRTC2018 THEN   {KK1L: 6.69 Don't allow WRTC folks to get SCP data from TRMaster}
             BEGIN
             CD.PossibleCallAction := LogOnly;
             ProcessConfigInstructions2 := True;
@@ -3486,7 +3486,7 @@ VAR xResult: INTEGER;
         END;
 
     IF ID = 'SCP MINIMUM LETTERS' THEN {KK1L: 6.68 0 for WRTC2002}
-        IF (NOT WRTC2002) THEN
+        IF (NOT WRTC2018) THEN
             BEGIN
             Val (CMD, SCPMinimumLetters, xResult);
             ProcessConfigInstructions3 := xResult = 0;

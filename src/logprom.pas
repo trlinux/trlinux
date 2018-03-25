@@ -542,7 +542,7 @@ VAR Contests: ARRAY [0..80] OF Str20;
     Contests [3] := 'NZ FIELD DAY';
     Contests [4] := 'SOUTH AMERICAN WW';
     Contests [5] := 'STEW PERRY';
-    Contests [6] := 'WRTC 2002'; {KK1L: 6.68 moved here for TRFree 1.04}
+    Contests [6] := 'WRTC 2018'; {KK1L: 6.68 moved here for TRFree 1.04}
 
     NumberContests := 7;
 
