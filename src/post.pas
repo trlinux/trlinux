@@ -48,7 +48,6 @@ USES {Overlay,
      Logwind;           {  4666 bytes of data }
 
 
-//{ $L SUFFIX}
 
 PROCEDURE PostContestLogMassage;
 
