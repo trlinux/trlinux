@@ -2448,7 +2448,10 @@ VAR NumberMults: INTEGER;
             END;
         END;
 
-    IF (RXData.DXQTH <> '') AND DoingDXMults AND (ActiveDXMult <> NoCountDXMults) THEN
+//Last test WRTC 2018 Remove DX mult if HQ station
+    IF (RXData.DXQTH <> '') AND DoingDXMults AND
+       (ActiveDXMult <> NoCountDXMults) AND
+       (NOT (FoundDomesticQTH and NoMultDXIfDomestic)) THEN
         BEGIN
         NumberMults := MultSheet.Totals [MultBand, MultMode].NumberDXMults;
 
@@ -2492,8 +2495,6 @@ VAR NumberMults: INTEGER;
                 RXData.ZoneMult := True;
             END;
         END;
-//WRTC 2018 Remove DX mult if HQ station
-    IF (FoundDomesticQTH and NoMultDXIfDomestic) then RXData.DXMult := False;
     END;
 
 
