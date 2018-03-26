@@ -1196,7 +1196,10 @@ VAR TimeOut: INTEGER;
                 Wait (5);
                 Inc (TimeOut)
             UNTIL (NOT DVKMessagePlaying) OR (TimeOut > 30);
-            END;
+            END
+    ELSE
+        IF (ActiveMode = Phone) AND DVKRadioEnable THEN
+            SendDVKMessage('DVK0');
 
     IF ActiveMode = CW THEN FlushCWBufferAndClearPTT;
 
