@@ -20,9 +20,10 @@ You should have received a copy of the GNU General
 - Added "WRTC 2018" contest
 - Deleted "WRTC 2002" contest
 - Added UDP score reporting URL for WRTC2018
-- Worked on Alt-D multiplier display.
+- Worked on improved Alt-D multiplier display.
 - Fixed bug where CQ on radio 2 overwrote bandmap
 - Fixed bug where only the first parallel port was found.
+- When DVKRadio enabled, send stop dvk whenenver alt-r changes rig
 
 0.48
 - Online score reporting added. All options must be manually configured.
