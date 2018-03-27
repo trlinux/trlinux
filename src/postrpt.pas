@@ -113,7 +113,7 @@ TYPE ContestType = (UnknownContest,
                     WQP,
                     WWL,
                     WRTC,
-                    WRTC2002, {KK1L: 6.68}
+                    WRTC2018, {KK1L: 6.68}
                     XMAS,
                     YODX);
 
@@ -536,7 +536,7 @@ FUNCTION DetermineContest (Name: Str80): ContestType;
     IF Name = 'WQP'           THEN DetermineContest := WQP;
     IF Name = 'WWL'           THEN DetermineContest := WWL;
     IF Name = 'WRTC'          THEN DetermineContest := WRTC;
-    IF Name = 'WRTC 2002'     THEN DetermineContest := WRTC2002; {KK1L: 6.68}
+    IF Name = 'WRTC 2018'     THEN DetermineContest := WRTC2018; {KK1L: 6.68}
     IF Name = 'XMAS'          THEN DetermineContest := XMAS;
     IF Name = 'YO DX'         THEN DetermineContest := YODX;
 
@@ -686,7 +686,7 @@ PROCEDURE CalculateAppropriateTotalsForThisContest (Contest: ContestType;
         WQP:       IF NOT CalculateTotals ( True, False, False, False) THEN Exit;
         WWL:       IF NOT CalculateTotals ( True, False, False, False) THEN Exit;
         WRTC:      IF NOT CalculateTotals ( True,  True, False,  True) THEN Exit;
-        WRTC2002:  IF NOT CalculateTotals ( True,  True, False, False) THEN Exit; {KK1L: 6.68}
+        WRTC2018:  IF NOT CalculateTotals ( True,  True, False, False) THEN Exit; {KK1L: 6.68}
         XMAS:      IF NOT CalculateTotals (False, False, False, False) THEN Exit;
         YODX:      IF NOT CalculateTotals ( True,  True, False,  True) THEN Exit;
         END;
