@@ -1577,6 +1577,7 @@ VAR Filenames: ARRAY [0..11] OF Str20;
     FileString: Str160;
     Time: LONGINT;
     ActiveCabrilloEntry: CabrilloRecPtr;
+    nofile: boolean;
 
     BEGIN
     ClearScreenAndTitle ('MERGE CABRILLO LOGS');
@@ -1594,7 +1595,8 @@ VAR Filenames: ARRAY [0..11] OF Str20;
 
         FileNames [NumberFiles] := GetResponse (TempString + '. Enter filename (none to continue) : ');
 
-        IF FileNames [NumberFiles] = '' THEN
+        nofile := FileNames [NumberFiles] = '';
+        IF nofile THEN
             BEGIN
             IF NumberFiles = 0 THEN Exit;
             END
@@ -1604,7 +1606,7 @@ VAR Filenames: ARRAY [0..11] OF Str20;
             ELSE
                 ReportError (FileNames [NumberFiles] + ' not found.');
 
-    UNTIL (NumberFiles = 12) OR (FileNames [NumberFiles] = '');
+    UNTIL (NumberFiles = 12) OR nofile;
 
     OutputFileName := GetResponse ('Enter file to save results to (none to abort) : ');
 
