@@ -16,6 +16,9 @@
 #    Public License along with TR log for linux.  If not, see
 #<http://www.gnu.org/licenses/>.
 
+PATH := $(PATH):/usr/share/texmf/bin
+SHELL := env PATH=$(PATH) /bin/sh
+
 HOMELIB=/usr/local/circuit_macros
 M4=m4\
    $(HOMELIB)/gpic.m4\
@@ -31,10 +34,10 @@ BASE=trloglinux
 
 $(BASE).pdf: $(BASE).tex
 	find . -name \*eps -exec epstopdf {} \;
-	/usr/share/texmf/bin/pdflatex $(BASE)
-	/usr/share/texmf/bin/makeindex $(BASE)
-	/usr/share/texmf/bin/pdflatex $(BASE)
-	/usr/share/texmf/bin/pdflatex $(BASE)
+	pdflatex $(BASE)
+	makeindex $(BASE)
+	pdflatex $(BASE)
+	pdflatex $(BASE)
 
 $(BASE).dvi: $(BASE).tex
 	latex $(BASE)
