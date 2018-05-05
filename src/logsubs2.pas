@@ -691,7 +691,11 @@ VAR MultiString, MessageString: STRING;
             MultiInformationMessage:
                 BEGIN
                 Band := RemoveBand (MessageString);
+                if ((Band < Low(BandType)) or (Band > High(BandType))) then
+                   Band := NoBand;
                 Mode := RemoveMode (MessageString);
+                if ((Mode < Low(ModeType)) or (Mode > High(ModeType))) then
+                   Mode := NoMode;
 
                 IF MultiStatus [Band, Mode] = nil THEN New (MultiStatus [Band, Mode]);
                 MultiStatus [Band, Mode]^ := MessageString;
