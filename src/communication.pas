@@ -168,6 +168,7 @@ constructor serialportx.create(devicename: string);
 var tempfile: text;
     tios: termios;
     sset: serial_struct;
+    rc: longint;
 //    i,flags: integer;
 begin
    if pos('PTY',upcase(devicename)) = 1 then
@@ -185,6 +186,11 @@ begin
       end
    else if pos('SHELL',upcase(devicename)) = 1 then
       begin
+         if (fpsystem('which /bin/bash > /dev/null 2>&1') <> 0) then
+         begin
+            writeln('shell /bin/bash not found -- exiting');
+            halt;
+         end;
          fd := getpt;
          grantpt(fd);
          unlockpt(fd);
@@ -195,6 +201,11 @@ begin
       end
    else if pos('NCAT',upcase(devicename)) = 1 then
       begin
+         if (fpsystem('which ncat > /dev/null 2>&1') <> 0) then
+         begin
+            writeln('ncat command not found -- exiting');
+            halt;
+         end;
          fd := getpt;
          grantpt(fd);
          unlockpt(fd);
@@ -206,6 +217,11 @@ begin
       end
    else if pos('RIGCTLD',upcase(devicename)) = 1 then
       begin
+         if (fpsystem('which rigctld > /dev/null 2>&1') <> 0) then
+         begin
+            writeln('rigctld command not found -- exiting');
+            halt;
+         end;
          dev := devicename;
          fd := getpt;
          grantpt(fd);

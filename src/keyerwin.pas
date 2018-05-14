@@ -320,7 +320,7 @@ end;
 Function WinKeyer.getMode:char;
 var mode: integer;
 begin
-   mode := $84; //serial echo back -- no paddle watchdog
+   mode := $85; //serial echo back -- no paddle watchdog -- 6 dit word space
    if paddlebug then
       mode := mode or $30
    else
@@ -672,6 +672,10 @@ begin
 
         '^':
         begin
+           CWBuffer[CWBufferEnd] := '|';
+           CWBufferEnd := (CWBufferEnd+1) mod CWBufferSize;
+           CWBuffer[CWBufferEnd] := '|';
+           CWBufferEnd := (CWBufferEnd+1) mod CWBufferSize;
            CWBuffer[CWBufferEnd] := '|';
            CWBufferEnd := (CWBufferEnd+1) mod CWBufferSize;
         end;

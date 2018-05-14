@@ -658,7 +658,9 @@ begin
 
         '^':
         begin
-           CWBuffer[CWBufferEnd] := '%';
+           CWBuffer[CWBufferEnd] := '#';
+           CWBufferEnd := (CWBufferEnd+1) mod CWBufferSize;
+           CWBuffer[CWBufferEnd] := '#';
            CWBufferEnd := (CWBufferEnd+1) mod CWBufferSize;
         end;
     end;
