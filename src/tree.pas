@@ -3385,9 +3385,11 @@ VAR TempByte: BYTE;
     Band: BandType;
 
     BEGIN
+    RemoveBand := NoBand;
     TempByte := Ord (LongString [1]);
-    Move (TempByte, Band, 1);
-    RemoveBand := Band;
+    IF (TempByte >= Ord(Low(BandType)))
+       AND (TempByte <= Ord(High(BandType))) THEN
+       RemoveBand := BandType(TempByte);
     Delete (LongString, 1, 1);
     END;
 
@@ -3399,9 +3401,11 @@ VAR TempByte: BYTE;
     Mode: ModeType;
 
     BEGIN
+    RemoveMode := NoMode;
     TempByte := Ord (LongString [1]);
-    Move (TempByte, Mode, 1);
-    RemoveMode:= Mode;
+    IF (TempByte >= Ord(Low(ModeType)))
+       AND (TempByte <= Ord(High(ModeType))) THEN
+       RemoveMode := ModeType(TempByte);
     Delete (LongString, 1, 1);
     END;
 
