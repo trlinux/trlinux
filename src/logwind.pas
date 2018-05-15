@@ -4523,6 +4523,7 @@ VAR StartBand, StopBand: BandType;
     Mode: ModeType;
     TempString: Str20;
     MinutesLeft: BYTE;
+    tempy: longint;
 
     BEGIN
     {KK1L: 6.64 Need to add starting column adjustment to DisplayBandMap. This will allow for}
@@ -4936,7 +4937,9 @@ VAR StartBand, StopBand: BandType;
 
         WHILE WhereY < (NumberBandMapRows + 5) DO {KK1L: 6.68}
             BEGIN
+            tempy := WhereY;
             GoToXY (1, WhereY + 1);
+            if (tempy = WhereY) then break;//ugly patch for ugly KK1L code above
             ClrEol;
             END;
 
