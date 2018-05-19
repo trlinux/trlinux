@@ -19,7 +19,6 @@
 //
 
 PROGRAM ContestLoggingProgram;
-{$mode objfpc}
 {$linklib curl}
 {$V-}
 
