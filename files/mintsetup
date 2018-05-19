@@ -1,0 +1,72 @@
+#!/bin/sh
+#Set up script for Linux Mint 18.3 Cinnamon Sylvia
+#############################################################################
+#Steps for w9cf shack computer:
+#1. Download Linux mint iso set up disk and copy it on boot media.
+#2. Boot and choose the first choice from grub to get a live version.
+#3. Menu->Network to set up wifi network, download this file 
+#4. Pop up a terminal and run this script.
+#############################################################################
+#
+#make temporary file for so2r box udev rule
+#
+temp1=`mktemp mint.XXXXXX` || exit 1
+onexit() {
+   rm -f ${temp1}
+}
+trap onexit EXIT QUIT
+#
+#install software needed to compile/run trlog, -y answers yes to all questions
+#
+sudo apt update
+sudo apt install git -y
+sudo apt install fpc -y
+sudo apt install libusb-1.0 -y
+sudo apt install libieee1284-3-dev -y
+sudo apt install libcurl4-gnutls-dev -y
+sudo apt install libasound2-dev -y
+sudo apt install libsndfile-dev -y
+sudo apt install texlive-binaries -y
+sudo apt install texlive-fonts-recommended -y
+sudo apt install texlive-generic-recommended -y
+sudo apt install texlive-latex-base -y
+sudo apt install texlive-latex-extra -y
+sudo apt install texlive-latex-recommended -y
+sudo apt install xterm -y
+sudo apt install nmap -y
+#
+#get copy of trlinux git archive
+#
+git clone https://github.com/trlinux/trlinux.git
+#
+#set up DosTerm and BigDosTerm
+#
+cp trlinux/files/Xresources .Xresources
+xrdb -merge .Xresources
+#
+#Build trlinux
+#
+(cd trlinux; make)
+#
+# add group so2rbox
+#
+sudo addgroup so2rbox
+#
+#set up udev rule for YCCC SO2R box
+#
+cat << EOF > ${temp1}
+SUBSYSTEM=="usb", ATTRS{idVendor}=="16c0", ATTR{idProduct}=="065e", MODE="0660", GROUP="so2rbox"
+EOF
+sudo mv ${temp1} /etc/udev/rules.d/50-usb-so2r.rules
+sudo chown root.root /etc/udev/rules.d/50-usb-so2r.rules
+sudo udevadm control -R
+#
+#make mint a member of dialout and so2rbox
+#
+sudo gpasswd -a mint dialout
+sudo gpasswd -a mint so2rbox
+#
+#quick and dirty method to get this terminal to reread groups without
+#logging out and in
+#
+exec sudo su -l mint
