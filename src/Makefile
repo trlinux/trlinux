@@ -84,7 +84,7 @@ trlog: $(SRC) hidapi.h hid.o dupe.o dt.o findports.o scoreposter.o
 #	fpc -dBUSYWAIT -B -Mtp -g -otrlog tr -k-rpath=\$$ORIGIN/lib -k'-z origin' -k-lX11
 	fpc -O2 -B -Mobjfpc -g -gl -otrlog tr -k-rpath=\$$ORIGIN/lib -k'-z origin' -k-lX11
 
-ccode: hidapi.h hid.o dupe.o dt.o findports.o scoreposter.o
+ccode: hidapi.h hid.o dupe.o dt.o findports.o scoreposter.o curlroutines.o
 
 install:
 #	sudo install -m 4755 trlog ../log/trlog

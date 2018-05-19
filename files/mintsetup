@@ -6,6 +6,13 @@
 #2. Boot and choose the first choice from grub to get a live version.
 #3. Menu->Network to set up wifi network, download this file 
 #4. Pop up a terminal and run this script.
+#5. To use lazarus-ide, I needed to tell it the lazarus directory
+#   was /usr/share/lazarus/1.8.2 the first time it starts.
+#6. To compile with lazarus, in a terminal cd trlinux/src and type
+#   make ccode
+#   Fire up lazarus and open project, navigate to trlinux/src, and
+    select trlog.lpi file. Shift-F9 or click on run->build. You can then
+    cp trlog ../log
 #############################################################################
 #
 #make temporary file for so2r box udev rule
@@ -20,7 +27,6 @@ trap onexit EXIT QUIT
 #
 sudo apt update
 sudo apt install git -y
-sudo apt install fpc -y
 sudo apt install libusb-1.0 -y
 sudo apt install libieee1284-3-dev -y
 sudo apt install libcurl4-gnutls-dev -y
@@ -34,6 +40,16 @@ sudo apt install texlive-latex-extra -y
 sudo apt install texlive-latex-recommended -y
 sudo apt install xterm -y
 sudo apt install nmap -y
+#
+#download and install free pascal and lazarus from sourceforge
+#
+wget https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%201.8.2/lazarus-project_1.8.2-0_amd64.deb
+wget https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%201.8.2/fpc_3.0.4-2_amd64.deb
+wget https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%201.8.2/fpc-src_3.0.4-2_amd64.deb
+sudo apt install ./fpc_3.0.4-2_amd64.deb -y
+sudo apt install ./fpc-src_3.0.4-2_amd64.deb -y
+sudo apt install ./lazarus-project_1.8.2-0_amd64.deb -y
+sudo apt-mark hold fpc fpc-src lazarus lazarus-project
 #
 #get copy of trlinux git archive
 #
