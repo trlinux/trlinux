@@ -2056,12 +2056,14 @@ VAR Key: CHAR;
     ClrEol;
     TextColor (Cyan);
     TextBackground (Black);
+    shiftgrab(0);
     Write (Prompt);
     REPEAT millisleep UNTIL KeyPressed;
     Key := ReadKey;
     TextColor (Yellow);
     IF Key >= ' ' THEN Write (Key);
     GetKey := Key;
+    shiftgrab(1);
     END;
 
 FUNCTION GetKeyResponse (Prompt: STRING): CHAR;
