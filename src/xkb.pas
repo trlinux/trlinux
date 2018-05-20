@@ -29,6 +29,7 @@ interface
     function ctrlenter:boolean;cdecl;
     function ritshift:integer;cdecl;
     procedure shiftchange(ishift: integer);cdecl;
+    procedure shiftgrab(on: integer);cdecl;
 
 implementation
 
@@ -38,5 +39,6 @@ implementation
     function ctrlenter:boolean;cdecl;external;
     function ritshift:integer;cdecl;external;
     procedure shiftchange(ishift: integer);cdecl;external;
+    procedure shiftgrab(on: integer);cdecl;external;
     
 end.

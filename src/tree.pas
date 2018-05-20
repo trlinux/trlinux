@@ -2075,6 +2075,7 @@ VAR Key: CHAR;
     BEGIN
     ListString := UpperCase (BracketedString (Prompt, '(', ')')) + ',';
 
+    shiftgrab(0);
     REPEAT
         Key := UpCase (GetKey (Prompt));
 
@@ -2082,6 +2083,7 @@ VAR Key: CHAR;
             BEGIN
             GetKeyResponse := Key;
             WriteLn;
+            shiftgrab(1);
             Exit;
             END;
     UNTIL False;
@@ -2183,6 +2185,7 @@ VAR InputString: STRING;
 
     InputString := '';
 
+    shiftgrab(0);
     REPEAT
         REPEAT millisleep UNTIL KeyPressed;
 
@@ -2192,6 +2195,7 @@ VAR InputString: STRING;
             BEGIN
             GetResponse := InputString;
             WriteLn;
+            shiftgrab(1);
             Exit;
             END;
 
@@ -2212,6 +2216,7 @@ VAR InputString: STRING;
             END;
 
     UNTIL Length (InputString) > 250;
+    shiftgrab(1);
     END;
 
 

@@ -45,7 +45,7 @@ int lctrlind,lctrlmask;
 int rctrlind,rctrlmask;
 int enterind,entermask;
 short controlshift,altshiftl,altshiftr,focus,bothshift;
-int ishift;
+int ishift,ishiftsave;
 #endif
 int console = 1;
 
@@ -102,24 +102,21 @@ void setupkeyboard() {
    shiftr = XKeysymToKeycode(display,XK_Shift_R);
    controll = XKeysymToKeycode(display,XK_Control_L);
    controlr = XKeysymToKeycode(display,XK_Control_R);
+//Grag control shift left
    XGrabKey(display,shiftl
       ,ControlMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
-
-//   XGrabKey(display,shiftl
-//      ,Mod1Mask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
-//   XGrabKey(display,shiftr
-//      ,Mod1Mask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
-
-   XGrabKey(display,shiftl
-      ,0,xtermwindow,True,GrabModeAsync,GrabModeAsync);
-   XGrabKey(display,shiftr
-      ,0,xtermwindow,True,GrabModeAsync,GrabModeAsync);
-
-   XGrabKey(display,shiftr
-      ,ShiftMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
-   XGrabKey(display,shiftl
-      ,ShiftMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
+//Grab shift control
    XGrabKey(display,controll
+      ,ShiftMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
+//Grab shift
+   XGrabKey(display,shiftl
+      ,0,xtermwindow,True,GrabModeAsync,GrabModeAsync);
+   XGrabKey(display,shiftr
+      ,0,xtermwindow,True,GrabModeAsync,GrabModeAsync);
+//Grab both shift keys
+   XGrabKey(display,shiftr
+      ,ShiftMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
+   XGrabKey(display,shiftl
       ,ShiftMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
    controlshift = 0x00;
    altshiftl = 0x00;
@@ -128,6 +125,7 @@ void setupkeyboard() {
    XSelectInput(display,xtermwindow,FocusChangeMask);
    focus = xfocused();
    ishift = 1; //shift key tuning
+   ishiftsave = 1;
 #endif
 }
 
@@ -164,6 +162,7 @@ void shiftchange(int is) {
     }
 #endif
 }
+
 
 void updatestate() {
 #ifndef CONSOLEONLY
@@ -243,6 +242,31 @@ void updatestate() {
 #endif
 }
 
+void shiftgrab(int on) {
+#ifndef CONSOLEONLY
+   if (console) return;
+//turn on or off all grabs
+   if (on) {
+      XGrabKey(display,shiftl
+         ,ControlMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
+      XGrabKey(display,shiftr
+         ,ShiftMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
+      XGrabKey(display,shiftl
+         ,ShiftMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
+      XGrabKey(display,controll
+         ,ShiftMask,xtermwindow,True,GrabModeAsync,GrabModeAsync);
+      shiftchange(ishiftsave);
+   } else {
+      ishiftsave = ishift;
+      shiftchange(0);
+      XUngrabKey(display,shiftl,ControlMask,xtermwindow);
+      XUngrabKey(display,shiftr,ShiftMask,xtermwindow);
+      XUngrabKey(display,shiftl,ShiftMask,xtermwindow);
+      XUngrabKey(display,controll,ShiftMask,xtermwindow);
+   }
+   updatestate();
+#endif
+}
 
 short ctrlshift() {
 #ifndef CONSOLEONLY
