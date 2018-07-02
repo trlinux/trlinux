@@ -289,6 +289,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            TempInt := QuickEditInteger ('Enter new CW monitor tone (0 to disable) : ', 6);
            IF TempInt <> - 1 THEN
                CWTone := TempInt;
+           ActiveKeyer.SetMonitorTone(CWTone);
            AddStringToBuffer ('', CWTone);
            END;
 
