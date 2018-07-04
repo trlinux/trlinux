@@ -101,7 +101,7 @@ VAR BandModeUsed:      ARRAY [BandType, ModeType] OF BOOLEAN;
 
 
 IMPLEMENTATION
-uses keycode;
+uses keycode,classes;
 
 
 FUNCTION GenerateCountryMultiplierTotals: BOOLEAN;
@@ -166,7 +166,8 @@ VAR FileRead: TEXT;
                    END;
 
            CountryIndex := CountryTable.GetCountry (GetLogEntryCall (FileString), True);
-           Inc (CountryMultTotals^ [Band, CountryIndex].TotalQSOs);
+           if CountryIndex <> -1 then
+              Inc (CountryMultTotals^ [Band, CountryIndex].TotalQSOs);
            END;
 
     UNTIL Eof (FileRead);
@@ -178,7 +179,7 @@ VAR FileRead: TEXT;
     GenerateCountryMultiplierTotals := True;
     END;
 
-
+
 
 FUNCTION GenerateZoneMultiplierTotals: BOOLEAN;
 
@@ -769,7 +770,284 @@ VAR Lines, ZoneIndex, MaxNumberOfZones: INTEGER;
     Close (FileWrite);
     END;
 
-
+
+PROCEDURE WRTC2018MultiplierCheckOffSheet;
+VAR
+   Destination, Key: CHAR;
+   FileName: Str20;
+   CountryIndex, NumberReportEntries: INTEGER;
+   RealAddress: INTEGER;
+   FileWrite: TEXT;
+   FileRead: TEXT;
+   MultString, FileString, TempString: Str80;
+   Band: BandType;
+   Mode: ModeType;
+   i,index: INTEGER;
+   hqlist, hqbandlist: TStringList;
+   hqmults: array of array of boolean; 
+
+   BEGIN
+   writeln;
+   IF Header = '' THEN
+       Header := GetResponse ('Enter contest name and callsign : ');
+   CountryTable.CountryMode := ARRLCountryMode;
+   REPEAT
+      Destination := UpCase (GetKey ('Output to (F)ile, or (S)creen? : '));
+       CASE Destination OF
+           'F': BEGIN
+                WriteLn;
+                FileName := UpperCase (GetResponse ('Enter filename to save multiplier report to : '));
+
+                IF FileName = UpperCase (LogFileName) THEN
+                    BEGIN
+                    ReportError ('Output file must be different than active log file!!');
+                    WaitForKeyPressed;
+                    Exit;
+                    END;
+
+                IF FileName = '' THEN Exit;
+                END;
+           'S': FileName := '';
+            EscapeKey: Exit;
+            END;
+   UNTIL (Destination = 'F') OR (Destination = 'S');
+
+   WriteLn;
+   New (CountryMultTotals);
+   IF NOT GenerateCountryMultiplierTotals THEN Exit;
+   OpenFileForWrite (FileWrite, FileName);
+
+   New (ReportEntries);
+   NumberReportEntries := 0;
+
+   CountryIndex := 0;
+
+   WHILE CountryTable.GetCountryID (CountryIndex) <> '' DO
+      BEGIN
+      IF (CountryMultTotals^ [Band160, CountryIndex].TotalQSOs > 0) OR
+         (CountryMultTotals^ [Band80,  CountryIndex].TotalQSOs > 0) OR
+         (CountryMultTotals^ [Band40,  CountryIndex].TotalQSOs > 0) OR
+         (CountryMultTotals^ [Band20,  CountryIndex].TotalQSOs > 0) OR
+         (CountryMultTotals^ [Band15,  CountryIndex].TotalQSOs > 0) OR
+         (CountryMultTotals^ [Band10,  CountryIndex].TotalQSOs > 0) THEN
+               BEGIN
+               TempString := CountryTable.GetCountryID (CountryIndex);
+
+               WHILE Length (TempString) < 5 DO TempString := ' ' + TempString;
+               TempString := TempString + ' ';
+
+               IF CountryMultTotals^ [Band160, CountryIndex].TotalQSOs > 0 THEN
+                   TempString := TempString + 'X'
+               ELSE
+                   TempString := TempString + '_';
+
+               IF CountryMultTotals^ [Band80, CountryIndex].TotalQSOs > 0 THEN
+                   TempString := TempString + 'X'
+               ELSE
+                   TempString := TempString + '_';
+
+               IF CountryMultTotals^ [Band40, CountryIndex].TotalQSOs > 0 THEN
+                   TempString := TempString + 'X'
+               ELSE
+                   TempString := TempString + '_';
+
+               IF CountryMultTotals^ [Band20, CountryIndex].TotalQSOs > 0 THEN
+                   TempString := TempString + 'X'
+               ELSE
+                   TempString := TempString + '_';
+
+               IF CountryMultTotals^ [Band15, CountryIndex].TotalQSOs > 0 THEN
+                   TempString := TempString + 'X'
+               ELSE
+                   TempString := TempString + '_';
+
+               IF CountryMultTotals^ [Band10, CountryIndex].TotalQSOs > 0 THEN
+                   TempString := TempString + 'X'
+               ELSE
+                   TempString := TempString + '_';
+
+               ReportEntries^ [NumberReportEntries] := TempString;
+               Inc (NumberReportEntries);
+               END;
+
+        Inc (CountryIndex);
+        END;
+
+    WHILE (NumberReportEntries MOD 50) <> 0 DO
+        BEGIN
+        ReportEntries^ [NumberReportEntries] := '            ';
+        Inc (NumberReportEntries);
+        END;
+
+// hqs here
+
+    IF NOT OpenFileForRead (FileRead, LogFileName) THEN
+        BEGIN
+        ReportError (LogFileName + ' file not found!!');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    Write ('Searching log file for hq multipliers...');
+
+    TotalLogQSOs := 0;
+
+    hqlist := TStringList.create;
+    hqbandlist := TStringList.create;
+    try
+       hqlist.sorted := true;
+       hqlist.duplicates := dupignore;
+       hqbandlist.sorted := true;
+       hqbandlist.duplicates := dupignore;
+
+       REPEAT
+          REPEAT
+             ReadLn (FileRead, FileString);
+             Band := GetLogEntryBand (FileString);
+             Mode := GetLogEntryMode (FileString);
+          UNTIL ((Band <> NoBand) AND (Mode <> NoMode)) OR EOF (FileRead);
+
+          IF NOT (StringHas (FileString, '*DUPE*') OR
+             StringHas (FileString, '*ZERO*')) THEN
+          BEGIN
+             ExpandTabs (FileString);
+             MultString := GetLogEntryMultString (FileString);
+             Inc (TotalLogQSOs);
+             IF MultString <> '' THEN
+                WHILE MultString <> '' DO
+                BEGIN
+                   TempString := RemoveFirstString (MultString);
+                   IF StringHasLowerCase (TempString) THEN
+                   begin
+                      hqlist.add(tempstring);
+                      case band of
+                         band160: tempstring := tempstring + '160';
+                         band80: tempstring := tempstring + '80';
+                         band40: tempstring := tempstring + '40';
+                         band20: tempstring := tempstring + '20';
+                         band15: tempstring := tempstring + '15';
+                         band10: tempstring := tempstring + '10';
+                      else
+                         tempstring := '';
+                      end;
+                      if tempstring <> '' then hqbandlist.add(tempstring);
+                   end;
+                END;
+           END;
+
+    UNTIL Eof (FileRead);
+    Close (FileRead);
+
+    for i := 0 to hqlist.count-1 do
+    begin
+       TempString := hqlist[i];
+       WHILE Length (TempString) < 8 DO TempString := ' ' + TempString;
+       TempString := TempString + ' ';
+       if hqbandlist.find(hqlist[i]+'160',index) then
+          TempString := TempString + 'X'
+       else
+          TempString := TempString + '_';
+       if hqbandlist.find(hqlist[i]+'80',index) then
+          TempString := TempString + 'X'
+       else
+          TempString := TempString + '_';
+       if hqbandlist.find(hqlist[i]+'40',index) then
+          TempString := TempString + 'X'
+       else
+          TempString := TempString + '_';
+       if hqbandlist.find(hqlist[i]+'20',index) then
+          TempString := TempString + 'X'
+       else
+          TempString := TempString + '_';
+       if hqbandlist.find(hqlist[i]+'15',index) then
+          TempString := TempString + 'X'
+       else
+          TempString := TempString + '_';
+       if hqbandlist.find(hqlist[i]+'10',index) then
+          TempString := TempString + 'X'
+       else
+          TempString := TempString + '_';
+
+       ReportEntries^ [NumberReportEntries] := TempString;
+       Inc (NumberReportEntries);
+    END;
+
+    GoToXY (1, WhereY);
+    ClrEol;
+
+    finally
+       hqlist.free;
+       hqbandlist.free;
+    end;
+
+    IF NumberReportEntries <= 300 THEN
+        BEGIN
+        WriteLnVarCenter (FileWrite, 'MULTIPLIER CHECK OFF SHEET');
+        WriteLn (FileWrite);
+        WriteLnVarCenter (FileWrite, Header);
+        WriteLn (FileWrite);
+        END
+    ELSE
+        BEGIN
+        WriteLnVarCenter (FileWrite, 'MULTIPLIER CHECK OFF SHEET - Page 1');
+        WriteLn (FileWrite);
+        WriteLnVarCenter (FileWrite, Header);
+        WriteLn (FileWrite);
+        END;
+
+    FOR CountryIndex := 0 TO 299 DO
+        BEGIN
+        RealAddress := ((CountryIndex MOD 6) * 50) + (CountryIndex DIV 6);
+
+        { Only print if there is really a call there }
+
+        IF RealAddress < NumberReportEntries THEN
+            Write (FileWrite, ReportEntries^ [RealAddress])
+        ELSE
+            Write (FileWrite, '           ');
+
+        IF (CountryIndex + 1) MOD 6 = 0 THEN WriteLn (FileWrite);
+
+        ReportEntries^ [RealAddress] := '';
+        END;
+
+//    WriteLn (FileWrite, '');
+
+    IF NumberReportEntries > 300 THEN
+        BEGIN
+        WriteLnVarCenter (FileWrite, 'MULTIPLIER CHECK OFF SHEET - Page 2');
+        WriteLn (FileWrite);
+        WriteLnVarCenter (FileWrite, Header);
+        WriteLn (FileWrite);
+
+        FOR CountryIndex := 0 TO (NumberReportEntries - 301) DO
+             ReportEntries^ [CountryIndex] := ReportEntries^ [CountryIndex + 300];
+
+        NumberReportEntries := NumberReportEntries - 300;
+
+        FOR CountryIndex := 0 TO 299 DO
+            BEGIN
+            RealAddress := ((CountryIndex MOD 6) * 50) + (CountryIndex DIV 6);
+
+        { Only print if there is really a call there }
+
+            IF RealAddress < NumberReportEntries THEN
+                Write (FileWrite, ReportEntries^ [RealAddress])
+            ELSE
+                Write (FileWrite, '            ');
+
+            IF (CountryIndex + 1) MOD 6 = 0 THEN WriteLn (FileWrite);
+
+            ReportEntries^ [RealAddress] := '';
+            END;
+
+        WriteLn (FileWrite, '');
+        END;
+
+    Close (FileWrite);
+    Dispose (ReportEntries);
+    WaitForKeyPressed;
+   END;
 
 PROCEDURE MultiplierCheckOffSheet;
 
@@ -1965,6 +2243,7 @@ VAR Key: CHAR;
         WriteLn (' H - Rate sheet with multipliers and running score.');
         WriteLn (' R - Rate by band by hour report.');
         WriteLn (' T - Total QSOs worked by country by band.');
+        WriteLn (' W - WRTC 2018 Multiplier check off sheet');
         WriteLn (' Z - Total Zones worked by zone by band.');
         WriteLn;
         Write   (' Enter desired report (ESCAPE to exit this menu) : ');
@@ -2071,6 +2350,8 @@ VAR Key: CHAR;
                  Dispose (CountryMultTotals);
                  WaitForKeyPressed;
                  END;
+
+            'W': WRTC2018MultiplierCheckOffSheet;
 
             'Z': BEGIN
                  ClrScr;
