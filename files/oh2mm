@@ -1,0 +1,42 @@
+#!/bin/sh
+temp1=`mktemp -d oh2mm.XXXXXX` || exit 1
+
+onexit() {
+   cd ..
+   rm -rf ${temp1}
+}
+
+trap onexit EXIT QUIT
+
+cd ${temp1}
+
+if [ -f ../LOG.TMP ]; then
+   cat ../LOG.DAT ../LOG.TMP > LOG.DAT
+else
+   cat ../LOG.DAT > LOG.DAT
+fi
+
+expect <<EOF 1>/dev/null 2> ../oh2mm.err
+spawn post
+expect "Enter command : "
+send "r"
+expect "Enter command : "
+send "m"
+expect "Enter desired report (ESCAPE to exit this menu) : "
+send "w"
+expect "Enter contest name and callsign : "
+send "WRTC 2018 N9RV/N6TR\r"
+expect "Output to (F)ile, or (S)creen? : "
+send "f"
+expect "Enter filename to save multiplier report to : "
+send "oh2mm.out\r"
+expect "Press any key to continue..."
+send "x"
+expect "Enter desired report (ESCAPE to exit this menu) : "
+send "\033"
+expect "Enter command : "
+send "x"
+expect "Enter command : "
+send "x"
+EOF
+xterm -geometry 80x70+10+10 -hold -e "cat OH2MM.OUT"
