@@ -159,6 +159,8 @@ VAR FileRead: TEXT;
 
                    CountryIndex := CountryTable.GetCountry (TempString, True);
 
+
+                   if CountryIndex <> -1 then
                    IF NOT StringHasLowerCase (TempString) THEN
                        IF NOT StringIsAllNumbers (TempString) THEN
                            IF CountryMultTotals^ [Band, CountryIndex].TotalQSOs = 0 THEN
