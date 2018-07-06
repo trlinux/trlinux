@@ -816,7 +816,64 @@ VAR
 
    WriteLn;
    New (CountryMultTotals);
-   IF NOT GenerateCountryMultiplierTotals THEN Exit;
+    FOR Band := Band160 TO Band10 DO
+        FOR CountryIndex := 0 TO MaxCountries - 1 DO
+            BEGIN
+            CountryMultTotals^ [Band, CountryIndex].FirstCall := '';
+            CountryMultTotals^ [Band, CountryIndex].TotalQSOs := 0;
+            END;
+
+    IF NOT OpenFileForRead (FileRead, LogFileName) THEN
+        BEGIN
+        ReportError (LogFileName + ' file not found!!');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    Write ('Searching log file for country multipliers...');
+
+    TotalLogQSOs := 0;
+
+    REPEAT
+        REPEAT
+            ReadLn (FileRead, FileString);
+            Band := GetLogEntryBand (FileString);
+            Mode := GetLogEntryMode (FileString);
+        UNTIL ((Band <> NoBand) AND (Mode <> NoMode)) OR EOF (FileRead);
+
+       IF NOT (StringHas (FileString, '*DUPE*') OR StringHas (FileString, '*ZERO*')) THEN
+           BEGIN
+           ExpandTabs (FileString);
+           MultString := GetLogEntryMultString (FileString);
+
+           Inc (TotalLogQSOs);
+
+           IF MultString <> '' THEN
+            IF NOT StringHasLowerCase(MultString) THEN
+               WHILE MultString <> '' DO
+                   BEGIN
+                   TempString := RemoveFirstString (MultString);
+
+                   CountryIndex := CountryTable.GetCountry (TempString, True);
+
+
+                   if CountryIndex <> -1 then
+                   IF NOT StringHasLowerCase (TempString) THEN
+                       IF NOT StringIsAllNumbers (TempString) THEN
+                           IF CountryMultTotals^ [Band, CountryIndex].TotalQSOs = 0 THEN
+                               CountryMultTotals^ [Band, CountryIndex].FirstCall := GetLogEntryCall (FileString);
+                   END;
+
+           CountryIndex := CountryTable.GetCountry (GetLogEntryCall (FileString), True);
+           MultString := GetLogEntryMultString (FileString);
+           IF NOT StringHasLowerCase (MultString) THEN
+           if CountryIndex <> -1 then
+              Inc (CountryMultTotals^ [Band, CountryIndex].TotalQSOs);
+           END;
+
+    UNTIL Eof (FileRead);
+    Close (FileRead);
+//   IF NOT GenerateCountryMultiplierTotals THEN Exit;
    OpenFileForWrite (FileWrite, FileName);
 
    New (ReportEntries);
