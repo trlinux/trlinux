@@ -829,6 +829,7 @@ VAR Key:             CHAR;
         CQWW:      CountryTable.CountryMode := CQCountryMode;
         CQWWRTTY:  CountryTable.CountryMode := CQCountryMode;
         IARU:      CountryTable.ZoneMode    := ITUZoneMode;
+        WRTC2018:  CountryTable.ZoneMode    := ITUZoneMode;
         Russian:   CountryTable.CountryMode := CQCountryMode;
         WAE:       CountryTable.CountryMode := CQCountryMode;
         END;
@@ -1172,6 +1173,16 @@ VAR Key:             CHAR;
 
             RSTIsPartOfTheExchange := True;
             END;
+
+        WRTC2018:
+            BEGIN
+            RSTIsPartOfTheExchange := True;
+            SniffForTransmitter := True;
+            QTH := GetResponse ('Enter the zone you were sending : ');
+            IF QTH = '' THEN Exit;
+            SentInformation := '$ ' + qth;
+            numberexchangeelementstorecord := 1;
+            END;
         END;
 
     IF NOT OpenFileForWrite (FileWrite, CabrilloFileName) THEN Exit;
@@ -1230,6 +1241,8 @@ VAR Key:             CHAR;
                          WriteLn (FileWrite, 'CONTEST: DARC-WAEDC-', ModeString,Chr(13));
                          QTCEnable := True;
                          END;
+            WRTC2018:
+                         WriteLn (FileWrite, 'CONTEST: WRTC 2018',Chr(13));
             END;
 
     IF Section <> '' THEN
