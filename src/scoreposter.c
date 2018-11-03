@@ -266,7 +266,8 @@ void poster() {
             rc=sendto(fd,buf,strlen(buf),0,rp->ai_addr,rp->ai_addrlen);
             if (debug != NULL) {
                if (rc == -1) {
-                  fprintf(debug,"Sendto failed\n");
+                  int err = errno;
+                  fprintf(debug,"Sendto failed:%d(%s)\n",err,strerror(err));
                   fflush(debug);
                } else {
                   fprintf(debug,"Sendto succeeded\n");
