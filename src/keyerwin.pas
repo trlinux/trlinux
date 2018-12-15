@@ -340,8 +340,8 @@ begin
       tone := paddlemonitortone;
       st := $80;
    end;
-   if tone > WinKeyerFreqs[10] then tone := WinKeyerFreqs[10];
-   if tone < WinKeyerFreqs[1] then tone := WinKeyerFreqs[1];
+   if tone < WinKeyerFreqs[10] then tone := WinKeyerFreqs[10];
+   if tone > WinKeyerFreqs[1] then tone := WinKeyerFreqs[1];
    df0 := 4000;
    j := 10;
    for i := 1 to 10 do
@@ -350,7 +350,7 @@ begin
       if (df < df0) then
       begin
         j := i;
-        df := df0;
+        df0 := df;
       end
       else
       begin
