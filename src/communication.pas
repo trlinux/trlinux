@@ -351,7 +351,7 @@ end;
 
 procedure serialportx.rigctldforkr;
 var temp: ansistring;
-    port,rigdev,rignumber,baud,civ: PChar;
+    port,rigdev,rignumber,baud,civ,extra: PChar;
     colonpos: longint;
 begin
    temp := dev;
@@ -371,6 +371,11 @@ begin
    delete(temp,1,colonpos);
    colonpos := pos(';',temp);
    civ := Pchar('--civaddr=' + copy(temp,1,colonpos-1));
+   delete(temp,1,colonpos);
+   colonpos := pos(';',temp);
+   extra := Pchar('');
+   if colonpos <> 0 then
+      extra := Pchar('--set-conf=' + copy(temp,1,colonpos-1));
    pid := fpfork;
    if (pid = 0) then
    begin
@@ -379,9 +384,9 @@ begin
       fpclose(1);
       fpclose(2);
       if length(baud) = 3 then
-         fpExeclp('rigctld',[port,rigdev,rignumber,civ])
+         fpExeclp('rigctld',[port,rigdev,rignumber,civ,extra])
       else
-         fpExeclp('rigctld',[port,rigdev,rignumber,baud,civ]);
+         fpExeclp('rigctld',[port,rigdev,rignumber,baud,civ,extra]);
    end
 end;
 
