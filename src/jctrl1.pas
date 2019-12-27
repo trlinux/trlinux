@@ -93,7 +93,8 @@ TYPE MenuEntryType = (NoMenuEntry,
                       FSM,
                       FA1,
                       FA2,
-                      FPR, {KK1L: 6.71a FrequencyPollRate}
+                      FPR1, {KK1L: 6.71a FrequencyPollRate}
+                      FPR2, {KK1L: 6.71a FrequencyPollRate}
                       FME,
                       FCR,
                       GMC,
@@ -313,7 +314,8 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       FSM: Description := 'FOOT SWITCH MODE';
       FA1: Description := 'FREQUENCY ADDER RADIO ONE';
       FA2: Description := 'FREQUENCY ADDER RADIO TWO';
-      FPR: Description := 'FREQUENCY POLL RATE'; {KK1L: 6.71a}
+      FPR1: Description := 'RADIO ONE FREQUENCY POLL RATE'; {KK1L: 6.71a}
+      FPR2: Description := 'RADIO TWO FREQUENCY POLL RATE'; {KK1L: 6.71a}
       FME: Description := 'FREQUENCY MEMORY ENABLE';
       FCR: Description := 'FT1000MP CW REVERSE';
 
@@ -604,7 +606,8 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       FA1: Write (Radio1FrequencyAdder);
       FA2: Write (Radio2FrequencyAdder);
-      FPR: Write (FreqPollRate); {KK1L: 6.71a}
+      FPR1: Write (Rig1FreqPollRate); {KK1L: 6.71a}
+      FPR2: Write (Rig2FreqPollRate); {KK1L: 6.71a}
       FME: Write (FrequencyMemoryEnable);
       FCR: Write (FT1000MPCWReverse);
       GMC: Write (GridMapCenter);
@@ -1172,7 +1175,8 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('No adder to radio 2 frequency');
 
-      FPR: Write ('Rate in ms the radio is polled for freq'); {KK1L: 6.71a}
+      FPR1: Write ('Rate in ms the radio is polled for freq'); {KK1L: 6.71a}
+      FPR2: Write ('Rate in ms the radio is polled for freq'); {KK1L: 6.71a}
 
       FME: IF FrequencyMemoryEnable THEN
                Write ('Remember freqs for each band/mode')

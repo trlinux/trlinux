@@ -558,7 +558,8 @@ VAR
     FrequencyDisplayed:    BOOLEAN;
     FreqMemory: ARRAY [BandType, ModeType] OF LONGINT;
     FrequencyMemoryEnable: BOOLEAN;
-    FreqPollRate: WORD; {KK1L: 6.71a Frequency Poll Rate in milliseconds}
+    Rig1FreqPollRate: INTEGER; {KK1L: 6.71a Frequency Poll Rate in milliseconds}
+    Rig2FreqPollRate: INTEGER; {KK1L: 6.71a Frequency Poll Rate in milliseconds}
 
     GridSquareListShown: BOOLEAN;
 
@@ -2904,11 +2905,6 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
   MILLISLEEP; //KS try again
         GetTime (Hour, Minute, Second, Hundredths); {KK1L: 6.71a}
 
-        { Check to see if we should do radio polling stuff or not }
-
-//        IF (FullTimeString = LastFullTimeString) AND (Hundredths < LastSecond100 + (FreqPollRate div 10)) THEN
-//            Exit;
-
         LastSecond100 := Hundredths; {KK1L: 6.71a}
 
         { Check to see if we have an interfaced radio to look at }
@@ -2928,7 +2924,7 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                            GoTo IgnoreRadioOneFreq;
 
                     RadioOnTheMove[RadioOne] := ((PreviousRadioOneFreq <> 0) AND
-                                         (Abs (PreviousRadioOneFreq - Freq) > (FreqPollRate * AutoSAPEnableRate div 1000))) OR
+                                         (Abs (PreviousRadioOneFreq - Freq) > (Rig1FreqPollRate * AutoSAPEnableRate div 1000))) OR
                                          (ModeMemory [RadioOne] <> Mode);
 
                     RadioMovingInBandMode[RadioOne] := (RadioOnTheMove[RadioOne]) AND
@@ -3052,7 +3048,7 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                            GoTo IgnoreRadioTwoFreq;
 
                     RadioOnTheMove[RadioTwo] := ((PreviousRadioTwoFreq <> 0) AND
-                                         (Abs (PreviousRadioTwoFreq - Freq) > (FreqPollRate * AutoSAPEnableRate div 1000))) OR
+                                         (Abs (PreviousRadioTwoFreq - Freq) > (Rig2FreqPollRate * AutoSAPEnableRate div 1000))) OR
                                          (ModeMemory [RadioTwo] <> Mode);
 
                     RadioMovingInBandMode[RadioTwo] := (RadioOnTheMove[RadioTwo]) AND
@@ -6225,7 +6221,8 @@ VAR Band: BandType;
     FirstDisplayedBandMapFrequency := 0; {KK1L: 6.64}
 
     FrequencyDisplayed     := False;
-    FreqPollRate           := 250; {KK1L: 6.71a default Frequency Poll Rate in milliseconds}{KK1L: 6.73 was 100}
+    Rig1FreqPollRate           := 250;
+    Rig2FreqPollRate           := 250;
 
     GridSquareListShown    := False;
 

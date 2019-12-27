@@ -1363,13 +1363,24 @@ VAR xResult,tempint: INTEGER;
         END;
 
     {KK1L: 6.71}
-    IF ID = 'FREQUENCY POLL RATE' THEN
+    IF ID = 'RADIO ONE FREQUENCY POLL RATE' THEN
         BEGIN
         Val (CMD, TempLongInt, xResult);
-        IF (TempLongInt >= 10) AND (TempLongInt <= 1000) THEN {KK1L: 6.72}
-            FreqPollRate := TempLongInt
+        IF (TempLongInt >= 10) AND (TempLongInt <= 2000) THEN {KK1L: 6.72}
+            Rig1FreqPollRate := TempLongInt
         ELSE
-            FreqPollRate := 250; {KK1L: 6.73 Better resutls with Icom and other radios.}
+            Rig1FreqPollRate := 250;
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'RADIO TWO FREQUENCY POLL RATE' THEN
+        BEGIN
+        Val (CMD, TempLongInt, xResult);
+        IF (TempLongInt >= 10) AND (TempLongInt <= 2000) THEN {KK1L: 6.72}
+            Rig2FreqPollRate := TempLongInt
+        ELSE
+            Rig2FreqPollRate := 250;
         ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;

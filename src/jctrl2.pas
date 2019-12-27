@@ -387,11 +387,16 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                Radio2FrequencyAdder := TempLongInt;
            END;
 
-      FPR: BEGIN {KK1L: 6.71}
-           TempLongInt := QuickEditInteger ('Enter freq poll rate in ms (10-1000) : ', 4);
-           IF (TempLongInt >= 10) AND (TempLongInt <= 1000) THEN FreqPollRate := TempLongInt; {KK1L: 6.72}
-           rig1.setpolltime(FreqPollRate);
-           rig2.setpolltime(FreqPollRate);
+      FPR1: BEGIN {KK1L: 6.71}
+           TempLongInt := QuickEditInteger ('Enter freq poll rate in ms (10-2000) : ', 4);
+           IF (TempLongInt >= 10) AND (TempLongInt <= 2000) THEN Rig1FreqPollRate := TempLongInt; {KK1L: 6.72}
+           rig1.setpolltime(Rig1FreqPollRate);
+           END;
+
+      FPR2: BEGIN {KK1L: 6.71}
+           TempLongInt := QuickEditInteger ('Enter freq poll rate in ms (10-2000) : ', 4);
+           IF (TempLongInt >= 10) AND (TempLongInt <= 2000) THEN Rig2FreqPollRate := TempLongInt; {KK1L: 6.72}
+           rig2.setpolltime(Rig2FreqPollRate);
            END;
 
       FME: FrequencyMemoryEnable := NOT FrequencyMemoryEnable;
@@ -1062,7 +1067,8 @@ VAR FileWrite: TEXT;
 
       FA1: WriteLn (FileWrite, Radio1FrequencyAdder);
       FA2: WriteLn (FileWrite, Radio2FrequencyAdder);
-      FPR: WriteLn (FileWrite, FreqPollRate); {KK1L: 6.71}
+      FPR1: WriteLn (FileWrite, Rig1FreqPollRate); {KK1L: 6.71}
+      FPR2: WriteLn (FileWrite, Rig2FreqPollRate); {KK1L: 6.71}
       FME: WriteLn (FileWrite, FrequencyMemoryEnable);
       FCR: WriteLn (FileWrite, FT1000MPCWReverse);
       GMC: WriteLn (FileWrite, GridMapCenter);
@@ -1426,7 +1432,8 @@ VAR TempString: Str40;
 
       FA1: Str (Radio1FrequencyAdder, TempString);
       FA2: Str (Radio2FrequencyAdder, TempString);
-      FPR: Str (FreqPollRate, TempString); {KK1L: 6.71}
+      FPR1: Str (Rig1FreqPollRate, TempString); {KK1L: 6.71}
+      FPR2: Str (Rig2FreqPollRate, TempString); {KK1L: 6.71}
       FME: IF FrequencyMemoryEnable THEN TempString := 'TRUE';
       FCR: IF FT1000MPCWReverse THEN TempString := 'TRUE';
       GMC: TempString := GridMapCenter;
