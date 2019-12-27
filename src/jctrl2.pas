@@ -390,6 +390,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       FPR: BEGIN {KK1L: 6.71}
            TempLongInt := QuickEditInteger ('Enter freq poll rate in ms (10-1000) : ', 4);
            IF (TempLongInt >= 10) AND (TempLongInt <= 1000) THEN FreqPollRate := TempLongInt; {KK1L: 6.72}
+           rig1.setpolltime(FreqPollRate);
+           rig2.setpolltime(FreqPollRate);
            END;
 
       FME: FrequencyMemoryEnable := NOT FrequencyMemoryEnable;

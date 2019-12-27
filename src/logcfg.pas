@@ -429,6 +429,8 @@ VAR FileWrite: TEXT;
             END;
         END else rig2 := radioctl.create(radiodebugmode); //dummy
 
+    rig1.setpolltime(FreqPollRate);
+    rig2.setpolltime(FreqPollRate);
     if scorerpt.enabled then
     begin
        scorerpt.setcall(MyCall);
