@@ -717,7 +717,7 @@ PROCEDURE DownloadCtyFile;
 VAR CtyFile, CtyFileOld, Url: string;
     res: longint;
 BEGIN
-    Url := 'http://www.country-files.com/cty/cty.dat';
+    Url := 'https://www.country-files.com/cty/cty.dat';
     ClrScr;
     TextColor (Yellow);
     WriteLnCenter ('Download new CTY.DAT file');
