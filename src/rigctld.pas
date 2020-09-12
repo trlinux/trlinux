@@ -285,6 +285,7 @@ begin
    end;
    if ((not waiting) and (pollcounter >= polltime)) and pollradio then
    begin
+      sendstring('|v' + linefeed); // needed to force current vfo freq return
       sendstring('|f' + linefeed);
       sendstring('|m' + linefeed);
       pollcounter := 0;
