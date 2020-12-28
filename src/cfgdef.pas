@@ -205,8 +205,6 @@ PROCEDURE SetConfigurationDefaultValues;
 
     FrequencyMemoryEnable := True;
 
-    FT1000MPCWReverse := False;
-
     GridMapCenter := '';
 
     HFBandEnable := True;
@@ -330,6 +328,8 @@ PROCEDURE SetConfigurationDefaultValues;
     Radio2Type := NoInterfacedRadio;
     Radio1ControlPort := nil;
     Radio2ControlPort := nil;
+    Radio1CwReverse := False;
+    Radio2CwReverse := False;
     Radio1ReceiverAddress := 4;
     Radio2ReceiverAddress := 4;
     Radio1TrackingEnable := True;

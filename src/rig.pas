@@ -55,6 +55,7 @@ type
       procedure timer(caughtup: boolean);virtual;
       procedure setport(port: serialportx);virtual;
       procedure setpolltime(ms: integer);virtual;
+      procedure setcwreverse(on: boolean);virtual;
       procedure closedebug();
 
       protected
@@ -73,6 +74,7 @@ type
       waiting: boolean;
       debugfile: text;
       lastcommand: string;
+      cwreverse: boolean;
       procedure sendstring(s: string);
       function getband(f: longint):bandtype;
 
@@ -118,6 +120,7 @@ begin
    lastcommand := '';
    debug := debugin;
    debugopen := false;
+   cwreverse := false;
 end;
 
 procedure radioctl.setpolltime(ms: integer);
@@ -195,6 +198,11 @@ begin
       end;
    end;
    getband := NoBand;
+end;
+
+procedure radioctl.setcwreverse(on: boolean);
+begin
+   cwreverse := on;
 end;
 
 procedure radioctl.putradiointosplit;

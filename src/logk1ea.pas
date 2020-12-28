@@ -173,7 +173,6 @@ VAR ActiveDVKPort:     parallelportx;
 
     FootSwitchDebug:   BOOLEAN;
     FootSwitchMode:    FootSwitchModeType;
-    FT1000MPCWReverse: BOOLEAN;
 
     IcomCommandPause:    WORD;
     IcomRetries: INTEGER; {KK1L: 6.72}

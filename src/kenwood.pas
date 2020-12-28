@@ -58,6 +58,7 @@ type
          vfoup: string;
          vfodn: string;
          cwmode: string;
+         cwmoder: string;
          digitalmode: string;
          lsbmode: string;
          usbmode: string;
@@ -105,6 +106,7 @@ begin
    ritclr := 'RC;';
    vfoup := 'UP;';
    vfodn := 'DN;';
+   cwmoder := 'MD7;';
    cwmode := 'MD3;';
    digitalmode := 'MD6;';
    lsbmode := 'MD1;';
@@ -137,6 +139,7 @@ begin
    vfoup := 'EU001;';
    vfodn := 'ED001;';
    cwmode := 'MD03;MD13';
+   cwmoder := 'MD07;MD17';
    digitalmode := 'MD06;MD16;';
    lsbmode := 'MD01;MD11;';
    usbmode := 'MD02;MD12;';
@@ -168,6 +171,7 @@ begin
    vfoup := 'EU001;';
    vfodn := 'ED001;';
    cwmode := 'MD03;';
+   cwmoder := 'MD07;';
    digitalmode := 'MD06;';
    lsbmode := 'MD01;';
    usbmode := 'MD02;';
@@ -203,7 +207,10 @@ begin
       sendstring(tovfob);
    end;
    case m of
-      CW: sendstring(cwmode);
+      CW: if cwreverse then
+             sendstring(cwmoder)
+          else
+             sendstring(cwmode);
       Digital: sendstring(digitalmode);
       else
       if (freq < 10000000) then

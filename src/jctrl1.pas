@@ -96,7 +96,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       FPR1, {KK1L: 6.71a FrequencyPollRate}
                       FPR2, {KK1L: 6.71a FrequencyPollRate}
                       FME,
-                      FCR,
                       GMC,
                       HFE,
                       HDP,
@@ -172,9 +171,11 @@ TYPE MenuEntryType = (NoMenuEntry,
                       R1I,
                       R1T,
                       R1U,
+                      R1CR,
                       R2I,
                       R2T,
                       R2U,
+                      R2CR,
                       RCQ,
                       RDS,
                       RMD,
@@ -317,7 +318,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       FPR1: Description := 'RADIO ONE FREQUENCY POLL RATE'; {KK1L: 6.71a}
       FPR2: Description := 'RADIO TWO FREQUENCY POLL RATE'; {KK1L: 6.71a}
       FME: Description := 'FREQUENCY MEMORY ENABLE';
-      FCR: Description := 'FT1000MP CW REVERSE';
 
       GMC: Description := 'GRID MAP CENTER';
 
@@ -403,9 +403,11 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       R1I: Description := 'RADIO ONE ID CHARACTER';
       R1T: Description := 'RADIO ONE TRACKING ENABLE';
       R1U: Description := 'RADIO ONE UPDATE SECONDS';
+      R1CR: Description := 'RADIO ONE CW REVERSE';
       R2I: Description := 'RADIO TWO ID CHARACTER';
       R2T: Description := 'RADIO TWO TRACKING ENABLE';
       R2U: Description := 'RADIO TWO UPDATE SECONDS';
+      R2CR: Description := 'RADIO TWO CW REVERSE';
       RCQ: Description := 'RANDOM CQ MODE';
       RDS: Description := 'RATE DISPLAY';
       RMD: Description := 'REMAINING MULT DISPLAY MODE';
@@ -609,7 +611,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       FPR1: Write (Rig1FreqPollRate); {KK1L: 6.71a}
       FPR2: Write (Rig2FreqPollRate); {KK1L: 6.71a}
       FME: Write (FrequencyMemoryEnable);
-      FCR: Write (FT1000MPCWReverse);
       GMC: Write (GridMapCenter);
       HFE: Write (HFBandEnable);
 
@@ -737,9 +738,11 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       R1I: Write (Radio1IDCharacter);
       R1T: Write (Radio1TrackingEnable);
       R1U: Write (Radio1UpdateSeconds);
+      R1CR: Write (Radio1CwReverse);
       R2I: Write (Radio2IDCharacter);
       R2T: Write (Radio2TrackingEnable);
       R2U: Write (Radio2UpdateSeconds);
+      R2CR: Write (Radio2CwReverse);
 
       RCQ: Write (RandomCQMode);
 
@@ -1183,11 +1186,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Do not remember freqs from band/mode');
 
-      FCR: IF FT1000MPCWReverse THEN
-               Write ('FT1000MP / FT920 use CW Reverse mode')
-           ELSE
-               Write ('FT1000MP / FT920 use normal CW mode');
-
       GMC: IF GridMapCenter = '' THEN
                Write ('No grid map defined')
            ELSE
@@ -1509,6 +1507,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('# seconds between frequency updates');
 
+      R1CR: IF Radio1CwReverse THEN
+               Write ('Radio 1 use cw reverse')
+            ELSE
+               Write ('Radio 1 use normal cw');
+
       R2I: Write ('Char appended to QSO number for rig 2');
 
       R2T: IF Radio2TrackingEnable THEN
@@ -1520,6 +1523,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Normal operation')
            ELSE
                Write ('# seconds between frequency updates');
+
+      R2CR: IF Radio2CwReverse THEN
+               Write ('Radio 2 use cw reverse')
+            ELSE
+               Write ('Radio 2 use normal cw');
 
       RCQ: IF RandomCQMode THEN
                Write ('Auto CQ picks F1-F4 at random')

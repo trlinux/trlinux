@@ -400,7 +400,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            END;
 
       FME: FrequencyMemoryEnable := NOT FrequencyMemoryEnable;
-      FCR: FT1000MPCWReverse     := NOT FT1000MPCWReverse;
 
       GMC: BEGIN
            TempString := UpperCase (QuickEditResponse ('Enter new center for grid map : ', 4));
@@ -673,6 +672,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            IF TempInt <> -1 THEN Radio1UpdateSeconds:= TempInt;
            END;
 
+      R1CR: BEGIN
+            Radio1CwReverse := NOT Radio1CwReverse;
+            rig1.setcwreverse(Radio1CwReverse);
+            END;
 
       R2I: BEGIN
            TempString := UpperCase (QuickEditResponse ('Enter rig 2 ID character (A-Z or RETURN for none) : ', 1));
@@ -697,6 +700,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            IF TempInt <> -1 THEN Radio2UpdateSeconds:= TempInt;
            END;
 
+      R2CR: BEGIN
+            Radio2CwReverse := NOT Radio2CwReverse;
+            rig2.setcwreverse(Radio2CwReverse);
+            END;
 
       RCQ: RandomCQMode := NOT RandomCQMode;
 
@@ -1070,7 +1077,6 @@ VAR FileWrite: TEXT;
       FPR1: WriteLn (FileWrite, Rig1FreqPollRate); {KK1L: 6.71}
       FPR2: WriteLn (FileWrite, Rig2FreqPollRate); {KK1L: 6.71}
       FME: WriteLn (FileWrite, FrequencyMemoryEnable);
-      FCR: WriteLn (FileWrite, FT1000MPCWReverse);
       GMC: WriteLn (FileWrite, GridMapCenter);
       HFE: WriteLn (FileWrite, HFBandEnable);
 
@@ -1196,9 +1202,11 @@ VAR FileWrite: TEXT;
       R1I: WriteLn (FileWrite, Radio1IDCharacter);
       R1T: WriteLn (FileWrite, Radio1TrackingEnable);
       R1U: WriteLn (FileWrite, Radio1UpdateSeconds);
+      R1CR: WriteLn (FileWrite, Radio1CwReverse);
       R2I: WriteLn (FileWrite, Radio2IDCharacter);
       R2T: WriteLn (FileWrite, Radio2TrackingEnable);
       R2U: WriteLn (FileWrite, Radio2UpdateSeconds);
+      R2CR: WriteLn (FileWrite, Radio2CwReverse);
 
       RCQ: WriteLn (FileWrite, RandomCQMode);
 
@@ -1435,7 +1443,6 @@ VAR TempString: Str40;
       FPR1: Str (Rig1FreqPollRate, TempString); {KK1L: 6.71}
       FPR2: Str (Rig2FreqPollRate, TempString); {KK1L: 6.71}
       FME: IF FrequencyMemoryEnable THEN TempString := 'TRUE';
-      FCR: IF FT1000MPCWReverse THEN TempString := 'TRUE';
       GMC: TempString := GridMapCenter;
       HFE: IF HFBandEnable THEN TempString := 'TRUE';
 
@@ -1555,9 +1562,11 @@ VAR TempString: Str40;
       R1I: TempString := Radio1IDCharacter;
       R1T: IF Radio1TrackingEnable THEN TempString := 'TRUE';
       R1U: Str (Radio1UpdateSeconds, TempString);
+      R1CR: IF Radio1CwReverse THEN TempString := 'TRUE';
       R2I: TempString := Radio2IDCharacter;
       R2T: Str (Radio1UpdateSeconds, TempString);
       R2U: Str (Radio2UpdateSeconds, TempString);
+      R2CR: IF Radio2CwReverse THEN TempString := 'TRUE';
 
       RCQ: IF RandomCQMode THEN TempString := 'TRUE';
 

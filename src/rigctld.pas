@@ -100,7 +100,10 @@ begin
    end;
    sendstring('|F ' + freqstr + linefeed);
    case m of
-      CW: sendstring('|M CW ' + inttostr(cwfilter) + linefeed);
+      CW: if cwreverse then
+              sendstring('|M CWR ' + inttostr(cwfilter) + linefeed)
+          else
+              sendstring('|M CW ' + inttostr(cwfilter) + linefeed);
       Digital: sendstring('|M RTTY ' + inttostr(digfilter) + linefeed);
       else
       if (freq < 10000000) then

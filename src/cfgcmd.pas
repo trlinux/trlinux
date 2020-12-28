@@ -1385,13 +1385,6 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-    IF ID = 'FT1000MP CW REVERSE' THEN
-        BEGIN
-        FT1000MPCWReverse := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions2 := True;
-        Exit;
-        END;
-
     IF ID = 'GRID MAP CENTER' THEN
         BEGIN
         IF LooksLikeAGrid (CMD) OR (CMD = '') THEN
@@ -2622,6 +2615,20 @@ VAR xResult,tempint: INTEGER;
         ProcessConfigInstructions2 := (Radio2ControlPort <> nil) OR (CMD = 'NONE');
         Exit;
         END;
+
+   IF ID = 'RADIO ONE CW REVERSE' THEN
+      BEGIN
+      Radio1CwReverse := UpCase (CMD [1]) = 'T';
+      ProcessConfigInstructions2 := True;
+      Exit;
+      END;
+
+   IF ID = 'RADIO TWO CW REVERSE' THEN
+      BEGIN
+      Radio2CwReverse := UpCase (CMD [1]) = 'T';
+      ProcessConfigInstructions2 := True;
+      Exit;
+      END;
 
     IF ID = 'RADIO ONE ID CHARACTER' THEN
         BEGIN

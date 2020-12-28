@@ -431,6 +431,8 @@ VAR FileWrite: TEXT;
 
     rig1.setpolltime(Rig1FreqPollRate);
     rig2.setpolltime(Rig2FreqPollRate);
+    rig1.setcwreverse(Radio1CwReverse);
+    rig2.setcwreverse(Radio2CwReverse);
     if scorerpt.enabled then
     begin
        scorerpt.setcall(MyCall);

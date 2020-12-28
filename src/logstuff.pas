@@ -294,6 +294,8 @@ VAR
     Radio2BaudRate:      LONGINT;
     Radio1IDCharacter:   CHAR;
     Radio2IDCharacter:   CHAR;
+    Radio1CwReverse:     BOOLEAN;
+    Radio2CwReverse:     BOOLEAN;
     RadioSetFreq:        LONGINT;
     RandomCQMode:        BOOLEAN;
     RandomNameEnable:    BOOLEAN;
