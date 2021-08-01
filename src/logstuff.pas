@@ -1903,6 +1903,32 @@ VAR TempString: Str80;
     END;
 
 
+FUNCTION ProcessNameAndNumberOrQthExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
+
+VAR TempString: Str80;
+    ThirdSTring, NumberString: Str20;
+    xResult: INTEGER;
+
+    BEGIN
+    ProcessNameAndNumberOrQthExchange := False;
+    IF Exchange = '' THEN Exit;
+    TempString := Exchange;
+    Exchange := '';
+
+    RXData.TenTenNum := -1;
+
+    WHILE TempString <> '' DO
+         BEGIN
+         NumberString := RemoveFirstString (TempString);
+
+         IF StringIsAllNumbers (NumberString) THEN
+             Val (NumberString, RXData.TenTenNum, xResult)
+         ELSE
+             Exchange := Exchange + NumberString + ' ';
+         END;
+    ParseExchange (Exchange, RXData.Name, RXData.QTHString, ThirdString);
+    ProcessNameAndNumberOrQthExchange := True;
+    END;
 
 FUNCTION ProcessNameQTHAndPossibleTenTenNumberExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
 

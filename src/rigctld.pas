@@ -119,7 +119,7 @@ end;
 
 procedure rigctldctl.clearrit;
 begin
-   sendstring('|J 1' + linefeed); // 0 Hz turns it off, try 1 Hz for clear
+   sendstring('|J 0' + linefeed);
 end;
 
 procedure rigctldctl.bumpritup;
