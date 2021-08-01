@@ -39,7 +39,7 @@ La = LA, LOU
 Lax = LAX, LOS
 
 
-Mar = MAR, NB, PEI, VE1, VY2, VE9, NS, MR
+Mar = MAR, NB, VE1, VE9, NS, MR
 Mb  = MB, MAN, VE4
 Mdc = MD, MARY, DC
 Me  = ME, MAI
@@ -72,6 +72,7 @@ Or  = OR, ORE
 Org = ORG, ORA
 
 Pac = PAC, HA, KH, HI
+Pe = PE, PEI, VY2
 Pr  = PR, KP4
 
 Qc  = PQ, QU, VE2, QC
