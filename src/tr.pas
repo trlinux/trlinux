@@ -20,6 +20,9 @@
 
 PROGRAM ContestLoggingProgram;
 {$linklib curl}
+{$linklib X11}
+{$linklib c}
+{$linklib gcc}
 {$V-}
 
 {  To make TRTTY, change TREE.PAS so that RTY shows up between CW and SSB.
@@ -3381,6 +3384,7 @@ Released Version 4.00 to Japan (10-August-1993).
 
 
 Uses
+     CThreads,
      Country9,
      DOS,
      FContest,
@@ -3414,7 +3418,6 @@ Uses
      memlinux,
      linuxsound,
      timer,
-     x86,
      K1EANet,
      datetimec,
      beep,

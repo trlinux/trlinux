@@ -16,6 +16,8 @@
 #    Public License along with TR log for linux.  If not, see
 #<http://www.gnu.org/licenses/>.
 
+CFLAGS=-O2
+
 SRC=\
    xkb.pas\
    beep.pas\
@@ -67,30 +69,25 @@ SRC=\
 
 
 post: $(SRC) dupe.o dt.o findports.o hid.o curlroutines.o scoreposter.o
-	fpc -B -Mobjfpc -g post -k-lX11
+	fpc -B -Mobjfpc -g -gl post
 	cp post ../log
 
 clean:
-	rm -f *\.o *\.ppu
+	rm -f *\.o *\.ppu *\.res
 
 distclean:
-	rm -f *\.o *\.ppu post trlog
+	rm -f *\.rst *\.o *\.ppu *\.res trlog post
 
 dupe.o:dupe.c
-	gcc -c dupe.c
 
 hid.o:hid.c
-	gcc -c hid.c
 
 
 findports.o:findports.c
-	gcc -c findports.c
 
 curlroutines.o:curlroutines.c
-	gcc -c curlroutines.c
 
 scoreposter.o:scoreposter.c
-	gcc -c scoreposter.c
 
 tar:
 	rm -f *\.o *\.ppu post trlog

@@ -18,6 +18,11 @@
 //<http://www.gnu.org/licenses/>.
 //
 
+{$linklib curl}
+{$linklib X11}
+{$linklib c}
+{$linklib gcc}
+
 PROGRAM PostContestLogProcessing;
 
 { This program is used to do all the post contest processing of the
@@ -27,6 +32,7 @@ PROGRAM PostContestLogProcessing;
 
 USES {Overlay,
      PostOnit,}
+     CThreads,
      memlinux,
      Dos,
      trCRT,

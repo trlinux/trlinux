@@ -20,7 +20,6 @@
 
 unit datetimec;
 {$L dt}
-{$linklib c}
 interface
    procedure gettime(var hour:word ; var min:word; var sec:word;
       var sec100:word);

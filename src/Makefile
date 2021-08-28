@@ -16,6 +16,9 @@
 #    Public License along with TR log for linux.  If not, see
 #<http://www.gnu.org/licenses/>.
 
+PC=fpc
+CFLAGS=-O2
+
 SRC=\
    xkb.pas\
    beep.pas\
@@ -77,12 +80,8 @@ SRC=\
    rigctld.pas\
    datetimec.pas
 
-
 trlog: $(SRC) hidapi.h hid.o dupe.o dt.o findports.o scoreposter.o
-#	fpc -Xt -B -Mtp -g -otrlog tr\
-             -k-logg -k-lvorbis -k-lFLAC -k-lvorbisenc -k-lm
-#	fpc -dBUSYWAIT -B -Mtp -g -otrlog tr -k-rpath=\$$ORIGIN/lib -k'-z origin' -k-lX11
-	fpc -O2 -B -Mobjfpc -g -gl -otrlog tr -k-rpath=\$$ORIGIN/lib -k'-z origin' -k-lX11
+	 $(PC) -O2 -B -Mobjfpc -g -gl -otrlog tr
 
 ccode: hidapi.h hid.o dupe.o dt.o findports.o scoreposter.o curlroutines.o
 
@@ -91,28 +90,23 @@ install:
 	install -m 755 trlog ../log/trlog
 
 clean:
-	rm -f *\.o *\.ppu
+	rm -f *\.o *\.ppu *\.res
 
 distclean:
-	rm -f *\.rst *\.o *\.ppu trlog post
+	rm -f *\.rst *\.o *\.ppu *\.res trlog post
 
 dupe.o:dupe.c
-	gcc -c dupe.c
 
 hid.o:hid.c
-	gcc -c hid.c
 
 dt.o:dt.c
-	gcc -c dt.c
 
 scoreposter.o:scoreposter.c
-	gcc -c scoreposter.c
 
 findports.o:findports.c
-	gcc -c findports.c
 
 dupepas.o:dupepas.pas
-	fpc -O2 dupepas.pas
+	$(PC) -O2 dupepas.pas
 
 tar:
 	rm -f *\.o *\.ppu tr

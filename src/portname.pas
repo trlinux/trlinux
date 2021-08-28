@@ -23,10 +23,9 @@ interface
 
 {$mode objfpc}
 {$L findports}
-{$linklib ieee1284}
-{$linklib libc}
+
 type
-   PCharArray = array of PChar;
+   pchararray = array of pchar;
 
    function findserial(Buf: PCharArray; bufsize:integer; ndevmax: integer)
       :integer;cdecl;external;
