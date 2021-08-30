@@ -74,7 +74,7 @@ Here are all the steps I used to
 install trlinux on a headless
 Raspberry Pi Zero W starting from a fresh SD card.
 
-## Raspberry pi initial set up
+## Raspberry Pi initial set up
 
 * Setup the SD card as directed at
 [raspberrypi.org](https://www.raspberrypi.org). I used the Raspberry Pi OS
