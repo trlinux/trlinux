@@ -50,6 +50,13 @@ as a normal (not root) user:
    make
 ```
 
+Once you have cloned the archive, you can build the latest version by
+```
+   cd trlinux
+   git pull
+   make
+```
+
 If you don't have latex installed, you can build just the programs trlog
 and post. After cloning the repository:
 
