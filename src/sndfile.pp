@@ -16,7 +16,7 @@
 **
 ** You should have received a copy of the GNU Lesser General Public License
 ** along with this program; if not, write to the Free Software
-** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+** Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 ** sndfile.h -- system-wide definitions
 **
@@ -277,7 +277,7 @@ type
   TSF_FORMAT_INFO = record
                       format    : ctypes.cint;
                       name      : ctypes.pcchar;
-                      extention : ctypes.pcchar;
+                      extension : ctypes.pcchar;
                     end;
 
 {
