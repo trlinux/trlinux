@@ -174,4 +174,5 @@ Finally, to build trlinux, execute the usual:
 ```
 
 At this point, the codes and directory structure are the same as in the
-release tar balls. Follow the documentation in the trlinux/doc directory.
+release tar balls. Follow the documentation in the trlinux/doc directory
+to properly set up an xterm and interface to your rig.
