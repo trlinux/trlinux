@@ -137,6 +137,8 @@ sudo ./install.sh
 Follow the prompts.
 
 I needed to tell the free pascal compiler where to find the gcc libraries.
+*I never needed to do this on the Intel architectures. This will
+probably be fixed eventually and will be unneeded.*
 The search directory below will change if the compiler version changes.
 Generally the last digit (here 8) is the major compiler version.
 ```
