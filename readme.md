@@ -28,7 +28,8 @@ on [Slackbuilds](https://slackbuilds.org/).
 
 Most other distributions will have readily available packages for
 all the dependencies. I'll give a detailed description below on
-how I built the code on a Raspberry Pi Zero W starting from a fresh
+how I built the code on a Raspberry Pi Zero W running Raspberry Pi OS
+starting from a fresh
 installation.
 
 # Documentation
