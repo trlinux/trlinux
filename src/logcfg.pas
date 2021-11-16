@@ -49,6 +49,7 @@ CONST Version = '1.06 - Freeware version based on TR Log 6.69';
 {$ENDIF}
 
 var keyerdebug: boolean;
+    nostdcfg: boolean;
 
 IMPLEMENTATION
 uses keycode,foot,radio,rig,kenwood,icom,rigctld,timer;
@@ -602,7 +603,9 @@ VAR FileString: STRING;
 
     FirstCommand := False;      { Disable looking for MY CALL command }
 
-    FileName := FindDirectory ('STDCFG.DAT') + DirectorySeparator + 'STDCFG.DAT';
+    Filename := '';
+    IF NOT NoStdcfg then
+       FileName := FindDirectory ('STDCFG.DAT') + DirectorySeparator + 'STDCFG.DAT';
 
     IF FileExists (FileName) THEN
         IF NOT LoadInSeparateConfigFile (FileName, FirstCommand, Call) THEN
@@ -786,6 +789,7 @@ VAR Result, ParameterCount: INTEGER;
             END;
 
         IF UpperCase (ParamStr (ParameterCount)) = 'NETDEBUG' THEN NetDebug := True;
+        IF UpperCase (ParamStr (ParameterCount)) = 'NOSTDCFG' THEN NoStdcfg := True;
 
         IF UpperCase (ParamStr (ParameterCount)) = 'PACKET' THEN
             FakePacket := True;
@@ -901,5 +905,6 @@ VAR Result, ParameterCount: INTEGER;
     RemainingMultDisplayMode := NoRemainingMults;
     RunningConfigFile := False;
     keyerdebug := false;
+    nostdcfg := false;
     END.
 

@@ -3075,7 +3075,7 @@ PROCEDURE StartUpHelp;
     WriteLn ('Port                PacketSimulate      PassThrough         PortToFile');
     WriteLn ('RadioDebug          Read                Sun                 TalkDebug');
     WriteLn ('Trace               UUDecode            UnixTime            ViewRadioDebug');
-    WriteLn ('KeyerDebug');
+    WriteLn ('KeyerDebug          NoStdcfg');
     WriteLn;
     END;
 
