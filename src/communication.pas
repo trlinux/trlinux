@@ -206,6 +206,7 @@ begin
             writeln('ncat command not found -- exiting');
             halt;
          end;
+         dev := devicename;
          fd := getpt;
          grantpt(fd);
          unlockpt(fd);
