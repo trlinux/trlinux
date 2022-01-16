@@ -305,6 +305,7 @@ begin
    rc := hid_get_product_string(hiddev,@tempstring[0],MAX_STR);
 tempstring := nil;
    rc := hid_set_nonblocking(hiddev,1);
+   delay(10); // wait for nonblocking -- this should not be needed
 // clear out any garbage sent by the so2r box before we connected
    while (hid_read(hiddev,@rcvdata[0],3) > 0) do continue;
    
