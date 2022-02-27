@@ -22,6 +22,7 @@ for these libraries often need to be installed.
 * libcurl
 * libasound
 * libsndfile
+* ncat
 
 For Slackware you can find a slackbuild script for free pascal
 on [Slackbuilds](https://slackbuilds.org/).
