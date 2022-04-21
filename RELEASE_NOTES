@@ -25,6 +25,16 @@ You should have received a copy of the GNU General
 - '^' character gives 4.5 dit space for TR DOS serial and parallel port keying.
   Made winkeyer '^' give same 4.5 dit space, YCCC box doesn't have 1/2 dit
   space, so '^' gives a 5 dit space.
+- Fixed bug when empty bandmap
+- Updated HID code and added delay for yccc box to remove race condition
+  that sometimes caused a hang on startup
+- Fixed bug where port is left off ncat
+- Added NOSTDCFG command line parameter to not load STDCFG.DAT
+- Rearranged source to compile on both Intel and Arm
+- Added RADIO ONE CW REVERSE  = TRUE/FALSE
+  and RADIO TWO CW REVERSE  = TRUE/FALSE
+  to use cw reverse as default.
+- Changed to RADIO ONE FREQUENCY POLL RATE and RADIO TWO FREQUENCY POLL RATE.
 
 0.49
 - Added "WRTC 2018" contest
