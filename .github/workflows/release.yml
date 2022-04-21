@@ -1,0 +1,51 @@
+on:
+  release:
+    types: [created]
+name: Handle Release
+
+env:
+   G_RELEASE: "x.xx"
+
+jobs:
+  generate:
+    name: Create release-artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@master
+      - name: Generate the artifacts
+        run : |
+           pwd
+           ls -l
+           sudo apt-get update
+           sudo apt install libusb-1.0-0-dev
+           sudo apt install libieee1284-3-dev
+           sudo apt install libcurl4-openssl-dev
+           sudo apt install libsndfile1-dev
+           sudo apt install libasound-dev
+           sudo apt install libudev-dev
+           sudo apt install texlive
+           sudo apt-get install fpc
+           make all
+           RELEASE=`awk -F\' '/ Version/ {print $2}' src/versions.inc\
+              |awk '{print $2}'`
+           echo "G_RELEASE=${RELEASE}" >> $GITHUB_ENV
+           rm -rf tmp
+           mkdir -p tmp
+           mkdir -p tmp/trlinux-r${RELEASE}
+           cp -r doc tmp/trlinux-r${RELEASE}/doc
+           cp -r log tmp/trlinux-r${RELEASE}/log
+           cp -r files tmp/trlinux-r${RELEASE}/files
+           cp RELEASE_NOTES tmp/trlinux-r${RELEASE}
+           rm -f tmp/trlinux-r${RELEASE}/log/TRMASTER*
+           tar -czf tmp/trlinux-r${RELEASE}_64bit.tgz -C tmp trlinux-r${RELEASE}
+           echo Done
+      - name: Upload the artifacts
+        env:
+           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/upload-release-asset@v1
+        with:
+           upload_url: ${{ github.event.release.upload_url }}
+           asset_path: tmp/trlinux-r${{ env.G_RELEASE }}_64bit.tgz
+           asset_name: trlinux-r${{ env.G_RELEASE }}_64bit.tgz
+           asset_content_type: application/octet-stream
