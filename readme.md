@@ -4,6 +4,20 @@
 This is the source repository for the linux port of N6TR's
 DOS contest logging program TRlog.
 
+## Tar balls and a compiled version
+If you prefer, the latest source release along with a compiled
+version is available under the
+[Releases](https://github.com/trlinux/trlinux/releases) tag on
+[Github](https://github.com/trlinux/trlinux). The binary file
+is automatically compiled by github runners using 64 bit ubuntu-latest
+on Intel hardware. This
+is currently Ubuntu 20.04. Check
+[Runners](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners)
+if this readme is out of date. Mint and other linux versions
+based on Ubuntu should also work with that binary.
+If you are running a different distribution or a 32 bit operating
+system please build from source.
+
 ## Building TR linux
 I assume you will be running TR in an xterm under X11. There is
 an unsupported console only mode and corresponding Makefile in the repository.
