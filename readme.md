@@ -13,6 +13,7 @@ is automatically compiled by github runners using 64 bit ubuntu-latest
 on Intel hardware. This
 is currently Ubuntu 20.04. Check
 [Runners](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners)
+for the current version
 if this readme is out of date. Mint and other linux versions
 based on Ubuntu should also work with that binary.
 If you are running a different distribution or a 32 bit operating
