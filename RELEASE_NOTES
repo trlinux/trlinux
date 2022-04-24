@@ -15,6 +15,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
+0.51
+- Fixed bug in Winkeyer start up code that caused K3NG Arduino
+  code to fail to start.
+- Updated files/mintsetup file that gives the commands needed for compiling on
+  Linux Mint 20.2.
 
 0.50
 - Added check for Band and Mode out of range in multi info message
