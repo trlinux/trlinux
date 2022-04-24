@@ -242,8 +242,9 @@ begin
       writeln('Winkeyer not responding -- check connection');
       halt;
    end;
-
    Winkeyer1 := true;
+   WinKeyerPort.putchar(Char($00)); //close host mode
+   WinKeyerPort.putchar(Char($03)); //close host mode
    WinKeyerPort.putchar(Char($00)); //open host mode
    WinKeyerPort.putchar(Char($02)); //open host mode
    for i := 0 to 5000 do // wait up to 5000ms
@@ -266,7 +267,7 @@ begin
          WinKeyerPort.putchar(Char($00)); //close host
          WinKeyerPort.putchar(Char($03));
          WinKeyerPort.putchar(Char($00)); //wk2 mode
-         WinKeyerPort.putchar(Char($11)); //wk2 mode
+         WinKeyerPort.putchar(Char($0b)); //wk2 mode
          WinKeyerPort.putchar(Char($00)); //open host mode
          WinKeyerPort.putchar(Char($02)); //open host mode
          for i := 0 to 5000 do // wait up to 5000ms

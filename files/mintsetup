@@ -1,18 +1,13 @@
 #!/bin/sh
-#Set up script for Linux Mint 18.3 Cinnamon Sylvia
+#Set up script for Linux Mint 20.2 Cinnamon Uma.
+#I use this to test TR under mint on my shack computer without
+#permanently installing it.
 #############################################################################
 #Steps for w9cf shack computer:
 #1. Download Linux mint iso set up disk and copy it on boot media.
 #2. Boot and choose the first choice from grub to get a live version.
-#3. Menu->Network to set up wifi network, download this file 
+#3. Click on Network icon to set up wifi network, then download this file 
 #4. Pop up a terminal and run this script.
-#5. To use lazarus-ide, I needed to tell it the lazarus directory
-#   was /usr/share/lazarus/1.8.2 the first time it starts.
-#6. To compile with lazarus, in a terminal cd trlinux/src and type
-#   make ccode
-#   Fire up lazarus and open project, navigate to trlinux/src, and
-    select trlog.lpi file. Shift-F9 or click on run->build. You can then
-    cp trlog ../log
 #############################################################################
 #
 #make temporary file for so2r box udev rule
@@ -25,44 +20,31 @@ trap onexit EXIT QUIT
 #
 #install software needed to compile/run trlog, -y answers yes to all questions
 #
-sudo apt update
-sudo apt install git -y
-sudo apt install libusb-1.0 -y
-sudo apt install libieee1284-3-dev -y
-sudo apt install libcurl4-gnutls-dev -y
-sudo apt install libasound2-dev -y
-sudo apt install libsndfile-dev -y
-sudo apt install texlive-binaries -y
-sudo apt install texlive-fonts-recommended -y
-sudo apt install texlive-generic-recommended -y
-sudo apt install texlive-latex-base -y
-sudo apt install texlive-latex-extra -y
-sudo apt install texlive-latex-recommended -y
-sudo apt install xterm -y
-sudo apt install nmap -y
-#
-#download and install free pascal and lazarus from sourceforge
-#
-wget https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%201.8.2/lazarus-project_1.8.2-0_amd64.deb
-wget https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%201.8.2/fpc_3.0.4-2_amd64.deb
-wget https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%201.8.2/fpc-src_3.0.4-2_amd64.deb
-sudo apt install ./fpc_3.0.4-2_amd64.deb -y
-sudo apt install ./fpc-src_3.0.4-2_amd64.deb -y
-sudo apt install ./lazarus-project_1.8.2-0_amd64.deb -y
-sudo apt-mark hold fpc fpc-src lazarus lazarus-project
-#
-#get copy of trlinux git archive
-#
+sudo apt-get -y update
+sudo apt-get -y install git
+sudo apt-get -y install build-essential
+sudo apt-get -y install libusb-1.0-0-dev
+sudo apt-get -y install libieee1284-3-dev
+sudo apt-get -y install libcurl4-openssl-dev
+sudo apt-get -y install libsndfile1-dev
+sudo apt-get -y install libasound-dev
+sudo apt-get -y install libudev-dev
+sudo apt-get -y install xorg-dev
+sudo apt-get -y install ncat
+sudo apt-get -y install texlive
+sudo apt-get -y install xpdf
+sudo apt-get -y install xterm
+sudo apt-get -y install fpc
+
+# Download the source and make the executables
 git clone https://github.com/trlinux/trlinux.git
+# Build trlinux
+(cd trlinux; make)
 #
 #set up DosTerm and BigDosTerm
 #
 cp trlinux/files/Xresources .Xresources
 xrdb -merge .Xresources
-#
-#Build trlinux
-#
-(cd trlinux; make)
 #
 # add group so2rbox
 #
@@ -86,3 +68,4 @@ sudo gpasswd -a mint so2rbox
 #logging out and in
 #
 exec sudo su -l mint
+export DISPLAY=:0
