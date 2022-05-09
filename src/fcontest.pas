@@ -293,6 +293,16 @@ VAR TempQTH: QTHRecord;
 
     IF NOT TRFree THEN
         BEGIN
+        IF CMD = '7QP' THEN
+            BEGIN
+            ActiveExchange := RSTQTHExchange;
+            ActiveQSOPointMethod := TwoPhoneThreeCW;
+            ActiveDomesticMult := WYSIWYGDomestic;
+            MultByBand := False;
+            MultByMode := False;
+            FoundContest := True;
+            END;
+
         IF CMD = 'ALL ASIAN' THEN
             BEGIN
             IF MyContinent = Asia THEN
@@ -775,7 +785,18 @@ VAR TempQTH: QTHRecord;
             FoundContest := True;
             END;
 
-        IF CMD = 'EUROPEAN HFC' THEN
+         IF CMD = 'CWT' THEN
+            BEGIN
+            ActiveExchange := CWTExchange;
+            ActiveDomesticMult := WYSIWYGDomestic;
+            ActiveQSOPointMethod := OnePointPerQSO;
+            ContestName := 'CWT';
+            LiteralDomesticQTH := True;
+            QSOByBand := True;
+            FoundContest := True;
+            END;
+
+         IF CMD = 'EUROPEAN HFC' THEN
             BEGIN
             ActiveExchange := RSTZoneExchange;
             ActiveQSOPointMethod := OnePointPerQSO;

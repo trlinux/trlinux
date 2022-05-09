@@ -395,7 +395,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  StringHasLetters (InputString: Str160): BOOLEAN;
 
     FUNCTION  StringWithFirstWordDeleted (InputString:Str160): Str160;
-    FUNCTION WordAfter(LongString: Str160; SearchString: Str80): Str160;
+    FUNCTION  WordAfter(LongString: Str160; SearchString: Str80): Str160;
 
     FUNCTION  Tan(X: REAL): REAL;
 
@@ -403,6 +403,8 @@ VAR CodeSpeed:  BYTE;
 
     FUNCTION  ValidCallCharacter (CallChar: CHAR): BOOLEAN;
     FUNCTION  ValidRST (VAR Ex: Str80; VAR RST: RSTString; Mode: ModeType): BOOLEAN;
+
+    PROCEDURE WaitForKeyPressed;
 
     FUNCTION  WhiteSpaceCharacter (InputChar: CHAR): BOOLEAN;
 
@@ -1985,7 +1987,7 @@ VAR TempString: Str20;
 FUNCTION GetLogEntryQSOPoints (LogEntry: Str160): INTEGER;
 
 VAR TempString: Str80;
-    Address, QSOPoints, xResult: INTEGER;
+    Address, QSOPoints: INTEGER;
 
     BEGIN
     TempString := Copy (LogEntry, LogEntryPointsAddress, LogEntryPointsWidth);
@@ -2004,7 +2006,7 @@ VAR TempString: Str80;
         GetLogEntryQSOPoints := 0
     ELSE
         BEGIN
-        VAL (TempString, QSOPoints, xResult);
+        VAL (TempString, QSOPoints);
         GetLogEntryQSOPoints := QSOPoints;
         END;
     END;
@@ -3389,7 +3391,6 @@ VAR Position: INTEGER;
 FUNCTION RemoveBand (VAR LongString: STRING): BandType;
 
 VAR TempByte: BYTE;
-    Band: BandType;
 
     BEGIN
     RemoveBand := NoBand;
@@ -3405,7 +3406,6 @@ VAR TempByte: BYTE;
 FUNCTION RemoveMode (VAR LongString: STRING): ModeType;
 
 VAR TempByte: BYTE;
-    Mode: ModeType;
 
     BEGIN
     RemoveMode := NoMode;
@@ -3877,7 +3877,7 @@ VAR i: INTEGER;
     s: Str160;
 BEGIN
    i := Pos(UpperCase(SearchString), UpperCase(LongString));
-   if i = 0 then 
+   if i = 0 then
    begin
       wordafter := '';
       exit;
@@ -4394,13 +4394,13 @@ PROCEDURE IncrementMonth (VAR DateString: Str20);
   be incremented. }
 
 VAR MonthString, YearString: Str20;
-    Year, xResult: INTEGER;
+    Year: INTEGER;
 
     BEGIN
     MonthString := UpperCase (BracketedString (DateString, '-', '-'));
 
     YearString := Copy (DateString, Length (DateString) - 1, 2);
-    Val (YearString, Year, xResult);
+    Val (YearString, Year);
 
     IF MonthString = 'JAN' THEN
         DateString := '1-FEB-' + YearString;
@@ -4457,13 +4457,13 @@ PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
   string is in the format dd-mon-yr.  It will handle month ends and
   increment the year correctly (including leap years). }
 
-VAR Day, Hour, Minute, Year, xResult: INTEGER;
+VAR Day, Hour, Minute, Year: INTEGER;
     MinuteString, HourString, DayString, MonthString, YearString: Str20;
 
 
     BEGIN
-    Val (PostcedingString (TimeString, ':'), Minute, xResult);
-    Val (PrecedingString  (TimeString, ':'), Hour,   xResult);
+    Val (PostcedingString (TimeString, ':'), Minute);
+    Val (PrecedingString  (TimeString, ':'), Hour);
 
     Inc (Minute);
 
@@ -4476,7 +4476,7 @@ VAR Day, Hour, Minute, Year, xResult: INTEGER;
             BEGIN
             Hour := 0;
 
-            Val (PrecedingString (DateString, '-'), Day, xResult);
+            Val (PrecedingString (DateString, '-'), Day);
             Inc (Day);
             Str (Day, DayString);
 
@@ -4501,7 +4501,7 @@ VAR Day, Hour, Minute, Year, xResult: INTEGER;
                 IF MonthString = 'FEB' THEN
                     BEGIN
                     YearString := Copy (DateString, Length (DateString) - 1, 2);
-                    Val (YearString, Year, xResult);
+                    Val (YearString, Year);
 
                     IF (Year MOD 4 = 0) AND (Year <> 0) THEN { Leap year }
                         BEGIN
@@ -4887,6 +4887,17 @@ FUNCTION GetStateFromSection (Section: Str20): Str20;
     END;
 
 
+
+PROCEDURE WaitForKeyPressed;
+
+    BEGIN
+    Write ('Press any key to continue...');
+    REPEAT UNTIL KeyPressed;
+    ReadKey;
+    END;
+
+
+
 procedure getdegree(d: pchar);cdecl;external;
 
     BEGIN

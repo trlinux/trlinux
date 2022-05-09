@@ -166,7 +166,7 @@ PROCEDURE CheckForNewCountryForTreeOn160 (Call: CallString);
 
 FUNCTION RecordPointerIndex (FirstLetter: CHAR): INTEGER;
 
-VAR TempInt, xResult: INTEGER;
+VAR xResult, TempInt: INTEGER;
 
     BEGIN
     Val (FirstLetter, TempInt, xResult);
@@ -1794,7 +1794,7 @@ FUNCTION CountryTableObject.LoadInCountryFile: BOOLEAN;
 VAR FileRead: TEXT;
     FileString: STRING;
     PrefixString, Grid, CountryID, TempString1, CountryName: Str40;
-    xResult, RecordPointer: INTEGER;
+    RecordPointer: INTEGER;
     CurrentRecord, NextRecord: PrefixRecPtr;
     TempString, FileName: Str160;
     UTCOffset: INTEGER;
@@ -1905,14 +1905,14 @@ VAR FileRead: TEXT;
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, CountryInfoTable^ [NumberCountries].DefaultCQZone, xResult);
+            Val (TempString, CountryInfoTable^ [NumberCountries].DefaultCQZone);
 
             TempString := PrecedingString (FileString, ':');
             FileString := PostcedingString (FileString, ':');
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, CountryInfoTable^ [NumberCountries].DefaultITUZone, xResult);
+            Val (TempString, CountryInfoTable^ [NumberCountries].DefaultITUZone);
 
             TempString := PrecedingString (FileString, ':');
             FileString := PostcedingString (FileString, ':');
@@ -1926,14 +1926,14 @@ VAR FileRead: TEXT;
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, Lat, xResult);
+            Val (TempString, Lat);
 
             TempString := PrecedingString (FileString, ':');
             FileString := PostcedingString (FileString, ':');
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, Lon, xResult);
+            Val (TempString, Lon);
 
             CountryInfoTable^ [NumberCountries].DefaultGrid := ConvertLatLonToGrid (Lat, Lon);
 
@@ -1942,7 +1942,7 @@ VAR FileRead: TEXT;
             GetRidOfPrecedingSpaces (FileString);
             GetRidOfPostcedingSpaces (TempString);
 
-            Val (TempString, UTCOffset, xResult);
+            Val (TempString, UTCOffset);
 
             TempString := PrecedingString (FileString, ':');
             FileString := PostcedingString (FileString, ':');
@@ -1980,7 +1980,7 @@ VAR FileRead: TEXT;
                         BEGIN
                         TempString1 := BracketedString (PrefixString, '(', ')');
 
-                        Val (TempString1, CQZone, xResult);
+                        Val (TempString1, CQZone);
 
                         PrefixString := PrecedingString  (PrefixString, '(') +
                                         PostcedingString (PrefixString, ')');
@@ -1992,7 +1992,7 @@ VAR FileRead: TEXT;
                         BEGIN
                         TempString1 := BracketedString (PrefixString, '[', ']');
 
-                        Val (TempString1, ITUZone, xResult);
+                        Val (TempString1, ITUZone);
 
                         PrefixString := PrecedingString  (PrefixString, '[') +
                                         PostcedingString (PrefixString, ']');
@@ -2004,8 +2004,8 @@ VAR FileRead: TEXT;
                         BEGIN
                         TempString1 := BracketedString (PrefixString, '<', '>');
 
-                        Val (PrecedingString  (TempString1, '/'), Lat, xResult);
-                        Val (PostcedingString (TempString1, '/'), Lon, xResult);
+                        Val (PrecedingString  (TempString1, '/'), Lat);
+                        Val (PostcedingString (TempString1, '/'), Lon);
 
                         Grid := ConvertLatLonToGrid (Lat, Lon);
 

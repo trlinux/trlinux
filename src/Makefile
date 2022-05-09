@@ -27,6 +27,7 @@ SRC=\
    keyerk1ea.pas\
    keyerwin.pas\
    keyeryccc.pas\
+   keyerard.pas\
    radio.pas\
    scorereporter.pas\
    cfgcmd.pas\

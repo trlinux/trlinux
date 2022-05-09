@@ -264,7 +264,7 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
                for m := cw to both do
                begin
                   nmult[band,m,j] := 0;
-                  if domesticmult = mult[j] then nmult[band,m,j] := 
+                  if domesticmult = mult[j] then nmult[band,m,j] :=
                      nmult[band,m,j]+Mtotals[band,m].numberdomesticmults;
                   if dxmult = mult[j] then nmult[band,m,j] :=
                      nmult[band,m,j]+Mtotals[band,m].numberdxmults;
@@ -293,7 +293,7 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
          for j:=1 to nmulttype do mtot := mtot + totalmults[j];
       END;
       totalscore := qpoints*mtot;
-      
+
 {
 for band:=band160 to all do
 begin
@@ -351,7 +351,7 @@ end;
             TDOMElement(n1).SetAttribute('overlay',overlay);
          n0.Appendchild(n1);
          inc(i);
-         
+
          if (club <> '') then
          begin
             n1 := Doc.CreateElement('club');
@@ -462,7 +462,7 @@ end;
          n3 := Doc.CreateTextNode(inttostr(qpoints));
          n2.Appendchild(n3);
          n0.ChildNodes.Item[i].Appendchild(n2);
- 
+
          n1 := Doc.CreateElement('score');
          n0.Appendchild(n1);
          scorestr := '';
@@ -491,7 +491,7 @@ end;
          Doc.Free; // free memory
       end;
    end;
-         
+
    procedure scorereport.timer(caughtup: boolean);
    begin
       inc(icount);
@@ -501,7 +501,6 @@ end;
    end;
 
    procedure scorereport.setup;
-   var i:integer;
    begin
       nmulttype := 0;
       if ActiveDomesticMult = NoDomesticMults then domesticmult := 'none';
@@ -531,7 +530,7 @@ end;
          inc(nmulttype);
          mult[nmulttype] := prefixmult;
       end;
-      
+
       fd := getpt;
       grantpt(fd);
       unlockpt(fd);

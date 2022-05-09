@@ -1534,6 +1534,7 @@ VAR TempRXData: ContestExchange;
         BEGIN
         Sheet.SetMultFlags   (TempRXData);
         Sheet.AddQSOToSheets (TempRXData);
+
         {KK1L: 6.70 Sometimes there is just not a pretty way to do it!!}
         IF ActiveExchange <> RSTQTHNameAndFistsNumberOrPowerExchange THEN
             FixMultiplierString  (TempRXData, LogEntry);
@@ -2042,7 +2043,7 @@ VAR RemainingMults: RemainingMultListPointer;
 
     MultBand, Band: BandType;
     MultMode, Mode: ModeType;
-    xResult, Entry, Index: INTEGER;
+    Entry, Index: INTEGER;
     MultString, TempString: Str80;
 
     BEGIN
@@ -2184,7 +2185,7 @@ if remmultmatrix[multband,multmode,Zone] = nil then exit;
 
                                 IF StringIsAllNumbers (TempString) THEN
                                     BEGIN
-                                    Val (TempString, Index, xResult);
+                                    Val (TempString, Index);
 
                                     IF ActiveZoneMult <> EuHFCYear THEN
                                         Dec (Index);
@@ -2791,7 +2792,6 @@ PROCEDURE TimeAndDateSet;
 
 VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
     TempString, SecondTempString, HourTempString, MinuteTempString: Str80;
-    xResult: INTEGER;
     Hours, Mins, SecS, YearS, MonS, DayS: Str20;
 
     BEGIN
@@ -2871,9 +2871,9 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
            Exit;
            END;
 
-    Val (HourTempString,     Hour, xResult);
-    Val (MinuteTempString, Minute, xResult);
-    Val (SecondTempString, Second, xResult);
+    Val (HourTempString,     Hour);
+    Val (MinuteTempString, Minute);
+    Val (SecondTempString, Second);
 
     SetTime (Hour, Minute, Second, 0);
 
@@ -2892,7 +2892,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
             Exit;
             END;
 
-        Val (TempString, Year, xResult);
+        Val (TempString, Year);
 
     UNTIL (Year > 1900) AND (Year < 2100);
 
@@ -2910,7 +2910,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
             Exit;
             END;
 
-        Val (TempString, Month, xResult);
+        Val (TempString, Month);
 
     UNTIL (Month >= 1) AND (Month <= 12);
 
@@ -2928,7 +2928,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
             Exit;
             END;
 
-        Val (TempString, Day, xResult);
+        Val (TempString, Day);
 
     UNTIL (Day >= 1) AND (Day <= 31);
 

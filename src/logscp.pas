@@ -2047,7 +2047,6 @@ PROCEDURE CallDatabase.GetDataFromASCIIEntry (FileString: STRING; VAR Data: Data
 
 VAR Command: Str40;
     ID: CHAR;
-    xResult: INTEGER;
 
     BEGIN
     ClearDataEntry (Data);
@@ -2082,7 +2081,7 @@ VAR Command: Str40;
                 'F': IF Ignore <> 'F' THEN FOC     := Command;
                 'G': IF Ignore <> 'G' THEN Grid    := Command;
 
-                'H': IF Ignore <> 'H' THEN Val (Command, Hits, xResult);
+                'H': IF Ignore <> 'H' THEN Val (Command, Hits);
 
                 'I': IF Ignore <> 'I' THEN ITUZone := Command;
                 'K': IF Ignore <> 'K' THEN Check   := Command;
@@ -2095,7 +2094,7 @@ VAR Command: Str40;
                 'O': IF Ignore <> 'O' THEN OldCall := Command;
                 'Q': IF Ignore <> 'Q' THEN QTH     := Command;
 
-                'S': IF Ignore <> 'S' THEN Val (Command, Speed, xResult);
+                'S': IF Ignore <> 'S' THEN Val (Command, Speed);
 
                 'T': IF Ignore <> 'T' THEN TenTen  := Command;
                 'U': IF Ignore <> 'U' THEN User1   := Command;
@@ -3710,7 +3709,7 @@ VAR Key: CHAR;
 
 PROCEDURE CallDatabase.DeleteLowHitCalls;
 
-VAR Hits, Threshold, xResult: INTEGER;
+VAR Hits, Threshold: INTEGER;
     SaveNames: BOOLEAN;
     Key: CHAR;
     CallsFound, CallsSaved: LONGINT;
@@ -3761,7 +3760,7 @@ VAR Hits, Threshold, xResult: INTEGER;
                 BEGIN
                 TempString := PostcedingString (FileString, '=H');
                 TempString := RemoveFirstString (TempString);
-                Val (TempString, Hits, xResult);
+                Val (TempString, Hits);
 
                 IF (Hits >= Threshold) THEN
                     BEGIN

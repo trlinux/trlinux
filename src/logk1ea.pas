@@ -26,7 +26,8 @@ UNIT LogK1EA;
 INTERFACE
 
 USES LogGrid, Dos, trCrt, SlowTree, Tree, communication, beep, foot, radio,
-   keyerk1ea,keyerwin,keyers,so2r,keyeryccc,footyccc,rig,scorereporter;
+     keyerard, keyerk1ea,keyerwin,keyers,so2r,keyeryccc,footyccc,rig,
+     scorereporter;
 
 CONST
     RadioCommandBufferSize = 100;
@@ -81,7 +82,7 @@ C 17     Base+2    3     Input/Output - Output CW
 
 TYPE
     k1eatimer = class
-    public   
+    public
        procedure timer(caughtup: boolean);
     end;
 
@@ -154,6 +155,7 @@ VAR ActiveDVKPort:     parallelportx;
     ReforkCount: INTEGER;
     ReforkDelay: INTEGER;
 
+    ArdKeyer:          ArduinoKeyer;
     CPUKeyer:          K1EAKeyer;
     WinKey:            WinKeyer;
     YcccKey:           YcccKeyer;
@@ -463,7 +465,7 @@ VAR Image: BYTE;
         IF Radio1BandOutputPort <> nil THEN
             Radio1BandOutputPort.writedata($e1,Image);
         END
-       
+
     ELSE
         BEGIN
         IF Band = RadioTwoBandOutputStatus THEN Exit;
@@ -520,7 +522,7 @@ VAR Image: BYTE;
            if activeradio = radiotwo then
               rig2.directcommand(DVKRadio2DVK4Cmd);
            end;
-       
+
         5: begin
            if activeradio = radioone then
               rig1.directcommand(DVKRadio1DVK5Cmd);
@@ -928,11 +930,14 @@ if caughtup then
 
     IF DVKDelay   > 0 THEN Dec (DVKDelay);
 
+{ I have a problem doing this with the Arduino Keyer since it is the
+  sole authority on how long the CW has been stopped }
 
-//    IF CountsSinceLastCW <> 0 THEN Inc (CountsSinceLastCW);
-    tempint := ActiveKeyer.GetCountsSinceLastCW;
-    IF tempint <> 0 THEN ActiveKeyer.SetCountsSinceLastCW(tempint+1);
-
+    IF ActiveKeyer <> ArdKeyer THEN
+        BEGIN
+        tempint := ActiveKeyer.GetCountsSinceLastCW;
+        IF tempint <> 0 THEN ActiveKeyer.SetCountsSinceLastCW(tempint+1);
+        END;
 
     IF FootSwitchMode = Normal THEN ActiveKeyer.LetFootSwitchControlPTT;
 
@@ -1229,6 +1234,7 @@ BEGIN
 PROCEDURE K1EAInit;
 
     BEGIN
+    ArdKeyer := ArduinoKeyer.create;
     CPUKeyer := K1EAKeyer.create;
     WinKey := WinKeyer.create;
     YcccKey := YcccKeyer.create;

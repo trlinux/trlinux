@@ -715,7 +715,7 @@ FUNCTION ElaspedMinutes (StartTime: TimeRecord): INTEGER;
 
 VAR Hour, Minute, Second, Sec100: WORD;
     th,tm,ts,ts100,t0h,t0m,t0s,t0s100: longint;
-    
+
     BEGIN
     t0h := starttime.hour;
     t0m := starttime.minute;
@@ -1204,13 +1204,13 @@ PROCEDURE IncrementMonth (VAR DateString: Str20);
   be incremented. }
 
 VAR MonthString, YearString: Str20;
-    Year, xResult: INTEGER;
+    Year: INTEGER;
 
     BEGIN
     MonthString := UpperCase (BracketedString (DateString, '-', '-'));
 
     YearString := Copy (DateString, Length (DateString) - 1, 2);
-    Val (YearString, Year, xResult);
+    Val (YearString, Year);
 
     IF MonthString = 'JAN' THEN
         DateString := '1-FEB-' + YearString;
@@ -1267,13 +1267,13 @@ PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
   string is in the format dd-mon-yr.  It will handle month ends and
   increment the year correctly (including leap years). }
 
-VAR Day, Hour, Minute, Year, xResult: INTEGER;
+VAR Day, Hour, Minute, Year: INTEGER;
     MinuteString, HourString, DayString, MonthString, YearString: Str20;
 
 
     BEGIN
-    Val (PostcedingString (TimeString, ':'), Minute, xResult);
-    Val (PrecedingString  (TimeString, ':'), Hour,   xResult);
+    Val (PostcedingString (TimeString, ':'), Minute);
+    Val (PrecedingString  (TimeString, ':'), Hour);
 
     Inc (Minute);
 
@@ -1286,7 +1286,7 @@ VAR Day, Hour, Minute, Year, xResult: INTEGER;
             BEGIN
             Hour := 0;
 
-            Val (PrecedingString (DateString, '-'), Day, xResult);
+            Val (PrecedingString (DateString, '-'), Day);
             Inc (Day);
             Str (Day, DayString);
 
@@ -1311,7 +1311,7 @@ VAR Day, Hour, Minute, Year, xResult: INTEGER;
                 IF MonthString = 'FEB' THEN
                     BEGIN
                     YearString := Copy (DateString, Length (DateString) - 1, 2);
-                    Val (YearString, Year, xResult);
+                    Val (YearString, Year);
 
                     IF (Year MOD 4 = 0) AND (Year <> 0) THEN { Leap year }
                         BEGIN

@@ -296,16 +296,15 @@ PROCEDURE TimeStringToHourAndMinute (TimeString: Str20;  VAR Hour, Minute: WORD)
 { Works for either hh:mm or hhmm }
 
 VAR TempString: Str20;
-    xResult: INTEGER;
 
     BEGIN
     TempString := Copy (TimeString, 1, 2);
 
-    Val (TempString, Hour, xResult);
+    Val (TempString, Hour);
 
     TempString := Copy (TimeString, Length (TimeString) - 1, 2);
 
-    Val (TempString, Minute, xResult);
+    Val (TempString, Minute);
     END;
 
 
@@ -593,7 +592,6 @@ PROCEDURE TestUnixTimeConversionRoutines;
 VAR InputString: Str20;
     Year, Month, Day, Hour, Minute, Second: WORD;
     UnixDate: LONGINT;
-    xResult: INTEGER;
 
     BEGIN
     REPEAT
@@ -603,7 +601,7 @@ VAR InputString: Str20;
 
         IF StringIsAllNumbers (InputString) THEN
             BEGIN
-            Val (InputString, UnixDate, xResult);
+            Val (InputString, UnixDate);
 
             Unix2Norm (UnixDate, Year, Month, Day, Hour, Minute, Second);
 

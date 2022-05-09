@@ -358,6 +358,7 @@ TYPE
                     NoExchangeReceived,
                     CheckAndChapterOrQTHExchange,
                     ClassDomesticOrDXQTHExchange,
+                    CWTExchange,
                     KidsDayExchange,
                     NameAndDomesticOrDXQTHExchange,
                     NameQTHAndPossibleTenTenNumber,
@@ -5382,7 +5383,7 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
                 CarriageReturn:
                     BEGIN
                     IF BandMapCursorData = Nil then exit;
-                    IF (BandMapBand = BandMemory[InactiveRadio]) and 
+                    IF (BandMapBand = BandMemory[InactiveRadio]) and
                       (BandMapBand <> BandMemory[ActiveRadio]) THEN {KK1L: 6.73}
                         SetUpBandMapEntry (BandMapCursorData, InactiveRadio) {KK1L: 6.73 Added InactiveRadio}
                     ELSE

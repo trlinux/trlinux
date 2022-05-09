@@ -23,7 +23,79 @@ UNIT LogStuff;
 { This unit has a bunch of subroutines that are generic for the logging
   program.  They are stuck here because they can stand alone, or need
   very little VAR interfacing.  This is so they will be out of the way
-  and be common to all programs.                                      }
+  and be common to all programs.
+
+  Here are some paragraphs to remind myself how a QSO gets logged - written
+  in 2022 as I tried to remember how this beast works.
+
+  When a RETURN is pressed when there is something in the exchange window,
+  the function ParametersOkay will be called (from WindowEditor in logstubs2.pas).
+  ParametersOkay resisdes in TR.PAS of all places!  It looks at the ExchangeString
+  along with the call, band, mode and frequency and works on a record that will
+  have all of the QSO information (ContestExchange type).
+
+  The ParametersOkay function will look in the ExchangeString to see if a
+  corrected callsign appears there.
+
+  We seemm to have a global variable called ParameterOkayMode which has the
+  following settings: Standard, QSLButDoNotLog and QSLAndLog.  This shows
+  up as the config command QSL MODE which you can find in the Control-J menu.
+
+  Standard: Needs correc info to QSL and log
+  QSLButNoLog: Needs correct info to log, not to QSL
+  QSLAndLog: No syntax checking of exchange
+
+  It seems I added this back in 1995 or something.  I have no memory of this.
+
+  ParametersOkay takes setting up the DX location or prefix for the call into
+  the ContestExchange.
+
+  It then will rely on ProcessExchange to parse the exchange data from the
+  Exchange Window into the ContestExchagne based upon the ActiveExchange.
+  You can find that routine in this unit.
+
+  Finally, ParametersOkay will call a procedure to set ther proper QSOPoints.
+  This is done with CalculateQSOPoints which is here in this unit and uses
+  either the ActiveQSOPointMethod or the more generic QSOPoints globals.
+
+  If the ParametersOkay function is happy (returnning TRUE), then the
+  procedure LogContact in logsubs2 gets called.
+
+  LogContact will check to see if this is a dupe, determine if there are
+  any multiplier flags to set and generate the log string.
+
+  LogContact will call the MakeLogString function is found here in this unit.
+  It mostly relies on the Exchangeinformation flags to determine what fields
+  to look at in the ContestExchange and pull data out of.  If you are
+  not happy with what you see going into the editable window - then
+  this is where you need to go.
+
+  Next, LogContact will call PushLogStringIntoEditableLogAndLogPopedQSO
+  which pretty much describes what it done.
+
+  A new QSO will get stuffed into the bottom of the editable log window.
+  The .TMP text file is a copy of this window.  When a QSO pops off the
+  top, it will essentially move from the .TMP file to the .DAT file.
+
+  HOWEVER, it is actually more complicated than that.
+
+  PushLogStringintoEditableLogAndLogPopedQSO can be found in LOGSUBS2.
+
+  It will send the QSO off to the network if you are sending QSOs immediately.
+
+  It will then call the Procedure PutContactIntoLogFile which will look at
+  the log string and take care of formating the page for the people who
+  still like to print out their log pages.
+
+  It passes the log entry to PutLogEntryIntoSheet in logedit.pas which will
+  see if any multiplier flags need to be set without any regard to what is
+  in the editable window.  It will add the QSO to the dupe and multiplier
+  sheets.
+
+  FINALLY - the QSO gets added to the .DAT file using WriteLogEntry which is
+  here in this unit.
+
+}
 
 {$O+}
 {$V-}
@@ -999,10 +1071,18 @@ PROCEDURE QTHReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 VAR QTHString, PrefectureString: Str80;
 
     BEGIN
-    {KK1L: 6.70 removed because the QTH is part of the exchange. DUH!}
-    {IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN Exit;} {KK1L: 6.67 Fix for name truncated}
+    IF ActiveExchange = CWTExchange THEN
+        BEGIN
+        QTHString := Exchange.QTHString;
 
-    IF (ActiveExchange = RSTQTHExchange) OR (ActiveExchange = QSONumberDomesticOrDXQTHExchange) THEN
+        WHILE Length (QTHString) < 8 DO
+            QTHString := QTHString + ' ';
+        LogString := LogString + QTHString;
+        Exit;
+        END;
+
+    IF (ActiveExchange = RSTQTHExchange) OR
+       (ActiveExchange = QSONumberDomesticOrDXQTHExchange) THEN
         BEGIN
         IF LiteralDomesticQTH THEN
             QTHString := Exchange.QTHString + '                      '
@@ -1743,6 +1823,8 @@ PROCEDURE KeyStamp (Key: CHAR);
 
 PROCEDURE ParseExchange (Exchange: Str80; VAR FirstString, SecondString, ThirdString: Str20);
 
+{ Simply parses the exchange into three strings }
+
     BEGIN
     FirstString  := '';
     SecondString := '';
@@ -1903,38 +1985,67 @@ VAR TempString: Str80;
     END;
 
 
-FUNCTION ProcessNameAndNumberOrQthExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
+
+FUNCTION ProcessCWTExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
 
 VAR TempString: Str80;
-    ThirdSTring, NumberString: Str20;
-    xResult: INTEGER;
+    FirstString, ThirdSTring, PossibleNumberString: Str20;
+    Index: INTEGER;
 
     BEGIN
-    ProcessNameAndNumberOrQthExchange := False;
+    ProcessCWTExchange := False;
     IF Exchange = '' THEN Exit;
     TempString := Exchange;
     Exchange := '';
 
-    RXData.TenTenNum := -1;
+    { We use the QSO number field for the CWT Number }
+
+    RXData.NumberReceived := -1;
+    RXData.QTHString := '';  { Gets used for QTH or "CWA" }
+    RXData.Name := '';
+
+    { We typically have one string that contains some numbers.  Pull that part of the
+      exchange string out of exchange string. }
 
     WHILE TempString <> '' DO
          BEGIN
-         NumberString := RemoveFirstString (TempString);
+         FirstString := RemoveFirstString (TempString);
 
-         IF StringIsAllNumbers (NumberString) THEN
-             Val (NumberString, RXData.TenTenNum, xResult)
+         IF StringHasNumber (FirstString) THEN  { Found the number - need to uncut #s }
+             BEGIN
+             PossibleNumberString := FirstString;
+             FOR Index := 1 TO Length (PossibleNumberString) DO
+                 BEGIN
+                 IF PossibleNumberString [Index] = 'A' THEN PossibleNumberString [Index] := '1';
+                 IF PossibleNumberString [Index] = 'U' THEN PossibleNumberString [Index] := '2';
+                 IF PossibleNumberString [Index] = 'E' THEN PossibleNumberString [Index] := '5';
+                 IF PossibleNumberString [Index] = 'N' THEN PossibleNumberString [Index] := '9';
+                 IF PossibleNumberString [Index] = 'T' THEN PossibleNumberString [Index] := '0';
+                 END;
+
+             IF StringIsAllNumbers (PossibleNumberString) THEN
+                 Val (PossibleNumberString, RXData.NumberReceived)
+             ELSE
+                 Exchange := Exchange + FirstString;
+
+             END
          ELSE
-             Exchange := Exchange + NumberString + ' ';
+             Exchange := Exchange + FirstString + ' ';
          END;
+
+     { We have pulled out the member number (if there was one) Now process the rest of the
+      exchange string.   We assume that the name is always before the QTH }
+
     ParseExchange (Exchange, RXData.Name, RXData.QTHString, ThirdString);
-    ProcessNameAndNumberOrQthExchange := True;
+    ProcessCWTExchange := ((RXData.NumberReceived <> -1) OR (RXData.QTHString <> '')) AND (RXData.Name <> '');
     END;
+
+
 
 FUNCTION ProcessNameQTHAndPossibleTenTenNumberExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
 
 VAR TempString: Str80;
     ThirdSTring, NumberString: Str20;
-    xResult: INTEGER;
 
     BEGIN
     ProcessNameQTHAndPossibleTenTenNumberExchange := False;
@@ -1951,7 +2062,7 @@ VAR TempString: Str80;
          NumberString := RemoveFirstString (TempString);
 
          IF StringIsAllNumbers (NumberString) THEN
-             Val (NumberString, RXData.TenTenNum, xResult)
+             Val (NumberString, RXData.TenTenNum)
          ELSE
              Exchange := Exchange + NumberString + ' ';
          END;
@@ -2387,7 +2498,6 @@ FUNCTION ProcessQSONumberNameChapterAndQTHExchange (Exchange: Str80; VAR RXData:
   }
 
 VAR FirstString, SecondString, ThirdString, FourthString: Str20;
-    xResult: INTEGER;
 
     BEGIN
     ProcessQSONumberNameChapterAndQTHExchange := False;
@@ -2400,7 +2510,7 @@ VAR FirstString, SecondString, ThirdString, FourthString: Str20;
         BEGIN
         IF NOT (StringIsAllNumbers (ThirdString) OR (UpperCase (ThirdString) = 'AL')) THEN Exit;
 
-        Val (FirstString, RXData.NumberReceived, xResult);
+        Val (FirstString, RXData.NumberReceived);
 
         RXData.Name      := SecondString;
         RXData.Chapter   := UpperCase (ThirdString);
@@ -2413,7 +2523,7 @@ VAR FirstString, SecondString, ThirdString, FourthString: Str20;
         IF NOT StringIsAllNumbers (FourthString) THEN Exit;
         IF NOT (StringIsAllNumbers (SecondString) OR (UpperCase (SecondString) = 'AL')) THEN Exit;
 
-        Val (FourthString, RXData.NumberReceived, xResult);
+        Val (FourthString, RXData.NumberReceived);
 
         RXData.Name      := FirstString;
         RXData.Chapter   := UpperCase (SecondString);
@@ -2483,7 +2593,7 @@ FUNCTION ProcessQSONumberNameAndDomesticOrDXQTHExchange (Exchange: Str80; VAR RX
   changed.  }
 
 VAR TempString: Str20;
-    NumberEntries, xResult: INTEGER;
+    NumberEntries: INTEGER;
     DX: BOOLEAN;
     EntryList: EntryArray;
 
@@ -2515,21 +2625,21 @@ VAR TempString: Str20;
         BEGIN
         IF StringIsAllNumbers (EntryList [1]) THEN
             BEGIN
-            Val (EntryList [1], RXData.NumberReceived, xResult);
+            Val (EntryList [1], RXData.NumberReceived);
             RXData.Name := EntryList [2];
             IF NumberEntries >= 3 THEN RXData.QTHString := EntryList [3];
             END
         ELSE
             IF StringIsAllNumbers (EntryList [2]) THEN
                 BEGIN
-                Val (EntryList [2], RXData.NumberReceived, xResult);
+                Val (EntryList [2], RXData.NumberReceived);
                 RXData.Name := EntryList [1];
                 IF NumberEntries >= 3 THEN RXData.QTHString := EntryList [3];
                 END
             ELSE
                 IF StringIsAllNumbers (EntryList [3]) THEN
                     BEGIN
-                    Val (EntryList [3], RXData.NumberReceived, xResult);
+                    Val (EntryList [3], RXData.NumberReceived);
                     RXData.Name := EntryList [1];
                     RXData.QTHString := EntryList [2];
                     END
@@ -2545,21 +2655,21 @@ VAR TempString: Str20;
             BEGIN
             IF StringIsAllNumbers (EntryList [2]) THEN
                 BEGIN
-                Val (EntryList [2], RXData.NumberReceived, xResult);
+                Val (EntryList [2], RXData.NumberReceived);
                 RXData.Name := EntryList [3];
                 RXData.QTHString := EntryList [4];
                 END
             ELSE
                 IF StringIsAllNumbers (EntryList [3]) THEN
                     BEGIN
-                    Val (EntryList [3], RXData.NumberReceived, xResult);
+                    Val (EntryList [3], RXData.NumberReceived);
                     RXData.Name := EntryList [4];
                     RXData.QTHString := EntryList [2];
                     END
                 ELSE
                     IF StringIsAllNumbers (EntryList [1]) AND StringIsAllNumbers (EntryList [4]) THEN
                         BEGIN
-                        Val (EntryList [4], RXData.NumberReceived, xResult);
+                        Val (EntryList [4], RXData.NumberReceived);
                         RXData.Name := EntryList [2];
                         RXData.QTHString := EntryList [3];
                         END;
@@ -2572,7 +2682,7 @@ VAR TempString: Str20;
 
             IF StringIsAllNumbers (EntryList [NumberEntries - 2]) THEN
                 BEGIN
-                Val (EntryList [NumberEntries - 2], RXData.NumberReceived, xResult);
+                Val (EntryList [NumberEntries - 2], RXData.NumberReceived);
                 RXData.Name := EntryList [NumberEntries - 1];
                 RXData.QTHString := EntryList [NumberEntries];
                 END;
@@ -3855,7 +3965,7 @@ FUNCTION ProcessRSTQTHNameAndFistsNumberOrPowerExchange (Exchange: Str80; VAR RX
   the number has a W at the end of it.  RST is optional.  QTH is required
   even for DX.  Name can only be one word.  Spaces required for each entry. }
 
-VAR NumberEntries, Address, xResult: INTEGER;
+VAR NumberEntries, Address: INTEGER;
     DX: BOOLEAN;
     EntryList: EntryArray;
 
@@ -3916,7 +4026,7 @@ VAR NumberEntries, Address, xResult: INTEGER;
     IF NumberEntries <> 1 THEN Exit;
 
     IF StringIsAllNumbers (EntryList [1]) THEN { member number }
-        Val (EntryList [1], RXData.NumberReceived, xResult)
+        Val (EntryList [1], RXData.NumberReceived)
     ELSE
         RXData.Power := EntryList [1];
 
@@ -5424,32 +5534,38 @@ VAR LogString: Str80;
 
         {KK1L: 6.70 Sometimes there is just not a pretty way to do it!!}
 
-        IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN
-            BEGIN
-            IF QTH         THEN QTHReceivedStamp        (RXData, LogString);
-            IF Name        THEN NameReceivedStamp       (RXData, LogString);
-            IF QSONumber   THEN QSONumberReceivedStamp  (RXData, LogString);
-            IF Power       THEN PowerReceivedStamp      (RXData, LogString);
-            END
-        ELSE
-            BEGIN
-            IF Kids        THEN KidsReceivedStamp       (RXData, LogString);
-            IF Classs       THEN ClassReceivedStamp      (RXData, LogString);
-            IF QSONumber   THEN QSONumberReceivedStamp  (RXData, LogString);
-            IF PostalCode  THEN PostalCodeReceivedStamp (RXData, LogString);
-            IF RandomChars THEN RandomCharsSentAndReceivedStamp (RXData, LogString);
-            IF Power       THEN PowerReceivedStamp      (RXData, LogString);
-            IF Age         THEN AgeReceivedStamp        (RXData, LogString);
-            IF Name        THEN NameReceivedStamp       (RXData, LogString);
-            IF Chapter     THEN ChapterReceivedStamp    (RXData, LogString);
-            IF Precedence  THEN PrecedenceReceivedStamp (RXData, LogString);
-            IF Check       THEN CheckReceivedStamp      (RXData, LogString);
-            IF Zone        THEN ZoneReceivedStamp       (RXData, LogString);
-            IF TenTenNum   THEN TenTenNumReceivedStamp  (RXData, LogString);
-            IF QTH         THEN QTHReceivedStamp        (RXData, LogString);
-            END;
+        CASE ActiveExchange OF
+            RSTQTHNameAndFistsNumberOrPowerExchange:  { KK1L added this in 6.70 }
+                BEGIN
+                IF QTH         THEN QTHReceivedStamp        (RXData, LogString);
+                IF Name        THEN NameReceivedStamp       (RXData, LogString);
+                IF QSONumber   THEN QSONumberReceivedStamp  (RXData, LogString);
+                IF Power       THEN PowerReceivedStamp      (RXData, LogString);
+                END;
 
+            { N6TR decided to give in for the CWT }
+
+            ELSE
+                BEGIN
+                IF Kids        THEN KidsReceivedStamp       (RXData, LogString);
+                IF Classs      THEN ClassReceivedStamp      (RXData, LogString);
+                IF QSONumber   THEN QSONumberReceivedStamp  (RXData, LogString);
+                IF PostalCode  THEN PostalCodeReceivedStamp (RXData, LogString);
+                IF RandomChars THEN RandomCharsSentAndReceivedStamp (RXData, LogString);
+                IF Power       THEN PowerReceivedStamp      (RXData, LogString);
+                IF Age         THEN AgeReceivedStamp        (RXData, LogString);
+                IF Name        THEN NameReceivedStamp       (RXData, LogString);
+                IF Chapter     THEN ChapterReceivedStamp    (RXData, LogString);
+                IF Precedence  THEN PrecedenceReceivedStamp (RXData, LogString);
+                IF Check       THEN CheckReceivedStamp      (RXData, LogString);
+                IF Zone        THEN ZoneReceivedStamp       (RXData, LogString);
+                IF TenTenNum   THEN TenTenNumReceivedStamp  (RXData, LogString);
+                IF QTH         THEN QTHReceivedStamp        (RXData, LogString);
+                END;
+
+            END; { of case ActiveExchange }
         END;
+
     MultiplierStamp (RXData, LogString);
     QSOPointStamp   (RXData, LogString);
     MakeLogString := LogString;
@@ -5459,7 +5575,7 @@ VAR LogString: Str80;
 
 PROCEDURE CalculateQSOPoints (VAR RXData: ContestExchange);
 
-VAR MyZoneValue, RXDataZoneValue, xResult: INTEGER;
+VAR MyZoneValue, RXDataZoneValue: INTEGER;
     Distance: LONGINT;
     RXCty, TheirID, CountryID: CallString;
 
@@ -5961,8 +6077,8 @@ VAR MyZoneValue, RXDataZoneValue, xResult: INTEGER;
         IARUQSOPointMethod:
             IF RXData.DomesticQTH = '' THEN
                 BEGIN
-                Val (RXData.Zone, RXDataZoneValue, xResult);
-                Val (MyZone,      MyZoneValue,     xResult);
+                Val (RXData.Zone, RXDataZoneValue);
+                Val (MyZone,      MyZoneValue);
 
                 IF RXDataZoneValue = MyZoneValue THEN
                     RXData.QSOPoints := 1
@@ -6482,6 +6598,9 @@ FUNCTION ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BO
         KidsDayExchange:
             ProcessExchange := ProcessKidsExchange (ExchangeString, RData);
 
+        CWTExchange:
+            ProcessExchange := ProcessCWTExchange (ExchangeString, RData);
+
         NameQTHAndPossibleTenTenNumber:
             ProcessExchange := ProcessNameQTHAndPossibleTenTenNumberExchange (ExchangeString, RData);
 
@@ -6515,9 +6634,8 @@ FUNCTION ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BO
         RSTAndContinentExchange:
             ProcessExchange := ProcessRSTAndContinentExchange (ExchangeString, RData);
 
-       RSTAndDomesticQTHOrZoneExchange:
+        RSTAndDomesticQTHOrZoneExchange:
             ProcessExchange := ProcessRSTAndDomesticQTHOrZoneExchange (ExchangeString, RData);
-
 
         RSTAndGridExchange:
             ProcessExchange := ProcessRSTAndGridSquareExchange (ExchangeString, RData);

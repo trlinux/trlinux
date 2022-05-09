@@ -434,12 +434,14 @@ VAR FileWrite: TEXT;
     rig2.setpolltime(Rig2FreqPollRate);
     rig1.setcwreverse(Radio1CwReverse);
     rig2.setcwreverse(Radio2CwReverse);
+
     if scorerpt.enabled then
     begin
        scorerpt.setcall(MyCall);
        scorerpt.setup;
        addtimer(@scorerpt.timer);
     end;
+
     ActiveKeyer.debug(keyerdebug);
     InitializeKeyer;
 
@@ -695,7 +697,7 @@ VAR FileString: STRING;
 
 PROCEDURE LookForCommands;
 
-VAR Result, ParameterCount: INTEGER;
+VAR ParameterCount: INTEGER;
     LastPushedLogName: Str20; {KK1L: 6.71}
     TempString: Str40;
 
@@ -703,6 +705,7 @@ VAR Result, ParameterCount: INTEGER;
     PacketFile := False;
 
 //    FOR ParameterCount := 1 TO ParamCount DO
+
     ParameterCount := 0;
     while ((ParameterCount + 1) <= ParamCount) do
         BEGIN
@@ -814,7 +817,7 @@ VAR Result, ParameterCount: INTEGER;
             IF StringIsAllNumbers (ParamStr (ParameterCount + 2)) THEN
                 BEGIN
                 TempString := ParamStr (ParameterCount + 2);
-                Val (TempString, PacketInputFileDelay, Result);
+                Val (TempString, PacketInputFileDelay);
                 END;
             END;
 

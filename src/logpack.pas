@@ -216,7 +216,6 @@ FUNCTION LookForQSXFrequency (PacketFrequency: LONGINT; Notes: Str40): LONGINT;
 { Returns zero if nothing found. }
 
 VAR QSXFreq: REAL;
-    xResult: INTEGER;
     BaseFreq: LONGINT;
     FrequencyString, TempString: Str80;
 
@@ -243,7 +242,7 @@ VAR QSXFreq: REAL;
             BEGIN
             IF StringHas (FrequencyString, '.') THEN
                 BEGIN
-                Val (FrequencyString, QSXFreq, xResult);
+                Val (FrequencyString, QSXFreq);
 
                 { Convert MHz to Hz }
 
@@ -258,7 +257,7 @@ VAR QSXFreq: REAL;
 
             IF Length (FrequencyString) >= 4 THEN  { Entered complete kHz }
                 BEGIN
-                Val (FrequencyString, QSXFreq, xResult);
+                Val (FrequencyString, QSXFreq);
 
                 { Convert KHz to Hz }
 
@@ -268,7 +267,7 @@ VAR QSXFreq: REAL;
 
             IF Length (FrequencyString) = 3 THEN   { Entered kHz w/o MHz }
                 BEGIN
-                Val (FrequencyString, QSXFreq, xResult);
+                Val (FrequencyString, QSXFreq);
 
                 { Compute MHz part of PacketFrequency }
 
@@ -290,7 +289,7 @@ VAR QSXFreq: REAL;
 
         IF Length (FrequencyString) <= 2 THEN   { Entered kHz offset }
             BEGIN
-            Val (FrequencyString, QSXFreq, xResult);
+            Val (FrequencyString, QSXFreq);
 
             { Add them together }
 
@@ -307,7 +306,7 @@ VAR QSXFreq: REAL;
 
         IF Length (FrequencyString) <= 2 THEN   { Entered kHz offset }
             BEGIN
-            Val (FrequencyString, QSXFreq, xResult);
+            Val (FrequencyString, QSXFreq);
 
             { Add them together }
 
@@ -819,7 +818,7 @@ VAR TempString: STRING;
     else
        PacketMessage := copy(packetmessage,length(packetmessage)
           +length(tempstring)-254,255-length(tempstring))+tempstring;
-       
+
 
     END;
 

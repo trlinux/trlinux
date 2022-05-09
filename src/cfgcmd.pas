@@ -85,8 +85,12 @@ FUNCTION ProcessConfigInstructions1 (ID: Str80; CMD: STRING): BOOLEAN;
 VAR xResult, Speed, TempValue: INTEGER;
     TempLongInt: LONGINT;
     tempstring: string;
+    tempport: keyerportx;
 
     BEGIN
+    ID := UpperCase (ID);
+    WriteLn (ID);
+
     ProcessConfigInstructions1 := False;
 
     IF ID = 'ALL CW MESSAGES CHAINABLE' THEN
@@ -107,6 +111,31 @@ VAR xResult, Speed, TempValue: INTEGER;
         BEGIN
         AlwaysCallBlindCQ := Upcase (CMD [1]) = 'T';
         ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'ARDKEYER PORT' THEN
+        BEGIN
+        WriteLn ('At ARDKEYER PORT in cfgcmd.pas');
+        tempport := nil;
+
+        IF StringHas(UpperCase(CMD),'SERIAL') THEN
+           BEGIN
+           tempstring := wordafter(CMD,'SERIAL');
+           tempport := findportx(tempstring);
+
+           if tempport = nil then
+               begin
+               tempport := serialportx.create(tempstring);
+               addport(tempport);
+               end;
+           END;
+
+        ArdKeyer.setPort(serialportx(tempport));
+        ActiveKeyer := ArdKeyer;
+        ProcessConfigInstructions1 :=
+           (tempport <> nil) OR (CMD = 'NONE');
+
         Exit;
         END;
 
@@ -672,7 +701,7 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'CURTIS KEYER MODE' THEN
         BEGIN
         case Char(uppercase(cmd)[1]) of
-        'A': 
+        'A':
            begin
               CPUKeyer.SetCurtisMode(ModeA);
               WinKey.SetCurtisMode(ModeA);
@@ -1188,7 +1217,7 @@ VAR xResult, Speed, TempValue: INTEGER;
         END;
     END;
 
-
+
 
 FUNCTION ProcessConfigInstructions2 (ID: Str80; CMD: STRING): BOOLEAN;
 
@@ -1654,7 +1683,7 @@ VAR xResult,tempint: INTEGER;
             ProcessConfigInstructions2 := true;
             exit;
         end;
-        
+
         ProcessConfigInstructions2 := false;
         Exit;
         END;
@@ -1727,7 +1756,7 @@ VAR xResult,tempint: INTEGER;
                     tempport := serialportx.create(tempstring);
                     addport(tempport);
                  end;
-              if StringHas (UpperCase(CMD), 'INVERT') then 
+              if StringHas (UpperCase(CMD), 'INVERT') then
                  serialportx(tempport).invert(true);
               tempport.key(false);
            END
@@ -1764,7 +1793,7 @@ VAR xResult,tempint: INTEGER;
                     tempport := serialportx.create(tempstring);
                     addport(tempport);
                  end;
-              if StringHas (UpperCase(CMD), 'INVERT') then 
+              if StringHas (UpperCase(CMD), 'INVERT') then
                  serialportx(tempport).invert(true);
               tempport.key(false);
            END
@@ -1799,7 +1828,7 @@ VAR xResult,tempint: INTEGER;
                     tempport := serialportx.create(tempstring);
                     addport(tempport);
                  end;
-              if StringHas (UpperCase(CMD), 'INVERT') then 
+              if StringHas (UpperCase(CMD), 'INVERT') then
                  serialportx(tempport).invert(true);
               tempport.key(false);
            END
@@ -3489,7 +3518,7 @@ VAR xResult: INTEGER;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
-   
+
 
     IF ID = 'SCP COUNTRY STRING' THEN
         BEGIN
