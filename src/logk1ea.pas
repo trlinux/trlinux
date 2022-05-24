@@ -26,7 +26,8 @@ UNIT LogK1EA;
 INTERFACE
 
 USES LogGrid, Dos, trCrt, SlowTree, Tree, communication, beep, foot, radio,
-   keyerk1ea,keyerwin,keyers,so2r,keyeryccc,footyccc,rig,scorereporter;
+     keyerard, keyerk1ea,keyerwin,keyers,so2r,keyeryccc,footyccc,footArd,rig,
+     scorereporter;
 
 CONST
     RadioCommandBufferSize = 100;
@@ -81,7 +82,7 @@ C 17     Base+2    3     Input/Output - Output CW
 
 TYPE
     k1eatimer = class
-    public   
+    public
        procedure timer(caughtup: boolean);
     end;
 
@@ -154,6 +155,7 @@ VAR ActiveDVKPort:     parallelportx;
     ReforkCount: INTEGER;
     ReforkDelay: INTEGER;
 
+    ArdKeyer:          ArduinoKeyer;
     CPUKeyer:          K1EAKeyer;
     WinKey:            WinKeyer;
     YcccKey:           YcccKeyer;
@@ -172,7 +174,8 @@ VAR ActiveDVKPort:     parallelportx;
     EnableSixDVKMessages:  BOOLEAN; {KK1L: 6.72}
 
     FootSwitchDebug:   BOOLEAN;
-    FootSwitchMode:    FootSwitchModeType;
+    FootSwitchMode:         FootSwitchModeType;
+    PreviousFootSwitchMode: FootSwitchModeType;
 
     IcomCommandPause:    WORD;
     IcomRetries: INTEGER; {KK1L: 6.72}
@@ -235,7 +238,9 @@ VAR ActiveDVKPort:     parallelportx;
     Tone: Beeper;
     Footsw: FootSwitchx;
     footparallel: FootSwitchx;
-    footso2r: FootSwitchx;
+
+    footso2rArd: FootSwitchx;
+    footso2ryccc: FootSwitchx;
 
     Radio1ReceiverAddress: BYTE;
     Radio2ReceiverAddress: BYTE;
@@ -463,7 +468,7 @@ VAR Image: BYTE;
         IF Radio1BandOutputPort <> nil THEN
             Radio1BandOutputPort.writedata($e1,Image);
         END
-       
+
     ELSE
         BEGIN
         IF Band = RadioTwoBandOutputStatus THEN Exit;
@@ -520,7 +525,7 @@ VAR Image: BYTE;
            if activeradio = radiotwo then
               rig2.directcommand(DVKRadio2DVK4Cmd);
            end;
-       
+
         5: begin
            if activeradio = radioone then
               rig1.directcommand(DVKRadio1DVK5Cmd);
@@ -876,7 +881,7 @@ PROCEDURE SetDVKDelay (Delay: INTEGER);
     END;
 
 
-procedure k1eatimer.timer(caughtup: boolean);
+procedure k1eatimer.timer (caughtup: boolean);
 
 { Welcome to the heart beat of the TR Logging Program.  This interrupt
   will occur every 1.68 milliseconds (every 3.36 milliseconds if running
@@ -906,79 +911,89 @@ VAR TempChar:   CHAR;
     TempByte:   BYTE;
     tempint: integer;
 
- BEGIN
- caughtup := true;
+    BEGIN
+    caughtup := true;   { this seems to make passing the parameter useless }
 
     { Check multi input port real quick - we check it again later. }
-if caughtup then
-//    IF DoingMulti AND ActiveMultiPort.CharReady THEN
-    while DoingMulti AND ActiveMultiPort.CharReady do
-        BEGIN
-        TempByte := Ord(ActiveMultiPort.ReadChar);
-        MultiReceiveCharBuffer.AddEntry (TempByte);
-        END;
+
+    IF caughtup THEN
+        WHILE DoingMulti AND ActiveMultiPort.CharReady DO
+            BEGIN
+            TempByte := Ord (ActiveMultiPort.ReadChar);
+            MultiReceiveCharBuffer.AddEntry (TempByte);
+            END;
 
     { Decrement or increment various counts or timers }
 
     IF DelayCount > 0 THEN Dec (DelayCount);
-
     IF BumpCount > 0 THEN Dec (BumpCount);
-
     IF ReforkCount > 0 THEN Dec (ReforkCount);
-
     IF DVKDelay   > 0 THEN Dec (DVKDelay);
 
+    { I have a problem doing this with the Arduino Keyer since it is the
+      sole authority on how long the CW has been stopped }
 
-//    IF CountsSinceLastCW <> 0 THEN Inc (CountsSinceLastCW);
-    tempint := ActiveKeyer.GetCountsSinceLastCW;
-    IF tempint <> 0 THEN ActiveKeyer.SetCountsSinceLastCW(tempint+1);
+    IF ActiveKeyer <> ArdKeyer THEN
+        BEGIN
+        tempint := ActiveKeyer.GetCountsSinceLastCW;
+        IF tempint <> 0 THEN ActiveKeyer.SetCountsSinceLastCW(tempint+1);
+        END;
 
+    { I am not sure I like sending this every millisecond? I am not even sure
+      this ever gets called in the case of the Arduino or YCCC keyer }
 
-    IF FootSwitchMode = Normal THEN ActiveKeyer.LetFootSwitchControlPTT;
+   IF FootSwitchMode <> PreviousFootSwitchMode THEN
+       BEGIN
+       IF FootSwitchMode = Normal THEN
+           ActiveKeyer.LetFootSwitchControlPTT  { This does nothing for YCCC }
+       ELSE
+           IF ActiveKeyer = ArdKeyer THEN
+               ArdKeyer.ClearFootSwitchControlPTT;
 
+       PreviousFootSwitchMode := FootSwitchMode;
+       END;
 
     { Check the Beep count and status. }
-if caughtup then Tone.Timer;
+    if caughtup then Tone.Timer;
 
     { First we check the keyer status }
-if caughtup then ActiveKeyer.Timer;
+    if caughtup then ActiveKeyer.Timer;
 
-if caughtup then Footsw.timer;
+    if caughtup then Footsw.timer;
 
     { Next we check the Packet Port }
 
-if caughtup then
-    IF DoingPacket THEN
-        BEGIN
-          while ActivePacketPort.CharReady do
+    IF caughtup THEN
+        IF DoingPacket THEN
             BEGIN
-            TempChar := ActivePacketPort.ReadChar;
-//            PacketReceiveCharBuffer.AddEntry (Ord (TempChar) AND $7F);
-// Try to get xterm packet port to work better
-            PacketReceiveCharBuffer.AddEntry (Ord (TempChar));
-            IF (TempChar = CarriageReturn) AND PacketAddLF THEN
-                PacketReceiveCharBuffer.AddEntry (Ord (LineFeed));
-            END;
-
-        IF PacketOutputDelay = 0 THEN
-            BEGIN
-            IF PacketSendCharBuffer.GetNextByte (TempByte) THEN
+            WHILE ActivePacketPort.CharReady DO
                 BEGIN
-                PacketSendChar (ActivePacketPort, Chr (TempByte));
-                PacketOutputDelay := 5;
+                TempChar := ActivePacketPort.ReadChar;
+                // PacketReceiveCharBuffer.AddEntry (Ord (TempChar) AND $7F);
+                // Try to get xterm packet port to work better
+                PacketReceiveCharBuffer.AddEntry (Ord (TempChar));
+                IF (TempChar = CarriageReturn) AND PacketAddLF THEN
+                    PacketReceiveCharBuffer.AddEntry (Ord (LineFeed));
                 END;
-            END
-        ELSE
-            Dec (PacketOutputDelay);
 
-        END;
+            IF PacketOutputDelay = 0 THEN
+                BEGIN
+                IF PacketSendCharBuffer.GetNextByte (TempByte) THEN
+                    BEGIN
+                    PacketSendChar (ActivePacketPort, Chr (TempByte));
+                    PacketOutputDelay := 5;
+                    END;
+                END
+            ELSE
+               Dec (PacketOutputDelay);
+            END;
 
     { Check the rotator control port }
 
-if caughtup then
-    IF DoingRotator THEN
-        IF RotatorSendCharBuffer.GetNextByte (TempByte) THEN
-            SendChar (ActiveRotatorPort, Chr (TempByte));
+    IF caughtup THEN
+        IF DoingRotator THEN
+            IF RotatorSendCharBuffer.GetNextByte (TempByte) THEN
+                SendChar (ActiveRotatorPort, Chr (TempByte));
 
     { Now we check the RTTY port }
 
@@ -1003,125 +1018,119 @@ if caughtup then
 
     { Now we check the multi port and modem ports }
 
-if caughtup then
-    IF DoingMulti AND NOT DoingModem THEN  { Old routine - not touched }
-        BEGIN
-        IF MultiCharacterSentDelayCount = 0 THEN
+    IF caughtup THEN
+        IF DoingMulti AND NOT DoingModem THEN  { Old routine - not touched }
             BEGIN
-//            IF MultiSendCharBuffer.GetNextByte (TempByte) THEN
-            while MultiSendCharBuffer.GetNextByte (TempByte) do
-                ActiveMultiPort.putchar(Char(TempByte));
-
-            MultiCharacterSentDelayCount := MultiDelayCount;
-            END
-        ELSE
-            Dec (MultiCharacterSentDelayCount);
-
-//        IF ActiveMultiPort.CharReady THEN
-        while ActiveMultiPort.CharReady do
-            BEGIN
-            TempByte := Ord(ActiveMultiPort.ReadChar);
-            MultiReceiveCharBuffer.AddEntry (TempByte);
-            END;
-        END
-
-    ELSE
-        IF DoingMulti AND DoingModem THEN  { Doing both }
-            BEGIN
-
-            { Characters coming in on multi port get put into buffer }
-
-//            IF ActiveMultiPort.CharReady THEN
-            while ActiveMultiPort.CharReady do
-                BEGIN
-                TempByte := Ord(ActiveMultiPort.readchar);
-                MultiReceiveCharBuffer.AddEntry (TempByte);
-                END;
-
-            { Characters that are in the send character buffer get sent
-              to the MODEM }
-
             IF MultiCharacterSentDelayCount = 0 THEN
                 BEGIN
-                IF MultiSendCharBuffer.GetNextByte (TempByte) THEN
-                    ActiveModemPort.putchar(Char(TempByte));
+                WHILE MultiSendCharBuffer.GetNextByte (TempByte) DO
+                    ActiveMultiPort.putchar(Char(TempByte));
 
                 MultiCharacterSentDelayCount := MultiDelayCount;
                 END
             ELSE
                 Dec (MultiCharacterSentDelayCount);
 
-            { Characters from MODEM get sent out to the network - no buffer }
-
-            IF ActiveModemPort.CharReady THEN
+            WHILE ActiveMultiPort.CharReady DO
                 BEGIN
-                TempByte := Ord(ActiveModemPort.ReadChar);
-                ActiveModemPort.PutChar(Char(TempByte));
+                TempByte := Ord(ActiveMultiPort.ReadChar);
+                MultiReceiveCharBuffer.AddEntry (TempByte);
                 END;
-
             END
         ELSE
-            IF DoingModem THEN  { Not doing Multi }
+            IF DoingMulti AND DoingModem THEN  { Doing both }
                 BEGIN
 
-                { Characters from modem port get put into multi RX buffer }
+                { Characters coming in on multi port get put into buffer }
+
+                WHILE ActiveMultiPort.CharReady DO
+                    BEGIN
+                    TempByte := Ord(ActiveMultiPort.readchar);
+                    MultiReceiveCharBuffer.AddEntry (TempByte);
+                    END;
+
+                { Characters that are in the send character buffer get sent
+                  to the MODEM }
+
+                IF MultiCharacterSentDelayCount = 0 THEN
+                    BEGIN
+                    IF MultiSendCharBuffer.GetNextByte (TempByte) THEN
+                        ActiveModemPort.putchar(Char(TempByte));
+
+                    MultiCharacterSentDelayCount := MultiDelayCount;
+                    END
+                ELSE
+                    Dec (MultiCharacterSentDelayCount);
+
+                { Characters from MODEM get sent out to the network - no buffer }
 
                 IF ActiveModemPort.CharReady THEN
                     BEGIN
                     TempByte := Ord(ActiveModemPort.ReadChar);
-                    MultiReceiveCharBuffer.AddEntry (TempByte);
+                    ActiveModemPort.PutChar(Char(TempByte));
                     END;
 
-                { Characters that are in the multi send character buffer get
-                  sent to the MODEM }
-
-                IF ModemCharacterSentDelayCount = 0 THEN
+                END
+            ELSE
+                IF DoingModem THEN  { Not doing Multi }
                     BEGIN
-                    IF MultiSendCharBuffer.GetNextByte (TempByte) THEN
-                        ActiveModemPort.PutChar(Char(TempByte));
 
-                    ModemCharacterSentDelayCount := ModemDelayCount;
-                    END
-                ELSE
-                    Dec (ModemCharacterSentDelayCount);
+                    { Characters from modem port get put into multi RX buffer }
 
-                END;
+                    IF ActiveModemPort.CharReady THEN
+                        BEGIN
+                        TempByte := Ord(ActiveModemPort.ReadChar);
+                        MultiReceiveCharBuffer.AddEntry (TempByte);
+                        END;
+
+                    { Characters that are in the multi send character buffer get
+                      sent to the MODEM }
+
+                    IF ModemCharacterSentDelayCount = 0 THEN
+                        BEGIN
+                        IF MultiSendCharBuffer.GetNextByte (TempByte) THEN
+                            ActiveModemPort.PutChar(Char(TempByte));
+
+                        ModemCharacterSentDelayCount := ModemDelayCount;
+                        END
+                    ELSE
+                        Dec (ModemCharacterSentDelayCount);
+
+                    END;
 
     { Now we check for DVK timeout }
 
-if caughtup then
-    IF DoingDVK AND (DVKTimeout > 0) THEN
-        BEGIN
-        Dec (DVKTimeOut);
+    IF caughtup THEN
+        IF DoingDVK AND (DVKTimeout > 0) THEN
+            BEGIN
+            Dec (DVKTimeOut);
 
-        IF (DVKTimeOut = 0) and (ActiveDVKPort <> nil) THEN
-           if (ActiveDVKPort.devname = 'yccc') then
-           begin
-              yccckey.setaux(3,0);
-              yccckey.setaux(4,0);
-           end else
-              IF (Radio1BandOutputPort <> ActiveDVKPort) AND
-                  (Radio2BandOutputPort <> ActiveDVKPort) THEN
-                  ActiveDVKPort.writedata($7f,$00)
-              else
-                  ActiveDVKPort.writedata($7e,$00);
-        END;
+            IF (DVKTimeOut = 0) and (ActiveDVKPort <> nil) THEN
+                IF (ActiveDVKPort.devname = 'yccc') THEN
+                    BEGIN
+                    yccckey.setaux(3,0);
+                    yccckey.setaux(4,0);
+                    END
+                ELSE
+                    IF (Radio1BandOutputPort <> ActiveDVKPort) AND
+                       (Radio2BandOutputPort <> ActiveDVKPort) THEN
+                        ActiveDVKPort.writedata($7f,$00)
+                   ELSE
+                        ActiveDVKPort.writedata($7e,$00);
+            END;
 
-if caughtup then
-    begin
-       if ReforkCount = 0 then
-       begin
-          ReforkCount := ReforkDelay;
-          if (ActivePacketPort <> Nil) then ActivePacketPort.refork;
-          if (ActiveMultiPort <> Nil) then ActiveMultiPort.refork;
-          if radio1type = RIGCTL then radio1controlport.refork;
-          if radio2type = RIGCTL then radio2controlport.refork;
-          if scorerpt.enabled then scorerpt.refork;
-       end;
-    end;
+    IF caughtup THEN
+        IF ReforkCount = 0 THEN
+            BEGIN
+            ReforkCount := ReforkDelay;
+            IF (ActivePacketPort <> Nil) THEN ActivePacketPort.refork;
+            IF (ActiveMultiPort <> Nil) THEN ActiveMultiPort.refork;
+            IF radio1type = RIGCTL THEN radio1controlport.refork;
+            IF radio2type = RIGCTL THEN radio2controlport.refork;
+            IF scorerpt.enabled THEN scorerpt.refork;
+            END;
 
     IF RitEnable AND (ShiftKeyEnable <> None) AND (BumpCount = 0) THEN
-//    IF RitEnable AND ShiftKeyEnable THEN
         BEGIN
         IF CQRITEnabled THEN
             BEGIN
@@ -1153,6 +1162,8 @@ if caughtup then
                 END;
         END;
     END;
+
+
 
 PROCEDURE TimerInit;
 BEGIN
@@ -1228,23 +1239,35 @@ BEGIN
 
 PROCEDURE K1EAInit;
 
+{ Is run at the end of this unit during startup }
+
     BEGIN
+    ArdKeyer := ArduinoKeyer.create;
     CPUKeyer := K1EAKeyer.create;
     WinKey := WinKeyer.create;
     YcccKey := YcccKeyer.create;
+
     so2rbox := so2rinterface(YcccKey);
     scorerpt := scorereport.create;
+
     Footparallel := FootSwitchx.create;
-    Footso2r := FootSwitchYcccx.create(so2rbox);
+    Footso2rArd  := FootSwitchArdx.create (so2rbox);
+    Footso2ryccc := FootSwitchYcccx.create(so2rbox);
+
     Footsw := Footparallel;
     Tone := Beeper.create;
+
     CPUKeyer.SetBeeper(Tone);
     CPUKeyer.SetFootSwitch(Footsw);
     WinKey.SetFootSwitch(Footsw);
+
+    { Default unless config commands change it }
+
     ActiveKeyer := CPUKeyer;
 
-    RITEnable                := True;
-    CQRITEnabled              := True;
+    RITEnable         := True;
+    CQRITEnabled      := True;
+
     ActiveMultiPort   := nil;
     ActivePacketPort  := nil;
     ActiveRotatorPort := nil;
@@ -1280,7 +1303,6 @@ PROCEDURE K1EAInit;
 
     RadioDebugMode           := False;
 
-
     RotatorSendCharBuffer.GoAway;
 
     RTTYReceiveCharBuffer.GoAway;
@@ -1288,10 +1310,7 @@ PROCEDURE K1EAInit;
 
     RTTYCharacterSentDelayCount := 0;
 
-
     TalkDebugMode            := False;
-
-
     END;
 
 PROCEDURE CloseDebug;
@@ -1377,4 +1396,5 @@ VAR Ticks: LONGINT;
     addtimer(@k1eatimerx.timer);
     DVKControlKeyRecord := true;
 
+    PreviousFootSwitchMode := SwapRadio;  { pretty safe }
     END.

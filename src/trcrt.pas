@@ -58,7 +58,7 @@ Var
   OutputRedir, InputRedir : boolean; { is the output/input being redirected (not a TTY) }
 {$ifdef debugcrt}
   DebugFile : Text;
-{$endif}   
+{$endif}
 {*****************************************************************************
                     Some Handy Functions Not in the System.PP
 *****************************************************************************}
@@ -954,7 +954,7 @@ Begin
                'C' : PushExt(77);
                'D' : PushExt(75);
                'P' : PushExt(59);
-               'Q' : PushExt(60); 
+               'Q' : PushExt(60);
                'R' : PushExt(61);
                'S' : PushExt(62);
               end;
@@ -1160,7 +1160,7 @@ Begin
             end;
             if ch <>'~'then state := 255;
           end;
- 
+
        32 : begin {Esc[6}
             case ch of
             '~' : pushext(81);
@@ -1174,7 +1174,7 @@ Begin
             end;
             if ch <>'~'then state := 255;
           end;
-  
+
       255 : ;
         end;
         if State<>0 then
@@ -1241,12 +1241,11 @@ var
   function AnsiPara(var hstr:string):byte;
   var
     k,j  : longint;
-    code : word;
   begin
     j:=pos(';',hstr);
     if j=0 then
      j:=length(hstr);
-    val(copy(hstr,3,j-3),k,code);
+    val(copy(hstr,3,j-3),k);
     Delete(hstr,3,j-2);
     if k=0 then
      k:=1;
@@ -1575,13 +1574,13 @@ End;
  {$endif}
 {$endif}
 
-// ioctl might fail e.g. in putty. A redirect check is not enough, 
+// ioctl might fail e.g. in putty. A redirect check is not enough,
 // needs check for physical console too.
 
 Procedure Sound(Hz: Word);
 begin
 {$ifdef havekiocsound}
-  if (not OutputRedir) and (hz>0) then 
+  if (not OutputRedir) and (hz>0) then
     fpIoctl(TextRec(Output).Handle, KIOCSOUND, Pointer(1193180 div Hz));
 {$endif}
 end;
@@ -1757,7 +1756,7 @@ Initialization
 {$ifdef debugcrt}
   Assign(DebugFile,'debug.txt');
   ReWrite(DebugFile);
-{$endif}  
+{$endif}
 { Redirect the standard output }
   assigncrt(Output);
   Rewrite(Output);
@@ -1804,7 +1803,7 @@ Initialization
 Finalization
 {$ifdef debugcrt}
   Close(DebugFile);
-{$endif}  
+{$endif}
   ttyFlushOutput;
   if not OutputRedir then
     SetRawMode(False);

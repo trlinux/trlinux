@@ -97,6 +97,7 @@ TYPE ContestType = (UnknownContest,
                     SAC,
                     SA,
                     SAWW,
+                    SevenQP,
                     Russian,
                     SalmonRun, {KK1L: 6.71}
                     SPDX,
@@ -454,6 +455,7 @@ FUNCTION DetermineContest (Name: Str80): ContestType;
     DetermineContest := UnknownContest;
     Name := UpperCase (Name);
 
+    IF Name = '7QP'           THEN DetermineContest := SevenQP;
     IF Name = 'ALL ASIAN'     THEN DetermineContest := AllAsian;
     IF Name = 'ALL JA'        THEN DetermineContest := AllJA;
     IF Name = 'AP SPRINT'     THEN DetermineContest := APSprint;
@@ -672,6 +674,7 @@ PROCEDURE CalculateAppropriateTotalsForThisContest (Contest: ContestType;
         SA:        IF NOT CalculateTotals (False, False,  True, False) THEN Exit;
         SAWW:      IF NOT CalculateTotals (False, False,  True, False) THEN Exit;
         SalmonRun: IF NOT CalculateTotals ( True, False, False, False) THEN Exit; {KK1L: 6.71}
+        SevenQP:   IF NOT CalculateTotals ( True, False, False, False) THEN Exit; {KK1L: 6.71}
         SPDX:      IF NOT CalculateTotals ( True, False, False, False) THEN Exit;
         Sprint:    IF NOT CalculateTotals ( True,  True, False, False) THEN Exit;
         SS:        IF NOT CalculateTotals ( True, False, False, False) THEN Exit;
@@ -801,7 +804,7 @@ VAR Directory, CityString, AddressString, NameString, TempString: Str80;
         WriteLn (SummaryWrite);
         END;
 
-    
+
     Directory := FindDirectory ('ADDRESS.DAT');
 
     IF Directory = '' THEN
@@ -831,7 +834,7 @@ VAR Directory, CityString, AddressString, NameString, TempString: Str80;
 
            Close (FileRead);
         END;
-       
+
     IF NOT ReadAddress THEN
         BEGIN
         NameString := GetResponse ('Enter your full name : ');

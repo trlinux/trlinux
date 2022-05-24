@@ -25,7 +25,23 @@ PROGRAM ContestLoggingProgram;
 {$linklib gcc}
 {$V-}
 
-{  To make TRTTY, change TREE.PAS so that RTY shows up between CW and SSB.
+{  CHANGE LOG
+
+ - Fixed Paddle CW Speed so that zero will track the Computer Speed (keyerard + Ardunio)
+ - Fixed the PTT Hold time for Paddle Sent CW (most in Ardunio)
+ - Fixed not iniitializing the serial port speed for the Arduino (keyerard.pas)
+
+09-May-2022 - Version 0.52ish (N6TR developmental fork)
+
+ - Started with 0.49 I think from W9CF
+ - Added keyerard
+ - Some minor fixes to make Alt-Q work with keyerard
+ - Added CWT contest - might need some cleanup on headers of printable log page
+ - Removed unused xResults and got to zero "notes" during compile
+ - Added a lengthy explaining of how a QSO gets logged to the start of LOGSUBS2.PAS
+
+
+   To make TRTTY, change TREE.PAS so that RTY shows up between CW and SSB.
    Change the mode change command.
    Change SendCrypticCW.
    UpdateTotals.
@@ -3786,7 +3802,7 @@ var oa4,na4,oa8,na8,oa11,na11:  PSigActionRec;
     Trace           := False;
 
 //    CheckForName;
-    
+
 
     GetCBreak (ControlBreakStatus);
     SetCBreak (False);

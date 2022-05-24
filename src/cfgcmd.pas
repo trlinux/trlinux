@@ -85,8 +85,12 @@ FUNCTION ProcessConfigInstructions1 (ID: Str80; CMD: STRING): BOOLEAN;
 VAR xResult, Speed, TempValue: INTEGER;
     TempLongInt: LONGINT;
     tempstring: string;
+    tempport: keyerportx;
 
     BEGIN
+    ID := UpperCase (ID);
+    WriteLn (ID);
+
     ProcessConfigInstructions1 := False;
 
     IF ID = 'ALL CW MESSAGES CHAINABLE' THEN
@@ -107,6 +111,37 @@ VAR xResult, Speed, TempValue: INTEGER;
         BEGIN
         AlwaysCallBlindCQ := Upcase (CMD [1]) = 'T';
         ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'ARDKEYER PORT' THEN
+        BEGIN
+        tempport := nil;
+
+        IF StringHas(UpperCase(CMD),'SERIAL') THEN
+           BEGIN
+           tempstring := wordafter(CMD,'SERIAL');
+           tempport := findportx(tempstring);
+
+           if tempport = nil then
+               begin
+               tempport := serialportx.create(tempstring);
+               addport(tempport);
+               end;
+           END;
+
+        ArdKeyer.setPort(serialportx(tempport));
+        ActiveKeyer := ArdKeyer;
+
+        { Setup footswitch }
+
+        Footsw := footso2rArd;
+
+        SO2RBox := so2rinterface (ArdKeyer);
+
+        ProcessConfigInstructions1 :=
+           (tempport <> nil) OR (CMD = 'NONE');
+
         Exit;
         END;
 
@@ -672,22 +707,33 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'CURTIS KEYER MODE' THEN
         BEGIN
         case Char(uppercase(cmd)[1]) of
-        'A': 
+        'A':
            begin
+              ArdKeyer.SetCurtisMode (ModeA);
               CPUKeyer.SetCurtisMode(ModeA);
               WinKey.SetCurtisMode(ModeA);
               YcccKey.SetCurtisMode(ModeA);
               ProcessConfigInstructions1 := True;
            end;
-        'B':
+
+         'B':
            begin
+              ArdKeyer.SetCurtisMode (ModeB);
               CPUKeyer.SetCurtisMode(ModeB);
               WinKey.SetCurtisMode(ModeB);
               YcccKey.SetCurtisMode(ModeB);
               ProcessConfigInstructions1 := True;
            end;
-        'U':
+
+         'N':       { Curtis-NL Only supported by Arduino }
+             BEGIN
+             ArdKeyer.SetCurtisMode (ModeNL);
+             ProcessConfigInstructions1 := True;
+             END;
+
+         'U':
            begin
+              ArdKeyer.SetCurtisMode (Ultimatic);
               CPUKeyer.SetCurtisMode(Ultimatic);
               WinKey.SetCurtisMode(Ultimatic);
               YcccKey.SetCurtisMode(Ultimatic);
@@ -1188,7 +1234,7 @@ VAR xResult, Speed, TempValue: INTEGER;
         END;
     END;
 
-
+
 
 FUNCTION ProcessConfigInstructions2 (ID: Str80; CMD: STRING): BOOLEAN;
 
@@ -1205,6 +1251,7 @@ VAR xResult,tempint: INTEGER;
 
     IF ID = 'FARNSWORTH ENABLE' THEN
         BEGIN
+        ArdKeyer.SetFarnsworthEnable(UpCase (CMD [1]) = 'T');
         CPUKeyer.SetFarnsworthEnable(UpCase (CMD [1]) = 'T');
         WinKey.SetFarnsworthEnable(UpCase (CMD [1]) = 'T');
         YcccKey.SetFarnsworthEnable(UpCase (CMD [1]) = 'T');
@@ -1215,6 +1262,7 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'FARNSWORTH SPEED' THEN
         BEGIN
         Val (CMD, tempint, xResult);
+        ArdKeyer.SetFarnsworthSpeed(tempint);
         CPUKeyer.SetFarnsworthSpeed(tempint);
         WinKey.SetFarnsworthSpeed(tempint);
         YcccKey.SetFarnsworthSpeed(tempint);
@@ -1239,6 +1287,8 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'FOOT SWITCH MODE' THEN
         BEGIN
         FootSwitchMode := FootSwitchDisabled;
+
+        ArdKeyer.setCWGrant (False);
         CPUKeyer.setCwGrant(false);
         Winkey.setCwGrant(false);
         Yccckey.setCwGrant(false);
@@ -1261,6 +1311,7 @@ VAR xResult,tempint: INTEGER;
         IF CMD = 'CW GRANT'                THEN
         Begin
             FootSwitchMode := CWGrant;
+            ArdKeyer.setCWGrant (True);
             CPUKeyer.setCwGrant(true);
             WinKey.setCwGrant(true);
             YcccKey.setCwGrant(true);
@@ -1622,7 +1673,7 @@ VAR xResult,tempint: INTEGER;
     IF (ID = 'YCCC SO2R BOX ENABLE') AND (UpCase (CMD [1]) = 'T') THEN
         BEGIN
         ActiveKeyer := YcccKey;
-        Footsw := footso2r;
+        Footsw := footso2ryccc;
         ProcessConfigInstructions2 := true;
         Exit;
         END;
@@ -1654,7 +1705,7 @@ VAR xResult,tempint: INTEGER;
             ProcessConfigInstructions2 := true;
             exit;
         end;
-        
+
         ProcessConfigInstructions2 := false;
         Exit;
         END;
@@ -1727,7 +1778,7 @@ VAR xResult,tempint: INTEGER;
                     tempport := serialportx.create(tempstring);
                     addport(tempport);
                  end;
-              if StringHas (UpperCase(CMD), 'INVERT') then 
+              if StringHas (UpperCase(CMD), 'INVERT') then
                  serialportx(tempport).invert(true);
               tempport.key(false);
            END
@@ -1764,7 +1815,7 @@ VAR xResult,tempint: INTEGER;
                     tempport := serialportx.create(tempstring);
                     addport(tempport);
                  end;
-              if StringHas (UpperCase(CMD), 'INVERT') then 
+              if StringHas (UpperCase(CMD), 'INVERT') then
                  serialportx(tempport).invert(true);
               tempport.key(false);
            END
@@ -1799,7 +1850,7 @@ VAR xResult,tempint: INTEGER;
                     tempport := serialportx.create(tempstring);
                     addport(tempport);
                  end;
-              if StringHas (UpperCase(CMD), 'INVERT') then 
+              if StringHas (UpperCase(CMD), 'INVERT') then
                  serialportx(tempport).invert(true);
               tempport.key(false);
            END
@@ -2207,6 +2258,7 @@ VAR xResult,tempint: INTEGER;
 
     IF ID = 'PADDLE BUG ENABLE' THEN
         BEGIN
+        ArdKeyer.SetPaddleBug(UpCase (CMD [1]) = 'T');
         CPUKeyer.SetPaddleBug(UpCase (CMD [1]) = 'T');
         Winkey.SetPaddleBug(UpCase (CMD [1]) = 'T');
         Yccckey.SetPaddleBug(UpCase (CMD [1]) = 'T');
@@ -2217,6 +2269,7 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'PADDLE MONITOR TONE' THEN
         BEGIN
         Val (CMD, tempint, xResult);
+        ArdKeyer.SetPaddleMonitorTone(tempint);
         CPUKeyer.SetPaddleMonitorTone(tempint);
         Winkey.SetPaddleMonitorTone(tempint);
         Yccckey.SetPaddleMonitorTone(tempint);
@@ -2259,6 +2312,7 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'PADDLE SPEED' THEN
         BEGIN
         Val (CMD, tempint, xResult);
+        ArdKeyer.SetPaddleSpeed(tempint);
         CPUKeyer.SetPaddleSpeed(tempint);
         Winkey.SetPaddleSpeed(tempint);
         Yccckey.SetPaddleSpeed(tempint);
@@ -2269,6 +2323,7 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'PADDLE PTT HOLD COUNT' THEN
         BEGIN
         Val (CMD, tempint, xResult);
+        ArdKeyer.SetPaddlePTTHoldCount(tempint);
         CPUKeyer.SetPaddlePTTHoldCount(tempint);
         Winkey.SetPaddlePTTHoldCount(tempint);
         Yccckey.SetPaddlePTTHoldCount(tempint);
@@ -2387,6 +2442,7 @@ VAR xResult,tempint: INTEGER;
 
     IF ID = 'PTT ENABLE' THEN
         BEGIN
+        ArdKeyer.SetPTTEnable(UpCase (CMD [1]) = 'T');
         CPUKeyer.SetPTTEnable(UpCase (CMD [1]) = 'T');
         Winkey.SetPTTEnable(UpCase (CMD [1]) = 'T');
         Yccckey.SetPTTEnable(UpCase (CMD [1]) = 'T');
@@ -2397,6 +2453,7 @@ VAR xResult,tempint: INTEGER;
     IF (ID = 'PTT TURN ON DELAY') THEN
         BEGIN
         Val (CMD, tempint, xResult);
+        ArdKeyer.SetPTTTurnOnDelay(tempint);
         CPUKeyer.SetPTTTurnOnDelay(tempint);
         Winkey.SetPTTTurnOnDelay(tempint);
         Yccckey.SetPTTTurnOnDelay(tempint);
@@ -3489,7 +3546,7 @@ VAR xResult: INTEGER;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
-   
+
 
     IF ID = 'SCP COUNTRY STRING' THEN
         BEGIN
@@ -3698,6 +3755,7 @@ VAR xResult: INTEGER;
 
     IF ID = 'SWAP PADDLES' THEN
         BEGIN
+        ArdKeyer.SetSwapPaddles(UpCase (CMD [1]) = 'T');
         CPUKeyer.SetSwapPaddles(UpCase (CMD [1]) = 'T');
         WinKey.SetSwapPaddles(UpCase (CMD [1]) = 'T');
         YcccKey.SetSwapPaddles(UpCase (CMD [1]) = 'T');
@@ -3780,6 +3838,7 @@ VAR xResult: INTEGER;
 
     IF ID = 'TUNE WITH DITS' THEN
         BEGIN
+        ArdKeyer.SetTuneWithDits(UpCase (CMD [1]) = 'T');
         CPUKeyer.SetTuneWithDits(UpCase (CMD [1]) = 'T');
         Winkey.SetTuneWithDits(UpCase (CMD [1]) = 'T');
         Yccckey.SetTuneWithDits(UpCase (CMD [1]) = 'T');
@@ -3887,6 +3946,7 @@ VAR xResult: INTEGER;
     IF ID = 'WEIGHT' THEN
         BEGIN
         Val (CMD, tempreal, xResult);
+        ArdKeyer.setWeight(tempreal);
         CPUKeyer.setWeight(tempreal);
         Winkey.setWeight(tempreal);
         Yccckey.setWeight(tempreal);

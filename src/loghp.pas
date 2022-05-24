@@ -70,7 +70,6 @@ PROCEDURE ShowStack;
 PROCEDURE DoCalculator;
 
 VAR Key: CHAR;
-    Result: INTEGER;
     XString: Str20;
     Temp: REAL;
 
@@ -210,7 +209,7 @@ VAR Key: CHAR;
                         END;
 
                     XString := XString + Key;
-                    Val (XString, X, Result);
+                    Val (XString, X);
                     END;
 
             END;

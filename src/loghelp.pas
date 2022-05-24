@@ -70,6 +70,7 @@ VAR
     PROCEDURE SaveQTCDataFile;
     PROCEDURE SetAlarm;
     PROCEDURE ShowIOPorts;
+    PROCEDURE ShowKeyCodes;
     PROCEDURE StartUpHelp;
     PROCEDURE SunriseSunset;
     PROCEDURE TellMeMyGrid;
@@ -641,7 +642,6 @@ VAR FileWrite: TEXT;
 PROCEDURE AddReminder;
 
 VAR TimeString, DayString, DateString, ReminderString: Str80;
-    xResult: INTEGER;
     FileWrite: TEXT;
 
     BEGIN
@@ -670,7 +670,7 @@ VAR TimeString, DayString, DateString, ReminderString: Str80;
     Reminders^ [NumberReminderRecords].DayString  := '';
     Reminders^ [NumberReminderRecords].Alarm := False;
 
-    Val (TimeString, Reminders^ [NumberReminderRecords].Time, xResult);
+    Val (TimeString, Reminders^ [NumberReminderRecords].Time);
 
     IF StringHas (UpperCase (DateString), 'ALARM') THEN
         BEGIN
@@ -823,7 +823,7 @@ PROCEDURE LoopBackTest;
 
 VAR Key, RXChar: CHAR;
     BaudString: Str20;
-    BaudRate, xResult: LONGINT;
+    BaudRate: LONGINT;
     SevenBitMode: BOOLEAN;
     Parity: ParityType;
     FileWrite: FILE;
@@ -853,7 +853,7 @@ VAR Key, RXChar: CHAR;
           (BaudString = '9600') OR (BaudString = '19200') OR
           (BaudString = '57600');
 
-    Val (BaudString, BaudRate, xResult);
+    Val (BaudString, BaudRate);
 
     REPEAT
         Key := UpCase (GetKey ('7 or 8 bits? : '));
@@ -1659,9 +1659,9 @@ PROCEDURE ShowPreviousPage;
 PROCEDURE ViewRadioDebug;
 
 VAR Key: CHAR;
-    FileString, FileName, TempString: STRING;
+    FileString, FileName: STRING;
     FileRead: FILE;
-    Lines, RecordNumber, xResult: INTEGER;
+    Lines, RecordNumber: INTEGER;
     Band: BandType;
     Mode: ModeType;
     Freq: LONGINT;
@@ -1713,7 +1713,7 @@ VAR Key: CHAR;
 
     WHILE NOT Eof (FileRead) DO
         BEGIN
-        BlockRead (FileRead, FileString, SizeOf (FileString), xResult);
+        BlockRead (FileRead, FileString, SizeOf (FileString));
 
         IF GetRadioParameters (RadioOne, FileString, Freq, Band, Mode, TRUE, False) THEN
             BEGIN
@@ -1884,7 +1884,7 @@ VAR Buffer: INTEGER;
 PROCEDURE SetAlarm;
 
 VAR TempString, HourTempString, MinuteTempString: Str80;
-    CharPointer, xResult: INTEGER;
+    CharPointer: INTEGER;
 
     BEGIN
     IF AlarmSet THEN
@@ -1928,8 +1928,8 @@ VAR TempString, HourTempString, MinuteTempString: Str80;
     MinuteTempString [2] := TempString [CharPointer];
     MinuteTempString [0] := Chr (2);
 
-    Val (HourTempString, AlarmHour, xResult);
-    Val (MinuteTempString, AlarmMinute, xResult);
+    Val (HourTempString, AlarmHour);
+    Val (MinuteTempString, AlarmMinute);
 
     RemoveAndRestorePreviousWindow;
     SaveSetAndClearActiveWindow (AlarmWindow);
@@ -2875,7 +2875,7 @@ PROCEDURE PassThrough;
 
 VAR Key: CHAR;
     BaudString: Str20;
-    xResult, BaudRate: LONGINT;
+    BaudRate: LONGINT;
     dev: str80;
     p1,p2 : serialportx;
 
@@ -2895,7 +2895,7 @@ VAR Key: CHAR;
           (BaudString = '9600');
 
     WriteLn;
-    Val (BaudString, BaudRate, xResult);
+    Val (BaudString, BaudRate);
 
     REPEAT
         Key := UpCase (GetKey ('Enter number of bits (7 or 8) : '));
@@ -2919,7 +2919,7 @@ VAR Key: CHAR;
           (BaudString = '9600');
 
     WriteLn;
-    Val (BaudString, BaudRate, xResult);
+    Val (BaudString, BaudRate);
 
     REPEAT
         Key := UpCase (GetKey ('Enter number of bits (7 or 8) : '));
@@ -3079,6 +3079,45 @@ PROCEDURE StartUpHelp;
     WriteLn;
     END;
 
+
+
+
+PROCEDURE ShowKeyCodes;
+
+VAR Key: CHAR;
+
+    BEGIN
+    ClrScr;
+    Textcolor (Yellow);
+    WriteLnCenter ('KEYCODE Utility');
+
+    REPEAT
+        Write ('Press a key - ESCAPE to quit');
+
+        REPEAT UNTIL KeyPressed;
+
+        Key := ReadKey;
+
+        IF Key = EscapeKey THEN
+            Exit;
+
+        IF Key = NullKey THEN   { Extended key }
+            BEGIN
+            GoToXY (1, WhereY);
+            ClrEol;
+            Write ('Extended key! ');
+            Key := ReadKey;
+            Write ('Key value = ', Integer (Key));
+            END
+        ELSE
+            BEGIN
+            GoToXY (1, WhereY);
+            ClrEol;
+            Write ('Normal key value = ', Integer (Key));
+            END;
+
+    UNTIL False;
+    END;
 
 
 

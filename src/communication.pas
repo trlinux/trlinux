@@ -48,7 +48,7 @@ type
      function readdit: boolean; override;
      function readdah: boolean; override;
      function footswitch: boolean; override;
-     procedure relayhigh(on: boolean); override; 
+     procedure relayhigh(on: boolean); override;
      destructor destroy;override;
   end;
   serialportx = class(keyerportx)
@@ -68,7 +68,7 @@ type
        procedure rigctldforkr;
        procedure rigctldforkn;
     public
-    constructor create(devicename: string); 
+    constructor create(devicename: string);
     destructor destroy;override;
     function charready: boolean;
     function readchar: char;
@@ -92,7 +92,7 @@ type
        pport: Pparport;
        dev: string;
        databyte: byte;
-    public   
+    public
     constructor create(devicename: string);
     destructor destroy;override;
     procedure key(on: boolean); override;
@@ -122,7 +122,7 @@ type
   procedure diewithparent;cdecl;external;
   procedure hangupwithparent;cdecl;external;
 
-implementation 
+implementation
 uses trcrt,lowlatency; //trcrt for delay
 
 const EMITTERS = $01;
@@ -168,7 +168,7 @@ constructor serialportx.create(devicename: string);
 var tempfile: text;
     tios: termios;
     sset: serial_struct;
-    rc: longint;
+//    rc: longint;
 //    i,flags: integer;
 begin
    if pos('PTY',upcase(devicename)) = 1 then
@@ -266,7 +266,7 @@ begin
       tios.c_oflag := tios.c_oflag or ONLCR;
       tcflush(fd, TCIOFLUSH);
    end
-   else 
+   else
    begin
 //      tios.c_iflag := tios.c_iflag and (not (IGNBRK or BRKINT
 //          or PARMRK or ISTRIP or INLCR or IGNCR or ICRNL or IXON ));
@@ -278,7 +278,7 @@ begin
       cfmakeraw(tios);
       tcsetattr(fd, TCSANOW, tios)
    end;
-end;   
+end;
 
 procedure serialportx.shellfork;
 var n,n0: integer;
@@ -581,7 +581,7 @@ end;
 procedure serialportx.readbuf;
 var icount,i,maxread: integer;
 begin
-   if iend = istart then 
+   if iend = istart then
       maxread := buflen-1
    else
       maxread := ((buflen - iend + istart) mod buflen) - 1;
@@ -662,7 +662,7 @@ begin
          pport := portlist.portv[i];
    end;
    if pport = nil then
-   begin   
+   begin
       writeln(stderr,'parallel port device not found');
       halt;
    end;
@@ -673,7 +673,7 @@ begin
    databyte := 0;
    ieee1284_write_data(pport,databyte);
    relayhigh(true); //for pullup
-end;   
+end;
 
 destructor parallelportx.destroy;
 begin

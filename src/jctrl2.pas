@@ -206,7 +206,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       BNA: Tone.SetBeepEnable(NOT Tone.GetBeepEnable);
       BSA: BEGIN
               BeepSoundCardEnable := NOT BeepSoundCardEnable;
-              IF BeepSoundCardEnable THEN 
+              IF BeepSoundCardEnable THEN
               begin
                  soundmode(0);
                  dvpenable := false;
@@ -264,18 +264,13 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       CIF: CountryInformationFile := QuickEditResponse ('Enter new country information filename : ', 30);
 
-      CKM:
-      begin
-         if ActiveKeyer.GetCurtisMode = ModeA then
-            ActiveKeyer.SetCurtisMode(ModeB)
-         else
-         begin
-            if ActiveKeyer.GetCurtisMode = ModeB then
-               ActiveKeyer.SetCurtisMode(Ultimatic) 
-            else
-               ActiveKeyer.SetCurtisMode(ModeA);
-         end;
-      end;
+      CKM: CASE ActiveKeyer.GetCurtisMode OF
+               ModeA:  ActiveKeyer.SetCurtisMode (ModeB);
+               ModeB:  ActiveKeyer.SetCurtisMode (ModeNL);
+               ModeNL: ActiveKeyer.SetCurtisMode (Ultimatic);
+               Ultimatic: ActiveKeyer.SetCurtisMode (ModeA);
+               END;
+
       CWE: CWEnable              := NOT CWEnable;
       CWS: CWSpeedFromDatabase   := NOT CWSpeedFromDataBase;
 
@@ -780,8 +775,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
               3: so2rbox.setrig2map(4);
               4: so2rbox.setrig2map(0);
               end;
- 
-       
+
+
 
       SHE: SayHiEnable := NOT SayHiEnable;
 
@@ -1010,15 +1005,12 @@ VAR FileWrite: TEXT;
       CEC: WriteLn (FileWrite, ConfirmEditChanges);
       CIF: WriteLn (FileWrite, CountryInformationFile);
 
-      CKM: IF ActiveKeyer.GetCurtisMode = ModeA THEN
-               WriteLn (FileWrite, 'A')
-           ELSE
-           begin
-              if ActiveKeyer.GetCurtisMode = ModeB then
-                  WriteLn (FileWrite, 'B')
-              else
-                  WriteLn (FileWrite, 'U');
-           end;
+      CKM: CASE ActiveKeyer.GetCurtisMode OF
+               ModeA:  WriteLn (FileWrite, 'A');
+               ModeB:  WriteLn (FileWrite, 'B');
+               ModeNL: WriteLn (FileWrite, 'NL');
+               Ultimatic: WriteLn (FileWrite, 'U');
+               END;
 
       CWE: WriteLn (FileWrite, CWEnable);
       CWS: WriteLn (FileWrite, CWSpeedFromDatabase);
@@ -1376,15 +1368,12 @@ VAR TempString: Str40;
       CEC: IF ConfirmEditChanges THEN TempString := 'TRUE';
       CIF: TempString := CountryInformationFile;
 
-      CKM: IF ActiveKeyer.GetCurtisMode = ModeA THEN
-               TempString := 'A'
-           ELSE
-           begin
-             if ActiveKeyer.GetCurtisMode = ModeB then
-                TempString := 'B'
-             else
-                TempString := 'U';
-           end;
+      CKM: CASE ActiveKeyer.GetCurtisMode OF
+               ModeA:  TempString := 'A';
+               ModeB:  TempString := 'B';
+               ModeNL: TempString := 'NL';
+               Ultimatic: TempString := 'U';
+               END;
 
       CWE: IF CWEnable THEN TempString := 'TRUE';
       CWS: IF CWSpeedFromDataBase THEN TempString := 'TRUE';

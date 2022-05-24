@@ -1009,7 +1009,11 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
     KeyStatus := NormalKeys;
 
     CASE Key OF
-        'C': REPEAT
+
+        { C key is for CQ memories }
+
+        'C': BEGIN
+             REPEAT
                  ShowCQFunctionKeyStatus;
                  GoToXY (1, Hi (WindMax));
                  Write (' Press CQ function key to program (F1, AltF1, CtrlF1), or ESCAPE to exit) : '); {KK1L: 6.72 changed}
@@ -1024,10 +1028,10 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                  RemoveAndRestorePreviousWindow;
                                  Exit;
                                  END;
-millisleep;
+                         millisleep;
                      UNTIL NewKeyPressed;
-                     FunctionKey := Upcase (NewReadKey);
 
+                     FunctionKey := Upcase (NewReadKey);
                  UNTIL (FunctionKey = NullKey) OR (FunctionKey = EscapeKey);
 
                  IF FunctionKey = EscapeKey THEN
@@ -1036,44 +1040,46 @@ millisleep;
                      Exit;
                      END;
 
+                 { We have a null key - so have to read again to get the function key }
+
                  FunctionKey := NewReadKey;
 
                  IF ((FunctionKey >= F1) AND (FunctionKey <= F10)) OR
                     ((FunctionKey >= ControlF1) AND (FunctionKey <= ControlF10)) OR
                     ((FunctionKey >= AltF1) AND (FunctionKey <= AltF10)) OR
                     ((FunctionKey >= F11) AND (FunctionKey <= AltF12)) THEN
+                     BEGIN
+                     IF FunctionKey >= AltF1 THEN
                          BEGIN
-                         IF FunctionKey >= AltF1 THEN
+                         IF KeyStatus <> AltKeys THEN
                              BEGIN
-                             IF KeyStatus <> AltKeys THEN
+                             KeyStatus := AltKeys;
+                             ShowCQFunctionKeyStatus;
+                             END;
+                         END
+                     ELSE
+                         IF FunctionKey >= ControlF1 THEN
+                             BEGIN
+                             IF KeyStatus <> ControlKeys THEN
                                  BEGIN
-                                 KeyStatus := AltKeys;
+                                 KeyStatus := ControlKeys;
                                  ShowCQFunctionKeyStatus;
                                  END;
                              END
                          ELSE
-                             IF FunctionKey >= ControlF1 THEN
+                             IF KeyStatus <> NormalKeys THEN
                                  BEGIN
-                                 IF KeyStatus <> ControlKeys THEN
-                                     BEGIN
-                                     KeyStatus := ControlKeys;
-                                     ShowCQFunctionKeyStatus;
-                                     END;
-                                 END
-                             ELSE
-                                 IF KeyStatus <> NormalKeys THEN
-                                     BEGIN
-                                     KeyStatus := NormalKeys;
-                                     ShowCQFunctionKeyStatus;
-                                     END;
+                                 KeyStatus := NormalKeys;
+                                 ShowCQFunctionKeyStatus;
+                                 END;
 
                      SaveSetAndClearActiveWindow (QuickCommandWindow);
 
                      REPEAT
                          TempString := LineInput ('Msg = ',
-                                                  GetCQMemoryString (ActiveMode, FunctionKey),  {KK1L: 6.73 Added mode}
-                                                  True,
-                                                  (ActiveMode = Phone) AND (DVPEnable OR DVKEnable));
+                                              GetCQMemoryString (ActiveMode, FunctionKey),  {KK1L: 6.73 Added mode}
+                                              True,
+                                              (ActiveMode = Phone) AND (DVPEnable OR DVKEnable));
 
                          IF TempString [1] = NullKey THEN
                              IF DVPEnable THEN
@@ -1095,7 +1101,8 @@ millisleep;
                                          AltR: DVKListenMessage (GetCQMemoryString (ActiveMode, FunctionKey));
                                          END;
                                  END;
-millisleep;
+
+                         millisleep;
                      UNTIL (TempString [1] <> NullKey);
 
                      IF (TempString <> EscapeKey) AND
@@ -1111,8 +1118,9 @@ millisleep;
                             END;
 
                      RemoveAndRestorePreviousWindow;
-                     END;
+                     END;  { End of legal funtion keys }
              UNTIL False;
+             END;   { End of CQ memories }
 
         'E': REPEAT
                  ShowEXFunctionKeyStatus;
@@ -1333,7 +1341,7 @@ millisleep;
                                                     AltW: DVKRecordMessage (CQPhoneExchange);
                                                     AltR: DVKListenMessage (CQPhoneExchange);
                                                     END;
-millisleep;                     
+millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN

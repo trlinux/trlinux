@@ -508,7 +508,7 @@ VAR QTHString: Str40;
 FUNCTION GetPartialCall (CallAddress: INTEGER): CallString;
 
 VAR BlockNumber, BlockAddress: INTEGER;
-    LongPartialCallAddress, xResult: INTEGER;
+    LongPartialCallAddress: INTEGER;
     TempString: CallString;
 
     BEGIN
@@ -530,7 +530,7 @@ VAR BlockNumber, BlockAddress: INTEGER;
                Exit;
                END
            ELSE
-               Val (TempString, LongPartialCallAddress, xResult);
+               Val (TempString, LongPartialCallAddress);
 
         { Runtime 201 here when entering second letter of call with Auto CQ
           and DVP.  So, why would this ever be happening? }
@@ -3054,7 +3054,7 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
         Age            := False;
         Chapter        := False;
         Check          := False;
-        Classs          := False;
+        Classs         := False;
         Name           := False;
         PostalCode     := False;
         Power          := False;
@@ -3079,6 +3079,13 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
             BEGIN
             ExchangeInformation.Classs := True;
             ExchangeInformation.QTH   := True;
+            END;
+
+        CWTExchange:
+            BEGIN
+            ExchangeInformation.QTH := True;
+            ExchangeInformation.QSONumber := True;
+            ExchangeInformation.Name := True;
             END;
 
         KidsDayExchange:
@@ -3286,7 +3293,6 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
             END;
 
         END;
-
     END;
 
 

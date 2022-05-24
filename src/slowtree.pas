@@ -79,11 +79,6 @@ Uses Tree,keycode;
 
     FUNCTION  KeyId (Key: CHAR): Str80;
 
-    FUNCTION  LineInput (Prompt: Str160;
-                         InitialString: Str160;
-                         OverwriteEnable: BOOLEAN;
-                         ExitOnAltKey: BOOLEAN): Str160;
-
     FUNCTION  Lpt1BaseAddress: WORD;
     FUNCTION  Lpt2BaseAddress: WORD;
     FUNCTION  Lpt3BaseAddress: WORD;
@@ -715,7 +710,7 @@ FUNCTION ElaspedMinutes (StartTime: TimeRecord): INTEGER;
 
 VAR Hour, Minute, Second, Sec100: WORD;
     th,tm,ts,ts100,t0h,t0m,t0s,t0s100: longint;
-    
+
     BEGIN
     t0h := starttime.hour;
     t0m := starttime.minute;
@@ -1204,13 +1199,13 @@ PROCEDURE IncrementMonth (VAR DateString: Str20);
   be incremented. }
 
 VAR MonthString, YearString: Str20;
-    Year, xResult: INTEGER;
+    Year: INTEGER;
 
     BEGIN
     MonthString := UpperCase (BracketedString (DateString, '-', '-'));
 
     YearString := Copy (DateString, Length (DateString) - 1, 2);
-    Val (YearString, Year, xResult);
+    Val (YearString, Year);
 
     IF MonthString = 'JAN' THEN
         DateString := '1-FEB-' + YearString;
@@ -1267,13 +1262,13 @@ PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
   string is in the format dd-mon-yr.  It will handle month ends and
   increment the year correctly (including leap years). }
 
-VAR Day, Hour, Minute, Year, xResult: INTEGER;
+VAR Day, Hour, Minute, Year: INTEGER;
     MinuteString, HourString, DayString, MonthString, YearString: Str20;
 
 
     BEGIN
-    Val (PostcedingString (TimeString, ':'), Minute, xResult);
-    Val (PrecedingString  (TimeString, ':'), Hour,   xResult);
+    Val (PostcedingString (TimeString, ':'), Minute);
+    Val (PrecedingString  (TimeString, ':'), Hour);
 
     Inc (Minute);
 
@@ -1286,7 +1281,7 @@ VAR Day, Hour, Minute, Year, xResult: INTEGER;
             BEGIN
             Hour := 0;
 
-            Val (PrecedingString (DateString, '-'), Day, xResult);
+            Val (PrecedingString (DateString, '-'), Day);
             Inc (Day);
             Str (Day, DayString);
 
@@ -1311,7 +1306,7 @@ VAR Day, Hour, Minute, Year, xResult: INTEGER;
                 IF MonthString = 'FEB' THEN
                     BEGIN
                     YearString := Copy (DateString, Length (DateString) - 1, 2);
-                    Val (YearString, Year, xResult);
+                    Val (YearString, Year);
 
                     IF (Year MOD 4 = 0) AND (Year <> 0) THEN { Leap year }
                         BEGIN
@@ -1393,258 +1388,6 @@ FUNCTION KeyId (Key: CHAR): Str80;
       ELSE KeyId := '';
       END;
 
-    END;
-
-
-
-PROCEDURE DisplayLineInputString (Str: Str160; Cursor: INTEGER; EndOfPrompt: INTEGER);
-
-VAR DisplayArea, Offset: INTEGER;
-
-    BEGIN
-    GoToXY (EndOfPrompt, WhereY);
-    ClrEol;
-
-    DisplayArea := Lo (WindMax) - EndOfPrompt - 2;
-
-    IF Length (Str) < DisplayArea THEN
-        BEGIN
-        Write (Str);
-        GoToXY (Cursor + EndOfPrompt - 1, WhereY);
-        END
-    ELSE
-        BEGIN
-        Offset := 0;
-
-        IF Cursor >= DisplayArea - 1 THEN
-            BEGIN
-            REPEAT
-                Offset := Offset + 8
-            UNTIL Cursor - Offset < DisplayArea - 3;
-
-            IF Length (Str) - Offset > DisplayArea THEN
-                Write ('+', Copy (Str, Offset, DisplayArea - 3), '+')
-            ELSE
-                Write ('+', Copy (Str, Offset, DisplayArea - 2));
-            GoToXY (Cursor - Offset + EndOfPrompt + 1, WhereY);
-            END
-        ELSE
-            BEGIN
-            Write (Copy (Str, 1, DisplayArea - 2), '+');
-            GoToXY (Cursor - Offset + EndOfPrompt - 1, WhereY);
-            END;
-
-        END;
-    END;
-
-
-
-FUNCTION LineInput (Prompt: Str160;
-                    InitialString: Str160;
-                    OverWriteEnable: BOOLEAN;
-                    ExitOnAltKey: BOOLEAN): Str160;
-
-{ This function will display the prompt and allow the operator to input
-  a response to the prompt.  If an InitialString is passed along, it will
-  be displayed as the initial entry value.  It can be edited, or written
-  over as desired.  An escape with no entry will give a result of escape
-  key.  If the input or initial entry goes beyond the right of the window,
-  it will be handled nicely I hope. }
-
-VAR Key: CHAR;
-    InputString, TempString: Str160;
-    CursorPosition, EndOfPrompt: INTEGER;
-    VirginEntry, InsertMode: BOOLEAN;
-
-    BEGIN
-    ClrScr;
-    Write (Prompt);
-    EndOfPrompt := WhereX;
-    CursorPosition := Length (InitialString) + 1;
-
-    DisplayLineInputString (InitialString, CursorPosition, EndOfPrompt);
-
-    InputString := InitialString;
-    InsertMode := True;
-    VirginEntry := OverWriteEnable;
-
-    REPEAT
-        REPEAT millisleep UNTIL KeyPressed;
-        Key := ReadKey;
-
-        CASE Key OF
-            EscapeKey:
-                BEGIN
-                IF InputString = '' THEN
-                    BEGIN
-                    LineInput := EscapeKey;
-                    Exit;
-                    END;
-
-                InputString := '';
-                CursorPosition := 1;
-                VirginEntry := False;
-                END;
-
-            BackSpace:
-                BEGIN
-                IF CursorPosition > 1 THEN
-                    BEGIN
-                    Delete (InputString, CursorPosition - 1, 1);
-                    Dec (CursorPosition);
-                    END;
-                VirginEntry := False;
-                END;
-
-            ControlA:
-                IF CursorPosition > 1 THEN
-                    BEGIN
-                    REPEAT
-                        Dec (CursorPosition);
-                    UNTIL (CursorPosition = 1) OR
-                          ((InputString [CursorPosition - 1] = ' ') AND
-                           (InputString [CursorPosition] <> ' '));
-                    VirginEntry := False;
-                    END;
-
-            ControlS:
-                IF CursorPosition > 1 THEN
-                    BEGIN
-                    Dec (CursorPosition);
-                    VirginEntry := False;
-                    END;
-
-
-            ControlD:
-                IF CursorPosition < (Length (InputString) + 1) THEN
-                    BEGIN
-                    Inc (CursorPosition);
-                    VirginEntry := False;
-                    END;
-
-            ControlF:
-                IF CursorPosition < (Length (InputString) + 1) THEN
-                    BEGIN
-                    REPEAT
-                        Inc (CursorPosition);
-                    UNTIL (CursorPosition = Length (InputString) + 1) OR
-                          ((InputString [CursorPosition - 1] = ' ') AND
-                           (InputString [CursorPosition] <> ' '));
-                    VirginEntry := False;
-                    END;
-
-            ControlG:
-                IF CursorPosition < Length (InputString) + 1 THEN
-                    BEGIN
-                    Delete (InputString, CursorPosition, 1);
-                    VirginEntry := False;
-                    END;
-
-
-
-
-            ControlP:
-                BEGIN
-                REPEAT UNTIL KeyPressed;
-                Key := ReadKey;
-
-                IF VirginEntry THEN
-                    BEGIN
-                    InputString := Key;
-                    VirginEntry := False;
-                    CursorPosition := 2;
-                    END
-                ELSE
-                    BEGIN
-                    IF InsertMode THEN
-                        Insert (Key, InputString, CursorPosition)
-                    ELSE
-                        InputString [CursorPosition] := Key;
-                    Inc (CursorPosition);
-                    END;
-                END;
-
-            ControlT:
-                BEGIN
-                TempString := Copy (InputString, CursorPosition, 200);
-                Delete (InputString, CursorPosition, 200);
-                TempString := StringWithFirstWordDeleted (TempString);
-                InputString := InputString + TempString;
-                VirginEntry := False;
-                END;
-
-            ControlY:
-                BEGIN
-                InputString := '';
-                VirginEntry := False;
-                END;
-
-            NullKey:
-                BEGIN
-                VirginEntry := False;
-                Key := ReadKey;
-
-                CASE Key OF
-                    HomeKey: CursorPosition := 1;
-
-                    LeftArrow:
-                        IF CursorPosition > 1 THEN
-                            Dec (CursorPosition);
-
-                    RightArrow:
-                        IF CursorPosition < Length (InputString) + 1 THEN
-                            Inc (CursorPosition);
-
-                    EndKey:
-                        CursorPosition := Length (InputString) + 1;
-
-                    InsertKey: InsertMode := NOT InsertMode;
-
-                    DeleteKey:
-                        IF CursorPosition <= Length (InputString) THEN
-                            Delete (InputString, CursorPosition, 1);
-
-                    ELSE
-                        IF ExitOnAltKey THEN
-                            BEGIN
-                            LineInput := NullKey + Key;
-                            Exit;
-                            END;
-                    END;
-
-                END
-
-
-
-            ELSE
-                IF Key >= ' ' THEN
-                    BEGIN
-                    IF VirginEntry THEN
-                        BEGIN
-                        InputString := Key;
-                        VirginEntry := False;
-                        CursorPosition := 2;
-                        END
-                    ELSE
-                        BEGIN
-                        IF InsertMode THEN
-                            Insert (Key, InputString, CursorPosition)
-                        ELSE
-                            InputString [CursorPosition] := Key;
-                        Inc (CursorPosition);
-                        END;
-                    END
-                ELSE
-                    IF Key = CarriageReturn THEN
-                        BEGIN
-                        LineInput := InputString;
-                        Exit;
-                        END;
-
-            END;
-
-    DisplayLineInputString (InputString, CursorPosition, EndOfPrompt);
-    UNTIL False;
     END;
 
 

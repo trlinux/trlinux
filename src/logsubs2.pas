@@ -231,7 +231,7 @@ VAR SpeedString, MultString: Str20;
 
 PROCEDURE PutContactIntoLogFile (LogString: Str80);
 
-VAR Time, QSONumber, Result: INTEGER;
+VAR Time, QSONumber: INTEGER;
     Call, Exchange, LoggedCallsign: Str20;
     FileWrite: TEXT;
 
@@ -288,7 +288,7 @@ VAR Time, QSONumber, Result: INTEGER;
                Exchange := PostcedingString (Exchange, ' ');
                GetRidOfPrecedingSpaces  (Exchange);
                GetRidOfPostcedingSpaces (Exchange);
-               Val (Exchange, QSONumber, Result);
+               Val (Exchange, QSONumber);
                AddQSOToPendingQTCList (Time, Call, QSONumber);
                END;
 
@@ -1100,11 +1100,7 @@ PROCEDURE DupeCheckOnInactiveRadio;
 
 { This will perform a dupe check on the inactive radio }
 
-VAR Mode: ModeType;
-    Band: BandType;
-    Frequency: LONGINT;
-    MultString, TempString: Str40;
-    Mult: BOOLEAN;
+VAR TempString: Str40;
     AltDDupeCheckCall: CallString;
 
     BEGIN
@@ -1794,6 +1790,9 @@ VAR Key: CHAR;
 
 PROCEDURE AutoCQResume (SkipFirstMessage: BOOLEAN);
 
+{ Not sure what SkipFirstMessage ever gets used for - no calls to it seem
+  to use it }
+
 VAR CQMemory, SendChar: CHAR;
     CharacterCount: INTEGER;
     FileName, TempString: Str80;
@@ -1801,7 +1800,6 @@ VAR CQMemory, SendChar: CHAR;
     LastDisplayedTimeElasped, Count, TimeElasped: INTEGER;
     StartOfLastPhoneMessage: TimeRecord;
     TimeOut: BYTE; {KK1L: 6.71b}
-
 
     BEGIN
     LastDisplayedTimeElasped := 0;
@@ -1812,6 +1810,8 @@ VAR CQMemory, SendChar: CHAR;
     IF NOT (((AutoCQMemory >= F1)  AND (AutoCQMemory <= AltF10)) OR
             ((AutoCQMemory >= F11) AND (AutoCQMemory <= AltF12))) THEN
                 Exit;
+
+    { Auto CQ Delay time is 2X the # of seconds }
 
     IF AutoCQDelayTime > 0 THEN
         BEGIN
@@ -1952,7 +1952,6 @@ VAR CQMemory, SendChar: CHAR;
                 CreateAndSendCQMultiInfoMessage;
 
             REPEAT
-
                 IF ActiveMode <> Phone THEN
                     BEGIN
                     TimeElasped := ActiveKeyer.GetCountsSinceLastCW DIV 298;
@@ -1980,7 +1979,7 @@ VAR CQMemory, SendChar: CHAR;
 
                 Packet.CheckPacket;
 
-            Wait (4);
+            //Wait (4);
 
             UNTIL TimeElasped >= AutoCQDelayTime;
 
@@ -1992,7 +1991,7 @@ VAR CQMemory, SendChar: CHAR;
 
 PROCEDURE AutoCQ;
 
-VAR Time, Result: INTEGER;
+VAR Time: INTEGER;
     Key: CHAR;
     TempString: Str80;
 
@@ -2022,7 +2021,6 @@ VAR Time, Result: INTEGER;
 
     AutoCQMemory := Key;
 
-
     REPEAT
         ClrScr;
 
@@ -2038,7 +2036,7 @@ VAR Time, Result: INTEGER;
         TempString := '';
 
         REPEAT
-            REPEAT millisleep UNTIL NewKeyPressed;
+            REPEAT {millisleep} UNTIL NewKeyPressed;
 
             Key := Upcase (NewReadKey);
 
@@ -2064,7 +2062,7 @@ VAR Time, Result: INTEGER;
 
         UNTIL (Length (TempString) = 2) OR (Key = CarriageReturn);
 
-        Val (TempString, Time, Result);
+        Val (TempString, Time);
         Time := Time * 2;
 
     UNTIL (Time >= 1) AND (Time <= 99);
@@ -2145,7 +2143,6 @@ VAR Result: INTEGER;
     BandMapInitialExchange: Str20;
     TimeOut: BYTE;
     PacketChar: CHAR;
-    InactiveRadioMode: ModeType;
 
     BEGIN
     IF ActiveMultiPort <> nil THEN CheckMultiState;
@@ -2696,7 +2693,7 @@ FUNCTION FoundCommand (VAR SendString: Str160): BOOLEAN;
 
 VAR FileName, CommandString: Str40;
     FirstCommand: BOOLEAN;
-    TempInt, xResult: INTEGER;
+    TempInt: INTEGER;
 
     BEGIN
     FoundCommand := False;
@@ -2749,7 +2746,7 @@ VAR FileName, CommandString: Str40;
         IF CommandString = 'DVKDELAY' THEN
             IF StringIsAllNumbers (FileName) THEN
                 BEGIN
-                Val (FileName, TempInt, xResult);
+                Val (FileName, TempInt);
                 SetDVKDelay (TempInt);
                 END;
 
@@ -2856,7 +2853,7 @@ VAR FileName, CommandString: Str40;
 
             IF StringIsAllNumbers (CommandString) THEN
                 BEGIN
-                Val (CommandString, TempInt, xResult);
+                Val (CommandString, TempInt);
                 SetSpeed (TempInt);
                 DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
                 END
@@ -2897,14 +2894,14 @@ VAR FileName, CommandString: Str40;
                so2rbox.setlatch(not so2rbox.getlatch);
             if filename = 'RXA' then
             begin
-               if activeradio = radioone then 
+               if activeradio = radioone then
                   so2rbox.setrcvfocus(RX1)
                else
                   so2rbox.setrcvfocus(RX2)
             end;
             if filename = 'RXI' then
             begin
-               if activeradio = radioone then 
+               if activeradio = radioone then
                   so2rbox.setrcvfocus(RX2)
                else
                   so2rbox.setrcvfocus(RX1)
@@ -2917,7 +2914,7 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SRS' THEN
             BEGIN
-               if activeradio = radioone then 
+               if activeradio = radioone then
                   rig1.directcommand(filename)
                else
                   rig2.directcommand(filename);
@@ -2935,7 +2932,7 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SRSI' THEN
             BEGIN
-               if activeradio = radioone then 
+               if activeradio = radioone then
                   rig2.directcommand(filename)
                else
                   rig1.directcommand(filename);
@@ -3045,7 +3042,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
     NumberString: Str20;
     FirstCommand, FootSwitchPressed: BOOLEAN;
     RealFreq: REAL;
-    TestByte, TimeOut: BYTE;
+    TimeOut: BYTE;
     VFOString: Str80; {KK1L: 6.73 added VFOString}
     VFOChar: Char; {KK1L 6.73}
     RadioToSet: RadioType; {KK1L: 6.73}
@@ -3120,10 +3117,20 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
             CheckEverything (KeyChar, WindowString); {KK1L: NOTE UpdateTimeAndRateDisplay, polling, etc}
 
-            if (FootSwitchMode = CWGrant) then
-                FootSwitchPressed := Footsw.getState
-            else
-                FootSwitchPressed := Footsw.getDebouncedState;
+            { Okay - this is a bit of a hack - but I am not smart enough to figure
+              out how Footsw worked }
+
+            IF ActiveKeyer = ArdKeyer THEN
+                BEGIN
+                FootSwitchPressed := ArdKeyer.FootSwitchPressed;
+                END
+            ELSE
+                BEGIN
+                if (FootSwitchMode = CWGrant) then
+                    FootSwitchPressed := Footsw.getState
+                else
+                    FootSwitchPressed := Footsw.getDebouncedState;
+                END;
 
             IF FootSwitchPressed THEN
                 BEGIN
@@ -3333,11 +3340,15 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
           EscapeKey:
               BEGIN
-//quick and dirty escape kills rtty -- also backs up one step, but
-//that's why it's dirty
-   if ((ActiveMode = Digital) and (ActiveRttyPort <> nil)) then
-       activerttyport.putchar(chr(27));
+
+              //quick and dirty escape kills rtty -- also backs up one step, but
+              //that's why it's dirty
+
+              if ((ActiveMode = Digital) and (ActiveRttyPort <> nil)) then
+                  activerttyport.putchar(chr(27));
+
               {KK1L: 6.73 For SO2R will force redisplay SO2R info for BandMapBlinkinCall}
+
               IF (OpMode = CQOpMode) AND (BandMapBand = BandMemory[InactiveRadio]) THEN
                   CallLastTimeIWasHere := '';
 
@@ -3740,7 +3751,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
           ControlZ: Exit;
 
-
           ControlDash: IF GetCQMemoryString (ActiveMode, AltF1) = '' THEN {KK1L: 6.73 Added mode}
                            QuickDisplay ('No CQ message programmed into CQ MEMORY AltF1.')
                        ELSE
@@ -3780,7 +3790,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
           CarriageReturn:  {KK1L: note: This is where I can trap commands from the call window!}
 
-             if ctrlenter then
+              if ctrlenter then     { comes from XKB unit }
                   BEGIN
                   {KK1L: 6.73 Added this block to use ControlEnter to program Inactive Radio frequency}
 
@@ -3842,20 +3852,17 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                          WindowString := '';
                          ClrScr;
                          END
-                  ELSE {KK1L: 6.73 This is what used to be here}
+
+                  ELSE           {KK1L: 6.73 This is what used to be here}
                       BEGIN
                       BeSilent := True;
                       KeyChar := CarriageReturn;
                       Exit;
                       END;
-//                  END;
-              end
-              else
-              BEGIN //open 1
 
-
-
-
+                  end  // of controlEnter
+          else
+              BEGIN      //open 1 - not control enter
               BeSilent := False;
 
               IF WindowString = 'DEBUG' THEN
@@ -3864,6 +3871,8 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   WindowString := '';
                   ClrScr;
                   END;
+
+              { See if this is frequency command with a VFO A or B indicator }
 
               VFOString := WindowString;                   {KK1L: 6.73}
               Delete (VFOString, 1, Length (VFOString)-1); {KK1L: 6.73 Get last character as VFO to set}
@@ -3876,6 +3885,8 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   WindowString := TempString {KK1L: 6.73 Remove last character}
               ELSE
                   VFOChar := 'A'; {KK1L: 6.73 Assume setting A VFO}
+
+              { Now that KK1L is done - we can see if we have a frequency command }
 
               IF (StringIsAllNumbersOrDecimal (WindowString)) AND
                  (ActiveWindow = CallWindow) AND
@@ -3939,7 +3950,13 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                       WindowString := '';
                       END
                   ELSE
+
+                      { This is pretty hidden - but what is happening is that all special cases
+                        or hitting RETURN have been dealt with - so here is the "boring" case
+                        of hitting return like when you are trying to log a QSO }
+
                       Exit;
+
               END; //close 1
 
 
@@ -4516,17 +4533,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                         CreateAndSendPacketSpot (PacketSpotCall, TempFreq);
                         END;
-
-//            IF KeypadCWMemories AND ((KeyChar >= '0') AND (KeyChar <= '9')) THEN
-//                BEGIN
-//                TestByte := Port [$60];
-
-//                IF (TestByte >= $47) AND (TestByte <= $52) THEN   { Keypad integer pressed }
-//                    BEGIN
-//                    SendFunctionKeyMessage (Chr (Ord (KeyChar) - Ord ('0') + Ord (ControlF1)), CQOpMode);
-//                    Continue;
-//                    END;
-//                END;
 
             IF (KeyChar = 'I') AND (ActiveWindow = ExchangeWindow) AND
                (ActiveExchange = RSTQSONumberExchange) AND
@@ -5462,6 +5468,8 @@ ControlEnterCommand1:
                                 ExchangeHasBeenSent := True;
                                 END;
 
+                        { Here is the first step in logging a QSO }
+
                         IF ParametersOkay (CallWindowString,
                                            ExchangeWindowString,
                                            ActiveBand,
@@ -5828,7 +5836,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
             ELSE
                 WindowEditor (ExchangeWindowString, Key, ExtendedKey);
 
-
         IF (Key = StartSendingNowKey) AND (ActiveWindow = CallWindow) AND (Length (CallWindowString) >= 1) THEN
             BEGIN
             IF ReminderPostedCount = 0 THEN
@@ -5837,18 +5844,39 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 ELSE
                     QuickDisplay ('Continue entering characters and press RETURN when done.');
 
+            { Reminder - we are doing StartSendingNow }
+
+            { Sometimes, the program will not let you enter more letters and instantly
+              put you into the exchange window!! Let's see if we can get away with waiting
+              for CWStillBeingSent to be true before proceeding.  }
+
             IF Length (CallWindowString) > 0 THEN
                 BEGIN
                 IF MessageEnable THEN
                     BEGIN
                     AddStringToBuffer (CallWindowString, CWTone);
-                    PTTForceOn;
+
+                    { PTTForceOn;  Removed 4-May-2022 }
                     END;
+
+                { Sometimes, the program will not let you enter more letters and instantly
+                  put you into the exchange window!! Let's see if we can get away with waiting
+                  for CWStillBeingSent to be true before proceeding.  }
+
+                IF CWEnabled THEN
+                    REPEAT
+                        millisleep;
+                    UNTIL CWStillBeingSent;
 
                 IF (SCPMinimumLetters > 0) AND (NOT NewKeyPressed) THEN {KK1L: 6.73 Added ActiveRadio}
                     VisibleLog.SuperCheckPartial (CallWindowString, True, ActiveRadio);
 
                 REPEAT
+
+                    { This is the tight loop where we keep getting new characters and if
+                      we finish sending CW - we exit the routine and let the exchange
+                      be sent. }
+
                     REPEAT
                         IF (ActiveMode = CW) AND CWEnabled AND (NOT ReadInLog) AND
                             AutoCallTerminate AND NOT CWStillBeingSent THEN
@@ -5857,8 +5885,14 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 CallsignICameBackTo := CallWindowString;
                                 Exit;
                                 END;
-                       millisleep;
+
+                        { Not fully sure why this is here - but it's fine }
+                        millisleep;
                     UNTIL NewKeyPressed OR ReadInLog;
+
+                    { It appears I support exercising the AutoStartSend feature when
+                      reading in a log.  This certainly is something I wouldn't expect
+                      anyone to be doing...  but appears this code does no harm }
 
                     IF ReadInLog THEN
                         BEGIN
@@ -5868,40 +5902,70 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                         ELSE
                             BEGIN
                             TempKey := ReadInCallsign [Length (CallWindowString) + 1];
-                            Wait (Random (400));
+                            Wait (Random (400));   { Cute }
                             END;
                         END
 
-                    ELSE TempKey := Upcase (NewReadKey);
+                    { Here is where we read the key that might be another letter for the call }
+                    ELSE
+                        TempKey := Upcase (NewReadKey);
+
+                    { Reminder - we are only here in the case of AutoStartSending }
 
                     CASE TempKey OF
+
                         BackSpace:
 
-                            IF EditingCallsignSent THEN
-                                BEGIN
-                                IF Length (CallWindowString) > 0 THEN
-                                    BEGIN
-                                    GoToXY (WhereX - 1, 1);
-                                    ClrEol;
-                                    Delete (CallWindowString, Length (CallWindowString), 1);
-                                    END
-                                END
-                            ELSE
-                                IF (CWEnabled AND DeleteLastCharacter) OR NOT CWEnabled THEN
-                                    BEGIN
-                                    GoToXY (WhereX - 1, 1);
-                                    ClrEol;
-                                    Delete (CallWindowString, Length (CallWindowString), 1);
-                                    END
-                                ELSE
-                                    BEGIN
-                                    AddStringToBuffer ('!', CWTone);
-                                    GoToXY (WhereX - 1, 1);
-                                    ClrEol;
-                                    Delete (CallWindowString, Length (CallWindowString), 1);
-                                    EditingCallsignSent := True;
-                                    END;
+                        { This code is not from N6TR (I think).  It allows you to keep
+                          deleting characters that have already been sent - and sends
+                          a "!" (di-di-di-da-dit) then exits and lets the exchange get
+                          sent.
 
+                          I am going to do something weird - let this code work the way it
+                          does if you are using a keyer other than the Arduino.  }
+
+                          IF ActiveKeyer <> ArdKeyer THEN
+                              BEGIN
+                              IF EditingCallsignSent THEN
+                                  BEGIN
+                                  IF Length (CallWindowString) > 0 THEN
+                                      BEGIN
+                                      GoToXY (WhereX - 1, 1);
+                                      ClrEol;
+                                      Delete (CallWindowString, Length (CallWindowString), 1);
+                                      END
+                                  END
+                              ELSE
+                                  IF (CWEnabled AND DeleteLastCharacter) OR NOT CWEnabled THEN
+                                      BEGIN
+                                      GoToXY (WhereX - 1, 1);
+                                      ClrEol;
+                                      Delete (CallWindowString, Length (CallWindowString), 1);
+                                      END
+                                  ELSE
+                                      BEGIN
+                                      AddStringToBuffer ('!', CWTone);
+                                      GoToXY (WhereX - 1, 1);
+                                      ClrEol;
+                                      Delete (CallWindowString, Length (CallWindowString), 1);
+                                      EditingCallsignSent := True;
+                                      END;
+                              END
+
+                          ELSE
+                              { Here we are with a Backspace pressed and using the Arduino
+                                Keyer.  We will only allow a character to be deleted if
+                                the Arduino says it can delete it (not sent yet). }
+
+                              BEGIN
+                              IF Length (CallWindowString) > 1 THEN { first letter always sent }
+                                  IF (CWEnabled AND DeleteLastCharacter) OR NOT CWEnabled THEN
+                                      BEGIN
+                                      GoToXY (WhereX - 1, 1);
+                                      ClrEol;
+                                      Delete (CallWindowString, Length (CallWindowString), 1);
+                                      END;
+                              END;
 
                         NullKey:
                             BEGIN
@@ -6028,6 +6092,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 UNTIL TempKey = EscapeKey;
                 END;
             END
+
+        { Finally NOT AutoStartSending }
+
         ELSE
           CASE Key OF
 
@@ -6507,6 +6574,7 @@ VAR CharPtr: INTEGER;
 
     REPEAT
     MILLISLEEP; // KS does this work????
+
         IF ActiveWindow = CallWindow THEN
             BEGIN
             WindowString := CallWindowString;
