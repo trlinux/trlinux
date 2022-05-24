@@ -15,6 +15,36 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
+
+
+0.52 
+- This is the first release done by N6TR instead of W9CF
+
+- Added support for SO2R Mini - if running N6TR's firmware.  Use ardkeyer 
+  port = serial /dev/ttyUSB0.  You can see the version of the SO2R mini
+  firmware in the Control-J Version entry - second column.  Version 2 
+  of the Arduino firmware was released in tandem with 0.52.  
+
+- Added support for SO2R mini commands in CW messages.  Use ^ to prefix
+  the following commands:
+
+    ^D - Long Dah
+    ^F - Speed up CW 2 WPM
+    ^H - Half dit space
+    ^S - Slow down CW 2 WPM
+    ^X - Switch headphones to Radio 1
+    ^Y - Switch headphones to Radio 2
+    ^Z - Switch headphones to Stereo
+
+  These commands are executed at the time after the previous CW character
+  has been sent and before the next one is sent.  You can put commands all
+  by themselves in a CW message.  Probably some work to do with these 
+  functions being supported if in SSB mode.  
+
+- Added support for CWT and 7QP contests.  The CWT is still WIP as far
+  as accurately counting multiliers goes.  7QP categories not correct
+  for the Cabrillo log - but the log upload page fixes them.
+
 0.51
 - Fixed bug in Winkeyer start up code that caused K3NG Arduino
   code to fail to start.
