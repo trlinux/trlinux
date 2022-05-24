@@ -1212,8 +1212,8 @@ VAR TimeOut: INTEGER;
         ActiveMode      := ModeMemory [RadioTwo];
         ActiveKeyer.SetActiveRadio(RadioTwo);
         ActiveRadio     := RadioTwo;
-        InactiveRadio   := RadioOne; {KK1L: 6.73}
-        CodeSpeed       := SpeedMemory[RadioTwo]; {KK1L: 6.73}
+        InactiveRadio   := RadioOne;
+        CodeSpeed       := SpeedMemory[RadioTwo];
         SetSpeed (CodeSpeed);
         DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
         END
@@ -1223,8 +1223,8 @@ VAR TimeOut: INTEGER;
         ActiveMode      := ModeMemory [RadioOne];
         ActiveKeyer.SetActiveRadio(RadioOne);
         ActiveRadio     := RadioOne;
-        InactiveRadio   := RadioTwo; {KK1L: 6.73}
-        CodeSpeed       := SpeedMemory[RadioOne]; {KK1L: 6.73}
+        InactiveRadio   := RadioTwo;
+        CodeSpeed       := SpeedMemory[RadioOne];
         SetSpeed (CodeSpeed);
         DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
         END;

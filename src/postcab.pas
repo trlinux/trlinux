@@ -1145,6 +1145,15 @@ VAR Key:             CHAR;
             ReceivedQSONumberLength := 4;
             END;
 
+        SevenQP:
+            BEGIN
+            RSTIsPartOfTheExchange := TRUE;
+            Section := GetResponse ('Enter your state or county sent : '); {KK1L: 6.71 Removed 'Cal' before 'county'}
+            IF Section = '' THEN Exit;
+            SentInformation := '$ ' + Section;
+            END;
+
+
         SS: BEGIN    { Okay }
             CallsignLength := 10;
             ReceivedQSONumberLength := 4;
@@ -1233,6 +1242,7 @@ VAR Key:             CHAR;
             Region1FD:   WriteLn (FileWrite, 'CONTEST: REGION ONE FIELD DAY',Chr(13));
             Russian:     WriteLn (FileWrite, 'CONTEST: RDXC',Chr(13));
             SAC:         WriteLn (FileWrite, 'CONTEST: SAC',Chr(13));
+            SevenQP:     WriteLn (FileWrite, 'CONTEST: 7QP', Chr (13));
             Sprint:      WriteLn (FileWrite, 'CONTEST: NA-SPRINT-', ModeString,Chr(13));
             SS:          WriteLn (FileWrite, 'CONTEST: ARRL-SS-', ModeString,Chr(13));
             StewPerry:   WriteLn (FileWrite, 'CONTEST: STEW-PERRY',Chr(13));
@@ -1740,7 +1750,6 @@ Call fields end here for length=12                                
                 CabrilloString := 'QSO: ' + FrequencyString + ' ' + ModeString + ' ';
 
                 DateString := GetCabrilloDateStringFromLogEntry (FileString);
-
 
                 CabrilloString := CabrilloString + DateString + ' ';
 

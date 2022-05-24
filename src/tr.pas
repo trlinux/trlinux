@@ -25,7 +25,13 @@ PROGRAM ContestLoggingProgram;
 {$linklib gcc}
 {$V-}
 
-{ Starting to track version stuff here again - 6-May-2022
+{  CHANGE LOG
+
+ - Fixed Paddle CW Speed so that zero will track the Computer Speed (keyerard + Ardunio)
+ - Fixed the PTT Hold time for Paddle Sent CW (most in Ardunio)
+ - Fixed not iniitializing the serial port speed for the Arduino (keyerard.pas)
+
+09-May-2022 - Version 0.52ish (N6TR developmental fork)
 
  - Started with 0.49 I think from W9CF
  - Added keyerard

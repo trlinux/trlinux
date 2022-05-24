@@ -1979,7 +1979,7 @@ VAR CQMemory, SendChar: CHAR;
 
                 Packet.CheckPacket;
 
-            Wait (4);
+            //Wait (4);
 
             UNTIL TimeElasped >= AutoCQDelayTime;
 
@@ -3117,10 +3117,20 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
             CheckEverything (KeyChar, WindowString); {KK1L: NOTE UpdateTimeAndRateDisplay, polling, etc}
 
-            if (FootSwitchMode = CWGrant) then
-                FootSwitchPressed := Footsw.getState
-            else
-                FootSwitchPressed := Footsw.getDebouncedState;
+            { Okay - this is a bit of a hack - but I am not smart enough to figure
+              out how Footsw worked }
+
+            IF ActiveKeyer = ArdKeyer THEN
+                BEGIN
+                FootSwitchPressed := ArdKeyer.FootSwitchPressed;
+                END
+            ELSE
+                BEGIN
+                if (FootSwitchMode = CWGrant) then
+                    FootSwitchPressed := Footsw.getState
+                else
+                    FootSwitchPressed := Footsw.getDebouncedState;
+                END;
 
             IF FootSwitchPressed THEN
                 BEGIN
@@ -3740,7 +3750,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
           ControlY: UpdateBlinkingBandMapCall;
 
           ControlZ: Exit;
-
 
           ControlDash: IF GetCQMemoryString (ActiveMode, AltF1) = '' THEN {KK1L: 6.73 Added mode}
                            QuickDisplay ('No CQ message programmed into CQ MEMORY AltF1.')

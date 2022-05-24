@@ -2802,6 +2802,8 @@ VAR Key: CHAR;
         REPEAT millisleep UNTIL KeyPressed;
         Key := ReadKey;
 
+        Write (Key);
+
         CASE Key OF
             EscapeKey:
                 BEGIN
@@ -2947,7 +2949,7 @@ VAR Key: CHAR;
 
 
             ELSE
-                IF Key >= ' ' THEN
+                IF Key >= Char ($20) THEN
                     BEGIN
                     IF VirginEntry THEN
                         BEGIN
@@ -4543,6 +4545,8 @@ FUNCTION NewKeyPressed: BOOLEAN;
 
 FUNCTION NewReadKey: CHAR;
 
+{ I am a little unsure why I am doing this instead of ReadKey }
+
 VAR Key: CHAR;
 
     BEGIN
@@ -4900,11 +4904,14 @@ PROCEDURE WaitForKeyPressed;
 
 procedure getdegree(d: pchar);cdecl;external;
 
+
+// Executed at startup
+
     BEGIN
     setlength(DegreeSymbol,8);
     getdegree(@DegreeSymbol[1]);
     setlength(DegreeSymbol,strlen(pchar(@DegreeSymbol[0])));
-//    ExtendedKey := 0;
+
     Com5PortBaseAddress := 0;
     Com6PortBaseAddress := 0;
 
@@ -4913,7 +4920,6 @@ procedure getdegree(d: pchar);cdecl;external;
 
     QuestionMarkChar := '?';
     SlashMarkChar    := '/';
-
     ReadKeyAltState := False;
     END.
 

@@ -30,8 +30,8 @@ CONST
 
 TYPE
     SendStatusType = (NothingBeingSent, DitBeingSent, DahBeingSent);
-    CurtisMode = (ModeA, ModeB, Ultimatic);
- 
+    CurtisMode = (ModeA, ModeB, Ultimatic, ModeNL);
+
      Keyer = class(TInterfacedObject)
         PROCEDURE AddCharacterToBuffer (Character: CHAR);virtual;abstract;
         PROCEDURE AddStringToBuffer (Msg: String; Tone: INTEGER);virtual;abstract;

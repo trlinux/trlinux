@@ -70,6 +70,7 @@ VAR
     PROCEDURE SaveQTCDataFile;
     PROCEDURE SetAlarm;
     PROCEDURE ShowIOPorts;
+    PROCEDURE ShowKeyCodes;
     PROCEDURE StartUpHelp;
     PROCEDURE SunriseSunset;
     PROCEDURE TellMeMyGrid;
@@ -3078,6 +3079,45 @@ PROCEDURE StartUpHelp;
     WriteLn;
     END;
 
+
+
+
+PROCEDURE ShowKeyCodes;
+
+VAR Key: CHAR;
+
+    BEGIN
+    ClrScr;
+    Textcolor (Yellow);
+    WriteLnCenter ('KEYCODE Utility');
+
+    REPEAT
+        Write ('Press a key - ESCAPE to quit');
+
+        REPEAT UNTIL KeyPressed;
+
+        Key := ReadKey;
+
+        IF Key = EscapeKey THEN
+            Exit;
+
+        IF Key = NullKey THEN   { Extended key }
+            BEGIN
+            GoToXY (1, WhereY);
+            ClrEol;
+            Write ('Extended key! ');
+            Key := ReadKey;
+            Write ('Key value = ', Integer (Key));
+            END
+        ELSE
+            BEGIN
+            GoToXY (1, WhereY);
+            ClrEol;
+            Write ('Normal key value = ', Integer (Key));
+            END;
+
+    UNTIL False;
+    END;
 
 
 

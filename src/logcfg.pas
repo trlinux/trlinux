@@ -773,6 +773,12 @@ VAR ParameterCount: INTEGER;
                Halt;
                END;
 
+        IF UpperCase (ParamStr (ParameterCount)) = 'KC' THEN
+            BEGIN
+            ShowKeyCodes;
+            Halt;
+            END;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'LC' THEN
             BEGIN
             Inductance;

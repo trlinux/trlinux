@@ -23,140 +23,441 @@ unit keyerard;
 
 INTERFACE
 
-USES tree,trcrt,communication,beep,foot,radio,keyers;
+USES foot,tree,trcrt,communication,beep,radio,keyers,so2r,ycccprotocol;
 
 TYPE
-     ArduinoKeyer = class(keyer)
+     ArduinoKeyer = class(keyer,so2rinterface)
 
      private
-        ComputerCodeSpeed:   INTEGER;
-        curtmode:            CurtisMode;
-        KeyerInitialized:    BOOLEAN;
-        PaddleBug:           BOOLEAN;
-        PaddleMonitorTone:   INTEGER;
-        PaddleCWSpeed:       INTEGER;
-        SwapPaddles:    BOOLEAN;
-        FarnsworthEnable:   BOOLEAN;
-        FarnsworthSpeed:    INTEGER;
-
+        ArduinoKeyerPort:     serialportx;
+        ComputerCodeSpeed:    INTEGER;
+        CurtMode:             CurtisMode;
+        KeyerInitialized:     BOOLEAN;
+        PaddleBug:            BOOLEAN;
+        PaddleMonitorTone:    INTEGER;
+        PaddleCWSpeed:        INTEGER;
+        FarnsworthEnable:     BOOLEAN;
+        FarnsworthSpeed:      INTEGER;
+        FsCwGrant:            Boolean;
+        Footsw:               FootSwitchx;
         FootswitchControlPTT: BOOLEAN;
+        MonitorTone:          INTEGER;
+        PaddlePTTHoldCount:   INTEGER;
+        PTTAsserted:          BOOLEAN;
+        PTTEnable:            BOOLEAN;
+        PTTTurnOnDelay:       INTEGER;
+        SwapPaddles:          BOOLEAN;
+        TuningWithDits:       BOOLEAN;
+        Tuning:               BOOLEAN;
+        TuneWithDits:         BOOLEAN;
+        Weight:               Integer;
 
-        MonitorTone:        INTEGER;
-        PaddlePTTHoldCount: INTEGER;
-        PTTAsserted:        BOOLEAN;
-        PTTEnable:          BOOLEAN;
-        PTTTurnOnDelay:     INTEGER;
-        RelayImage:         INTEGER;  { Image of SO2R relay bits }
-        TuningWithDits:     BOOLEAN;
-        Tuning:             BOOLEAN;
-        TuneWithDits:       BOOLEAN;
-        Version:            STRING;
-        Weight:             Integer;
+        { so2r stuff }
 
-        FsCwGrant: Boolean;
-        Footsw: FootSwitchx;
-        ArduinoKeyerPort: serialportx;
-        xoff: boolean;
-        wait: boolean;
-        breakin: boolean;
-        busy: boolean;
-        status: integer;
+        Blend:                INTEGER;
+        FootSwitchDebounce:   INTEGER;
+        HeadphoneMode:        hmode_t;
+        Latch:                BOOLEAN;   { I really don't know what this does }
+        map1:                 INTEGER;
+        map2:                 INTEGER;
+        SO2R_config:          so2r_config_t;
+        SO2R_state:           so2r_state_t;
+        SO2R_switches:        so2r_switches_t;
 
-        FUNCTION EchoTest: BOOLEAN;
+        FUNCTION  EchoTest: BOOLEAN;
+        PROCEDURE SendRelayStatusToSO2RMini;
 
     public
 
-        Constructor create;
+        Version: STRING;
+
+        CONSTRUCTOR Create;
 
         PROCEDURE AddCharacterToBuffer (Character: CHAR);override;
         PROCEDURE AddStringToBuffer (Msg: String; Tone: INTEGER);override;
+
         FUNCTION  BufferEmpty: BOOLEAN;override;
+
+        PROCEDURE ClearFootSwitchControlPTT;
         PROCEDURE ClearOutAnyIncomingCharacters;
         FUNCTION  CWStillBeingSent: BOOLEAN;override;
+
         FUNCTION  DeleteLastCharacter: BOOLEAN;override;
+        PROCEDURE dvpptt(on: boolean);override;                 { Not yet implemented in Arduino }
 
         PROCEDURE FlushCWBuffer;override;
+
+        Function  GetCountsSinceLastCW:integer;override;
+        Function  GetCurtisMode:CurtisMode;override;
+        FUNCTION  GetFarnsworthEnable:boolean;override;
+        FUNCTION  GetFarnsworthSpeed:integer;override;
+        Function  GetKeyerInitialized:boolean;override;
+        FUNCTION  GetMonitorTone:integer;override;
+        Function  GetPTTAsserted:boolean;override;
+        FUNCTION  GetPTTTurnOnDelay:integer;override;
+        FUNCTION  GetPTTEnable:boolean;override;
+        FUNCTION  GetTuneWithDits:boolean;override;
+        FUNCTION  GetPaddleBug:boolean;override;
+        FUNCTION  GetPaddleMonitorTone:integer;override;
+        FUNCTION  GetPaddlePTTHoldCount:integer;override;
+        FUNCTION  GetPaddleSpeed:integer;override;
+        FUNCTION  GetSpeed:INTEGER;override;
+        Function  GetSwapPaddles:boolean;override;
+        FUNCTION  GetWeight:real;override;
+
         PROCEDURE InitializeKeyer;override;
+
+        PROCEDURE LetFootSwitchControlPTT; override;
+
         PROCEDURE PTTForceOn;override;
         PROCEDURE PTTUnForce;override;
-        PROCEDURE SetSpeed (Speed: INTEGER);override;
-        Function GetSpeed:INTEGER;override;
-        PROCEDURE UnInitializeKeyer;override;
-        PROCEDURE SetPaddlePttHoldCount(Count: INTEGER);override;
-        PROCEDURE SetPaddleBug(On: Boolean);override;
-        PROCEDURE SetPaddleMonitorTone(tone: Integer);override;
-        PROCEDURE SetPaddleSpeed(speed: Integer);override;
-        PROCEDURE LetFootSwitchControlPtt;override;
-        PROCEDURE Timer;override;
 
-        Function GetPaddleBug:boolean;override;
-        Function GetPaddleMonitorTone:integer;override;
-        Function GetPaddleSpeed:integer;override;
-        Function GetPaddlePTTHoldCount:integer;override;
-        PROCEDURE SetWeight(w: real);override;
-        Function GetWeight:real;override;
-        PROCEDURE SetFarnsworthEnable(on: boolean);override;
-        Function GetFarnsworthEnable:boolean;override;
-        PROCEDURE SetFarnsworthSpeed(speed: integer);override;
-        Function GetFarnsworthSpeed:integer;override;
-        PROCEDURE SetPTTTurnOnDelay(delay: integer);override;
-        Function GetPTTTurnOnDelay:integer;override;
-        Procedure SetPTTEnable(on: boolean);override;
-        Function GetPTTEnable:boolean;override;
-        Procedure SetTuneWithDits(on: boolean);override;
-        Function GetTuneWithDits:boolean;override;
-        Procedure SetMonitorTone(tone: integer);override;
-        Function GetMonitorTone:integer;override;
-
-        Procedure SetCountsSinceLastCW(count: integer);override;
-        Function GetCountsSinceLastCW:integer;override;
+        Procedure SetActiveRadio (radio: RadioType);override;    { Works for SSB and CW }
+        Procedure SetCountsSinceLastCW(count: integer);override; { Not sure you can set that }
         Procedure SetCurtisMode(m: CurtisMode);override;
-        Function GetCurtisMode:CurtisMode;override;
-        Function GetKeyerInitialized:boolean;override;
-        Procedure SetSwapPaddles(on: boolean);override;
-        Function GetSwapPaddles:boolean;override;
-        Function GetPTTAsserted:boolean;override;
-        Procedure SetPTTFootSwitch(on: boolean);override;
-        Procedure SetActiveRadio (radio: RadioType);override;
-        Procedure SetFootSwitch(f: FootSwitchx);override;
-        Procedure SetCwGrant(on: boolean);override;
-        Procedure dvpptt(on: boolean);override;
+        Procedure SetCWGrant(on: boolean);override;              { Not yet implemetned in Arduino }
+        PROCEDURE SetFarnsworthEnable(on: boolean);override;     { Not yet implemented in Arduino }
+        PROCEDURE SetFarnsworthSpeed(speed: integer);override;   { Not yet implemented in Arduino }
+        Procedure SetFootSwitch (f: FootSwitchx);override;
+        PROCEDURE SetMonitorTone(tone: integer);override;
+        PROCEDURE SetPaddleBug(On: Boolean);override;            { Not yet implemented in Ardunio}
+        PROCEDURE SetPaddleMonitorTone(tone: Integer);override;
+        PROCEDURE SetPaddlePttHoldCount(Count: INTEGER);override;
+        PROCEDURE SetPaddleSpeed(speed: Integer);override;
         Procedure SetPort(port: serialportx);
+        PROCEDURE SetPTTEnable(on: boolean);override;
+        Procedure SetPTTFootSwitch(on: boolean);override;
+        PROCEDURE SetPTTTurnOnDelay(delay: integer);override;
+        PROCEDURE SetSpeed (Speed: INTEGER);override;
+        Procedure SetSwapPaddles(on: boolean);override;
+        PROCEDURE SetTuneWithDits(on: boolean);override;         { Not yet implemented in Arduino }
+        PROCEDURE SetWeight (w: real);override;                  { 1.00 is normal keying }
 
+        PROCEDURE Timer;override;                                { Does nothing }
+
+        PROCEDURE UnInitializeKeyer;override;
+
+        { SO2R stuff for now }
+
+        { The following procedurse will do nothing with the hardware.  They will
+          do their best not to break anything }
+
+        procedure setrig1band(band: integer);
+        procedure setrig2band(band: integer);
+        procedure setaux(aux: integer; value: integer);
+        PROCEDURE SetHeadphoneMode (mode: hmode_t);
+        procedure setblend(on: boolean);
+        procedure blendvalue(val: integer);
+        procedure SetRig1Map (Val: INTEGER);
+        procedure SetRig2Map (Val: INTEGER);
+        PROCEDURE SetLatch (On: BOOLEAN);
+
+        function  getblend:boolean;
+        function  getblendvalue:integer;
+        FUNCTION  GetHeadphoneMode: hmode_t;
+        FUNCTION  GetLatch: BOOLEAN;
+        function  GetRig1Map: INTEGER;
+        function  GetRig2Map: INTEGER;
+
+        { Here are things we will support }
+
+        PROCEDURE SetMicRelay (On: BOOLEAN);   { Enables the mic relay to follow radio }
+        FUNCTION  GetMicRelay: BOOLEAN;
+
+        { Appears we never read this }
+
+        PROCEDURE SetRcvFocus (RcvFocus: rcvfocus_t);  { RX1, RX2 or STEREO }
+
+        function  footswitchpressed:boolean;
         END;
 
 IMPLEMENTATION
 
-//Uses trcrt,keycode,linuxsound,xkb,sysutils;
 Uses keycode,linuxsound,xkb,sysutils;
 
-Constructor ArduinoKeyer.create;
+PROCEDURE ArduinoKeyer.SetRig1Band (Band: INTEGER);
 
-   begin
-   PaddleCWSpeed := 0;
-   RelayImage    := 0;  { All relays cleared }
-   PaddlePTTHoldCount := 10; { default }
+{ SO2R mini has no band output ports }
+
+    BEGIN
+    END;
+
+PROCEDURE ArduinoKeyer.SetRig2Band (Band: INTEGER);
+
+{ SO2R mini has no band output ports }
+
+    BEGIN
+    END;
+
+PROCEDURE ArduinoKeyer.SetAux (Aux: INTEGER; Value: INTEGER);
+
+{ I have no understanding of how to apply this to the SO2R mini }
+
+    BEGIN
+    END;
+
+
+PROCEDURE ArduinoKeyer.SetBlend (On: BOOLEAN);
+
+{ SO2R mini has no blend feature - but I will support remembering it }
+
+    BEGIN
+    IF On THEN
+        SO2R_Config.Blend := 1
+    ELSE
+        SO2R_Config.Blend := 0;
+    END;
+
+
+PROCEDURE ArduinoKeyer.BlendValue (Val: INTEGER);
+
+{ SO2R mini has no blend feature - but I will support remembering it }
+
+    BEGIN
+    Blend := Val;
+    END;
+
+
+PROCEDURE ArduinoKeyer.SetHeadphoneMode (Mode: hmode_t);
+
+{ SO2R mini does not have headphone modes - but I will support remembering it }
+
+    BEGIN
+    HeadphoneMode := Mode;
+    END;
+
+
+PROCEDURE ArduinoKeyer.SetMicRelay (On: boolean);
+
+{ This appears to be an enable for SO2R microphone switching.  The YCCC box
+  seems to use this parameter - but I am not going to pass it down to the
+  Arduino.  I can decide if I want to support switching the microphone based
+  upon headphone focus or not here in pascal land }
+
+    BEGIN
+    Write ('.');
+    IF On THEN
+        SO2R_Config.Relays := 1
+    ELSE
+        SO2R_Config.Relays := 0;
+    END;
+
+
+PROCEDURE ArduinoKeyer.SetRig1Map (Val: INTEGER);
+
+{ SO2R does not support this - but I will remember the value }
+
+    BEGIN
+    IF (Val < -4) THEN Val := -4;
+    IF (Val > 4) THEN Val := 4;
+    Map1 := Val;
+    END;
+
+
+PROCEDURE ArduinoKeyer.SetRig2Map (Val: INTEGER);
+
+{ SO2R does not support this - but I will remember the value }
+
+    BEGIN
+    IF (Val < -4) THEN Val := -4;
+    IF (Val > 4) THEN Val := 4;
+    Map2 := Val;
+    END;
+
+
+
+PROCEDURE ArduinoKeyer.SendRelayStatusToSO2RMini;
+
+{ Uses the SO2R_State flags to set the relays to the proper state }
+
+VAR Cmd: BYTE;
+
+    BEGIN
+    IF KeyerInitialized THEN
+        BEGIN
+        Cmd := 0;
+
+        { Bit zero of the command is relay 1 - OFF = rig 1  ON = rig 2 }
+
+        IF (SO2R_State.RX2 = 1) THEN
+            Cmd := Cmd OR $01;  { Set bit }
+
+        { Bit one is for relay 2 - which is relay 1 is also on will do stereo }
+
+        IF (SO2R_State.Stereo = 1) THEN
+            Cmd := Cmd OR $03;  { Set bits }
+
+        { Microphone relay }
+
+        IF (SO2R_State.TX2 = 1) THEN
+            Cmd := Cmd OR $04;  { Set bit }
+
+        ArduinoKeyerPort.PutChar (Char ($02));  { SO2R relay command }
+        ArduinoKeyerPort.PutChar (Char (Cmd));  { SO2R relay data }
+        END;
+    END;
+
+
+PROCEDURE ArduinoKeyer.SetRcvFocus (RcvFocus: rcvfocus_t);
+
+{ Here we get to tell the SO2R mini which way to set the headphone relays
+  K1 and K2 off  = Radio 1
+  K1 on - K2 off = Radio 2
+  K1 and K2 on   = STEREO    }
+
+    BEGIN
+    CASE RcvFocus OF
+        RX1:
+            BEGIN
+            SO2R_State.Stereo := 0;
+            SO2R_State.RX2    := 0;
+            END;
+
+        RX2:
+            BEGIN
+            SO2R_State.Stereo := 0;
+            SO2R_State.RX2    := 1;
+            END;
+
+        Stereo:
+            BEGIN
+            SO2R_State.Stereo := 1;
+            END;
+
+        END;  { of case }
+
+     SendRelayStatusToSO2RMini;
+     END;
+
+
+PROCEDURE ArduinoKeyer.SetLatch (On: BOOLEAN);
+
+{ SO2R does not support this - but I will remember the value }
+
+    BEGIN
+    Latch := On;
+    END;
+
+
+FUNCTION ArduinoKeyer.GetHeadphoneMode: hmode_t;
+
+{ Just returning whatever value was pass down - not used by SO2R mini }
+
+    BEGIN
+    GetHeadphoneMode := HeadphoneMode;
+    END;
+
+
+FUNCTION ArduinoKeyer.GetLatch: BOOLEAN;
+
+{ Just returning whatever value was pass down - not used by SO2R mini }
+
+    BEGIN
+    GetLatch := Latch;
+    END;
+
+
+FUNCTION ArduinoKeyer.footswitchpressed:boolean;
+
+{ HERE IT IS - this is how we tell LOGSUBS2.PAS if the foot switch is
+  pressed! I guess I will go with the debounced state }
+
+    BEGIN
+    IF KeyerInitialized THEN
+        BEGIN
+        ClearOutAnyIncomingCharacters;
+        ArduinoKeyerPort.PutChar (Char ($11)); { Ask for footswitch state }
+
+        { WARNING!!  We could get trapped here }
+
+        REPEAT UNTIL ArduinoKeyerPort.CharReady;
+
+        CASE Integer (ArduinoKeyerPort.ReadChar) OF
+            0: FootSwitchPressed := False;
+            1: FootSwitchPressed := True;
+            END;  { of case }
+        END
+    ELSE
+        FootSwitchPressed := False;
+    END;
+
+
+FUNCTION ArduinoKeyer.GetBlend: BOOLEAN;
+
+{ Just returning whatever value was pass down - not used by SO2R mini }
+
+    BEGIN
+    GetBlend := (SO2R_Config.blend = 1);
+    END;
+
+
+FUNCTION ArduinoKeyer.GetBlendValue: INTEGER;
+
+{ Just returning whatever value was pass down - not used by SO2R mini }
+
+    BEGIN
+    GetBlendValue := Blend;
+    END;
+
+
+FUNCTION ArduinoKeyer.GetMicRelay: BOOLEAN;
+
+{ This is flag that enables SO2R microphone relay action (I think) }
+
+    BEGIN
+    GetMicRelay := (SO2r_Config.Relays = 1);
+    END;
+
+
+FUNCTION ArduinoKeyer.GetRig1Map: INTEGER;
+
+{ Just returning whatever value was pass down - not used by SO2R mini }
+
+    BEGIN
+    GetRig1Map := Map1;
+    END;
+
+
+FUNCTION ArduinoKeyer.GetRig2Map: INTEGER;
+
+{ Just returning whatever value was pass down - not used by SO2R mini }
+
+    BEGIN
+    GetRig2Map := Map2;
+    END;
+
+
+
+CONSTRUCTOR ArduinoKeyer.Create;
+
+   BEGIN
+   ArduinoKeyerPort := nil;
+
+   { Default values }
 
    ComputerCodeSpeed := 35;
-   PaddleBug := false;
    CurtMode := ModeB;
-   KeyerInitialized := False;
-   MonitorTone := 700;
-   PaddleMonitorTone := 700;
-   Tuning := False;
-   Weight := 128;
-   TuningWithDits := False;
-   TuneWithDits := False;
    FsCwGrant := False;
    FootswitchControlPTT := False;
-   ArduinoKeyerPort := nil;
+   KeyerInitialized := False;
+   MonitorTone := 700;
+   PaddleBug := false;
+   PaddleCWSpeed := 0;
+   PaddlePTTHoldCount := 10;
+   PaddleMonitorTone := 700;
    PTTEnable := false;
-   xoff := false;
-   breakin := false;
-   busy := false;
-   wait := false;
-   status := $c0;
-   end;
+
+   SO2R_State.TX2 := 0;
+   SO2R_State.RX2 := 0;
+   SO2R_State.Stereo := 0;
+   SO2R_Config.Relays := 1;
+
+   Tuning := False;
+   TuningWithDits := False;
+   Weight := 128;
+   END;
+
+
 
 FUNCTION ArduinoKeyer.EchoTest: BOOLEAN;
 
@@ -223,14 +524,13 @@ Procedure ArduinoKeyer.InitializeKeyer;
    BEGIN
    IF KeyerInitialized THEN Exit;
 
-
    IF NOT EchoTest THEN
        BEGIN
        ClrScr;
        WriteLn ('Arduino Keyer not responding -- check connection');
+       WaitForKeyPressed;
        Halt;
        END;
-
 
    KeyerInitialized := True;
    END;
@@ -288,35 +588,34 @@ FUNCTION ArduinoKeyer.GetPTTTurnOnDelay: INTEGER;
 PROCEDURE ArduinoKeyer.SetActiveRadio (Radio: RadioType);
 
 { Determines which radio will have CW and PTT enabled.  It will
-  also switch the microphone. Any CW in progress will be aborted. }
+  also switch the microphone (if the mic relay is enabled with
+  SetMicRelay) . Any CW in progress will be aborted. }
 
     BEGIN
-    FlushCWBuffer;
-
     CASE Radio OF
         RadioOne:
             BEGIN
-            RelayImage := RelayImage AND $FB;       { Set bit 2 to a zero }
+            IF SO2r_Config.Relays = 1 THEN
+                SO2R_State.TX2 := 0;          { Set microphone to radio 1 }
 
             IF KeyerInitialized THEN
                 BEGIN
-                ArduinoKeyerPort.PutChar (Char ($13));  { Radio select command }
+                ArduinoKeyerPort.PutChar (Char ($0B));  { Radio select command }
                 ArduinoKeyerPort.PutChar (Char ($01));  { Radio One }
-                ArduinoKeyerPort.PutChar (Char ($02));  { Relay control command }
-                ArduinoKeyerPort.PutChar (Char (RelayImage));  { Relay control data }
+                SendRelayStatusToSO2RMini ; { Update microphone relay }
                 END;
             END;
 
         RadioTwo:
             BEGIN
-            RelayImage := RelayImage OR $04;        { Set bit 2 to a one }
+            IF SO2r_Config.Relays = 1 THEN
+                SO2R_State.TX2 := 1;          { Set microphone to radio 2 }
 
             IF KeyerInitialized THEN
                 BEGIN
-                ArduinoKeyerPort.PutChar (Char ($13));  { Radio select command }
+                ArduinoKeyerPort.PutChar (Char ($0B));  { Radio select command }
                 ArduinoKeyerPort.PutChar (Char ($02));  { Radio Two }
-                ArduinoKeyerPort.PutChar (Char ($02));  { Relay control command }
-                ArduinoKeyerPort.PutChar (Char (RelayImage));  { Relay control data }
+                SendRelayStatusToSO2RMini;  { Update microphone relay }
                 END;
             END;
 
@@ -326,16 +625,18 @@ PROCEDURE ArduinoKeyer.SetActiveRadio (Radio: RadioType);
 
 PROCEDURE ArduinoKeyer.SetPaddlePttHoldCount (Count: INTEGER);
 
-{ Sets the # of ms that PTT will stay active after sending CW
-  manually. }
+{ Number of dit lengths to hold the paddle after sending.  This used to
+  be milliseconds but we changed. }
 
     BEGIN
+    IF Count > 250 THEN Count := 250;
+
     PaddlePTTHoldCount := Count;
 
     IF KeyerInitialized THEN
         BEGIN
         ArduinoKeyerPort.PutChar (Char ($10));   { PTT Hold fimr for paddle sent CW command }
-        ArduinoKeyerPort.PutChar (Char (Count)); { Hold time in ms }
+        ArduinoKeyerPort.PutChar (Char (Count)); { Hold time in dit lengths }
         END;
     END;
 
@@ -389,14 +690,6 @@ PROCEDURE ArduinoKeyer.SetSpeed (Speed: INTEGER);
        BEGIN
        ArduinoKeyerPort.PutChar (Char ($08));  { Computer CW Speed command }
        ArduinoKeyerPort.PutChar (Char (ComputerCodeSpeed));
-
-       { If we haven't set the Paddle CW Speed to anything - set it to this speed too }
-
-       IF PaddleCWSpeed = 0 THEN
-           BEGIN
-           ArduinoKeyerPort.PutChar (Char ($09));  { Paddle CW Speed command }
-           ArduinoKeyerPort.PutChar (Char (ComputerCodeSpeed));
-           END;
        END;
    END;
 
@@ -465,8 +758,8 @@ PROCEDURE ArduinoKeyer.SetCurtisMode(m: CurtisMode);
         CASE CurtMode OF
             ModeA:     ArduinoKeyerPort.PutChar (Char ($00));
             ModeB:     ArduinoKeyerPort.PutChar (Char ($01));
-{           ModeNL:    ArduinoKeyerPort.PutChar (Char ($02));}
-{           Ultimatic: Not supported at this time }
+            ModeNL:    ArduinoKeyerPort.PutChar (Char ($02));
+            Ultimatic: ArduinoKeyerPort.PutChar (Char ($03));
             END;       { of case }
         END;
     END;
@@ -707,7 +1000,8 @@ FUNCTION ArduinoKeyer.GetPaddleMonitorTone: INTEGER;
 PROCEDURE ArduinoKeyer.SetPaddleSpeed (Speed: INTEGER);
 
     BEGIN
-    IF Speed < 5 THEN Speed := 5;
+    { We allow zero here - which makes it track the ComputerCWSpeed }
+
     IF Speed > 99 THEN Speed := 99;
 
     PaddleCWSpeed := Speed;
@@ -746,11 +1040,24 @@ PROCEDURE ArduinoKeyer.LetFootSwitchControlPTT;
     IF KeyerInitialized THEN
         BEGIN
         ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
+        ArduinoKeyerPort.PutChar (Char ($01))  { Footswitch turns on PTT }
+        END;
+    END;
 
-        IF FootSwitchControlPTT THEN
-            ArduinoKeyerPort.PutChar (Char ($01))  { Footswitch turns on PTT }
-        ELSE
-            ArduinoKeyerPort.PutChar (Char ($00)); { Footswitch not turn on PTT }
+
+
+PROCEDURE ArduinoKeyer.ClearFootSwitchControlPTT;
+
+{ Put the SO2R in the mode of only returnning the footswitch state without affecting
+  PTT. }
+
+    BEGIN
+    FootSwitchControlPTT := False;
+
+    IF KeyerInitialized THEN
+        BEGIN
+        ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
+        ArduinoKeyerPort.PutChar (Char ($00)); { Footswitch not turn on PTT }
         END;
     END;
 
@@ -763,24 +1070,10 @@ FUNCTION ArduinoKeyer.GetPaddleSpeed: INTEGER;
 
 FUNCTION ArduinoKeyer.GetPTTAsserted: BOOLEAN;
 
-{ I decided go ask the Arduiino }
+{ It isn't clear to me what this is actually used for.  I can't find
+  PTTasserted in logcw or anywhere else above the keyer objects. }
 
     BEGIN
-    IF KeyerInitialized THEN
-        BEGIN
-        ClearOutAnyIncomingCharacters;
-        ArduinoKeyerPort.PutChar (Char ($11)); { Ask for PTT state }
-
-        { WARNING!!  We could get trapped here }
-
-        REPEAT UNTIL ArduinoKeyerPort.CharReady;
-
-        CASE Integer (ArduinoKeyerPort.ReadChar) OF
-            0: PTTAsserted := False;
-            1: PTTAsserted := True;
-            END;  { of case }
-        END;
-
     GetPTTAsserted := PTTAsserted;   { Guess I will keep this here as a default }
     END;
 
@@ -790,6 +1083,8 @@ PROCEDURE ArduinoKeyer.SetPort (Port: SerialPortx);
 
     BEGIN
     ArduinoKeyerPort := Port;
+    //ArduinoKeyerPort.setparams (115200, 8, NoParity, 1);
+    ArduinoKeyerPort.setparams (19200, 8, NoParity, 1);
     END;
 
 
@@ -799,7 +1094,6 @@ procedure ArduinoKeyer.Timer;
 { Not sure this does anything for us }
 
     BEGIN
-    if not KeyerInitialized then exit;
     END;
 
 PROCEDURE ArduinoKeyer.ClearOutAnyIncomingCharacters;

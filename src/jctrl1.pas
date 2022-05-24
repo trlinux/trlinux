@@ -530,15 +530,12 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       CEC: Write (ConfirmEditChanges);
       CIF: Write (CountryInformationFile);
 
-      CKM: IF ActiveKeyer.GetCurtisMode = ModeA then
-           begin
-               Write ('A');
-           end
-           else
-           begin
-              if ActiveKeyer.GetCurtisMode = Ultimatic then
-                 write('U') else Write ('B');
-           end;
+      CKM: CASE ActiveKeyer.GetCurtisMode OF
+               ModeA:     Write ('A');
+               ModeB:     Write ('B');
+               ModeNL:    Write ('NL');
+               Ultimatic: Write ('U');
+               END;
 
       CWE: Write (CWEnable);
       CWS: Write (CWSpeedFromDataBase);
@@ -1746,7 +1743,10 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                CustomInfo:       Write ('Use CUSTOM USER STRING');
                END;
 
-      VER: Write ('Program version (can''t be changed)');
+      VER: IF ActiveKeyer = ArdKeyer THEN
+               Write ('SO2R Mini version = ', ArdKeyer.Version)
+           ELSE
+               Write ('Program version (can''t be changed)');
 
       VDE: IF VGADisplayEnable THEN
                Write ('VGA mode enabled at program start')
