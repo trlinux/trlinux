@@ -61,6 +61,7 @@ type
        dev: string;
        ncport: ansistring;
        inverted: boolean;
+       launch: boolean;
        procedure readbuf;
        procedure shellfork;
        procedure ncatforkr;
@@ -168,6 +169,8 @@ constructor serialportx.create(devicename: string);
 var tempfile: text;
     tios: termios;
     sset: serial_struct;
+    temp: ansistring;
+    colonpos: longint;
 //    rc: longint;
 //    i,flags: integer;
 begin
@@ -218,10 +221,19 @@ begin
       end
    else if pos('RIGCTLD',upcase(devicename)) = 1 then
       begin
-         if (fpsystem('which rigctld > /dev/null 2>&1') <> 0) then
+         temp := devicename;
+         delete(temp,1,8);
+         colonpos := pos(';',temp);
+         delete(temp,1,colonpos);
+         colonpos := pos(';',temp);
+         launch := not (copy(temp,1,colonpos-1) = 'NONE');
+         if launch then
          begin
-            writeln('rigctld command not found -- exiting');
-            halt;
+            if (fpsystem('which rigctld > /dev/null 2>&1') <> 0) then
+            begin
+               writeln('rigctld command not found -- exiting');
+               halt;
+            end;
          end;
          dev := devicename;
          fd := getpt;
@@ -230,8 +242,11 @@ begin
          setlength(slave,200);
          ptsname_r(fd,@slave[1],200);
          setlength(slave,strlen(pchar(@slave[0])));
-         rigctldforkr;
-         delay(100);
+         if launch then
+         begin
+            rigctldforkr;
+            delay(100);
+         end;
          rigctldforkn;
       end
    else
@@ -460,7 +475,10 @@ begin
    begin
       if (pid <> 0) then
       begin
-         if (fpwaitpid(pid,status,WNOHANG) = pid) then rigctldforkr;
+         if launch then
+         begin
+            if (fpwaitpid(pid,status,WNOHANG) = pid) then rigctldforkr;
+         end;
       end;
       if (pid2 <> 0) then
       begin
