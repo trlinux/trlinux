@@ -226,7 +226,7 @@ begin
          colonpos := pos(';',temp);
          delete(temp,1,colonpos);
          colonpos := pos(';',temp);
-         launch := not (copy(temp,1,colonpos-1) = 'NONE');
+         launch := not (temp = '');
          if launch then
          begin
             if (fpsystem('which rigctld > /dev/null 2>&1') <> 0) then
@@ -408,11 +408,20 @@ end;
 
 procedure serialportx.rigctldforkn;
 var fdslave: longint;
+    temp: ansistring;
+    colonpos: longint;
 begin
    pid2 := fpfork;
    if (pid2 = 0) then
    begin
       diewithparent;
+      if not launch then
+      begin
+         temp := dev;
+         delete(temp,1,8);
+         colonpos := pos(';',temp);
+         ncport := copy(temp,1,colonpos-1);
+      end;
       fdslave := fpopen(slave,O_RDWR);
       fpclose(0);
       fpclose(1);
