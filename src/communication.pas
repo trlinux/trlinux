@@ -221,12 +221,17 @@ begin
       end
    else if pos('RIGCTLD',upcase(devicename)) = 1 then
       begin
+writeln(stderr,'devicename =',devicename);
          temp := devicename;
+writeln(stderr,'temp 0 =',temp);
          delete(temp,1,8);
+writeln(stderr,'temp 1 =',temp);
          colonpos := pos(';',temp);
          delete(temp,1,colonpos);
-         colonpos := pos(';',temp);
+writeln(stderr,'temp 2 =',temp);
          launch := not (temp = '');
+writeln(stderr,'launch =',launch);
+flush(stderr);
          if launch then
          begin
             if (fpsystem('which rigctld > /dev/null 2>&1') <> 0) then
@@ -415,13 +420,18 @@ begin
    if (pid2 = 0) then
    begin
       diewithparent;
+writeln(stderr,'launch in rigctldforkn  =',launch);
       if not launch then
       begin
          temp := dev;
+writeln(stderr,'temp 0 =',temp);
          delete(temp,1,8);
+writeln(stderr,'temp 1 =',temp);
          colonpos := pos(';',temp);
          ncport := copy(temp,1,colonpos-1);
+writeln(stderr,'ncport =',ncport);
       end;
+flush(stderr);
       fdslave := fpopen(slave,O_RDWR);
       fpclose(0);
       fpclose(1);
