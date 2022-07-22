@@ -62,7 +62,8 @@ begin
    inherited create(debugin);
    commandtime := 500;
    commandcount := 0;
-   commandmaxretry := 2;
+//   commandmaxretry := 2;
+   commandmaxretry := -1; //No retries -- problems with misbehaving rigctld
    commandretrycount := 0;
    ignorefreq := false;
    ignorefreqcount := 0;
