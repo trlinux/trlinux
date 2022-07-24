@@ -941,6 +941,14 @@ The hamlib recommended rigctld port are the even numbered ports
 4532, 4534, 4536, etc. You can,
 of course, use any unused nonprivileged port.
 
+If you want TR to connect to a rigctld that is or will be started by
+another process, then leave out everything excecpt the port number, i.e.
+\begin{verbatim}
+radio one type = rigctld;4532;
+\end{verbatim}
+will set up TR to communicate with rigctld commands on port 4532 but
+will not launch rigctld.
+
 \section{Real time contest score reporting}
 TR can report contest scores and band breakdowns to one of the contest
 scoreboards if desired. Currently, this is not user friendly at all.

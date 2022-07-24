@@ -16,6 +16,11 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+0.53
+- Updated score reporter URL.
+- Allow control of the launch of rigctld. If only the port is given rigctld
+  commands are are sent/received to/from port, but rigctld is not launched
+  by TR.
 
 0.52 
 - This is the first release done by N6TR instead of W9CF
