@@ -194,6 +194,66 @@ TYPE
 
 
 
+PROCEDURE TBSIQ_ExitProgram;
+
+VAR TempString: Str160;
+
+    BEGIN
+    IF (ParamCount > 0) AND (ParamStr (1) = 'EXIT') THEN
+        BEGIN
+        SetWindow (WholeScreenWindow);
+        NormVideo;
+        TextMode (OriginalTextMode);
+        ClrScr;
+
+        IF BandMapEnable THEN SaveBandMap;
+
+        Sheet.SaveRestartFile;
+
+        IF IntercomFileOpen THEN Close (IntercomFileWrite);
+
+        NormVideo;
+        TextMode (OriginalTextMode);
+        ClrScr;
+        UnInitializeKeyer;
+        SetCBreak (ControlBreakStatus);
+        Halt;
+        END;
+
+    TempString := QuickEditResponse ('Do you really want to exit the program? (Y/N) : ', 1);
+    IF UpperCase (TempString) <> 'Y' THEN Exit;
+
+    IF BackCopyEnable THEN StopBackCopy;
+
+    IF NetDebug THEN
+        BEGIN
+        Close (NetDebugBinaryOutput);
+        Close (NetDebugBinaryInput);
+        END;
+
+    SetWindow (WholeScreenWindow);
+    NormVideo;
+    TextMode (OriginalTextMode);
+    ClrScr;
+
+    IF DVPEnable THEN DVPUnInit;
+
+    IF BandMapEnable THEN SaveBandMap;
+
+    Sheet.SaveRestartFile;
+
+    IF IntercomFileOpen THEN Close (IntercomFileWrite);
+
+    NormVideo;
+    TextMode (OriginalTextMode);
+    ClrScr;
+    UnInitializeKeyer;
+    SetCBreak (ControlBreakStatus);
+    Halt;
+    END;
+
+
+
 PROCEDURE TBSIQ_UpdateTimeAndRateDisplays;
 
 VAR TimeString, FullTimeString, HourString: Str20;
@@ -952,7 +1012,7 @@ PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
 
   See the notes in LOGSUBS2 for "the rest of the story" }
 
-VAR CursorPosition, CharPointer: INTEGER;
+VAR Count, CursorPosition, CharPointer: INTEGER;
     PreviousCursorChar: CHAR;
     TempString: String [255];
     TempExchange: ContestExchange;
@@ -966,8 +1026,8 @@ VAR CursorPosition, CharPointer: INTEGER;
 
     IF NOT TBSIQ_KeyPressed (Radio) THEN Exit;  { No reason to be here }
 
-    { We need to see if we need to put the window up that is active for this instance.  We check the global variable
-      TBSIQ_ActiveRadio to determine.  }
+    { We need to see if we need to put the window up that is active for this instance.  We check the
+      global variable TBSIQ_ActiveRadio to determine.  }
 
     IF TBSIQ_ActiveRadio <> Radio THEN
         BEGIN
@@ -1307,10 +1367,37 @@ VAR CursorPosition, CharPointer: INTEGER;
                       END;
 
                 AltS:
+                    BEGIN
                     SetNewCodeSpeed;
 
+                    FOR Count := 1 TO 10 DO
+                        BEGIN
+                        MilliSleep;
+                        WHILE TBSIQ_KeyPressed (Radio) DO TBSIQ_ReadKey (Radio);
+                        END;
+                    END;
+
                 AltT:
+                    BEGIN
                     TimeAndDateSet;
+
+                    FOR Count := 1 TO 10 DO
+                        BEGIN
+                        MilliSleep;
+                        WHILE TBSIQ_KeyPressed (Radio) DO TBSIQ_ReadKey (Radio);
+                        END;
+                    END;
+
+                AltX:
+                    BEGIN
+                    TBSIQ_ExitProgram;
+
+                    FOR Count := 1 TO 10 DO
+                        BEGIN
+                        MilliSleep;
+                        WHILE TBSIQ_KeyPressed (Radio) DO TBSIQ_ReadKey (Radio);
+                        END;
+                    END;
 
                 AltDash:
                     BEGIN
