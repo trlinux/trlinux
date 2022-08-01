@@ -29,7 +29,7 @@ UNIT LogStuff;
   in 2022 as I tried to remember how this beast works.
 
   When a RETURN is pressed when there is something in the exchange window,
-  the function ParametersOkay will be called (from WindowEditor in logstubs2.pas).
+  the function ParametersOkay will be called (from WindowEditor in logsubs2.pas).
   ParametersOkay resisdes in TR.PAS of all places!  It looks at the ExchangeString
   along with the call, band, mode and frequency and works on a record that will
   have all of the QSO information (ContestExchange type).
@@ -5577,7 +5577,7 @@ PROCEDURE CalculateQSOPoints (VAR RXData: ContestExchange);
 
 VAR MyZoneValue, RXDataZoneValue: INTEGER;
     Distance: LONGINT;
-    RXCty, TheirID, CountryID: CallString;
+    RXCtyID, TheirID, CountryID: CallString;
 
     BEGIN
     IF (QSOPointsDomesticCW >= 0) AND (RXData.Mode = CW) AND (RXData.DomesticQTH <> '') THEN
@@ -5604,7 +5604,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
         Exit;
         END;
 
-    RXCty := CountryTable.GetCountryID (RXData.QTH.Country);
+    RXCtyID := CountryTable.GetCountryID (RXData.QTH.Country);
 
     CASE ActiveQSOPointMethod OF
 
@@ -5622,7 +5622,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                         END;
                     END
                 ELSE
-                    IF MyCountry <> RXCty THEN
+                    IF MyCountry <> RXCtyID THEN
                         BEGIN
                         CASE RXData.Band OF
                             Band160: RXData.QSOPoints := 3;
@@ -5671,13 +5671,13 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
 
 
         ARIQSOPointMethod:
-            IF (RXCty = 'I') OR (RXCty = 'IS') THEN
+            IF (RXCtyID = 'I') OR (RXCtyID = 'IS') THEN
                 RXData.QSOPoints := 10
             ELSE
                 IF RXData.QTH.Continent <> MyContinent THEN
                     RXData.QSOPoints := 3
                 ELSE
-                    IF RXCty <> MyCountry THEN
+                    IF RXCtyID <> MyCountry THEN
                         RXData.QSOPoints := 1
                     ELSE
                         RXData.QSOPoints := 0;
@@ -5686,7 +5686,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
             IF (MyCountry = 'K') OR
                (MyCountry = 'VE') THEN
                 BEGIN
-                IF (RXCty <> 'K') AND (RXCty <> 'VE') THEN
+                IF (RXCtyID <> 'K') AND (RXCtyID <> 'VE') THEN
                     RXData.QSOPoints := 3
                 ELSE
                     BEGIN
@@ -5695,7 +5695,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     END;
                 END
             ELSE
-                IF (RXCty = 'K') OR (RXCty = 'VE') THEN
+                IF (RXCtyID = 'K') OR (RXCtyID = 'VE') THEN
                     RXData.QSOPoints := 3
                 ELSE
                     BEGIN
@@ -5777,7 +5777,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     RXData.QSOPoints := 2;
                 END
             ELSE
-                IF (RXCty = 'ES') OR (RXCty = 'YL') OR (RXCty = 'LY') THEN
+                IF (RXCtyID = 'ES') OR (RXCtyID = 'YL') OR (RXCtyID = 'LY') THEN
                     BEGIN
                     IF MyContinent = Europe THEN
                         RXData.QSOPoints := 10
@@ -5789,7 +5789,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
             END;
 
         CQ160QSOPointMethod:
-            IF RXCty = MyCountry THEN
+            IF RXCtyID = MyCountry THEN
                 RXData.QSOPoints := 2
             ELSE
                 IF RXData.QTH.Continent = MyContinent THEN
@@ -5801,7 +5801,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
             IF RXData.QTH.Continent <> MyContinent THEN
                 RXData.QSOPoints := 3
             ELSE
-                IF RXCty <> MyCountry THEN
+                IF RXCtyID <> MyCountry THEN
                     RXData.QSOPoints := 2
                 ELSE
                     RXData.QSOPoints := 1;
@@ -5828,9 +5828,19 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
             END;
 
         CQWPXQSOPointMethod:
+          BEGIN
+          { In 2022 - QSOs with Russia and EU do not count for the WPX test }
+
+          IF (RXCtyID = 'UA') OR (RXCtyID = 'UA2') OR (RXCtyID = 'UA9') OR
+             (RXCtyID = 'R1FJ') OR (RXCtyID = 'EU') THEN
+              BEGIN
+              RXData.QSOPoints := 0;
+              Exit;
+              END;
+
           IF RXData.QTH.Continent = MyContinent THEN
               BEGIN
-              IF RXCty = MyCountry THEN
+              IF RXCtyID = MyCountry THEN
                   RXData.QSOPoints := 1
               ELSE
                   BEGIN
@@ -5856,12 +5866,13 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                   Band15:  RXData.QSOPoints := 3;
                   Band10:  RXData.QSOPoints := 3;
                   END;
+          END;
 
         CQWPXRTTYQSOPointMethod:
           BEGIN
           IF RXData.QTH.Continent = MyContinent THEN
               BEGIN
-              IF RXCty = MyCountry THEN
+              IF RXCtyID = MyCountry THEN
                   RXData.QSOPoints := 1
               ELSE
                   RXData.QSOPoints := 2
@@ -5879,7 +5890,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
           IF RXData.QTH.Continent <> MyContinent THEN
               RXData.QSOPoints := 3
           ELSE
-              IF RXCty <> MyCountry THEN
+              IF RXCtyID <> MyCountry THEN
                   IF MyContinent <> NorthAmerica THEN
                       RXData.QSOPoints := 1
                   ELSE
@@ -5890,13 +5901,13 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
           IF RXData.QTH.Continent <> MyContinent THEN
               RXData.QSOPoints := 3
           ELSE
-              IF RXCty <> MyCountry THEN
+              IF RXCtyID <> MyCountry THEN
                       RXData.QSOPoints := 2
                   ELSE
                       RXData.QSOPoints := 1;
 
         CroatianQSOPointMethod:
-            IF RXCty = '9A' THEN
+            IF RXCtyID = '9A' THEN
                 BEGIN
                 CASE RXData.Band OF
                     Band160: RXData.QSOPoints := 10;
@@ -5938,7 +5949,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
 
            IF (CountryID = 'F') OR (CountryID = 'OE') THEN
               BEGIN
-              IF RXCty = MyCountry THEN
+              IF RXCtyID = MyCountry THEN
                   BEGIN
                   IF PortableStation (RXData.Callsign) THEN
                       RXData.QSOPoints := 50
@@ -5961,7 +5972,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
 
            IF CountryID = 'OZ' THEN
               BEGIN
-              IF RXCty = MyCountry THEN
+              IF RXCtyID = MyCountry THEN
                   BEGIN
                   IF PortableStation (RXData.Callsign) THEN
                       RXData.QSOPoints := 10
@@ -6052,7 +6063,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                 RXData.QSOPoints := 2;
 
         HADXQSOPointMethod:
-            IF RXCty = 'HA' THEN
+            IF RXCtyID = 'HA' THEN
                 RXData.QSOPoints := 6
             ELSE
                 IF RXData.QTH.Continent <> MyContinent THEN
@@ -6063,7 +6074,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
         HelvetiaQSOPointMethod:
             IF MyCountry <> 'HB' THEN
                 BEGIN
-                IF RXCty = 'HB' THEN
+                IF RXCtyID = 'HB' THEN
                     RXData.QSOPoints := 3
                 ELSE
                     RXData.QSOPoints := 0;
@@ -6100,7 +6111,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     RXData.QSOPOints := 1
                 ELSE
                     BEGIN
-                    TheirID := RXCty;
+                    TheirID := RXCtyID;
                     IF TheirID = 'VE' THEN TheirID := 'K';
 
                     IF (MyCounty <> 'K') AND (MyCountry <> 'VE') THEN
@@ -6138,14 +6149,14 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
 
             IF MyCountry = 'JA' THEN
                 BEGIN
-                IF RXCty = 'JA' THEN
+                IF RXCtyID = 'JA' THEN
                     BEGIN
                     RXData.QSOPoints := 0;
                     RXData.InhibitMults := True;
                     END;
                 END
             ELSE
-                IF (RXCty <> 'JA') AND (Copy (RXCty, 1, 2) <> 'JD') THEN
+                IF (RXCtyID <> 'JA') AND (Copy (RXCtyID, 1, 2) <> 'JD') THEN
                     BEGIN
                     RXData.QSOPoints := 0;
                     RXData.InhibitMults := True;
@@ -6155,14 +6166,14 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
         KCJQSOPointMethod:
             IF MyCountry = 'JA' THEN
                 BEGIN
-                IF (RXCty = 'JA') OR (RXCty = 'JD1') THEN
+                IF (RXCtyID = 'JA') OR (RXCtyID = 'JD1') THEN
                     RXData.QSOPoints := 1
                 ELSE
                     RXData.QSOPoints := 5;
                 END
             ELSE
                 BEGIN
-                IF (RXCty = 'JA') OR (RXCty = 'JD1') THEN
+                IF (RXCtyID = 'JA') OR (RXCtyID = 'JD1') THEN
                     RXData.QSOPoints := 1
                 END;
 
@@ -6170,7 +6181,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
            IF RXData.QTH.Continent <> MyContinent THEN
               RXData.QSOPoints := 5
            ELSE
-              IF RXCty = MyCountry THEN
+              IF RXCtyID = MyCountry THEN
                  RXData.QSOPoints := 1
               ELSE
                  RXData.QSOPoints := 3;
@@ -6185,7 +6196,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     RXData.QSOPoints := 1;
 
         NZFieldDayQSOPointMethod:
-            IF RXCty = 'ZL' THEN
+            IF RXCtyID = 'ZL' THEN
                 BEGIN
                 IF RXData.Mode = CW THEN
                     RXData.QSOPoints := 5
@@ -6201,13 +6212,13 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                 IF RXData.QTH.Continent <> Europe THEN
                     RXData.QSOPoints := 3
                 ELSE
-                    IF (RXCty <> 'OK') AND (RXCty <> 'OM') THEN
+                    IF (RXCtyID <> 'OK') AND (RXCtyID <> 'OM') THEN
                         RXData.QSOPoints := 1
                     ELSE
                         RXData.QSOPoints := 0;
                 END
             ELSE
-                IF (RXCty = 'OK') OR (RXCty = 'OM') THEN
+                IF (RXCtyID = 'OK') OR (RXCtyID = 'OM') THEN
                     BEGIN
                     IF MyContinent = Europe THEN
                         RXData.QSOPoints := 1
@@ -6218,7 +6229,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     RXData.QSOPoints := 0;
 
         RACQSOPointMethod:
-            IF RXCty = 'VE' THEN
+            IF RXCtyID = 'VE' THEN
                 BEGIN
                 IF Pos ('RAC', RXData.Callsign) > 0 THEN
                     RXData.QSOPoints := 20
@@ -6229,7 +6240,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                 RXData.QSOPoints := 2;
 
         RSGBQSOPointMethod:
-            IF MyCountry = RXCty THEN
+            IF MyCountry = RXCtyID THEN
                 RXData.QSOPoints := 0
             ELSE
                 CASE RXData.QTH.Continent OF
@@ -6250,7 +6261,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                 IF RXData.QTH.Continent <> MyContinent THEN
                     RXData.QSOPoints := 5
                 ELSE
-                    IF RXCty <> MyCountry THEN
+                    IF RXCtyID <> MyCountry THEN
                         RXData.QSOPoints := 3
                     ELSE
                         RXData.QSOPoints := 2;
@@ -6259,18 +6270,18 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
             { I am not in Russia }
 
             ELSE
-                IF (RXCty = 'UA') OR
-                   (RXCty = 'UA2') OR
-                   (RXCty = 'UA9') OR
-                   (RXCty = 'R1FJ') OR
-                   (RXCty = 'CE9') OR
-                   (RXCty = 'R1MV') THEN
+                IF (RXCtyID = 'UA') OR
+                   (RXCtyID = 'UA2') OR
+                   (RXCtyID = 'UA9') OR
+                   (RXCtyID = 'R1FJ') OR
+                   (RXCtyID = 'CE9') OR
+                   (RXCtyID = 'R1MV') THEN
                         RXData.QSOPoints := 10
                     ELSE
                         IF RXData.QTH.Continent <> MyContinent THEN
                             RXData.QSOPoints := 5
                         ELSE
-                            IF RXCty <> MyCountry THEN
+                            IF RXCtyID <> MyCountry THEN
                                 RXData.QSOPoints := 3
                             ELSE
                                 RXData.QSOPoints := 2;
@@ -6288,7 +6299,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
         ScandinavianQSOPointMethod:
             IF ScandinavianCountry (MyCountry) THEN
                 BEGIN
-                IF ScandinavianCountry (RXCty) THEN
+                IF ScandinavianCountry (RXCtyID) THEN
                     RXData.QSOPoints := 0
                 ELSE
                     IF RXData.QTH.Continent = Europe THEN
@@ -6298,7 +6309,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                 END
             ELSE
                 BEGIN
-                IF ScandinavianCountry (RXCty) THEN
+                IF ScandinavianCountry (RXCtyID) THEN
                     RXData.QSOPoints := 1
                 ELSE
                     RXData.QSOPoints := 0;
@@ -6359,7 +6370,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     RXData.QSOPoints := 1;
 
         UBAQSOPointMethod:
-            IF RXCty = 'ON' THEN
+            IF RXCtyID = 'ON' THEN
                 RXData.QSOPoints := 10
             ELSE
                 IF RXData.QTH.Continent = Europe THEN
@@ -6368,10 +6379,10 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     RXData.QSOPoints := 1;
 
         UkrainianQSOPointMethod:
-            IF RXCty = 'UR' THEN
+            IF RXCtyID = 'UR' THEN
                 RXData.QSOPoints := 10
             ELSE
-                IF RXCty = MyCountry THEN
+                IF RXCtyID = MyCountry THEN
                     RXData.QSOPoints := 1
                 ELSE
                     IF RXData.QTH.Continent = MyContinent THEN
@@ -6409,7 +6420,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
         WAGQSOPointMethod:
             IF MyCountry = 'DL' THEN
                 BEGIN
-                IF RXCty = 'DL' THEN
+                IF RXCtyID = 'DL' THEN
                     RXData.QSOPoints := 1
                 ELSE
                     IF RXData.QTH.Continent = Europe THEN
@@ -6419,7 +6430,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                 END
             ELSE
                 BEGIN
-                IF RXCty = 'DL' THEN
+                IF RXCtyID = 'DL' THEN
                     RXData.QSOPoints := 3
                 ELSE
                     RXData.QSOPoints := 0;
@@ -6454,11 +6465,12 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                 RXData.QSOPoints := 1;
             END;
 
+
         YODXQSOPointMethod:
-          IF RXCty = 'YO' THEN
+          IF RXCtyID = 'YO' THEN
               RXData.QSOPoints := 8
           ELSE
-              IF MyCountry <> RXCty THEN
+              IF MyCountry <> RXCtyID THEN
                   IF RXData.QTH.Continent <> MyContinent THEN
                       RXData.QSOPoints := 4
                   ELSE

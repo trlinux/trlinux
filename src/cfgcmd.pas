@@ -2173,6 +2173,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'PACKET FT8 SPOTS' THEN
+        BEGIN
+        Packet.FT8SpotEnable := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'PACKET LOG FILENAME' THEN
         BEGIN
         Packet.PacketLogFileName := CMD;

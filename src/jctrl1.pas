@@ -141,6 +141,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       PAR,
                       PBS,
                       PBP,
+                      PF8,
                       PLF,
                       PRM,
                       PSC, {KK1L: 6.71 Coded for PacketSpotComment started in 6.68}
@@ -371,6 +372,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       PAR: Description := 'PACKET AUTO CR';
       PBS: Description := 'PACKET BAND SPOTS';
       PBP: Description := 'PACKET BEEP';
+      PF8: Description := 'PACKET FT8 SPOTS';
       PLF: Description := 'PACKET LOG FILENAME';
       PRM: Description := 'PACKET RETURN PER MINUTE';
       PSC: Description := 'PACKET SPOT COMMENT'; {KK1L: 6.71 Implimented what I started in 6.68}
@@ -685,6 +687,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       PAR: Write (PacketAutoCR);
       PBS: Write (Packet.PacketBandSpots);
       PBP: Write (Packet.PacketBeep);
+      PF8: Write (Packet.FT8SpotEnable);
       PLF: Write (Packet.PacketLogFileName);
 
       PRM: Write (PacketReturnPerMinute);
@@ -1369,6 +1372,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Beep when packet spots come in')
            ELSE
                Write ('Display incoming spots without beep');
+
+      PF8: IF Packet.FT8SpotEnable THEN
+               Write ('Spots on FT8 frequencies dhown')
+           ELSE
+               Write ('FT8 frequency spots not shown');
 
       PLF: IF Packet.PacketLogFileName = '' THEN
                Write ('Packet log file disabled')

@@ -558,6 +558,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       PBS: Packet.PacketBandSpots       := NOT Packet.PacketBandSpots;
       PBP: Packet.PacketBeep            := NOT Packet.PacketBeep;
+      PF8: Packet.FT8SpotEnable         := NOT Packet.FT8SpotEnable;
 
       PLF: Packet.PacketLogFileName := QuickEditResponse ('Enter packet log file name (none to disable) : ', 20);
 
@@ -618,7 +619,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
 
       PEN: PrinterEnabled           := NOT PrinterEnabled;
-      PTT: ActiveKeyer.SetPTTEnable(NOT ActiveKeyer.GetPTTEnable);
+      PTT: ActiveKeyer.SetPTTEnable (NOT ActiveKeyer.GetPTTEnable);
 
       PTD: BEGIN
            TempInt := QuickEditInteger ('Enter PTT delay count : ', 4);
@@ -1144,6 +1145,7 @@ VAR FileWrite: TEXT;
       PAR: WriteLn (FileWRite, PacketAutoCR);
       PBS: WriteLn (FileWrite, Packet.PacketBandSpots);
       PBP: WriteLn (FileWrite, Packet.PacketBeep);
+      PF8: WriteLn (FileWrite, Packet.FT8SpotEnable);
       PLF: WriteLn (FileWrite, Packet.PacketLogFileName);
 
       PRM: WriteLn (FileWrite, PacketReturnPerMinute);
@@ -1505,6 +1507,7 @@ VAR TempString: Str40;
       PAR: IF PacketAutoCR THEN TempString := 'TRUE';
       PBS: IF Packet.PacketBandSpots THEN TempString := 'TRUE';
       PBP: IF Packet.PacketBeep THEN TempString := 'TRUE';
+      PF8: IF Packet.FT8SpotEnable THEN TempString := 'TRUE';
 
       PRM: Str (PacketReturnPerMinute, TempString);
       PSC: TempString := PacketSpotComment; {KK1L: 6.71 Implimented what I started in 6.68}

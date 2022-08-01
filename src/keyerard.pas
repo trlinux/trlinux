@@ -494,11 +494,16 @@ VAR DelayLoops: INTEGER;
         ELSE
             BEGIN     { Here because we timed out }
             Inc (RetryCount);
+            GoToXY (1, WhereY);
+            Write ('SO2R Retry count = ', RetryCount);
 
             IF RetryCount > 20 THEN
                 BEGIN
                 ClrScr;
-                WriteLn ('Unable to communicat with Arduino after ', RetryCount, ' retries');
+                WriteLn;
+                WriteLn ('Unable to communicate with Arduino after ', RetryCount, ' retries');
+                WriteLn ('Returned string = ', Version);
+                WaitForKeyPressed;
                 Halt;
                 END;
 
@@ -1085,6 +1090,8 @@ PROCEDURE ArduinoKeyer.SetPort (Port: SerialPortx);
     ArduinoKeyerPort := Port;
     //ArduinoKeyerPort.setparams (115200, 8, NoParity, 1);
     ArduinoKeyerPort.setparams (19200, 8, NoParity, 1);
+    WriteLn ('Setting SO2R mini port to 19200 baud');
+    WaitForKeyPressed;
     END;
 
 
@@ -1121,18 +1128,18 @@ FUNCTION ArduinoKeyer.CWStillBeingSent: BOOLEAN;
         REPEAT UNTIL ArduinoKeyerPort.CharReady;
 
         CASE Integer (ArduinoKeyerPort.ReadChar) OF
-            0: BEGIN
-                 CWStillBeingSent := False;
-                 END;
+            0: CWStillBeingSent := False;  { PTT dropped }
 
-            1: BEGIN
-                 CWStillBeingSent := True;  { we are doing the PTT wind down thing }
-                 END;
+             { A 1 result  used to return True - but I was seeing some
+               dropouts of the PTT being asserted when using the
+               AutoCallTerminate function - so made it false so that we
+               can have more time to get the exchange (or dupe message)
+               cued up. }
 
-            2: BEGIN
-                 CWStillBeingSent := True;  { we are indeed sending CW }
-                 END;
-            END;
+            1: CWStillBeingSent := False;  { CW buffer empty - PTT On }
+            2: CWStillBeingSent := True;   { we are indeed sending CW }
+
+            END;  { of case }
         END
     ELSE
         CWStillBeingSent := False;
