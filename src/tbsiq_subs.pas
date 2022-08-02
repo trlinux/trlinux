@@ -78,6 +78,7 @@ TYPE
         DisplayedFrequency: LONGINT;
         DisplayedMode: ModeType;
 
+        ExchangeWindowIsUp: BOOLEAN;
         ExchangeWindowString: Str40;
         ExchangeWindowCursorPosition: INTEGER;
 
@@ -92,9 +93,6 @@ TYPE
         QSOState: TBSIQ_QSOStateType;
 
         StartSendingNowIndex: INTEGER;     { zero indicates none }
-
-        PROCEDURE ActivateCallWindow;
-        PROCEDURE ActivateExchangeWindow;
 
         PROCEDURE CheckQSOStateMachine;
         PROCEDURE DisplayBandMode;
@@ -111,7 +109,6 @@ TYPE
         PROCEDURE Set_TBSIQ_Window (TBSIQ_Window: TBSIQ_WindowType);
         PROCEDURE ShowCWMessage (Message: STRING);
         PROCEDURE ShowStateMachineStatus;
-        PROCEDURE SwapWindows;
 
         PROCEDURE UpdateRadioDisplay;  { Band/mode/frequency }
 
@@ -499,7 +496,7 @@ VAR Key, ExtendedKey: CHAR;
             { Put up exchange window and any initial exchange }
 
             IF TBSIQ_Activewindow = TBSIQ_CallWindow THEN
-                ActivateExchangeWindow;
+                Set_TBSIQ_Window (TBSIQ_ExchangeWindow);
 
             InitialExchange := InitialExchangeEntry (CallWindowString);
 
@@ -549,6 +546,19 @@ VAR Key, ExtendedKey: CHAR;
         QST_CQWaitingForExchange:
             BEGIN
             { See if a function key was pressed to send an Exchange message }
+
+            IF ActionRequired AND (Key = EscapeKey) THEN  { We can assume no CW and empty window }
+                IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
+                    BEGIN
+                    RemoveExchangeWindow;
+                    Set_TBSIQ_Window (TBSIQ_CallWindow);
+                    QSOState := QST_CQCalled;
+                    END
+                ELSE
+                    BEGIN
+                    RemoveExchangeWindow;
+                    QSOState := QST_Idle;
+                    END;
 
             IF ActionRequired AND (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
                 BEGIN
@@ -741,6 +751,8 @@ PROCEDURE QSOMachineObject.Set_TBSIQ_Window (TBSIQ_Window: TBSIQ_WindowType);
   that this will only be happening when the saved window list is empty. }
 
     BEGIN
+    TBSIQ_ActiveWindow := TBSIQ_Window;
+
     CASE Radio OF
         RadioOne:
             CASE TBSIQ_Window OF
@@ -753,6 +765,13 @@ PROCEDURE QSOMachineObject.Set_TBSIQ_Window (TBSIQ_Window: TBSIQ_WindowType);
                 TBSIQ_ExchangeWindow:
                     BEGIN
                     SetWindow (TBSIQ_R1_ExchangeWindow);
+
+                    IF NOT ExchangeWindowIsUp THEN
+                        BEGIN
+                        ClrScr;
+                        ExchangeWindowIsUp := True;
+                        END;
+
                     GoToXY (ExchangeWindowCursorPosition, 1);
                     END;
                 END;  { of case }
@@ -768,9 +787,17 @@ PROCEDURE QSOMachineObject.Set_TBSIQ_Window (TBSIQ_Window: TBSIQ_WindowType);
                 TBSIQ_ExchangeWindow:
                     BEGIN
                     SetWindow (TBSIQ_R2_ExchangeWindow);
+
+                    IF NOT ExchangeWindowIsUp THEN
+                        BEGIN
+                        ClrScr;
+                        ExchangeWindowIsUp := True;
+                        END;
+
                     GoToXY (ExchangeWindowCursorPosition, 1);
                     END;
                 END;  { of case }
+
         END;  { of case Radio }
     END;
 
@@ -818,7 +845,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R1_CodeSpeedWindowRX := WindowLocationX + 9;
             TBSIQ_R1_CodeSpeedWindowRY := WindowLocationY + 3;
 
-            { CW Status Window sits just below the Exchagne window }
+            { CW Status Window sits just below the Exchange window }
 
             TBSIQ_R1_CWMessageWindowLX := WindowLocationX + 2;
             TBSIQ_R1_CWMessageWindowLY := WindowLocationY + 5;
@@ -887,7 +914,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R2_CodeSpeedWindowRX := WindowLocationX + 9;
             TBSIQ_R2_CodeSpeedWindowRY := WindowLocationY + 3;
 
-            { CW Status Window sits just below the Exchagne window }
+            { CW Status Window sits just below the Exchange window }
 
             TBSIQ_R2_CWMessageWindowLX := WindowLocationX + 2;
             TBSIQ_R2_CWMessageWindowLY := WindowLocationY + 5;
@@ -943,6 +970,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     CallWindowCursorPosition := 1;
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
+    ExchangeWindowIsUp := False;
 
     { Set up call window for data input }
 
@@ -1103,11 +1131,17 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                 BEGIN
                 IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                     BEGIN
+                    CallWindowString := '';
+                    CallWindowCursorPosition := 1;
                     EscapeDeletedCallEntry := WindowString;
                     NameCallsignPutUp := '';
                     END
                 ELSE
+                    BEGIN
                     EscapeDeletedExchangeEntry := WindowString;
+                    ExchangeWindowString := '';
+                    ExchangeWindowCursorPosition := 1;
+                    END;
 
                 ClrScr;
                 WindowString := '';
@@ -1117,7 +1151,9 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
 
             { We got here when escape was pressed and there was no CW to abort and no window
               string to erase.  There is nothing more we can do at this level, so we will let
-              the calling procedure deal with it }
+              the calling procedure deal with it.  Everything is already deleted - so we just
+              need to send the ESCAPE back to the calling routine so it can back up in the QSO
+              process }
 
             Exit;
             END;
@@ -1345,6 +1381,25 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
 
             CASE ExtendedKeyChar OF
 
+                AltE: BEGIN
+                      RITEnable := False;
+                      VisibleLog.EditLog;
+                      RITEnable := True;
+                      UpdateTotals;
+                      VisibleLog.ShowRemainingMultipliers;
+                      VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
+{                     DisplayTotalScore (TotalScore); }
+                      LastTwoLettersCrunchedOn := '';
+
+                      IF VisibleDupeSheetEnable THEN
+                          BEGIN
+                          VisibleDupeSheetChanged := True;
+                          VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
+                          END;
+
+                      VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
+                      END;
+
                 AltI:
                     IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                         BEGIN
@@ -1366,31 +1421,37 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                       RITEnable := True;
                       END;
 
-                AltS:
-                    BEGIN
-                    SetNewCodeSpeed;
+                AltS: BEGIN
+                      SetNewCodeSpeed;
 
-                    FOR Count := 1 TO 10 DO
-                        BEGIN
-                        MilliSleep;
-                        WHILE TBSIQ_KeyPressed (Radio) DO TBSIQ_ReadKey (Radio);
-                        END;
-                    END;
+                      { Snuff out any characters that might have been left over when someone did something like AltX
+                        and answered N }
 
-                AltT:
-                    BEGIN
-                    TimeAndDateSet;
+                      FOR Count := 1 TO 10 DO
+                          BEGIN
+                          MilliSleep;
+                          WHILE TBSIQ_KeyPressed (Radio) DO TBSIQ_ReadKey (Radio);
+                          END;
+                      END;
 
-                    FOR Count := 1 TO 10 DO
-                        BEGIN
-                        MilliSleep;
-                        WHILE TBSIQ_KeyPressed (Radio) DO TBSIQ_ReadKey (Radio);
-                        END;
-                    END;
+                AltT: BEGIN
+                      TimeAndDateSet;
 
-                AltX:
-                    BEGIN
-                    TBSIQ_ExitProgram;
+                      { Snuff out any characters that might have been left over when someone did something like AltX
+                        and answered N }
+
+                      FOR Count := 1 TO 10 DO
+                          BEGIN
+                          MilliSleep;
+                          WHILE TBSIQ_KeyPressed (Radio) DO TBSIQ_ReadKey (Radio);
+                          END;
+                      END;
+
+                AltX: BEGIN
+                      TBSIQ_ExitProgram;
+
+                    { Snuff out any characters that might have been left over when someone did something like AltX
+                      and answered N }
 
                     FOR Count := 1 TO 10 DO
                         BEGIN
@@ -1464,11 +1525,8 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                         GoToXY (CursorPosition + 1, WhereY);
                     END;
 
-                PageUpKey:
-                    SpeedUp;
-
-                PageDownKey:
-                    SlowDown;
+                PageUpKey: SpeedUp;
+                PageDownKey: SlowDown;
 
                 { It appears we used ControlUpArrow to MoveGridMap }
 
@@ -1567,7 +1625,7 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                 END;
         END;  { of case KeyChar }
 
-     { If we got here - some case of KeyChar was found that did something that did not require the calling
+    { If we got here - some case of KeyChar was found that did something that did not require the calling
        procedure to do anything.  We will return Chr (0) for KeyChar and ExtendedKey so the calling procedure
        doesn't do anything }
 
@@ -1642,24 +1700,12 @@ PROCEDURE QSOMachineObject.WriteCharacter (Ch: CHAR);
 
 
 
-PROCEDURE QSOMachineObject.SwapWindows;
-
-{ Used to swap between Call and Exchange windows }
-
-    BEGIN
-    IF TBSIQ_Activewindow = TBSIQ_CallWindow THEN
-        ActivateExchangeWindow
-    ELSE
-        ActivateCallWindow;
-    END;
-
-
-
 PROCEDURE QSOMachineObject.RemoveExchangeWindow;
 
     BEGIN
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
+    ExchangeWindowIsUp := False;
 
     CASE Radio OF
         RadioOne:
@@ -1669,48 +1715,6 @@ PROCEDURE QSOMachineObject.RemoveExchangeWindow;
             RemoveWindow (TBSIQ_R2_ExchangeWindow);
 
         END;  { of case Radio }
-    END;
-
-
-
-PROCEDURE QSOMachineObject.ActivateCallWindow;
-
-    BEGIN
-    Set_TBSIQ_Window (TBSIQ_ExchangeWindow);
-    SetColor (ColorColors.ExchangeWindowColor);
-    SetBackground (ColorColors.InactiveWindowBackground);  { Probably green }
-    ClrScr;
-    Write (ExchangeWindowString);
-
-    { Now - paint the call window and setup the cursor }
-
-    Set_TBSIQ_Window (TBSIQ_CallWindow);
-    ClrScr;
-
-    Write (CallWindowString);
-    GoToXY (CallWindowCursorPosition, 1);
-    END;
-
-
-PROCEDURE QSOMachineObject.ActivateExchangeWindow;
-
-    BEGIN
-    { First - we repaint the call window with the inactive background }
-
-    Set_TBSIQ_Window (TBSIQ_CallWindow);
-    ClrScr;
-
-    Write (CallWindowString);
-
-    { Now - paint the exchange window and put the cursor in the right place }
-
-    Set_TBSIQ_Window (TBSIQ_ExchangeWindow);
-    ClrScr;
-
-    Write (ExchangeWindowString);
-    GoToXY (ExchangeWindowCursorPosition, 1);
-
-    TBSIQ_ActiveWindow := TBSIQ_ExchangeWindow;
     END;
 
 

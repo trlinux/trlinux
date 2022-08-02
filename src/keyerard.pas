@@ -1090,8 +1090,6 @@ PROCEDURE ArduinoKeyer.SetPort (Port: SerialPortx);
     ArduinoKeyerPort := Port;
     //ArduinoKeyerPort.setparams (115200, 8, NoParity, 1);
     ArduinoKeyerPort.setparams (19200, 8, NoParity, 1);
-    WriteLn ('Setting SO2R mini port to 19200 baud');
-    WaitForKeyPressed;
     END;
 
 
