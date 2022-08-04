@@ -395,7 +395,7 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
 
 
-PROCEDURE QSOMachineObject.ListenToOtherRadio;
+PROCEDURE QSOMachineObject.ListenToBothRadios;
 
 { Puts the headphones into stereo mode }
 
@@ -405,7 +405,7 @@ PROCEDURE QSOMachineObject.ListenToOtherRadio;
 
 
 
-PROCEDURE QSOMachineObject.ListenToBothRadios;
+PROCEDURE QSOMachineObject.ListenToOtherRadio;
 
     BEGIN
     IF Radio = RadioOne THEN
@@ -443,8 +443,6 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_Idle, QST_CQCalled:
             BEGIN
-            ListenToBothRadios;
-
             IF ActionRequired THEN
                 BEGIN
                 IF (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
@@ -493,6 +491,7 @@ VAR Key, ExtendedKey: CHAR;
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
                 BEGIN
+                ListenToBothRadios;
                 ShowCWMessage ('');
                 QSOState := QST_CQCalled;
                 END;
@@ -575,7 +574,10 @@ VAR Key, ExtendedKey: CHAR;
                 END;
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
+                BEGIN
+                ListenToBothRadios;
                 QSOState := QST_CQWaitingForExchange;
+                END;
             END;
 
         { Am waiting for a RETURN to be pressed and have someting that looks legit in both
@@ -583,8 +585,6 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQWaitingForExchange:
             BEGIN
-            ListenToBothRadios;
-
             { See if a function key was pressed to send an Exchange message }
 
             IF ActionRequired AND (Key = EscapeKey) THEN  { We can assume no CW and empty window }
@@ -629,6 +629,7 @@ VAR Key, ExtendedKey: CHAR;
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
                 BEGIN
+                ListenToBothRadios;
                 ShowCWMessage ('');
                 QSOState := QST_Idle;
                 RemoveExchangeWindow;
