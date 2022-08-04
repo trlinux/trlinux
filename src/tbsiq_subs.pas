@@ -29,7 +29,7 @@ UNIT TBSIQ_Subs;
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW;
 
 TYPE
@@ -103,6 +103,9 @@ TYPE
                                         WinX, WinY: INTEGER);
 
         FUNCTION  LegalKey (KeyChar: CHAR): BOOLEAN;
+
+        PROCEDURE ListenToBothRadios;
+        PROCEDURE ListenToOtherRadio;
 
         PROCEDURE RemoveExchangeWindow;
 
@@ -392,6 +395,27 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
 
 
+PROCEDURE QSOMachineObject.ListenToOtherRadio;
+
+{ Puts the headphones into stereo mode }
+
+    BEGIN
+    so2rbox.setrcvfocus (Stereo);
+    END;
+
+
+
+PROCEDURE QSOMachineObject.ListenToBothRadios;
+
+    BEGIN
+    IF Radio = RadioOne THEN
+        so2rbox.setrcvfocus (RX2)
+    ELSE
+        so2rbox.setrcvfocus (RX1);
+    END;
+
+
+
 PROCEDURE QSOMachineObject.CheckQSOStateMachine;
 
 VAR Key, ExtendedKey: CHAR;
@@ -418,6 +442,9 @@ VAR Key, ExtendedKey: CHAR;
     CASE QSOState OF
 
         QST_Idle, QST_CQCalled:
+            BEGIN
+            ListenToBothRadios;
+
             IF ActionRequired THEN
                 BEGIN
                 IF (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
@@ -456,9 +483,14 @@ VAR Key, ExtendedKey: CHAR;
                     END; { of case Key }
 
                 END; { of QST_Idle and ActionRequired }
+            END;
+
+        { While callinng CQ - we want to listen to the other radio }
 
         QST_CallingCQ:
             BEGIN
+            ListenToOtherRadio;
+
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
                 BEGIN
                 ShowCWMessage ('');
@@ -468,6 +500,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQStationBeingAnswered:
             BEGIN
+            ListenToOtherRadio;
+
             { See if a function key was pressed to send an Exchange message }
 
             IF ActionRequired AND (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
@@ -493,6 +527,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQExchangeBeingSent:
             BEGIN
+            ListenToOtherRadio;
+
             { Put up exchange window and any initial exchange }
 
             IF TBSIQ_Activewindow = TBSIQ_CallWindow THEN
@@ -527,6 +563,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQExchangeBeingSentAndExchangeWindowUp:
             BEGIN
+            ListenToOtherRadio;
+
             { See if a function key was pressed to send an Exchange message }
 
             IF ActionRequired AND (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
@@ -545,6 +583,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQWaitingForExchange:
             BEGIN
+            ListenToBothRadios;
+
             { See if a function key was pressed to send an Exchange message }
 
             IF ActionRequired AND (Key = EscapeKey) THEN  { We can assume no CW and empty window }
@@ -564,6 +604,7 @@ VAR Key, ExtendedKey: CHAR;
                 BEGIN
                 TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
                 ShowCWMessage (Message);
+                QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;
                 Exit;
                 END;
 
@@ -584,6 +625,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQSending73Message:
             BEGIN
+            ListenToOtherRadio;
+
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
                 BEGIN
                 ShowCWMessage ('');
