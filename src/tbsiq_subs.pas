@@ -95,6 +95,7 @@ TYPE
         StartSendingNowIndex: INTEGER;     { zero indicates none }
 
         PROCEDURE CheckQSOStateMachine;
+        PROCEDURE CheckTransmitIndicator;
         PROCEDURE ClearTransmitIndicator;
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayFrequency;
@@ -397,6 +398,24 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
 
 
+PROCEDURE QSOMachineObject.CheckTransmitIndicator;
+
+{ Gets called by the other radio's QSOMachine when it stops sending CW and
+  gives us a chance to update the Transmitindicator if we are in a state
+  that transmits }
+
+    BEGIN
+    CASE QSOState OF
+        QST_Idle, QST_CQCalled, QST_CQWaitingForExchange:
+            BEGIN
+            END;
+        ELSE
+            SetTransmitIndicator;    { will be red now that our CW is being sent }
+        END;
+    END;
+
+
+
 PROCEDURE QSOMachineObject.SetTransmitIndicator;
 
 { Turns on the TX indicator }
@@ -407,7 +426,11 @@ PROCEDURE QSOMachineObject.SetTransmitIndicator;
         RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
         END;
 
-    SetBackground (Red);
+    IF TBSIQ_CW_Engine.CWBeingSent (Radio) THEN
+        SetBackground (Red)
+    ELSE
+        SetBackground (Yellow);
+
     ClrScr;
     RestorePreviousWindow;
     END;
@@ -419,8 +442,17 @@ PROCEDURE QSOMachineObject.ClearTransmitIndicator;
 
     BEGIN
     CASE Radio OF
-        RadioOne: RemoveWindow (TBSIQ_R1_TransmitIndicatorWindow);
-        RadioTwo: RemoveWindow (TBSIQ_R2_TransmitIndicatorWindow);
+        RadioOne:
+            BEGIN
+            RemoveWindow (TBSIQ_R1_TransmitIndicatorWindow);
+            Radio2QSOMachine.CheckTransmitIndicator;
+            END;
+
+        RadioTwo:
+            BEGIN
+            RemoveWindow (TBSIQ_R2_TransmitIndicatorWindow);
+            Radio1QSOMachine.CheckTransmitIndicator;
+            END;
         END;
     END;
 
