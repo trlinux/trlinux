@@ -380,7 +380,6 @@ void ExecuteCWCommand (char CWCommand)
       {
         digitalWrite (k1Output, HIGH);  // K1 On - Headphones to K2
         digitalWrite (k2Output, LOW);  //   K2 Off - Headphones to Radio 2 (if K1 on)
-        break;
       }
       else
       {
@@ -393,13 +392,12 @@ void ExecuteCWCommand (char CWCommand)
     {
       if (RadioSelect == 1)  // Radio 1 is active
       {
-        digitalWrite (k1Output, LOW); break;  // Headphones on rig 1
-        break;
+        digitalWrite (k1Output, LOW);   // Headphones on rig 1  
       }
       else
       {
         digitalWrite (k1Output, HIGH);  // K1 On - Headphones to K2
-        digitalWrite (k2Output, LOW);  //   K2 Off - Headphones to Radio 2 (if K1 on)
+        digitalWrite (k2Output, LOW);   // K2 Off - Headphones to Radio 2 (if K1 on)
       }
       break;
     }
@@ -411,14 +409,14 @@ void ExecuteCWCommand (char CWCommand)
     case 'y':   // Headphones on rig 2
     {
       digitalWrite (k1Output, HIGH);  // K1 On - Headphones to K2
-      digitalWrite (k2Output, LOW);  //   K2 Off - Headphones to Radio 2 (if K1 on)
+      digitalWrite (k2Output, LOW);   // K2 Off - Headphones to Radio 2 (if K1 on)
       break;
     }
 
     case 'z':   // Headphones in stereo
     {
       digitalWrite (k1Output, HIGH);  // K1 On - Headphones to K2
-      digitalWrite (k2Output, HIGH);  //  K2 On  - Stereo Mode (if K1 on)
+      digitalWrite (k2Output, HIGH);  // K2 On  - Stereo Mode (if K1 on)
       break;
     }
             
@@ -476,7 +474,8 @@ void CueUpNextCharacter()
       CharacterBuffer.Tail++;
       if (CharacterBuffer.Tail >= CharacterBufferSize) CharacterBuffer.Tail = 0;
 
-      ExecuteCWCommand (Command);         
+      ExecuteCWCommand (Command); 
+      return;        
                
       }   // end of getting second character off buffer
       else
@@ -485,6 +484,7 @@ void CueUpNextCharacter()
         // We will remember this and wait for the character to show up
 
         WaitingForCWCommand = true;
+        return;
       }
     }     // end of it char is ^ for command character
     
@@ -1128,7 +1128,9 @@ void ProcessHostSerialCharacter (int hostchar)
         CharacterBuffer.Head = 0;
       }
       CWSpeed = ComputerCWSpeed;
-      TurnOnPTT ();   // Need to get PTT turned on ASAP 
+
+      // I used to do this - but it was causing the PTT to come on for things like ^Y      
+      // TurnOnPTT ();   // Need to get PTT turned on ASAP 
       return;
     }
 
@@ -1144,7 +1146,7 @@ void ProcessHostSerialCharacter (int hostchar)
 
         case 0x01:   // send version back to host - we assume the host is listening for this
           {
-            Serial.print ("TRCW V2");
+            Serial.print ("TRCW V3");
             break;
           }
 

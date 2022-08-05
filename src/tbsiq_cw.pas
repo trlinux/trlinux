@@ -67,6 +67,7 @@ TYPE
         PROCEDURE CueCWMessage (Message: STRING; Radio: RadioType; Priority: TBSIQ_CW_PriorityType; VAR MessageNumber: INTEGER);
         FUNCTION  CuedMessageStatus (MessageNumber: INTEGER): CuedMessageStatusType;
         FUNCTION  CWFinished (Radio: RadioType): BOOLEAN;
+        FUNCTION  CWBeingSent (Radio: RadioType): BOOLEAN;
         END;
 
 VAR
@@ -216,6 +217,18 @@ VAR Index: INTEGER;
         END;
 
     CWFinished := True;
+    END;
+
+
+
+FUNCTION TBSIQ_CWEngineObject.CWBeingSent (Radio: RadioType): BOOLEAN;
+
+{ This is kind of like the above - but it only checks to see if the indicated radio is sending
+  a message.  Used to avoid both radios trying to "listen to the other radio" when a message
+  is cued. }
+
+    BEGIN
+    CWBeingSent := (ActiveRadio = Radio) AND CWStillBeingSent;
     END;
 
 

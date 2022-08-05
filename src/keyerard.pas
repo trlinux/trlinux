@@ -60,9 +60,9 @@ TYPE
         Latch:                BOOLEAN;   { I really don't know what this does }
         map1:                 INTEGER;
         map2:                 INTEGER;
-        SO2R_config:          so2r_config_t;
-        SO2R_state:           so2r_state_t;
-        SO2R_switches:        so2r_switches_t;
+        SO2R_config:          so2r_config_t;   { not used except I remember if blend and relays are set  }
+        SO2R_state:           so2r_state_t;    { this gets used for RX focus and mic switching }
+        SO2R_switches:        so2r_switches_t; { not used }
 
         FUNCTION  EchoTest: BOOLEAN;
         PROCEDURE SendRelayStatusToSO2RMini;
@@ -275,17 +275,17 @@ VAR Cmd: BYTE;
     BEGIN
     IF KeyerInitialized THEN
         BEGIN
-        Cmd := 0;
+        Cmd := 0;  { default value }
 
         { Bit zero of the command is relay 1 - OFF = rig 1  ON = rig 2 }
 
         IF (SO2R_State.RX2 = 1) THEN
-            Cmd := Cmd OR $01;  { Set bit }
+            Cmd := $01;
 
-        { Bit one is for relay 2 - which is relay 1 is also on will do stereo }
+        { Bit one is for relay 2 - which if relay 1 is also on will do stereo }
 
         IF (SO2R_State.Stereo = 1) THEN
-            Cmd := Cmd OR $03;  { Set bits }
+            Cmd := $03;
 
         { Microphone relay }
 
@@ -600,27 +600,25 @@ PROCEDURE ArduinoKeyer.SetActiveRadio (Radio: RadioType);
     CASE Radio OF
         RadioOne:
             BEGIN
-            IF SO2r_Config.Relays = 1 THEN
-                SO2R_State.TX2 := 0;          { Set microphone to radio 1 }
+            SO2R_State.TX2 := 0;          { Set microphone to radio 1 }
 
             IF KeyerInitialized THEN
                 BEGIN
                 ArduinoKeyerPort.PutChar (Char ($0B));  { Radio select command }
                 ArduinoKeyerPort.PutChar (Char ($01));  { Radio One }
-                SendRelayStatusToSO2RMini ; { Update microphone relay }
+                SendRelayStatusToSO2RMini ;  { Update microphone relay  }
                 END;
             END;
 
         RadioTwo:
             BEGIN
-            IF SO2r_Config.Relays = 1 THEN
-                SO2R_State.TX2 := 1;          { Set microphone to radio 2 }
+            SO2R_State.TX2 := 1;          { Set microphone to radio 2 }
 
             IF KeyerInitialized THEN
                 BEGIN
                 ArduinoKeyerPort.PutChar (Char ($0B));  { Radio select command }
                 ArduinoKeyerPort.PutChar (Char ($02));  { Radio Two }
-                SendRelayStatusToSO2RMini;  { Update microphone relay }
+                SendRelayStatusToSO2RMini;   { Update microphone relay }
                 END;
             END;
 

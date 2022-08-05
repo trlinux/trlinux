@@ -95,6 +95,7 @@ TYPE
         StartSendingNowIndex: INTEGER;     { zero indicates none }
 
         PROCEDURE CheckQSOStateMachine;
+        PROCEDURE ClearTransmitIndicator;
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayFrequency;
 
@@ -112,6 +113,7 @@ TYPE
         PROCEDURE Set_TBSIQ_Window (TBSIQ_Window: TBSIQ_WindowType);
         PROCEDURE ShowCWMessage (Message: STRING);
         PROCEDURE ShowStateMachineStatus;
+        PROCEDURE SetTransmitIndicator;
 
         PROCEDURE UpdateRadioDisplay;  { Band/mode/frequency }
 
@@ -395,6 +397,35 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
 
 
+PROCEDURE QSOMachineObject.SetTransmitIndicator;
+
+{ Turns on the TX indicator }
+
+    BEGIN
+    CASE Radio OF
+        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_TransmitIndicatorWindow);
+        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
+        END;
+
+    SetBackground (Red);
+    ClrScr;
+    RestorePreviousWindow;
+    END;
+
+
+PROCEDURE QSOMachineObject.ClearTransmitIndicator;
+
+{ Turns of the TX indicator }
+
+    BEGIN
+    CASE Radio OF
+        RadioOne: RemoveWindow (TBSIQ_R1_TransmitIndicatorWindow);
+        RadioTwo: RemoveWindow (TBSIQ_R2_TransmitIndicatorWindow);
+        END;
+    END;
+
+
+
 PROCEDURE QSOMachineObject.ListenToBothRadios;
 
 { Puts the headphones into stereo mode }
@@ -407,13 +438,23 @@ PROCEDURE QSOMachineObject.ListenToBothRadios;
 
 PROCEDURE QSOMachineObject.ListenToOtherRadio;
 
+{ We need to check to make sure the other radio is not busy sending a message
+  before actually doing this.  If so, just do nothing.  This routine will get
+  called again }
+
     BEGIN
     IF Radio = RadioOne THEN
-        so2rbox.setrcvfocus (RX2)
-    ELSE
-        so2rbox.setrcvfocus (RX1);
-    END;
+        BEGIN
+        IF TBSIQ_CW_Engine.CWBeingSent (RadioTwo) THEN Exit;
+        so2rbox.setrcvfocus (RX2);
+        END;
 
+    IF Radio = RadioTwo THEN
+        BEGIN
+        IF TBSIQ_CW_Engine.CWBeingSent (RadioOne) THEN Exit;
+        so2rbox.setrcvfocus (RX1);
+        END;
+    END;
 
 
 PROCEDURE QSOMachineObject.CheckQSOStateMachine;
@@ -432,6 +473,15 @@ VAR Key, ExtendedKey: CHAR;
         BEGIN
         ShowStateMachineStatus;
         LastQSOState := QSOState;
+
+        CASE QSOState OF
+            QST_Idle, QST_CQCalled, QST_CQWaitingForExchange:
+                ClearTransmitIndicator;
+
+            ELSE
+                SetTransmitIndicator;
+
+            END;
         END;
 
     { Unlike the WindowEditor in LOGSUBS2, this will not block execution.  It will return
@@ -487,6 +537,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CallingCQ:
             BEGIN
+            { But - perhaps the other radio is busy sending something and my CQ is in the cue }
+
             ListenToOtherRadio;
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
@@ -929,6 +981,11 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R1_StateMachineStatusWindowRX := WindowLocationX + 37;
             TBSIQ_R1_StateMachineStatusWindowRY := WindowLocationY + 6;
 
+            TBSIQ_R1_TransmitIndicatorWindowLX := WindowLocationX + 0;
+            TBSIQ_R1_TransmitIndicatorWindowLY := WindowLocationY + 0;
+            TBSIQ_R1_TransmitIndicatorWindowRX := WindowLocationX + 7;
+            TBSIQ_R1_TransmitIndicatorWindowRY := WindowLocationY + 0;
+
             { Between CallWindow and ExchangeWindow }
 
             TBSIQ_R1_UserInfoWindowLX := WindowLocationX + 14;
@@ -997,6 +1054,11 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R2_StateMachineStatusWindowLY := WindowLocationY + 6;
             TBSIQ_R2_StateMachineStatusWindowRX := WindowLocationX + 37;
             TBSIQ_R2_StateMachineStatusWindowRY := WindowLocationY + 6;
+
+            TBSIQ_R2_TransmitIndicatorWindowLX := WindowLocationX + 0;
+            TBSIQ_R2_TransmitIndicatorWindowLY := WindowLocationY + 0;
+            TBSIQ_R2_TransmitIndicatorWindowRX := WindowLocationX + 7;
+            TBSIQ_R2_TransmitIndicatorWindowRY := WindowLocationY + 0;
 
             { Between CallWindow and ExchangeWindow }
 

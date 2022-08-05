@@ -110,7 +110,7 @@ PROCEDURE TwoBandSIQ;
     WriteLn ('Welcome to the TR Log 2BSIQ Program - Enter at your own peril.');
     WriteLn;
     WriteLn ('You will now be in 2BSIQ until you exit the program and restart.');
-    WriteLn ('This screen will refresh with your editable log after you make a QSO');
+    WriteLn ('This screen will refresh your editable log as you make QSOs');
 
     Initialize2BSIQOperatorInterface;
     Do2BSIQ;

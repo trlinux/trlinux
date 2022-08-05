@@ -215,6 +215,7 @@ TYPE
                   TBSIQ_R1_PossibleCallWindow,
                   TBSIQ_R1_QuickCommandWindow,
                   TBSIQ_R1_StateMachineStatusWindow,
+                  TBSIQ_R1_TransmitIndicatorWindow,
                   TBSIQ_R1_UserInfoWindow,
 
                   TBSIQ_R2_BandModeWindow,
@@ -226,6 +227,7 @@ TYPE
                   TBSIQ_R2_PossibleCallWindow,
                   TBSIQ_R2_QuickCommandWindow,
                   TBSIQ_R2_StateMachineStatusWindow,
+                  TBSIQ_R2_TransmitIndicatorWindow,
                   TBSIQ_R2_UserInfoWindow,
 
                   TotalScoreWindow,
@@ -352,6 +354,9 @@ TYPE
 
         TBSIQ_StateMachineStatusWindowBackground: INTEGER;
         TBSIQ_StateMachineStatusWindowColor:      INTEGER;
+
+        TBSIQ_TransmitIndicatorWindowBackground: INTEGER;
+        TBSIQ_TransmitIndicatorWindowColor:      INTEGER;
 
         TotalScoreWindowBackground: INTEGER;
         TotalScoreWindowColor:      INTEGER;
@@ -770,6 +775,7 @@ VAR
     TBSIQ_R1_PossibleCallWindowLX, TBSIQ_R1_PossibleCallWindowLY, TBSIQ_R1_PossibleCallWindowRX, TBSIQ_R1_PossibleCallWindowRY: INTEGER;
     TBSIQ_R1_QuickCommandWindowLX, TBSIQ_R1_QuickCommandWindowLY, TBSIQ_R1_QuickCommandWindowRX, TBSIQ_R1_QuickCommandWindowRY: INTEGER;
     TBSIQ_R1_StateMachineStatusWindowLX, TBSIQ_R1_StateMachineStatusWindowLY, TBSIQ_R1_StateMachineStatusWindowRX, TBSIQ_R1_StateMachineStatusWindowRY: INTEGER;
+    TBSIQ_R1_TransmitIndicatorWindowLX, TBSIQ_R1_TransmitIndicatorWindowLY, TBSIQ_R1_TransmitIndicatorWindowRX, TBSIQ_R1_TransmitIndicatorWindowRY: INTEGER;
     TBSIQ_R1_UserInfoWindowLX, TBSIQ_R1_UserInfoWindowLY, TBSIQ_R1_UserInfoWindowRX, TBSIQ_R1_UserInfoWindowRY: INTEGER;
 
     TBSIQ_R2_BandModeWindowLX, TBSIQ_R2_BandModeWindowLY, TBSIQ_R2_BandModeWindowRX, TBSIQ_R2_BandModeWindowRY: INTEGER;
@@ -781,6 +787,7 @@ VAR
     TBSIQ_R2_PossibleCallWindowLX, TBSIQ_R2_PossibleCallWindowLY, TBSIQ_R2_PossibleCallWindowRX, TBSIQ_R2_PossibleCallWindowRY: INTEGER;
     TBSIQ_R2_QuickCommandWindowLX, TBSIQ_R2_QuickCommandWindowLY, TBSIQ_R2_QuickCommandWindowRX, TBSIQ_R2_QuickCommandWindowRY: INTEGER;
     TBSIQ_R2_StateMachineStatusWindowLX, TBSIQ_R2_StateMachineStatusWindowLY, TBSIQ_R2_StateMachineStatusWindowRX, TBSIQ_R2_StateMachineStatusWindowRY: INTEGER;
+    TBSIQ_R2_TransmitIndicatorWindowLX, TBSIQ_R2_TransmitIndicatorWindowLY, TBSIQ_R2_TransmitIndicatorWindowRX, TBSIQ_R2_TransmitIndicatorWindowRY: INTEGER;
     TBSIQ_R2_UserInfoWindowLX, TBSIQ_R2_UserInfoWindowLY, TBSIQ_R2_UserInfoWindowRX, TBSIQ_R2_UserInfoWindowRY: INTEGER;
 
     TenMinuteRule:  TenMinuteRuleType;
@@ -1890,6 +1897,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           SetColor (SelectedColors.TBSIQ_StateMachineStatusWindowColor);
           END;
 
+      TBSIQ_R1_TransmitIndicatorWindow:
+          BEGIN
+          Window (TBSIQ_R1_TransmitIndicatorWindowLX, TBSIQ_R1_TransmitIndicatorWindowLY, TBSIQ_R1_TransmitIndicatorWindowRX, TBSIQ_R1_TransmitIndicatorWindowRY);
+          SetBackground (SelectedColors.TBSIQ_TransmitIndicatorWindowBackground);
+          SetColor (SelectedColors.TBSIQ_TransmitIndicatorWindowColor);
+          END;
+
       TBSIQ_R1_UserInfoWindow:
           BEGIN
           Window (TBSIQ_R1_UserInfoWindowLX, TBSIQ_R1_UserInfoWindowLY, TBSIQ_R1_UserInfoWindowRX, TBSIQ_R1_UserInfoWindowRY);
@@ -1958,6 +1972,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           Window (TBSIQ_R2_StateMachineStatusWindowLX, TBSIQ_R2_StateMachineStatusWindowLY, TBSIQ_R2_StateMachineStatusWindowRX, TBSIQ_R2_StateMachineStatusWindowRY);
           SetBackground (SelectedColors.TBSIQ_StateMachineStatusWindowBackground);
           SetColor (SelectedColors.TBSIQ_StateMachineStatusWindowColor);
+          END;
+
+      TBSIQ_R2_TransmitIndicatorWindow:
+          BEGIN
+          Window (TBSIQ_R2_TransmitIndicatorWindowLX, TBSIQ_R2_TransmitIndicatorWindowLY, TBSIQ_R2_TransmitIndicatorWindowRX, TBSIQ_R2_TransmitIndicatorWindowRY);
+          SetBackground (SelectedColors.TBSIQ_TransmitIndicatorWindowBackground);
+          SetColor (SelectedColors.TBSIQ_TransmitIndicatorWindowColor);
           END;
 
       TBSIQ_R2_UserInfoWindow:

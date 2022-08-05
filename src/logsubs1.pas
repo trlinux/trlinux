@@ -1206,11 +1206,13 @@ VAR TimeOut: INTEGER;
     LastDisplayedFreq[RadioOne] := 0; {KK1L: 6.73 Forces new display for highlight}
     LastDisplayedFreq[RadioTwo] := 0; {KK1L: 6.73 Forces new display for highlight}
 
+    { RX audio affected after here }
+
     IF ActiveRadio = RadioOne THEN
         BEGIN
         ActiveBand      := BandMemory [RadioTwo];
         ActiveMode      := ModeMemory [RadioTwo];
-        ActiveKeyer.SetActiveRadio(RadioTwo);
+        ActiveKeyer.SetActiveRadio (RadioTwo);
         ActiveRadio     := RadioTwo;
         InactiveRadio   := RadioOne;
         CodeSpeed       := SpeedMemory[RadioTwo];
@@ -1221,13 +1223,15 @@ VAR TimeOut: INTEGER;
         BEGIN
         ActiveBand      := BandMemory [RadioOne];
         ActiveMode      := ModeMemory [RadioOne];
-        ActiveKeyer.SetActiveRadio(RadioOne);
+        ActiveKeyer.SetActiveRadio (RadioOne);
         ActiveRadio     := RadioOne;
         InactiveRadio   := RadioTwo;
         CodeSpeed       := SpeedMemory[RadioOne];
         SetSpeed (CodeSpeed);
         DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
         END;
+
+    { RX Audio affected before here }
 
     SetUpToSendOnActiveRadio;
     DisplayRadio (ActiveRadio);
