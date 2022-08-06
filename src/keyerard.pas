@@ -488,6 +488,8 @@ VAR DelayLoops: INTEGER;
             IF Length (Version) = 7 THEN  { We have enough characters }
                 BEGIN
                 EchoTest := Copy (Version, 1, 4) = 'TRCW';
+                GoToXY (1, WhereY);
+                ClrEol;
                 Exit;
                 END;
             END

@@ -1508,7 +1508,42 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                 GoToXY (CursorPosition, WhereY);
                 END;
 
-        SpaceBar: Exit;
+        SpaceBar:
+            IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
+                BEGIN
+                IF InsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
+                    BEGIN
+                    IF CursorPosition > 1 THEN
+                        BEGIN
+                        TempString := Copy (WindowString, 1, CursorPosition - 1) +
+                                            KeyChar +
+                                            Copy (WindowString, CursorPosition, Length (WindowString) - CursorPosition + 1);
+                        END
+                    ELSE
+                        TempString := KeyChar + WindowString;
+
+                    WindowString := TempString;
+                    ClrScr;
+                    Write (WindowString);
+                    Inc (CursorPosition);
+                    GoToXY (CursorPosition, 1);
+                    END
+                ELSE
+                    IF CursorPosition <= Length (WindowString) THEN
+                        BEGIN
+                        WindowString [CursorPosition] := KeyChar;
+                        Write (KeyChar);
+                        Inc (CursorPosition);
+                        END
+                    ELSE
+                        BEGIN
+                        WindowString := WindowString + KeyChar;
+                        Write (KeyChar);
+                        Inc (CursorPosition);
+                        END;
+                END
+            ELSE
+                Exit;  { Let someone do a dupe check? }
 
         NullKey:
             BEGIN
@@ -2271,6 +2306,10 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
         { 54: TBSIQ_ReadKey := TBSIQ_RightShiftKey; }
         { 55: TBSIQ_ReadKey := TBSIQ_NumPadStar; }
         { 56: TBSIQ_ReadKey := TBSIQ_LeftAltKey; }
+
+        57: BEGIN
+            KeyStatus.KeyChar := ' ';
+            END;
 
         59: BEGIN                               { F1 }
             KeyStatus.ExtendedKey := True;
