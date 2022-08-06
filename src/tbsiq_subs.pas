@@ -615,28 +615,23 @@ VAR Key, ExtendedKey: CHAR;
             { Put up exchange window and any initial exchange }
 
             IF TBSIQ_Activewindow = TBSIQ_CallWindow THEN
+                BEGIN
                 Set_TBSIQ_Window (TBSIQ_ExchangeWindow);
+                Clrscr;
+                ExchangeWindowString := '';
+                ExchangeWindowCursorPosition := 1;
+                END;
+
+            { Now see if we have an initial exchange }
 
             InitialExchange := InitialExchangeEntry (CallWindowString);
 
             IF InitialExchange <> '' THEN
                 BEGIN
-                ClrScr;
                 ExchangeWindowString := InitialExchange;
                 Write (ExchangeWindowString);
-
-                {TR6.74 - need to do this since IntialExchangeEntry does not }
-
-                IF InitialExchangeOverwrite THEN
-                    InitialExchangePutUp := ExchangeWindowString <> '';
-
-                IF InitialExchangeCursorPos = AtEnd THEN
-                    GoToXY (Length (InitialExchange) + 1, 1)
-                ELSE
-                    GoToXY (1, 1);
-                END
-            ELSE
-                Write (ExchangeWindowString);
+                ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
+                END;
 
             QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;
             END;
