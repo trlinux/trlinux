@@ -110,7 +110,7 @@ TYPE
 
         PROCEDURE RemoveExchangeWindow;
 
-        PROCEDURE Set_TBSIQ_Window (TBSIQ_Window: TBSIQ_WindowType);
+        PROCEDURE SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
         PROCEDURE ShowCWMessage (Message: STRING);
         PROCEDURE ShowStateMachineStatus;
         PROCEDURE SetTransmitIndicator;
@@ -490,7 +490,7 @@ PROCEDURE QSOMachineObject.ListenToOtherRadio;
 PROCEDURE QSOMachineObject.CheckQSOStateMachine;
 
 VAR Key, ExtendedKey: CHAR;
-    InitialExchange, Message, WindowString: STRING;
+    TempString, InitialExchange, Message, WindowString: STRING;
     ActionRequired: BOOLEAN;
     MessageNumber: INTEGER;
 
@@ -550,6 +550,7 @@ VAR Key, ExtendedKey: CHAR;
                             ELSE
                                 BEGIN  { We have a callsign to send }
                                 TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High, MessageNumber);
+                                CallsignICameBackTo := WindowString;
                                 ShowCWMessage (WindowString);
                                 QSOState := QST_CQStationBeingAnswered;
                                 END;
@@ -612,7 +613,7 @@ VAR Key, ExtendedKey: CHAR;
 
             IF TBSIQ_Activewindow = TBSIQ_CallWindow THEN
                 BEGIN
-                Set_TBSIQ_Window (TBSIQ_ExchangeWindow);
+                SetTBSIQWindow (TBSIQ_ExchangeWindow);
                 Clrscr;
                 ExchangeWindowString := '';
                 ExchangeWindowCursorPosition := 1;
@@ -639,14 +640,33 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             ListenToOtherRadio;
 
-            { See if a function key was pressed to send an Exchange message }
-
-            IF ActionRequired AND (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
+            IF ActionRequired THEN
                 BEGIN
-                TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
-                ShowCWMessage (Message);
-                Exit;
-                END;
+                IF (Key = Chr (0)) THEN   { Extended keys }
+                    BEGIN
+                    { on the fence about function key memories while the CQ Exchange is being sent }
+
+                    IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
+                        BEGIN
+                        TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
+                        ShowCWMessage (Message);
+                        Exit;
+                        END;
+
+                    { Extened keys other than function keys }
+
+                    CASE ExtendedKey OF
+                        UpArrow:
+                            IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
+                                SetTBSIQWindow (TBSIQ_CallWindow);
+
+                        DownArrow:
+                            IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                                SetTBSIQWindow (TBSIQ_ExchangeWindow);
+
+                        END;  { of case ExtendedKey }
+                    END;  { of extended keys }
+                END; { of ActionRequired }
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
                 BEGIN
@@ -660,40 +680,76 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQWaitingForExchange:
             BEGIN
-            { See if a function key was pressed to send an Exchange message }
-
-            IF ActionRequired AND (Key = EscapeKey) THEN  { We can assume no CW and empty window }
-                IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
+            IF ActionRequired THEN
+                BEGIN
+                IF Key = EscapeKey THEN  { We can assume no CW and empty window }
                     BEGIN
-                    RemoveExchangeWindow;
-                    Set_TBSIQ_Window (TBSIQ_CallWindow);
-                    QSOState := QST_CQCalled;
-                    END
-                ELSE
-                    BEGIN
-                    RemoveExchangeWindow;
-                    QSOState := QST_Idle;
+                    IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
+                        BEGIN
+                        RemoveExchangeWindow;
+                        SetTBSIQWindow (TBSIQ_CallWindow);
+                        QSOState := QST_CQCalled;
+                        END
+                    ELSE
+                        BEGIN
+                        RemoveExchangeWindow;
+                        QSOState := QST_Idle;
+                        END;
                     END;
 
-            IF ActionRequired AND (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
-                BEGIN
-                TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
-                ShowCWMessage (Message);
-                QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;
-                Exit;
-                END;
+                IF Key = CarriageReturn THEN  { See if we can log this QSO }
+                    IF TBSIQ_ParametersOkay (CallWindowString, ExchangeWindowString, Band, Mode, Frequency, RData) THEN
+                        BEGIN
 
-            IF Key = CarriageReturn THEN  { See if we can log this QSO }
-                BEGIN
-                IF TBSIQ_ParametersOkay (CallWindowString, ExchangeWindowString, Band, Mode, Frequency, RData) THEN
+                        IF NOT BeSilent THEN
+                            BEGIN
+                            { Let's build the string we need to send to acknowledge the QSO }
+
+                            TempString := '';
+
+                            { This ignores the partial callsign correction possibility }
+
+                            IF (RData.Callsign <> CallsignICameBackTo) THEN
+                                BEGIN
+                                TempString := TempString + RData.Callsign + ' ';
+                                CallsignICameBackTo := RData.Callsign;
+                                END;
+
+                            TempString := TempString + QSLMessage;
+                            ShowCWMessage (TempString);
+                            TBSIQ_CW_Engine.CueCWMessage (TempString, Radio, CWP_High, MessageNumber);
+                            END;
+
+                        TBSIQ_LogContact (RData);
+                        QSOState := QST_CQSending73Message;
+                        END;
+
+                IF Key = Chr (0) THEN   { Extended key }
                     BEGIN
-                    TBSIQ_CW_Engine.CueCWMessage (QSLMessage, Radio, CWP_High, MessageNumber);
-                    ShowCWMessage (QSLMessage);
-                    TBSIQ_LogContact (RData);
-                    QSOState := QST_CQSending73Message;
-                    END;
-                END;
-            END;
+                    IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
+                        BEGIN
+                        TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
+                        ShowCWMessage (Message);
+                        QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;
+                        Exit;
+                        END;
+
+                    { Extened keys other than function keys }
+
+                    CASE ExtendedKey OF
+                        UpArrow:
+                            IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
+                                SetTBSIQWindow (TBSIQ_CallWindow);
+
+                        DownArrow:
+                            IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                                SetTBSIQWindow (TBSIQ_ExchangeWindow);
+
+                        END;  { of case ExtendedKey }
+
+                    END;  { of Extended key }
+                END;  { of ActionRequired }
+            END;  { of QST_WaitingForExchange }
 
         { QSO is logged and are sending the QSO Message }
 
@@ -710,7 +766,7 @@ VAR Key, ExtendedKey: CHAR;
 
                 CallWindowString := '';
                 CallWindowCursorPosition := 1;
-                Set_TBSIQ_Window (TBSIQ_CallWindow);
+                SetTBSIQWindow (TBSIQ_CallWindow);
                 ClrScr;
                 END;
             END;
@@ -863,7 +919,7 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
 
 
 
-PROCEDURE QSOMachineObject.Set_TBSIQ_Window (TBSIQ_Window: TBSIQ_WindowType);
+PROCEDURE QSOMachineObject.SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
 
 { This is all done without doing anything to the saved window list.  I guess we feel
   that this will only be happening when the saved window list is empty. }
@@ -1105,7 +1161,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     { Put up a blank call window }
 
-    Set_TBSIQ_Window (TBSIQ_CallWindow);
+    SetTBSIQWindow (TBSIQ_CallWindow);
     ClrScr;
 
     QSOState := QST_Idle;
@@ -1177,7 +1233,7 @@ PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
   changed it to a different window...  so you should check ActiveWindow
   first and change it to the right window before doing anything. }
 
-VAR Count, CursorPosition, CharPointer: INTEGER;
+VAR CursorPosition, CharPointer: INTEGER;
     PreviousCursorChar: CHAR;
     TempString: STRING;
     TempExchange: ContestExchange;
@@ -1194,7 +1250,7 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
     { Make sure proper window is active - also set up the window strings
       and cursor positions }
 
-    Set_TBSIQ_Window (TBSIQ_ActiveWindow);  { Sets cursor }
+    SetTBSIQWindow (TBSIQ_ActiveWindow);  { Sets cursor }
 
     CASE TBSIQ_ActiveWindow OF
         TBSIQ_CallWindow:
@@ -1530,8 +1586,8 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
             BEGIN
             ExtendedKeyChar := TBSIQ_ReadKey (Radio);
 
-            { Many Altkeys that hardly ever get used are currently not here. See the WindowEditor in LOGSUBS2.PAS
-              if you want to put some of them back in }
+            { Many Altkeys that hardly ever get used are currently not here. See the
+              WindowEditor in LOGSUBS2.PAS if you want to put some of them back in }
 
             CASE ExtendedKeyChar OF
 
@@ -1626,14 +1682,14 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
 
                 HomeKey:
                     BEGIN
-                    GoToXY (1, WhereY);
                     CursorPosition := 1;
+                    GoToXY (CursorPosition, WhereY);
                     END;
 
                 EndKey:
                     BEGIN
-                    GoToXY (Length (WindowString) + 1, WhereY);
-                    CursorPosition := WhereX;
+                    CursorPosition := Length (WindowString) + 1;
+                    GoToXY (CursorPosition, 1);
                     END;
 
                 DeleteKey:
@@ -1670,16 +1726,18 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                     END;
 
                 LeftArrow:
-                    BEGIN
                     IF CursorPosition > 1 THEN
-                        GoToXY (CursorPosition - 1, WhereY);
-                    END;
+                        BEGIN
+                        Dec (CursorPosition);
+                        GoToXY (CursorPosition, 1);
+                        END;
 
                 RightArrow:
-                    BEGIN
                     IF CursorPosition <= Length (WindowString) THEN
-                        GoToXY (CursorPosition + 1, WhereY);
-                    END;
+                        BEGIN
+                        Inc (CursorPosition);
+                        GoToXY (CursorPosition, 1);
+                        END;
 
                 PageUpKey: SpeedUp;
                 PageDownKey: SlowDown;
@@ -1687,7 +1745,6 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                 { It appears we used ControlUpArrow to MoveGridMap }
 
                 UpArrow:  { Edit log - same as Alt-E? - not sure this should stay here  }
-                    BEGIN
                     IF (TBSIQ_Activewindow = TBSIQ_CallWindow) AND (WindowString = '') THEN
                         BEGIN
                         RITEnable := False;
@@ -1700,14 +1757,15 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                         DisplayInsertMode (InsertMode);
                         DisplayNextQSONumber (TotalContacts + 1);
                         LastTwoLettersCrunchedOn := '';
-                        END;
 
-                    WHILE TBSIQ_KeyPressed (Radio) DO
-                        BEGIN
-                        TBSIQ_ReadKey (Radio);
-                        Millisleep;
-                        END;
-                    END;
+                        WHILE TBSIQ_KeyPressed (Radio) DO
+                            BEGIN
+                            TBSIQ_ReadKey (Radio);
+                            Millisleep;
+                            END;
+                        END
+                    ELSE
+                        Exit;     { Let the calling routine decide what to do }
 
                 { It appears ControlDownArrow was used to move the Grid Map down }
 
@@ -1744,6 +1802,9 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                     WindowString := TempString;
                     ClrScr;
                     Write (WindowString);
+
+                    Inc (CursorPosition);
+                    GoToXY (CursorPosition, 1);
                     END
                 ELSE
                     IF CursorPosition <= Length (WindowString) THEN   { We just overwrite the character }
@@ -1751,12 +1812,14 @@ VAR Count, CursorPosition, CharPointer: INTEGER;
                         WindowString [CursorPosition] := KeyChar;
                         Write (KeyChar);
                         Inc (CursorPosition);
+                        GoToXY (CursorPosition, 1);
                         END
                     ELSE
                         BEGIN
                         WindowString := WindowString + KeyChar;
                         Write (KeyChar);
                         Inc (CursorPosition);
+                        GoToXY (CursorPosition, 1);
 
                         { Auto start send needs some work
 
@@ -1822,7 +1885,7 @@ PROCEDURE QSOMachineObject.WriteCharacter (Ch: CHAR);
             BEGIN
             { First - we need to make sure that mine is the active window }
 
-            Set_TBSIQ_Window (TBSIQ_CallWindow);
+            SetTBSIQWindow (TBSIQ_CallWindow);
 
             { And the cursor is in the right place }
 
@@ -1840,7 +1903,7 @@ PROCEDURE QSOMachineObject.WriteCharacter (Ch: CHAR);
             BEGIN
             { First - we need to make sure that mine is the active window }
 
-            Set_TBSIQ_Window (TBSIQ_ExchangeWindow);
+            SetTBSIQWindow (TBSIQ_ExchangeWindow);
 
             { And the cursor is in the right place }
 
