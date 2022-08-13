@@ -39,6 +39,7 @@ TYPE
       used and call the appropriate LogWind window }
 
     TBSIQ_WindowType = (TBSIQ_CallWindow,
+                        TBSIQ_StartSendingWindow,
                         TBSIQ_ExchangeWindow,
                         TBSIQ_CWMessageWindow,
                         TBSIQ_StateMachineStatusWindow);
@@ -46,6 +47,7 @@ TYPE
     TBSIQ_QSOStateType = (QST_Idle,
                           QST_CallingCQ,
                           QST_CQCalled,
+                          QST_AutoStartSending,
                           QST_CQStationBeingAnswered,
                           QST_CQExchangeBeingSent,
                           QST_CQExchangeBeingSentAndExchangeWindowUp,
@@ -91,11 +93,13 @@ TYPE
 
         QSOState: TBSIQ_QSOStateType;
 
-        StartSendingNowIndex: INTEGER;     { zero indicates none }
+        StartSendingCursorPosition: INTEGER; { initially = AutoSendCharacterCount }
+        StationCalled: BOOLEAN;              { indicates auto start send already deployed }
 
         PROCEDURE CheckQSOStateMachine;
         PROCEDURE CheckTransmitIndicator;
         PROCEDURE ClearTransmitIndicator;
+        PROCEDURE DisplayAutoSendCharacterCount;
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayFrequency;
 
@@ -414,6 +418,27 @@ PROCEDURE QSOMachineObject.CheckTransmitIndicator;
 
 
 
+PROCEDURE QSOMachineObject.DisplayAutoSendCharacterCount;
+
+    BEGIN
+    CASE Radio OF
+        RadioOne: SaveAndSetActiveWindow (TBSIQ_R1_StartSendingWindow);
+        RadioTwo: SaveAndSetActiveWindow (TBSIQ_R2_StartSendingWindow);
+        END;  { of case }
+
+    ClrScr;
+
+    IF (StartSendingCursorPosition > 0) AND AutoSendEnable THEN
+        BEGIN
+        GoToXY (StartSendingCursorPosition + 1, 1);
+        Write ('|');
+        END;
+
+    RestorePreviousWindow;
+    END;
+
+
+
 PROCEDURE QSOMachineObject.SetTransmitIndicator;
 
 { Turns on the TX indicator }
@@ -512,6 +537,7 @@ VAR Key, ExtendedKey: CHAR;
             END;
         END;
 
+
     { Unlike the WindowEditor in LOGSUBS2, this will not block execution.  It will return
       right away with ActionRequired = FALSE if no key was pressed }
 
@@ -521,6 +547,12 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_Idle, QST_CQCalled:
             BEGIN
+            { Clear the auto start send station called flag if the CallWindow is empty }
+
+            IF CallWindowString = '' THEN StationCalled := False;
+
+            { See if we have a keystroke to look at }
+
             IF ActionRequired THEN
                 BEGIN
                 IF (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
@@ -559,16 +591,92 @@ VAR Key, ExtendedKey: CHAR;
 
                     END; { of case Key }
 
-                END; { of QST_Idle and ActionRequired }
+                END  { of QST_Idle and ActionRequired }
+            ELSE
+                { Check to see if AutoStartSend should be triggered }
+
+                BEGIN
+                IF AutoSendEnable AND (StartSendingCursorPosition > 0) AND (ActiveMode = CW) THEN
+                    IF Length (CallWindowString) = AutoSendCharacterCount THEN
+                        IF NOT StringIsAllNumbersOrDecimal (CallWindowString) THEN
+                            IF NOT StringHas ('/', CallWindowString) THEN
+                                IF NOT StationCalled THEN
+                                    BEGIN
+                                    { We need to start sending the callsign }
+
+                                    TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High, MessageNumber);
+                                    CallsignICameBackTo := CallWindowString;
+                                    ShowCWMessage (CallWindowString);
+                                    QSOState := QST_AutoStartSending;
+                                    StationCalled := True;    { This makes sure we don't call again }
+                                    Exit;
+                                    END;
+                END;
+
+            END;  { Of QST_Idle or QST_CQCalled }
+
+        QST_AutoStartSending:  { We have started sending a callsign }
+            BEGIN
+            { There are a number of possible things that can happen here:
+
+              1. Someone typed another letter to add to the callsign.
+              2. Someone hit the backspace key to possibly delete an unsent letter.
+              3. Someone hit escape with an empty window and wants to back up.
+              4. Someone hit RETURN to end input of the callsign.
+              5. All of the entered letters have been sent - send exchange. }
+
+            IF TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
+                BEGIN
+                TBSIQ_CW_Engine.CueCWMessage (CQExchange, Radio, CWP_High, MessageNumber);
+                ShowCWMessage (CQExchange);
+                QSOState := QST_CQExchangeBeingSent;
+                Exit;
+                END;
+
+            IF NOT ActionRequired THEN Exit;  { No keystroke to respond to }
+
+            CASE Key OF
+                EscapeKey:
+                    QSOState := QST_Idle;
+
+                CarriageReturn:
+                    BEGIN
+                    TBSIQ_CW_Engine.CueCWMessage (CQExchange, Radio, CWP_High, MessageNumber);
+                    ShowCWMessage (CQExchange);
+                    QSOState := QST_CQExchangeBeingSent;
+                    END;
+
+                BackSpace:  { See if we can delete an unsent character }
+                    IF TBSIQ_CW_Engine.DeleteLastCharacter (Radio) THEN
+                        BEGIN
+                        Delete (CallWindowString, Length (CallWindowString), 1);
+                        Delete (CallsignICameBackTo, Length (CallSignICameBackTo), 1);
+                        ClrScr;
+                        Write (CallWindowString);
+                        CallWindowCursorPosition := WhereX;
+                        END;
+
+                ELSE
+                    BEGIN
+                    Key := UpCase (Key);
+
+                    IF ((Key >= '0') AND (Key <= 'Z')) OR (Key = '/') THEN
+                        BEGIN
+                        TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High, MessageNumber);
+                        Write (Key);
+                        CallWindowString := CallWindowString + Key;
+                        Inc (CallWindowCursorPosition);
+                        CallsignICameBackTo := CallSignICameBackTo + Key;
+                        END;
+                    END;
+
+                END; { of case Key }
             END;
 
-        { While callinng CQ - we want to listen to the other radio }
 
         QST_CallingCQ:
             BEGIN
-            { But - perhaps the other radio is busy sending something and my CQ is in the cue }
-
-            ListenToOtherRadio;
+            ListenToOtherRadio;   { Is this okay if my message is in the cue? }
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
                 BEGIN
@@ -581,15 +689,6 @@ VAR Key, ExtendedKey: CHAR;
         QST_CQStationBeingAnswered:
             BEGIN
             ListenToOtherRadio;
-
-            { See if a function key was pressed to send an Exchange message }
-
-            IF ActionRequired AND (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
-                BEGIN
-                TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
-                ShowCWMessage (Message);
-                Exit;
-                END;
 
             { Waiting for the CW of the call who answered me to finish }
 
@@ -693,6 +792,9 @@ VAR Key, ExtendedKey: CHAR;
                     ELSE
                         BEGIN
                         RemoveExchangeWindow;
+                        ClrScr;
+                        CallWindowString := '';
+                        CallWindowCursorPosition := 1;
                         QSOState := QST_Idle;
                         END;
                     END;
@@ -922,7 +1024,9 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
 PROCEDURE QSOMachineObject.SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
 
 { This is all done without doing anything to the saved window list.  I guess we feel
-  that this will only be happening when the saved window list is empty. }
+  that this will only be happening when the saved window list is empty.  In all cases,
+  you need the "generic" TBSIQ_ window name which gets expanded into specific windows
+  that LOGWIND understands depending on which radio you are using. }
 
     BEGIN
     TBSIQ_ActiveWindow := TBSIQ_Window;
@@ -936,6 +1040,10 @@ PROCEDURE QSOMachineObject.SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
                         SetActiveWindow (TBSIQ_R1_CallWindow);
                         GoToXY (CallWindowCursorPosition, 1);
                         END;
+
+                TBSIQ_StartSendingWindow:
+                    IF ActiveWindow <> TBSIQ_R1_StartSendingWindow THEN
+                        SetActiveWindow (TBSIQ_R1_StartSendingWindow);
 
                 TBSIQ_ExchangeWindow:
                     IF ActiveWindow <> TBSIQ_R1_ExchangeWindow THEN
@@ -960,6 +1068,10 @@ PROCEDURE QSOMachineObject.SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
                         SetActiveWindow (TBSIQ_R2_CallWindow);
                         GoToXY (CallWindowCursorPosition, 1);
                         END;
+
+                TBSIQ_StartSendingWindow:
+                    IF ActiveWindow <> TBSIQ_R2_StartSendingWindow THEN
+                        SetActiveWindow (TBSIQ_R2_StartSendingWindow);
 
                 TBSIQ_ExchangeWindow:
                     IF ActiveWindow <> TBSIQ_R2_ExchangeWindow THEN
@@ -996,6 +1108,8 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     WindowLocationX := WinX;
     WindowLocationY := WinY;
     CWMessageDisplayed := '';
+    StationCalled := False;
+    StartSendingCursorPosition := AutoSendCharacterCount;
 
     { Setup the window locations derived from the X,Y reference }
 
@@ -1008,6 +1122,11 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R1_BandModeWindowLY := WindowLocationY + 1;
             TBSIQ_R1_BandModeWindowRX := WindowLocationX + 7;
             TBSIQ_R1_BandModeWindowRY := WindowLocationY + 1;
+
+            TBSIQ_R1_StartSendingWindowLX := WindowLocationX + 12;
+            TBSIQ_R1_StartSendingWindowLY := WindowLocationY;
+            TBSIQ_R1_StartSendingWindowRX := WindowLocationX + 18;
+            TBSIQ_R1_StartSendingWindowRY := windowLocationY;
 
             TBSIQ_R1_CallWindowLX := WindowLocationX + 13;
             TBSIQ_R1_CallWindowLY := WindowLocationY + 1;
@@ -1082,6 +1201,11 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R2_BandModeWindowLY := WindowLocationY + 1;
             TBSIQ_R2_BandModeWindowRX := WindowLocationX + 7;
             TBSIQ_R2_BandModeWindowRY := WindowLocationY + 1;
+
+            TBSIQ_R2_StartSendingWindowLX := WindowLocationX + 12;
+            TBSIQ_R2_StartSendingWindowLY := WindowLocationY;
+            TBSIQ_R2_StartSendingWindowRX := WindowLocationX + 18;
+            TBSIQ_R2_StartSendingWindowRY := windowLocationY;
 
             TBSIQ_R2_CallWindowLX := WindowLocationX + 13;
             TBSIQ_R2_CallWindowLY := WindowLocationY + 1;
@@ -1158,6 +1282,8 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
+
+    DisplayAutoSendCharacterCount;
 
     { Put up a blank call window }
 
@@ -1427,6 +1553,7 @@ VAR CursorPosition, CharPointer: INTEGER;
                 END;
             END;
 
+
         ControlR:   { Restore previously deleted string }
             BEGIN
             CASE TBSIQ_ActiveWindow OF
@@ -1533,6 +1660,11 @@ VAR CursorPosition, CharPointer: INTEGER;
         TabKey: Exit;
 
         BackSpace:
+            BEGIN
+            { Backspace needs to be AutoStartSend aware }
+
+            IF QSOState = QST_AutoStartSending THEN Exit;
+
             IF CursorPosition > 1 THEN
                 BEGIN
                 FOR CharPointer := CursorPosition - 1 TO Length (WindowString) - 1 DO
@@ -1544,6 +1676,7 @@ VAR CursorPosition, CharPointer: INTEGER;
                 Dec (CursorPosition);
                 GoToXY (CursorPosition, WhereY);
                 END;
+            END;
 
         SpaceBar:
             IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
@@ -1672,7 +1805,7 @@ VAR CursorPosition, CharPointer: INTEGER;
                           END;
                       END;
 
-                AltDash:
+                AltDash:   { Uses the global AutoSendEnable }
                     BEGIN
                     IF AutoSendCharacterCount > 0 THEN
                         AutoSendEnable := NOT AutoSendEnable;

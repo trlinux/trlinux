@@ -68,6 +68,7 @@ TYPE
         FUNCTION  CuedMessageStatus (MessageNumber: INTEGER): CuedMessageStatusType;
         FUNCTION  CWFinished (Radio: RadioType): BOOLEAN;
         FUNCTION  CWBeingSent (Radio: RadioType): BOOLEAN;
+        FUNCTION  DeleteLastCharacter (Radio: RadioType): BOOLEAN;
         END;
 
 VAR
@@ -145,6 +146,17 @@ VAR Index: INTEGER;
     { Either the cue is empty - or the MessageNumber is no longer in the cue }
 
     CuedMessageStatus := MessageNotInCue;
+    END;
+
+
+
+FUNCTION TBSIQ_CWEngineObject.DeleteLastCharacter (Radio: RadioType): BOOLEAN;
+
+{ Attempts to delete the last character sent to the CWCharacterBuffer.  Returns
+  TRUE if successful.  Note that this might only work with the SO2R Mini }
+
+    BEGIN
+    DeleteLastCharacter := ActiveKeyer.DeleteLastCharacter;
     END;
 
 

@@ -68,6 +68,11 @@ CONST
     BigWindowRX = 80;
     BigWindowRY = 18;
 
+    CallWindowLX = 30;
+    CallWindowLY = 20;
+    CallWindowRX = 46;
+    CallWindowRY = 20;
+
 TYPE
 
     SpecialCommandType = (NoSpecialCommand, SendF1Message);
@@ -207,6 +212,7 @@ TYPE
                   TBSIQ_HourRateWindow,
 
                   TBSIQ_R1_BandModeWindow,
+                  TBSIQ_R1_StartSendingWindow,
                   TBSIQ_R1_Callwindow,
                   TBSIQ_R1_CodeSpeedWindow,
                   TBSIQ_R1_CWMessageWindow,
@@ -219,6 +225,7 @@ TYPE
                   TBSIQ_R1_UserInfoWindow,
 
                   TBSIQ_R2_BandModeWindow,
+                  TBSIQ_R2_StartSendingWindow,
                   TBSIQ_R2_Callwindow,
                   TBSIQ_R2_CodeSpeedWindow,
                   TBSIQ_R2_CWMessageWindow,
@@ -767,6 +774,7 @@ VAR
       left and right radios }
 
     TBSIQ_R1_BandModeWindowLX, TBSIQ_R1_BandModeWindowLY, TBSIQ_R1_BandModeWindowRX, TBSIQ_R1_BandModeWindowRY: INTEGER;
+    TBSIQ_R1_StartSendingWindowLX, TBSIQ_R1_StartSendingWindowLY, TBSIQ_R1_StartSendingWindowRX, TBSIQ_R1_StartSendingWindowRY: INTEGER;
     TBSIQ_R1_CallWindowLX, TBSIQ_R1_CallWindowLY, TBSIQ_R1_CallWindowRX, TBSIQ_R1_CallWindowRY: INTEGER;
     TBSIQ_R1_CodeSpeedWindowLX, TBSIQ_R1_CodeSpeedWindowLY, TBSIQ_R1_CodeSpeedWindowRX, TBSIQ_R1_CodeSpeedWindowRY: INTEGER;
     TBSIQ_R1_CWMessageWindowLX, TBSIQ_R1_CWMessageWindowLY, TBSIQ_R1_CWMessageWindowRX, TBSIQ_R1_CWMessageWindowRY: INTEGER;
@@ -779,6 +787,7 @@ VAR
     TBSIQ_R1_UserInfoWindowLX, TBSIQ_R1_UserInfoWindowLY, TBSIQ_R1_UserInfoWindowRX, TBSIQ_R1_UserInfoWindowRY: INTEGER;
 
     TBSIQ_R2_BandModeWindowLX, TBSIQ_R2_BandModeWindowLY, TBSIQ_R2_BandModeWindowRX, TBSIQ_R2_BandModeWindowRY: INTEGER;
+    TBSIQ_R2_StartSendingWindowLX, TBSIQ_R2_StartSendingWindowLY, TBSIQ_R2_StartSendingWindowRX, TBSIQ_R2_StartSendingWindowRY: INTEGER;
     TBSIQ_R2_CallWindowLX, TBSIQ_R2_CallWindowLY, TBSIQ_R2_CallWindowRX, TBSIQ_R2_CallWindowRY: INTEGER;
     TBSIQ_R2_CodeSpeedWindowLX, TBSIQ_R2_CodeSpeedWindowLY, TBSIQ_R2_CodeSpeedWindowRX, TBSIQ_R2_CodeSpeedWindowRY: INTEGER;
     TBSIQ_R2_CWMessageWindowLX, TBSIQ_R2_CWMessageWindowLY, TBSIQ_R2_CWMessageWindowRX, TBSIQ_R2_CWMessageWindowRY: INTEGER;
@@ -1039,11 +1048,6 @@ CONST
     QSONumberWindowUpLY = 19;
     QSONumberWindowUpRX = 29;
     QSONumberWindowUpRY = 19;
-
-    CallWindowLX = 30;
-    CallWindowLY = 20;
-    CallWindowRX = 46;
-    CallWindowRY = 20;
 
     CallWindowUpLX = 30;
     CallWindowUpLY = 19;
@@ -1841,6 +1845,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           SetColor (SelectedColors.BandModeWindowColor);
           END;
 
+      TBSIQ_R1_StartSendingWindow:
+          BEGIN
+          Window (TBSIQ_R1_StartSendingWindowLX, TBSIQ_R1_StartSendingWindowLY, TBSIQ_R1_StartSendingWindowRX, TBSIQ_R1_StartSendingWindowRY);
+          SetBackground (SelectedColors.WholeScreenBackground);
+          SetColor (SelectedColors.TBSIQ_CallWindowColor);
+          END;
+
       TBSIQ_R1_CallWindow:
           BEGIN
           Window (TBSIQ_R1_CallWindowLX, TBSIQ_R1_CallWindowLY, TBSIQ_R1_CallWindowRX, TBSIQ_R1_CallWindowRY);
@@ -1916,6 +1927,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           Window (TBSIQ_R2_BandModeWindowLX, TBSIQ_R2_BandModeWindowLY, TBSIQ_R2_BandModeWindowRX, TBSIQ_R2_BandModeWindowRY);
           SetBackground (SelectedColors.BandModeWindowBackground);
           SetColor (SelectedColors.BandModeWindowColor);
+          END;
+
+      TBSIQ_R2_StartSendingWindow:
+          BEGIN
+          Window (TBSIQ_R2_StartSendingWindowLX, TBSIQ_R2_StartSendingWindowLY, TBSIQ_R2_StartSendingWindowRX, TBSIQ_R2_StartSendingWindowRY);
+          SetBackground (SelectedColors.WholeScreenBackground);
+          SetColor (SelectedColors.TBSIQ_CallWindowColor);
           END;
 
       TBSIQ_R2_CallWindow:

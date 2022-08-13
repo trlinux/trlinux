@@ -61,6 +61,12 @@ PROCEDURE Initialize2BSIQOperatorInterface;
     RemoveWindow (RateWindow);
     RemoveWindow (UserInfoWindow);
 
+    { Hack to eliminate AutoStartSend cursor if it is there }
+
+    SetWindow (WholeScreenWindow);
+    GoToXY (CallWindowLX, CallWindowLY - 1);
+    Write ('          ');
+
     { Create specific instances of the two objects }
 
     Radio1QSOMachine := QSOMachineObject.Create;
