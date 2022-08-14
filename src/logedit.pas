@@ -119,11 +119,15 @@ PROCEDURE AddQTCToQTCBuffer (VAR QTCBuffer: LogEntryArray; QTCString: Str80; Mes
 
 PROCEDURE BandDown;
 PROCEDURE BandUp;
+
+PROCEDURE CheckForRemovedDupeSheetWindow;
 PROCEDURE CleanUpDisplay;
 
 FUNCTION  DetermineQTCNumberAndQuanity (InputString: Str80;
                                         VAR QTCNumber: INTEGER;
                                         VAR Quantity: INTEGER): BOOLEAN;
+
+PROCEDURE DeleteLastContact;
 
 PROCEDURE EditInit;
 PROCEDURE TimeAndDateSet;
@@ -142,6 +146,7 @@ PROCEDURE ShowStationInformation (Call: CallString);
 FUNCTION  TotalContacts: INTEGER;
 FUNCTION  TotalCWContacts: INTEGER;
 FUNCTION  TotalPhoneContacts: INTEGER;
+FUNCTION  TotalScore: LONGINT;
 
 {KK1L: 6.64 Added to keep BM up to date with changes made while logging}
 PROCEDURE UpdateBandMapDupeStatus(RXCall: CallString; RXBand: BandType; RXMode: ModeType; MakeDupe: BOOLEAN);
@@ -3905,8 +3910,111 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
     END;
 
 
+
+
+PROCEDURE CheckForRemovedDupeSheetWindow;
+
+    BEGIN
+    IF VisibleDupeSheetRemoved THEN
+        BEGIN
+        RemoveWindow (BigWindow);
+        VisibleLog.SetUpEditableLog;
+        UpdateTotals;
+        VisibleLog.ShowRemainingMultipliers;
+        VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
+
+        IF VisibleDupeSheetEnable THEN
+            VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
+        END;
+
+    VisibleDupeSheetRemoved := False;
+    END;
 
 
+
+
+FUNCTION TotalScore: LONGINT;
+
+{ This routine will return the current contest score }
+
+VAR QPoints, TotalMults: LongInt;
+    MTotals:    MultTotalArrayType;
+
+    BEGIN
+    QPoints := TotalQSOPoints;
+
+    VisibleLog.IncrementQSOPointsWithContentsOfEditableWindow (QPoints);
+
+    IF QTCsEnabled THEN QPoints := QPoints + TotalNumberQTCsProcessed;
+
+    IF (ActiveDomesticMult = NoDomesticMults) AND
+       (ActiveDXMult       = NoDXMults) AND
+       (ActivePrefixMult   = NoPrefixMults) AND
+       (ActiveZoneMult     = NoZoneMults) THEN
+           BEGIN
+           TotalScore := QPoints;
+           Exit;
+           END;
+
+    {KK1L: 6.70 Ugly fix for FISTS because mults don't work...too long an exchange}
+    IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN
+        BEGIN
+        TotalScore := QPoints;
+        Exit;
+        END;
+
+    Sheet.MultSheetTotals (MTotals);
+    VisibleLog.IncrementMultTotalsWithContentsOfEditableWindow (MTotals);
+
+    IF SingleBand <> All THEN
+        BEGIN
+        TotalMults := MTotals [SingleBand, Both].NumberDomesticMults;
+        TotalMults := TotalMults + MTotals [SingleBand, Both].NumberDXMults;
+        TotalMults := TotalMults + MTotals [SingleBand, Both].NumberPrefixMults;
+        TotalMults := TotalMults + MTotals [SingleBand, Both].NumberZoneMults;
+        END
+    ELSE
+        IF ActiveQSOPointMethod = WAEQSOPointMethod THEN
+            BEGIN
+            TotalMults := MTotals [Band80, Both].NumberDXMults * 4;
+            TotalMults := TotalMults + MTotals [Band40, Both].NumberDXMults * 3;
+            TotalMults := TotalMults + MTotals [Band20, Both].NumberDXMults * 2;
+            TotalMults := TotalMults + MTotals [Band15, Both].NumberDXMults * 2;
+            TotalMults := TotalMults + MTotals [Band10, Both].NumberDXMults * 2;
+            END
+        ELSE
+            BEGIN
+            TotalMults := MTotals [All, Both].NumberDomesticMults;
+            TotalMults := TotalMults + MTotals [All, Both].NumberDXMults;
+            TotalMults := TotalMults + MTotals [All, Both].NumberPrefixMults;
+            TotalMults := TotalMults + MTotals [All, Both].NumberZoneMults;
+            END;
+
+    TotalScore := QPoints * TotalMults;
+    END;
+
+
+
+
+PROCEDURE DeleteLastContact;
+
+    BEGIN
+    VisibleLog.DeleteLastLogEntry;
+    UpdateTotals;
+    VisibleLog.ShowRemainingMultipliers;
+    VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
+    DisplayTotalScore (TotalScore);
+    DisplayInsertMode (InsertMode);
+    DisplayNextQSONumber (TotalContacts + 1);
+
+    IF VisibleDupeSheetEnable THEN
+        BEGIN
+        VisibleDupeSheetChanged := True;
+        VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
+        END;
+    END;
+
+
 
     BEGIN
     EditInit;

@@ -259,6 +259,23 @@ VAR TempString: Str160;
 
 
 
+PROCEDURE TBSIQ_DeleteLastContact;
+
+    BEGIN
+    VisibleLog.DeleteLastLogEntry;
+    UpdateTotals;
+    VisibleLog.ShowRemainingMultipliers;
+    VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
+    DisplayTotalScore (TotalScore);
+
+    IF VisibleDupeSheetEnable THEN
+        BEGIN
+        VisibleDupeSheetChanged := True;
+        VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
+        END;
+    END;
+
+
 PROCEDURE TBSIQ_UpdateTimeAndRateDisplays;
 
 VAR TimeString, FullTimeString, HourString: Str20;
@@ -593,9 +610,13 @@ VAR Key, ExtendedKey: CHAR;
 
                 END  { of QST_Idle and ActionRequired }
             ELSE
-                { Check to see if AutoStartSend should be triggered }
+
+                { There are some actions taken just based upon entering a certain number of
+                  letters in the CallWindow }
 
                 BEGIN
+                { Check to see if AutoStartSend should be triggered }
+
                 IF AutoSendEnable AND (StartSendingCursorPosition > 0) AND (ActiveMode = CW) THEN
                     IF Length (CallWindowString) = AutoSendCharacterCount THEN
                         IF NOT StringIsAllNumbersOrDecimal (CallWindowString) THEN
@@ -609,8 +630,14 @@ VAR Key, ExtendedKey: CHAR;
                                     ShowCWMessage (CallWindowString);
                                     QSOState := QST_AutoStartSending;
                                     StationCalled := True;    { This makes sure we don't call again }
-                                    Exit;
                                     END;
+
+                { Check SuperCheckPartial }
+
+                IF SCPMinimumLetters > 0 THEN
+                    IF Length (CallWindowString) >= SCPMinimumLetters THEN
+                        VisibleLog.SuperCheckPartial (CallWindowString, True, ActiveRadio);
+
                 END;
 
             END;  { Of QST_Idle or QST_CQCalled }
@@ -1366,6 +1393,7 @@ VAR CursorPosition, CharPointer: INTEGER;
 
     BEGIN
     BeSilent := False;   { Set this TRUE when exiting if you don't want CW sent }
+    CheckForRemovedDupeSheetWindow;
 
     ActionRequired := False;
     ExtendedKeyChar := Chr (0);   { Default values if we exit early }
@@ -1804,6 +1832,8 @@ VAR CursorPosition, CharPointer: INTEGER;
                           Millisleep;
                           END;
                       END;
+
+                AltY: TBSIQ_DeleteLastContact;
 
                 AltDash:   { Uses the global AutoSendEnable }
                     BEGIN
@@ -3210,10 +3240,7 @@ VAR LogString: Str80;
 
     IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
 
-    { Not sure about where these need to go - maybe radio specific
-
-    BeSilent := False;
-    NameCallsignPutUp := '';  }
+    UpdateTotals;
 
     IF BandMapEnable THEN
         BEGIN

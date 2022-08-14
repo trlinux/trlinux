@@ -49,68 +49,6 @@ VAR NewMemoryAvailable, AvailableMemory: LONGINT;
 
 
 
-FUNCTION TotalScore: LONGINT;
-
-{ This routine will return the current contest score }
-
-VAR QPoints, TotalMults: LongInt;
-    MTotals:    MultTotalArrayType;
-
-    BEGIN
-    QPoints := TotalQSOPoints;
-
-    VisibleLog.IncrementQSOPointsWithContentsOfEditableWindow (QPoints);
-
-    IF QTCsEnabled THEN QPoints := QPoints + TotalNumberQTCsProcessed;
-
-    IF (ActiveDomesticMult = NoDomesticMults) AND
-       (ActiveDXMult       = NoDXMults) AND
-       (ActivePrefixMult   = NoPrefixMults) AND
-       (ActiveZoneMult     = NoZoneMults) THEN
-           BEGIN
-           TotalScore := QPoints;
-           Exit;
-           END;
-
-    {KK1L: 6.70 Ugly fix for FISTS because mults don't work...too long an exchange}
-    IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN
-        BEGIN
-        TotalScore := QPoints;
-        Exit;
-        END;
-
-    Sheet.MultSheetTotals (MTotals);
-    VisibleLog.IncrementMultTotalsWithContentsOfEditableWindow (MTotals);
-
-    IF SingleBand <> All THEN
-        BEGIN
-        TotalMults := MTotals [SingleBand, Both].NumberDomesticMults;
-        TotalMults := TotalMults + MTotals [SingleBand, Both].NumberDXMults;
-        TotalMults := TotalMults + MTotals [SingleBand, Both].NumberPrefixMults;
-        TotalMults := TotalMults + MTotals [SingleBand, Both].NumberZoneMults;
-        END
-    ELSE
-        IF ActiveQSOPointMethod = WAEQSOPointMethod THEN
-            BEGIN
-            TotalMults := MTotals [Band80, Both].NumberDXMults * 4;
-            TotalMults := TotalMults + MTotals [Band40, Both].NumberDXMults * 3;
-            TotalMults := TotalMults + MTotals [Band20, Both].NumberDXMults * 2;
-            TotalMults := TotalMults + MTotals [Band15, Both].NumberDXMults * 2;
-            TotalMults := TotalMults + MTotals [Band10, Both].NumberDXMults * 2;
-            END
-        ELSE
-            BEGIN
-            TotalMults := MTotals [All, Both].NumberDomesticMults;
-            TotalMults := TotalMults + MTotals [All, Both].NumberDXMults;
-            TotalMults := TotalMults + MTotals [All, Both].NumberPrefixMults;
-            TotalMults := TotalMults + MTotals [All, Both].NumberZoneMults;
-            END;
-
-    TotalScore := QPoints * TotalMults;
-    END;
-
-
-
 PROCEDURE PutUpCQMenu;
 
     BEGIN
@@ -839,27 +777,7 @@ PROCEDURE PutUpExchangeMenu;
         END;
     END;
 
-
-
-PROCEDURE CheckForRemovedDupeSheetWindow;
-
-    BEGIN
-    IF VisibleDupeSheetRemoved THEN
-        BEGIN
-        RemoveWindow (BigWindow);
-        VisibleLog.SetUpEditableLog;
-        UpdateTotals;
-        VisibleLog.ShowRemainingMultipliers;
-        VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
-
-        IF VisibleDupeSheetEnable THEN
-            VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
-        END;
-
-    VisibleDupeSheetRemoved := False;
-    END;
-
-
+
 
 PROCEDURE SwapRadios;
 
