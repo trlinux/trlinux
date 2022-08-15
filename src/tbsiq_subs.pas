@@ -1,5 +1,5 @@
 //
-//Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015.
+//Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015,2022
 //
 //This file is part of TR log for linux.
 //
@@ -52,7 +52,8 @@ TYPE
                           QST_CQExchangeBeingSent,
                           QST_CQExchangeBeingSentAndExchangeWindowUp,
                           QST_CQWaitingForExchange,
-                          QST_CQSending73Message);
+                          QST_CQSending73Message,
+                          QST_SearchAndPounceMode);
 
     QSOMachineObject = CLASS
         { These paramaters need to be set for the specific instance using the
@@ -72,7 +73,8 @@ TYPE
 
         CallWindowString: STRING;
         CallWindowCursorPosition: INTEGER;
-
+        ClearKeyCache: BOOLEAN;
+        CodeSpeed: INTEGER;
         CWMessageDisplayed: STRING;
 
         DisplayedBand: BandType;
@@ -101,6 +103,7 @@ TYPE
         PROCEDURE ClearTransmitIndicator;
         PROCEDURE DisplayAutoSendCharacterCount;
         PROCEDURE DisplayBandMode;
+        PROCEDURE DisplayCodeSpeed;
         PROCEDURE DisplayFrequency;
 
         PROCEDURE InitializeQSOMachine (KBFile: CINT;
@@ -473,6 +476,8 @@ PROCEDURE QSOMachineObject.SetTransmitIndicator;
 
     ClrScr;
     RestorePreviousWindow;
+
+    TBSIQ_CW_Engine.ShowActiveRadio;
     END;
 
 
@@ -653,12 +658,13 @@ VAR Key, ExtendedKey: CHAR;
               5. All of the entered letters have been sent - send exchange. }
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
-                BEGIN
-                TBSIQ_CW_Engine.CueCWMessage (CQExchange, Radio, CWP_High, MessageNumber);
-                ShowCWMessage (CQExchange);
-                QSOState := QST_CQExchangeBeingSent;
-                Exit;
-                END;
+                IF AutoCallTerminate THEN
+                    BEGIN
+                    TBSIQ_CW_Engine.CueCWMessage (CQExchange, Radio, CWP_High, MessageNumber);
+                    ShowCWMessage (CQExchange);
+                    QSOState := QST_CQExchangeBeingSent;
+                    Exit;
+                    END;
 
             IF NOT ActionRequired THEN Exit;  { No keystroke to respond to }
 
@@ -680,8 +686,9 @@ VAR Key, ExtendedKey: CHAR;
                         Delete (CallsignICameBackTo, Length (CallSignICameBackTo), 1);
                         ClrScr;
                         Write (CallWindowString);
-                        CallWindowCursorPosition := WhereX;
+                        Dec (CallWindowCursorPosition);
                         END;
+
 
                 ELSE
                     BEGIN
@@ -689,11 +696,9 @@ VAR Key, ExtendedKey: CHAR;
 
                     IF ((Key >= '0') AND (Key <= 'Z')) OR (Key = '/') THEN
                         BEGIN
-                        TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High, MessageNumber);
-                        Write (Key);
-                        CallWindowString := CallWindowString + Key;
-                        Inc (CallWindowCursorPosition);
+                        TBSIQ_CW_Engine.AddCharacterToBuffer (Key, Radio);
                         CallsignICameBackTo := CallSignICameBackTo + Key;
+                        ShowCWMessage (CallsignICameBackTo);
                         END;
                     END;
 
@@ -1033,6 +1038,7 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
 
     CASE QSOState OF
         QST_Idle: Write ('Idle');
+        QST_AutoStartSending: Write ('Auto start send started');
         QST_CallingCQ: Write ('CQing');
         QST_CQCalled: Write ('CQ Called');
         QST_CQStationBeingAnswered: Write ('CQ Station Being Answered');
@@ -1164,7 +1170,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             TBSIQ_R1_CodeSpeedWindowLX := WindowLocationX;
             TBSIQ_R1_CodeSpeedWindowLY := WindowLocationY + 3;
-            TBSIQ_R1_CodeSpeedWindowRX := WindowLocationX + 9;
+            TBSIQ_R1_CodeSpeedWindowRX := WindowLocationX + 10;
             TBSIQ_R1_CodeSpeedWindowRY := WindowLocationY + 3;
 
             { CW Status Window sits just below the Exchange window }
@@ -1243,7 +1249,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             TBSIQ_R2_CodeSpeedWindowLX := WindowLocationX;
             TBSIQ_R2_CodeSpeedWindowLY := WindowLocationY + 3;
-            TBSIQ_R2_CodeSpeedWindowRX := WindowLocationX + 9;
+            TBSIQ_R2_CodeSpeedWindowRX := WindowLocationX + 10;
             TBSIQ_R2_CodeSpeedWindowRY := WindowLocationY + 3;
 
             { CW Status Window sits just below the Exchange window }
@@ -1312,6 +1318,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     DisplayAutoSendCharacterCount;
 
+    CodeSpeed := SpeedMemory [Radio];
+    DisplayCodeSpeed;
+
     { Put up a blank call window }
 
     SetTBSIQWindow (TBSIQ_CallWindow);
@@ -1359,6 +1368,20 @@ FUNCTION QSOMachineObject.LegalKey (KeyChar: CHAR): BOOLEAN;
 
 
 
+PROCEDURE QSOMachineObject.DisplayCodeSpeed;
+
+    BEGIN
+    CASE Radio OF
+        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_CodeSpeedWindow);
+        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_CodeSpeedWindow);
+        END;
+
+    Write (' ', CodeSpeed:2, ' WPM');
+    RestorePreviousWindow;
+    END;
+
+
+
 PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
                                          VAR KeyChar: CHAR;
                                          VAR ExtendedKeyChar: CHAR;
@@ -1386,7 +1409,7 @@ PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
   changed it to a different window...  so you should check ActiveWindow
   first and change it to the right window before doing anything. }
 
-VAR CursorPosition, CharPointer: INTEGER;
+VAR CursorPosition, CharPointer, Count: INTEGER;
     PreviousCursorChar: CHAR;
     TempString: STRING;
     TempExchange: ContestExchange;
@@ -1398,6 +1421,23 @@ VAR CursorPosition, CharPointer: INTEGER;
     ActionRequired := False;
     ExtendedKeyChar := Chr (0);   { Default values if we exit early }
     KeyChar := Chr (0);
+
+    { If someone set the ClearKeyCache flag - we should gobble up any characters
+      that are waiting for me and do nothing with them }
+
+    IF ClearKeyCache THEN
+        BEGIN
+        FOR Count := 1 TO 30 DO
+            BEGIN
+            Millisleep;
+
+            IF TBSIQ_KeyPressed (Radio) THEN
+                TBSIQ_ReadKey (Radio);
+            END;
+
+        ClearKeyCache := False;
+        Exit;
+        END;
 
     IF NOT TBSIQ_KeyPressed (Radio) THEN Exit;  { No reason to be here }
 
@@ -1449,7 +1489,6 @@ VAR CursorPosition, CharPointer: INTEGER;
 
             IF TBSIQ_CW_Engine.ClearMessages (Radio, True) THEN   { was something to stop }
                 BEGIN
-                ShowCWMessage ('');
                 ActionRequired := False;
                 Exit;
                 END;
@@ -1800,37 +1839,32 @@ VAR CursorPosition, CharPointer: INTEGER;
                       RITEnable := True;
                       END;
 
-                AltS: BEGIN
-                      SetNewCodeSpeed;
+                  AltR:
+                      BEGIN
+                      IF ActiveRadio = RadioOne THEN
+                          ActiveRadio := RadioTwo
+                      ELSE
+                          ActiveRadio := RadioOne;
+                      SetUpToSendOnActiveRadio;
+                      TBSIQ_CW_Engine.ShowActiveRadio;
+                      END;
 
-                      { get rid of keystrokes }
-
-                      WHILE TBSIQ_KeyPressed (Radio) DO
-                          BEGIN
-                          TBSIQ_ReadKey (Radio);
-                          Millisleep;
-                          END;
+                  AltS: BEGIN
+                      CWEnabled := True;
+                      CodeSpeed := QuickEditInteger ('Enter WPM code speed : ', 2);
+                      SpeedMemory [Radio] := CodeSpeed;
+                      DisplayCodeSpeed;
+                      ClearKeyCache := True;
                       END;
 
                 AltT: BEGIN
                       TimeAndDateSet;
-                      { Get rid of the keystrokes }
-
-                      WHILE TBSIQ_KeyPressed (Radio) DO
-                          BEGIN
-                          TBSIQ_ReadKey (Radio);
-                          Millisleep;
-                          END;
+                      ClearKeyCache := True;
                       END;
 
                 AltX: BEGIN
                       TBSIQ_ExitProgram;
-
-                      WHILE TBSIQ_KeyPressed (Radio) DO
-                          BEGIN
-                          TBSIQ_ReadKey (Radio);
-                          Millisleep;
-                          END;
+                      ClearKeyCache := True;
                       END;
 
                 AltY: TBSIQ_DeleteLastContact;
@@ -1902,8 +1936,17 @@ VAR CursorPosition, CharPointer: INTEGER;
                         GoToXY (CursorPosition, 1);
                         END;
 
-                PageUpKey: SpeedUp;
-                PageDownKey: SlowDown;
+                PageUpKey:
+                    BEGIN
+                    SpeedUp;
+                    DisplayCodeSpeed;
+                    END;
+
+                PageDownKey:
+                    BEGIN
+                    SlowDown;
+                    DisplayCodeSpeed;
+                    END;
 
                 { It appears we used ControlUpArrow to MoveGridMap }
 
@@ -1920,12 +1963,7 @@ VAR CursorPosition, CharPointer: INTEGER;
                         DisplayInsertMode (InsertMode);
                         DisplayNextQSONumber (TotalContacts + 1);
                         LastTwoLettersCrunchedOn := '';
-
-                        WHILE TBSIQ_KeyPressed (Radio) DO
-                            BEGIN
-                            TBSIQ_ReadKey (Radio);
-                            Millisleep;
-                            END;
+                        ClearKeyCache := True;
                         END
                     ELSE
                         Exit;     { Let the calling routine decide what to do }
@@ -1983,18 +2021,6 @@ VAR CursorPosition, CharPointer: INTEGER;
                         Write (KeyChar);
                         Inc (CursorPosition);
                         GoToXY (CursorPosition, 1);
-
-                        { Auto start send needs some work
-
-                        IF (ActiveMode = CW) AND (OpMode = CQOpMode) AND AutoSendEnable AND
-                                   (AutoSendCharacterCount = Length (WindowString)) AND
-                                   (NOT StringIsAllNumbersOrDecimal (WindowString)) AND
-                                   (NOT StringHas (WindowString, '/')) THEN
-                                       IF NOT CallAlreadySent THEN
-                                           BEGIN
-                                           KeyChar := StartSendingNowKey;
-                                           Exit;
-                                           END;  }
                         END;
 
                 { To show domestic multiplier status as it is entered in }
@@ -2007,7 +2033,21 @@ VAR CursorPosition, CharPointer: INTEGER;
                         VisibleLog.ShowDomesticMultiplierStatus (TempExchange.DomesticQTH);
                     END;
 
+                { Need to be aware that if a character is added during QST_AutoStartSending that we
+                  need to add it to the CW Buffer.  We do this by setting the ActionRequired flag so
+                  that the QSOMachine will look for it.  We will need to be able to exit here and
+                  have everything else done that is normally done before exiting EXCEPT setting the
+                  ActionRequired flag to FALSE }
+
+                IF QSOState = QST_AutoStartSending THEN
+                    BEGIN
+                    ActionRequired := True;
+                    CallWindowString := WindowString;
+                    CallWindowCursorPosition := CursorPosition;
+                    Exit;
+                    END;
                 END;
+
         END;  { of case KeyChar }
 
     { If we got here - some case of KeyChar was found that did something that did not require the calling

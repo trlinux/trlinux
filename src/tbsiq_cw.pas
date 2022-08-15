@@ -1,5 +1,5 @@
 //
-//Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015.
+//Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015,2022
 //
 //This file is part of TR log for linux.
 //
@@ -62,6 +62,7 @@ TYPE
 
         MessageCue: ARRAY [0..MaximumCuedMessages - 1] OF CuedMessageType;
 
+        PROCEDURE AddcharacterToBuffer (AddChar: CHAR; AddRadio: RadioType);
         PROCEDURE CheckMessages;    { Call often to make the message cue work }
         FUNCTION  ClearMessages (Radio: RadioType; InProcess: BOOLEAN): BOOLEAN;
         PROCEDURE CueCWMessage (Message: STRING; Radio: RadioType; Priority: TBSIQ_CW_PriorityType; VAR MessageNumber: INTEGER);
@@ -69,6 +70,7 @@ TYPE
         FUNCTION  CWFinished (Radio: RadioType): BOOLEAN;
         FUNCTION  CWBeingSent (Radio: RadioType): BOOLEAN;
         FUNCTION  DeleteLastCharacter (Radio: RadioType): BOOLEAN;
+        PROCEDURE ShowActiveRadio;  { Shows which radio has focus for CW sending }
         END;
 
 VAR
@@ -76,6 +78,53 @@ VAR
 
 
 IMPLEMENTATION
+
+PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
+
+    BEGIN
+    CASE ActiveRadio OF
+        NoRadio:
+            BEGIN
+            SaveAndSetActiveWindow (TBSIQ_R1_CodeSpeedWindow);
+            GoToXY (9, 1);
+            Write ('  ');
+            RestorePreviousWindow;
+
+            SaveAndSetActiveWindow (TBSIQ_R2_CodeSpeedWindow);
+            GoToXY (9, 1);
+            Write ('  ');
+            RestorePreviousWindow;
+            END;
+
+        RadioOne:
+            BEGIN
+            SaveAndSetActiveWindow (TBSIQ_R1_CodeSpeedWindow);
+            GoToXY (9, 1);
+            Write ('TX');
+            RestorePreviousWindow;
+
+            SaveAndSetActiveWindow (TBSIQ_R2_CodeSpeedWindow);
+            GoToXY (9, 1);
+            Write ('  ');
+            RestorePreviousWindow;
+            END;
+
+        RadioTwo:
+            BEGIN
+            SaveAndSetActiveWindow (TBSIQ_R1_CodeSpeedWindow);
+            GoToXY (9, 1);
+            Write ('  ');
+            RestorePreviousWindow;
+
+            SaveAndSetActiveWindow (TBSIQ_R2_CodeSpeedWindow);
+            GoToXY (9, 1);
+            Write ('TX');
+            RestorePreviousWindow;
+            END;
+        END;
+    END;
+
+
 
 PROCEDURE TBSIQ_CWEngineObject.CueCWMessage (Message: STRING;
                                              Radio: RadioType; Priority:
@@ -161,6 +210,44 @@ FUNCTION TBSIQ_CWEngineObject.DeleteLastCharacter (Radio: RadioType): BOOLEAN;
 
 
 
+PROCEDURE TBSIQ_CWEngineObject.AddcharacterToBuffer (AddChar: CHAR; AddRadio: RadioType);
+
+VAR TestTail: INTEGER;
+
+    BEGIN
+    IF ActiveRadio = AddRadio THEN  { We can just add the character to the keyer }
+        BEGIN
+        AddStringToBuffer (AddChar, CWTone);
+        Exit;
+        END;
+
+    { The message needs to be added to the cued message for this radio }
+
+    IF CueHead = CueTail THEN  { Unexpected this is }
+        BEGIN
+        Exit;
+        END;
+
+    TestTail := CueTail;
+
+    WHILE TestTail <> CueHead DO
+        WITH MessageCue [TestTail] DO
+            BEGIN
+            IF AddRadio = Radio THEN
+                BEGIN
+                Message := Message + Addchar;
+                Exit;
+                END;
+
+            Inc (TestTail);
+            IF TestTail = MaximumCuedMessages THEN TestTail := 0;
+            END;
+
+    { This is also somewhat unexpected too - since I was sure a message was being sent }
+    END;
+
+
+
 FUNCTION TBSIQ_CWEngineObject.ClearMessages (Radio: RadioType; InProcess: BOOLEAN): BOOLEAN;
 
 { Well remove any messages in the cue for this radio - and optionally stop sending a message that
@@ -189,6 +276,8 @@ VAR Index: INTEGER;
             MessageNumberBeingSent := -1;
             ClearMessages := True;
             END;
+
+    ClearMessages := False;
     END;
 
 
