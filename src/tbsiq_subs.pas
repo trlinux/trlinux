@@ -53,7 +53,7 @@ TYPE
                           QST_CQExchangeBeingSentAndExchangeWindowUp,
                           QST_CQWaitingForExchange,
                           QST_CQSending73Message,
-                          QST_SearchAndPounceMode);
+                          QST_SearchAndPounceIdle);
 
     QSOMachineObject = CLASS
         { These paramaters need to be set for the specific instance using the
@@ -552,7 +552,7 @@ VAR Key, ExtendedKey: CHAR;
         LastQSOState := QSOState;
 
         CASE QSOState OF
-            QST_Idle, QST_CQCalled, QST_CQWaitingForExchange:
+            QST_Idle, QST_CQCalled, QST_CQWaitingForExchange, QST_SearchAndPounceIdle:
                 ClearTransmitIndicator;
             ELSE
                 SetTransmitIndicator;
@@ -610,6 +610,12 @@ VAR Key, ExtendedKey: CHAR;
                                 END;
                     EscapeKey:
                         QSOState := QST_Idle;
+
+                    TabKey:
+                        BEGIN
+                        QSOState := QST_SearchAndPounceIdle;
+                        Exit;
+                        END;
 
                     END; { of case Key }
 
@@ -905,6 +911,46 @@ VAR Key, ExtendedKey: CHAR;
                 END;
             END;
 
+        QST_SearchAndPounceIdle:
+            BEGIN
+            IF NOT ExchangeWindowIsUp THEN
+                BEGIN
+                SetTBSIQWindow (TBSIQ_ExchangeWindow);
+                ClrScr;
+                SetTBSIQWindow (TBSIQ_CallWindow);
+                END;
+
+            IF ActionRequired THEN
+                BEGIN
+                CASE Key OF
+                    EscapeKey:
+                        BEGIN
+                        QSOState := QST_Idle;
+                        RemoveExchangeWindow;
+                        Exit;
+                        END;
+
+                    NullKey:
+                        BEGIN
+                        IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
+                            BEGIN
+                            TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
+                            ShowCWMessage (Message);
+                            Exit;
+                            END;
+                        END;
+
+                    END; { of case Key }
+                END { of ActionRequired }
+
+            ELSE
+                BEGIN
+                IF SCPMinimumLetters > 0 THEN
+                    IF Length (CallWindowString) >= SCPMinimumLetters THEN
+                        VisibleLog.SuperCheckPartial (CallWindowString, True, ActiveRadio);
+                END;
+
+            END; { of QST_SearchAndPounce }
         END;  { of case QSOState }
     END;
 
@@ -1046,6 +1092,7 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         QST_CQExchangeBeingSentAndExchangeWindowUp: Write ('Exchange being sent + ExWindow');
         QST_CQWaitingForExchange: Write ('Waiting for exchange');
         QST_CQSending73Message: Write ('Sending 73 message');
+        QST_SearchAndPounceIdle: Write ('Search and Pounce - Idle');
         ELSE Write ('???');
         END;
 
@@ -1377,6 +1424,10 @@ PROCEDURE QSOMachineObject.DisplayCodeSpeed;
         END;
 
     Write (' ', CodeSpeed:2, ' WPM');
+
+    IF ActiveRadio = Radio THEN
+        Write (' TX');
+
     RestorePreviousWindow;
     END;
 
@@ -1411,7 +1462,7 @@ PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
 
 VAR CursorPosition, CharPointer, Count: INTEGER;
     PreviousCursorChar: CHAR;
-    TempString: STRING;
+    InitialExchange, TempString: STRING;
     TempExchange: ContestExchange;
 
     BEGIN
@@ -1724,7 +1775,7 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
             Exit;
             END;
 
-        TabKey: Exit;
+        TabKey: Exit;  { Mostly used to enter Search And Pounce?  }
 
         BackSpace:
             BEGIN
@@ -1845,15 +1896,24 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                           ActiveRadio := RadioTwo
                       ELSE
                           ActiveRadio := RadioOne;
+
                       SetUpToSendOnActiveRadio;
                       TBSIQ_CW_Engine.ShowActiveRadio;
                       END;
 
-                  AltS: BEGIN
+                  AltS:
+                      BEGIN
                       CWEnabled := True;
                       CodeSpeed := QuickEditInteger ('Enter WPM code speed : ', 2);
                       SpeedMemory [Radio] := CodeSpeed;
                       DisplayCodeSpeed;
+                      SpeedMemory [Radio] := CodeSpeed;
+
+                      { Fake SetUpToSendOnActiveRadio to do an update }
+
+                      SendingOnRadioOne := False;
+                      SendingOnRadioTwo := False;
+                      SetUpToSendOnActiveRadio;  { Maybe not a good idea }
                       ClearKeyCache := True;
                       END;
 
@@ -1868,6 +1928,31 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                       END;
 
                 AltY: TBSIQ_DeleteLastContact;
+
+                AltZ:
+                    BEGIN  { Well - let's see if this works okay down here }
+
+                    InitialExchange := InitialExchangeEntry (CallWindowString);
+
+                    IF InitialExchange <> '' THEN   { Hmm - maybe this test should go away }
+                        BEGIN
+                        ExchangeWindowString := InitialExchange;
+                        ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
+
+                        IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                            BEGIN
+                            SetTBSIQWindow (TBSIQ_ExchangeWindow);
+                            ClrScr;
+                            Write (ExchangeWindowString);
+                            SetTBSIQWindow (TBSIQ_CallWindow);
+                            END
+                        ELSE
+                            BEGIN
+                            ClrScr;
+                            Write (ExchangeWindowString);
+                            END;
+                        END;
+                    END; { of AltZ }
 
                 AltDash:   { Uses the global AutoSendEnable }
                     BEGIN
@@ -1937,16 +2022,32 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                         END;
 
                 PageUpKey:
-                    BEGIN
-                    SpeedUp;
-                    DisplayCodeSpeed;
-                    END;
+                    IF CodeSpeed < 99 - CodeSpeedIncrement THEN
+                        BEGIN
+                        CodeSpeed := CodeSpeed + CodeSpeedIncrement;
+                        DisplayCodeSpeed;
+                        SpeedMemory [Radio] := CodeSpeed;
+
+                        { Fake SetUpToSendOnActiveRadio to do an update }
+
+                        SendingOnRadioOne := False;
+                        SendingOnRadioTwo := False;
+                        SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                        END;
 
                 PageDownKey:
-                    BEGIN
-                    SlowDown;
-                    DisplayCodeSpeed;
-                    END;
+                    IF CodeSpeed > 1 + CodeSpeedIncrement THEN
+                        BEGIN
+                        CodeSpeed := CodeSpeed - CodeSpeedIncrement;
+                        DisplayCodeSpeed;
+                        SpeedMemory [Radio] := CodeSpeed;
+
+                        { Fake SetUpToSendOnActiveRadio to do an update }
+
+                        SendingOnRadioOne := False;
+                        SendingOnRadioTwo := False;
+                        SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                        END;
 
                 { It appears we used ControlUpArrow to MoveGridMap }
 
@@ -2693,11 +2794,11 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
             IF AltKey THEN KeyStatus.KeyChar := AltUpArrow;
             END;
 
-       104: BEGIN                               { Page Up }
-            KeyStatus.ExtendedKey := True;
-            KeyStatus.KeyChar := PageUpKey;
-            IF ControlKey THEN KeyStatus.KeyChar := ControlPageUp;
-            END;
+       73, 104: BEGIN                               { Page Up }
+                KeyStatus.ExtendedKey := True;
+                KeyStatus.KeyChar := PageUpKey;
+                IF ControlKey THEN KeyStatus.KeyChar := ControlPageUp;
+                END;
 
        105: BEGIN                               { Left arrow }
             KeyStatus.ExtendedKey := True;
@@ -2724,11 +2825,11 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
             IF AltKey THEN KeyStatus.KeyChar := AltDownArrow;
             END;
 
-       109: BEGIN                               { Page Down}
-            KeyStatus.ExtendedKey := True;
-            KeyStatus.KeyChar := PageDownKey;
-            IF ControlKey THEN KeyStatus.KeyChar := ControlPageDown;
-            END;
+       81, 109: BEGIN                               { Page Down}
+                KeyStatus.ExtendedKey := True;
+                KeyStatus.KeyChar := PageDownKey;
+                IF ControlKey THEN KeyStatus.KeyChar := ControlPageDown;
+                END;
 
        110: BEGIN                               { Insert }
             KeyStatus.ExtendedKey := True;

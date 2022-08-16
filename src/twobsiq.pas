@@ -1,5 +1,5 @@
 //
-//Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015.
+//Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015,2022
 //
 //This file is part of TR log for linux.
 //
@@ -23,6 +23,45 @@ UNIT TwoBSIQ;
 {$O+}
 {$V-}
 
+{
+
+TODO List
+
+- There are some corner cases with auto start send edits while the other Tx
+is sending that need to be worked out.  If works fine if you don't make
+any edits it seems.
+
+- Need to interpret Cryptic CW characters
+
+- Need to make F1 and F2 work in S&P mode
+
+- Changing code speed will stop CW message on other radio.
+
+- Will updating the callsign in the exchange window work for free?
+
+
+CHANGE LOG
+
+15-Aug-2022
+
+  - Made PageUp/PageDn work to change CW speeds in real time
+  - Made TX indicator stay when changing code speed
+  - Enabled numeric keypad PageUp/Dn keys to control CW speed
+  - Started implemention of SearchAndPounce Mode - not completed yet.
+
+16-Aug-2022
+
+  - Implemented AltZ to recompute initial exchange based upon call window.
+    This perhaps works a little different from AltZ in the main program
+    as you can use it in any QSOState.  If the exchange window is not up,
+    it will put it up for you but not change the QSO state.  It will only
+    put up an intiial exchange if there is one for the callsign - otherwise,
+    it will leave the Exchange Window alone.  Not sure if this is the best
+    way - but give it a try.
+
+  -
+
+}
 
 INTERFACE
 
@@ -77,6 +116,10 @@ PROCEDURE Initialize2BSIQOperatorInterface;
 
     Radio1QSOMachine.InitializeQSOMachine (R1KeyboardID, RadioOne, 1, 19);
     Radio2QSOMachine.InitializeQSOMachine (R2KeyboardID, RadioTwo, 40, 19);
+
+    ActiveRadio := RadioOne;
+    SetUpToSendOnActiveRadio;
+    TBSIQ_CW_Engine.ShowActiveRadio;
     END;
 
 
