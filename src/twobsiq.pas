@@ -32,7 +32,27 @@ TODO LIST
   for most of the time - so maybe wait to see if it ever actually causes a
   problem.  Maybe the bug actually doesn't exist...
 
-- S&P mode work to be done: Need to make F1 and F2 work in S&P mode
+- S&P mode work to be done: lots.
+
+- Blank messages in Exchange function key memories sending garbage.
+
+- Currently - when I answer a guy - the callsign and the exchange are two
+  different CW messages and the other radio can jump in between them.  Do
+  I want to do something about this?
+
+- The : character is causing me issues.  It is found during the conversion
+  of the message string down in TBSIQ_CW - but then needs to be active within
+  the specific radio's QSOMachine?  Need to figure out the right way to do
+  this.  Likely doing the conversion of cryptic CW messages within the
+  specific radio's instance.
+
+- Initial exchanges for CWT coming okay from the TRMASTER file, but are messed
+  up when coming from the editable window and the dupesheet.
+
+- Exchange function keys with nothing programmed in them send garbage.
+
+- AltP support would be nice to have.
+
 
 CHANGE LOG
 
@@ -80,6 +100,14 @@ CHANGE LOG
 
   - Fixed bug that would stop CW from being sent if the CW speed was changed
     on the other radio.
+
+17-Aug-2022
+
+  - I believe I fixed a bug that was causing hangs when employing auto start
+    send.  I was getting stuck in the CWFinished loop because I kept setting
+    the Index (temporary pointer) to the start of the cue.
+
+  - Made F1 and F2 work when exchange window up.
 
 }
 

@@ -28,7 +28,7 @@ UNIT TBSIQ_CW;
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     timer,LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      keycode,jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb;
 
 
@@ -73,7 +73,10 @@ TYPE
         PROCEDURE ShowActiveRadio;  { Shows which radio has focus for CW sending }
         END;
 
-    FUNCTION  ExpandCrypticString (VAR SendString: STRING; CallWindowString: STRING; ExchangeWindowString: STRING): STRING;
+    FUNCTION  ExpandCrypticString (VAR SendString: STRING; Radio: RadioType;
+                                   CallWindowString: STRING; ExchangeWindowString: STRING): STRING;
+
+    PROCEDURE TBSIQ_SendKeyboardInput (Radio: RadioType);
 
 VAR
     TBSIQ_CW_Engine: TBSIQ_CWEngineObject;
@@ -82,6 +85,7 @@ VAR
 IMPLEMENTATION
 
 FUNCTION ExpandCrypticString (VAR SendString: STRING;
+                              Radio: RadioType;
                               CallWindowString: STRING;
                               ExchangeWindowString: STRING): STRING;
 
@@ -118,7 +122,7 @@ VAR CharacterCount: INTEGER;
 
             ':': BEGIN   { I have no idea if this will work - but it is a good idea }
                  RITEnable := False;
-                 SendKeyboardInput;
+                 TBSIQ_SendKeyboardInput (Radio);
                  RITEnable := True;
                  END;
 
@@ -358,8 +362,6 @@ VAR Index: INTEGER;
 
         WHILE Index <> CueHead DO
             BEGIN
-            Index := CueTail;    { Start at the next message to be popped off }
-
             IF MessageCue [Index].Radio = Radio THEN
                 BEGIN
                 CWFinished := False;
@@ -441,14 +443,155 @@ VAR MessageStarted: BOOLEAN;
         IF CueTail = MaximumCuedMessages THEN CueTail := 0;
         END;
 
-    { This looks a little scary here - but I think it would be a good idea for us to stay here
-      until the CW Message gets started.  Otherwise, someone might make a bad decision about
-      a message being completed when it really wasn't even started yet. }
-
     IF MessageStarted THEN REPEAT UNTIL CWStillBeingSent;
     END;
 
 
+
+PROCEDURE TBSIQ_DisplayBuffer (Buffer: SendBufferType;
+                               BufferStart: INTEGER;
+                               BufferEnd: INTEGER);
+
+
+VAR BufferAddress: INTEGER;
+
+    BEGIN
+    ClrScr;
+
+    IF BufferStart = BufferEnd THEN
+        BEGIN
+        Write ('Buffer empty - type something to start sending or RETURN to stop');
+        Exit;
+        END;
+
+    BufferAddress := BufferStart;
+
+    WHILE BufferAddress <> BufferEnd DO
+        BEGIN
+        Write (Buffer [BufferAddress]);
+        Inc (BufferAddress);
+        IF BufferAddress = 256 THEN BufferAddress := 0;
+        END;
+    END;
+
+
+
+PROCEDURE TBSIQ_SendKeyboardInput (Radio: RadioType);
+
+{ This procedure will take input from the keyboard and send it until a
+  return is pressed.                                                    }
+
+VAR Key: CHAR;
+    TimeMark: TimeRecord;
+    Buffer: SendBufferType;
+    BufferStart, BufferEnd: INTEGER;
+
+    BEGIN
+    BufferStart := 0;
+    BufferEnd := 0;
+    Buffer[0] := ' '; //to kill buffer not initialized warning
+
+    IF NOT CWEnable THEN Exit;
+
+    ActiveRadio := Radio;
+    SendingOnRadioOne := False;
+    SendingOnRadioTwo := False;
+    SetUpToSendOnActiveRadio;
+
+    CASE Radio OF
+        RadioOne: SaveAndSetActiveWindow (TBSIQ_R1_CWMessageWindow);
+        RadioTwo: SaveAndSetActiveWindow (TBSIQ_R2_CWMessageWindow);
+        END;
+
+    ClrScr;
+    Write ('Keyboard CW.  ENTER to exit.');
+
+    REPEAT
+        MarkTime (TimeMark);
+
+        REPEAT
+            IF ActiveKeyer.BufferEmpty THEN
+                IF BufferStart <> BufferEnd THEN
+                    BEGIN
+                    ActiveKeyer.AddCharacterToBuffer (Buffer [BufferStart]);
+                    Inc (BufferStart);
+                    IF BufferStart = 256 THEN BufferStart := 0;
+                    TBSIQ_DisplayBuffer (Buffer, BufferStart, BufferEnd);
+                    END;
+            millisleep;
+        UNTIL NewKeyPressed;
+
+        Key := UpCase (NewReadKey);
+
+        IF Key >= ' ' THEN
+            BEGIN
+            IF BufferStart = BufferEnd THEN ClrScr;
+            Buffer [BufferEnd] := Key;
+            Inc (BufferEnd);
+            IF BufferEnd = 256 THEN BufferEnd := 0;
+            Write (Key);
+            END
+        ELSE
+            CASE Key OF
+                CarriageReturn:
+                    BEGIN
+                    WHILE BufferStart <> BufferEnd DO
+                        BEGIN
+                        ActiveKeyer.AddCharacterToBuffer (Buffer [BufferStart]);
+                        Inc (BufferStart);
+                        IF BufferStart = 256 THEN BufferStart := 0;
+                        END;
+
+                    ActiveKeyer.PTTUnForce;
+                    RemoveAndRestorePreviousWindow;
+                    Exit;
+                    END;
+
+                BackSpace:
+                    IF BufferEnd <> BufferStart THEN
+                        BEGIN
+                        Dec (BufferEnd);
+                        IF BufferEnd < 0 THEN BufferEnd := 255;
+                        TBSIQ_DisplayBuffer (Buffer, BufferStart, BufferEnd);
+                        END;
+
+                EscapeKey:
+                    BEGIN
+                    FlushCWBufferAndClearPTT;
+                    RemoveAndRestorePreviousWindow;
+                    Exit;
+                    END;
+
+                NullKey:
+                    CASE NewReadKey OF
+                        F10: BEGIN
+                             FlushCWBufferAndClearPTT;
+                             RemoveAndRestorePreviousWindow;
+                             Exit;
+                             END;
+
+                        DeleteKey:
+                            IF BufferEnd <> BufferStart THEN
+                                BEGIN
+                                Dec (BufferEnd);
+                                IF BufferEnd < 0 THEN BufferEnd := 255;
+                                TBSIQ_DisplayBuffer (Buffer, BufferStart, BufferEnd);
+                                END;
+
+                        END;
+
+                END;
+
+    UNTIL False;
+    END;
+
+
+
+
+
+
+
+
 
     BEGIN
     TBSIQ_CW_Engine := TBSIQ_CWEngineObject.Create;
