@@ -182,7 +182,10 @@ PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; My
 PROCEDURE TBSIQ_PutContactIntoLogFile (LogString: Str80);
 
 FUNCTION  TBSIQ_ReadKey (Radio: RadioType): CHAR;
-PROCEDURE TBSIQ_SendFunctionKeyMessage (Radio: RadioType; Key: CHAR; Mode: ModeType; OpMode: OpModeType; VAR Message: STRING);
+PROCEDURE TBSIQ_SendFunctionKeyMessage (Radio: RadioType; Key: CHAR; Mode: ModeType;
+                                        OpMode: OpModeType; VAR Message: STRING;
+                                        CallWindowString: STRING; ExchangeWindowString: STRING);
+
 PROCEDURE TBSIQ_UpdateTimeAndRateDisplays;  { Not radio specific }
 
 FUNCTION  ValidFunctionKey (Key: CHAR): BOOLEAN;
@@ -537,7 +540,7 @@ PROCEDURE QSOMachineObject.ListenToOtherRadio;
 PROCEDURE QSOMachineObject.CheckQSOStateMachine;
 
 VAR Key, ExtendedKey: CHAR;
-    TempString, InitialExchange, Message, WindowString: STRING;
+    ExpandedString, TempString, InitialExchange, Message, WindowString: STRING;
     ActionRequired: BOOLEAN;
     MessageNumber: INTEGER;
 
@@ -579,7 +582,7 @@ VAR Key, ExtendedKey: CHAR;
                 BEGIN
                 IF (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
                     BEGIN
-                    TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, CQOpMode, Message);
+                    TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, CQOpMode, Message, CallWindowString, ExchangeWindowString);
 
                     { Maybe add F9 here? }
 
@@ -597,7 +600,7 @@ VAR Key, ExtendedKey: CHAR;
                         IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                             IF WindowString = '' THEN
                                 BEGIN
-                                TBSIQ_SendFunctionKeyMessage (Radio, F1, CW, CQOpMode, Message);
+                                TBSIQ_SendFunctionKeyMessage (Radio, F1, CW, CQOpMode, Message, CallWindowString, ExchangeWindowString);
                                 ShowCWMessage (Message);
                                 QSOState := QST_CallingCQ;
                                 END
@@ -666,8 +669,9 @@ VAR Key, ExtendedKey: CHAR;
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
                 IF AutoCallTerminate THEN
                     BEGIN
-                    TBSIQ_CW_Engine.CueCWMessage (CQExchange, Radio, CWP_High, MessageNumber);
-                    ShowCWMessage (CQExchange);
+                    ExpandedString := ExpandCrypticString (CQExchange, CallWindowString, ExchangeWindowString);
+                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, MessageNumber);
+                    ShowCWMessage (ExpandedString);
                     QSOState := QST_CQExchangeBeingSent;
                     Exit;
                     END;
@@ -680,8 +684,9 @@ VAR Key, ExtendedKey: CHAR;
 
                 CarriageReturn:
                     BEGIN
-                    TBSIQ_CW_Engine.CueCWMessage (CQExchange, Radio, CWP_High, MessageNumber);
-                    ShowCWMessage (CQExchange);
+                    ExpandedString := ExpandCrypticString (CQExchange, CallWindowString, ExchangeWindowString);
+                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, MessageNumber);
+                    ShowCWMessage (ExpandedString);
                     QSOState := QST_CQExchangeBeingSent;
                     END;
 
@@ -732,8 +737,9 @@ VAR Key, ExtendedKey: CHAR;
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
                 BEGIN
-                TBSIQ_CW_Engine.CueCWMessage (CQExchange, Radio, CWP_High, MessageNumber);
-                ShowCWMessage (CQExchange);
+                ExpandedString := ExpandCrypticString (CQExchange, CallWindowString, ExchangeWindowString);
+                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, MessageNumber);
+                ShowCWMessage (ExpandedString);
                 QSOState := QST_CQExchangeBeingSent;
                 END;
             END;
@@ -785,7 +791,7 @@ VAR Key, ExtendedKey: CHAR;
 
                     IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
                         BEGIN
-                        TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
+                        TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message, CallWindowString, ExchangeWindowString);
                         ShowCWMessage (Message);
                         Exit;
                         END;
@@ -856,8 +862,10 @@ VAR Key, ExtendedKey: CHAR;
                                 END;
 
                             TempString := TempString + QSLMessage;
-                            ShowCWMessage (TempString);
-                            TBSIQ_CW_Engine.CueCWMessage (TempString, Radio, CWP_High, MessageNumber);
+
+                            ExpandedString := ExpandCrypticString (TempString, CallWindowString, ExchangeWindowString);
+                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, MessageNumber);
+                            ShowCWMessage (ExpandedString);
                             END;
 
                         TBSIQ_LogContact (RData);
@@ -868,7 +876,9 @@ VAR Key, ExtendedKey: CHAR;
                     BEGIN
                     IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
                         BEGIN
-                        TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
+                        TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message,
+                                                      CallWindowString, ExchangeWindowString);
+
                         ShowCWMessage (Message);
                         QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;
                         Exit;
@@ -897,17 +907,19 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             ListenToOtherRadio;
 
+            { Moved this up here instead of waiting for CW to end }
+
+            RemoveExchangeWindow;
+            CallWindowString := '';
+            CallWindowCursorPosition := 1;
+            SetTBSIQWindow (TBSIQ_CallWindow);
+            ClrScr;
+
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
                 BEGIN
                 ListenToBothRadios;
                 ShowCWMessage ('');
                 QSOState := QST_Idle;
-                RemoveExchangeWindow;
-
-                CallWindowString := '';
-                CallWindowCursorPosition := 1;
-                SetTBSIQWindow (TBSIQ_CallWindow);
-                ClrScr;
                 END;
             END;
 
@@ -934,7 +946,8 @@ VAR Key, ExtendedKey: CHAR;
                         BEGIN
                         IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
                             BEGIN
-                            TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message);
+                            TBSIQ_SendFunctionKeyMessage (Radio, ExtendedKey, CW, SearchAndPounceOpMode, Message,
+                                                          CallWindowString, ExchangeWindowString);
                             ShowCWMessage (Message);
                             Exit;
                             END;
@@ -1229,7 +1242,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             TBSIQ_R1_ExchangeWindowLX := WindowLocationX + 13;
             TBSIQ_R1_ExchangeWindowLY := WindowLocationY + 3;
-            TBSIQ_R1_ExchangeWindowRX := WindowLocationX + 26;
+            TBSIQ_R1_ExchangeWindowRX := WindowLocationX + 34;
             TBSIQ_R1_ExchangeWindowRY := WindowLocationY + 3;
 
             { Just below BandMode }
@@ -1308,7 +1321,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             TBSIQ_R2_ExchangeWindowLX := WindowLocationX + 13;
             TBSIQ_R2_ExchangeWindowLY := WindowLocationY + 3;
-            TBSIQ_R2_ExchangeWindowRX := WindowLocationX + 26;
+            TBSIQ_R2_ExchangeWindowRX := WindowLocationX + 34;
             TBSIQ_R2_ExchangeWindowRY := WindowLocationY + 3;
 
             { Just below BandMode }
@@ -1607,12 +1620,14 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
             BEGIN
             ProcessConfigurationInput;
             RemoveWindow (QuickCommandWindow);
+            ClearKeyCache := True;
             END;
 
         ControlL:
             BEGIN
             ViewLogFile;
             VisibleDupeSheetRemoved := True;
+            ClearKeyCache := True;
             END;
 
         ControlN:
@@ -1639,17 +1654,8 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                 TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (AddedNoteString, True);
                 END;
 
-            { Now - the keystrokes that were used will still show up with the
-              two keyboard method we use.  So - we need to read those keys now
-              and get rid of them }
-
-            WHILE TBSIQ_KeyPressed (Radio) DO
-                BEGIN
-                TBSIQ_ReadKey (Radio);
-                Millisleep;
-                END;
-
             RITEnable := True;
+            ClearKeyCache := True;
             END;
 
         ControlO:
@@ -1860,13 +1866,7 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
 
                       VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
 
-                      { Get rid of the keystrokes }
-
-                      WHILE TBSIQ_KeyPressed (Radio) DO
-                          BEGIN
-                          TBSIQ_ReadKey (Radio);
-                          Millisleep;
-                          END;
+                      ClearKeyCache := True;
                       END;
 
                 AltI:
@@ -1888,6 +1888,7 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                           VisibleLog.SearchLog (CallWindowString);
 
                       RITEnable := True;
+                      ClearKeyCache := True;
                       END;
 
                   AltR:
@@ -1907,13 +1908,32 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                       CodeSpeed := QuickEditInteger ('Enter WPM code speed : ', 2);
                       SpeedMemory [Radio] := CodeSpeed;
                       DisplayCodeSpeed;
-                      SpeedMemory [Radio] := CodeSpeed;
 
-                      { Fake SetUpToSendOnActiveRadio to do an update }
+                      { Only set the speed immediately if the other radio isn't sending something }
 
-                      SendingOnRadioOne := False;
-                      SendingOnRadioTwo := False;
-                      SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                      CASE Radio OF
+                          RadioOne:
+                              IF TBSIQ_CW_Engine.CWFinished (RadioTwo) THEN
+                                  BEGIN
+                                  { Fake SetUpToSendOnActiveRadio to do an update }
+
+                                  SendingOnRadioOne := False;
+                                  SendingOnRadioTwo := False;
+                                  SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                                  END;
+
+                          RadioTwo:
+                              IF TBSIQ_CW_Engine.CWFinished (RadioOne) THEN
+                                  BEGIN
+                                  { Fake SetUpToSendOnActiveRadio to do an update }
+
+                                  SendingOnRadioOne := False;
+                                  SendingOnRadioTwo := False;
+                                  SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                                  END;
+
+                          END;  { of case }
+
                       ClearKeyCache := True;
                       END;
 
@@ -2028,11 +2048,29 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                         DisplayCodeSpeed;
                         SpeedMemory [Radio] := CodeSpeed;
 
-                        { Fake SetUpToSendOnActiveRadio to do an update }
+                        { Only set the speed immediately if the other radio isn't sending something }
 
-                        SendingOnRadioOne := False;
-                        SendingOnRadioTwo := False;
-                        SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                        CASE Radio OF
+                            RadioOne:
+                                IF TBSIQ_CW_Engine.CWFinished (RadioTwo) THEN
+                                    BEGIN
+                                    { Fake SetUpToSendOnActiveRadio to do an update }
+
+                                    SendingOnRadioOne := False;
+                                    SendingOnRadioTwo := False;
+                                    SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                                    END;
+
+                            RadioTwo:
+                                IF TBSIQ_CW_Engine.CWFinished (RadioOne) THEN
+                                    BEGIN
+                                    { Fake SetUpToSendOnActiveRadio to do an update }
+
+                                    SendingOnRadioOne := False;
+                                    SendingOnRadioTwo := False;
+                                    SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                                    END;
+                            END;  { of case }
                         END;
 
                 PageDownKey:
@@ -2042,11 +2080,29 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                         DisplayCodeSpeed;
                         SpeedMemory [Radio] := CodeSpeed;
 
-                        { Fake SetUpToSendOnActiveRadio to do an update }
+                        { Only set the speed immediately if the other radio isn't sending something }
 
-                        SendingOnRadioOne := False;
-                        SendingOnRadioTwo := False;
-                        SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                        CASE Radio OF
+                            RadioOne:
+                                IF TBSIQ_CW_Engine.CWFinished (RadioTwo) THEN
+                                    BEGIN
+                                    { Fake SetUpToSendOnActiveRadio to do an update }
+
+                                    SendingOnRadioOne := False;
+                                    SendingOnRadioTwo := False;
+                                    SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                                    END;
+
+                            RadioTwo:
+                                IF TBSIQ_CW_Engine.CWFinished (RadioOne) THEN
+                                    BEGIN
+                                    { Fake SetUpToSendOnActiveRadio to do an update }
+
+                                    SendingOnRadioOne := False;
+                                    SendingOnRadioTwo := False;
+                                    SetUpToSendOnActiveRadio;  { Maybe not a good idea }
+                                    END;
+                            END;  { of case }
                         END;
 
                 { It appears we used ControlUpArrow to MoveGridMap }
@@ -3086,34 +3142,12 @@ FUNCTION ValidFunctionKey (Key: CHAR): BOOLEAN;
 
 
 
-PROCEDURE TBSIQ_ExpandMessageString (VAR SendString: STRING);
-
-{ Interprets special characters that are in the CW String such as # for QSO Number or \ for MyCall }
-
-CONST CWTone = 0;
-
-VAR CharacterCount: INTEGER;
-    NewString: STRING;
-
-    BEGIN
-    NewString := '';
-
-    IF Length (SendString) = 0 THEN Exit;
-
-    FOR CharacterCount := 1 TO Length (SendString) DO
-        CASE SendString [CharacterCount] OF
-            '_': NewString := NewString + ' ';
-            '\': NewString := NewString + MyCall;
-            ELSE NewString := NewString + SendString [CharacterCount];
-            END;  { of case }
-
-    SendString := NewString;
-    END;
 
 
 
 PROCEDURE TBSIQ_SendFunctionKeyMessage (Radio: RadioType; Key: CHAR; Mode:
-                                        ModeType; OpMode: OpModeType; VAR Message: STRING);
+                                        ModeType; OpMode: OpModeType; VAR Message: STRING;
+                                        CallWindowString: STRING; ExchangeWindowString: STRING);
 
 VAR MessageNumber: INTEGER;
 
@@ -3125,8 +3159,7 @@ VAR MessageNumber: INTEGER;
     ELSE
         Message := GetEXMemoryString (Mode, Key);
 
-    TBSIQ_ExpandMessageString (Message);
-
+    Message := ExpandCrypticString (Message, CallWindowString, ExchangeWindowString);
     TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High, MessageNumber);
     END;
 

@@ -25,20 +25,14 @@ UNIT TwoBSIQ;
 
 {
 
-TODO List
+TODO LIST
 
 - There are some corner cases with auto start send edits while the other Tx
-is sending that need to be worked out.  If works fine if you don't make
-any edits it seems.
+  is sending that need to be worked out.  This liekly won't be an issue
+  for most of the time - so maybe wait to see if it ever actually causes a
+  problem.  Maybe the bug actually doesn't exist...
 
-- Need to interpret Cryptic CW characters
-
-- Need to make F1 and F2 work in S&P mode
-
-- Changing code speed will stop CW message on other radio.
-
-- Will updating the callsign in the exchange window work for free?
-
+- S&P mode work to be done: Need to make F1 and F2 work in S&P mode
 
 CHANGE LOG
 
@@ -59,7 +53,27 @@ CHANGE LOG
     it will leave the Exchange Window alone.  Not sure if this is the best
     way - but give it a try.
 
-  -
+  - Fixed a few places ClearKeyCache needed to be set - like when exiting
+    the ControlJ menu.  This flag will gobble up any characters
+    that are processed by the "normal" keyboard interface (which bypasses
+    totally the two keyboard process).
+
+  - Verified that CallsignUpdateEnable works - and made the exchange window
+    wider so there was room for doing that.
+
+  - Cleaned up display (Call and Exchange Windows) while QSL Message being
+    sent instead of waiting for it to end.
+
+  - Supporting a reduced set of cryptic CW characters.  # is currently a
+    concept not implemented yet.  Have _ (leading space), @ (call window
+    string with no fancy stuff), : (send keyboard input which kind of works
+    but messes up the display - so needs work), \ (send MyCall), | (send
+    RX data name), LeftCurlyBracket (send RX data callsign) and > (clear RIT).
+    These are used in any of the function key memories or things like CQ
+    EXCHANGE and QSL MESSAGE.
+
+  - Fixed bug that would stop CW from being sent if the CW speed was changed
+    on the other radio.
 
 }
 

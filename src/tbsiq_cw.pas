@@ -29,7 +29,7 @@ INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
      LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
-     jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb;
+     keycode,jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb;
 
 
 CONST
@@ -73,11 +73,73 @@ TYPE
         PROCEDURE ShowActiveRadio;  { Shows which radio has focus for CW sending }
         END;
 
+    FUNCTION  ExpandCrypticString (VAR SendString: STRING; CallWindowString: STRING; ExchangeWindowString: STRING): STRING;
+
 VAR
     TBSIQ_CW_Engine: TBSIQ_CWEngineObject;
 
 
 IMPLEMENTATION
+
+FUNCTION ExpandCrypticString (VAR SendString: STRING;
+                              CallWindowString: STRING;
+                              ExchangeWindowString: STRING): STRING;
+
+VAR CharacterCount: INTEGER;
+    NewSendString: STRING;
+    SendChar: CHAR;
+
+{ This is a very scaled down version of what is in the main program }
+
+    BEGIN
+    IF Length (SendString) = 0 THEN Exit;
+
+    NewSendString := '';
+
+    FOR CharacterCount := 1 TO Length (SendString) DO
+        BEGIN
+        SendChar := SendString [CharacterCount];
+
+        CASE SendChar OF
+            '#': BEGIN
+                 { For now - I am going to ignore QSO numbers.  }
+                 END;
+
+            '_': NewSendString := NewSendString + ' ';  { Leading space }
+
+            ControlD: IF CWStillBeingSent THEN NewSendString := NewSendString + ' ';
+
+            '@': BEGIN
+                 { The old routine actually did the callsign update here - but I am not
+                   going to support that out of the gate. }
+
+                NewSendString := NewSendString + CallWindowString;
+                END;
+
+            ':': BEGIN   { I have no idea if this will work - but it is a good idea }
+                 RITEnable := False;
+                 SendKeyboardInput;
+                 RITEnable := True;
+                 END;
+
+            '\': NewSendString := NewSendString + MyCall;
+
+            '|': NewSendString := NewSendString + ReceivedData.Name;
+
+            '{': NewSendString := NewSendString + ReceivedData.Callsign;
+
+            '>': ClearRIT;
+
+            { Not a special character - just add it as is }
+
+            ELSE NewSendString := NewSendString + SendChar;
+            END;
+        END;
+
+    ExpandCrypticString := NewSendString;
+    END;
+
+
 
 PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
 
