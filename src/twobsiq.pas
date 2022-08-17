@@ -39,7 +39,8 @@ CHANGE LOG
 14-Aug-2022 (or before)
 
   - Added TX to the CW Speed display to show which rig has the TX focus if you
-    start sending by hand.
+    start sending by hand.  You can change it to the other rig with AltR (on
+    either keyboard).
 
 15-Aug-2022
 
