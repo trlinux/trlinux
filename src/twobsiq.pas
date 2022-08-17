@@ -36,6 +36,11 @@ TODO LIST
 
 CHANGE LOG
 
+14-Aug-2022 (or before)
+
+  - Added TX to the CW Speed display to show which rig has the TX focus if you
+    start sending by hand.
+
 15-Aug-2022
 
   - Made PageUp/PageDn work to change CW speeds in real time
