@@ -53,7 +53,10 @@ TYPE
                           QST_CQExchangeBeingSentAndExchangeWindowUp,
                           QST_CQWaitingForExchange,
                           QST_CQSending73Message,
-                          QST_SearchAndPounceIdle);
+                          QST_SearchAndPounceIdle,
+                          QST_SendingKeyboardCW,
+                          QST_StartSendingKeyboardCW,
+                          QST_SendingKeyboardCWWaiting);
 
     QSOMachineObject = CLASS
         { These paramaters need to be set for the specific instance using the
@@ -90,11 +93,15 @@ TYPE
 
         InitialExchangePutUp: BOOLEAN;
 
+        KeyboardCWMessage: STRING;
+
         LastQSOState: TBSIQ_QSOStateType;
 
         Mode: ModeType;
 
         QSOState: TBSIQ_QSOStateType;
+
+        PreviousQSOState: TBSIQ_QSOStateType;
 
         StartSendingCursorPosition: INTEGER; { initially = AutoSendCharacterCount }
         StationCalled: BOOLEAN;              { indicates auto start send already deployed }
@@ -456,7 +463,18 @@ VAR TimeString, FullTimeString, HourString: Str20;
 PROCEDURE QSOMachineObject.SendKeyboardInput;
 
 { This procedure will take input from the keyboard and send it until a
-  return is pressed.                                                    }
+  return is pressed.
+
+  This routine needs to be aware that the other radio might be sending
+  a CW message and wait until it is over before sending any characters.
+
+  It will prevent the other transmitter from doing anything until the
+  message is complate.
+
+  The complete message will be shown in the CWMessageWindow.  Perhaps
+  someday, we will change the color on text that has been sent.  This
+  probably could be integrated into the main loop of CheckQSOStateMachine,
+  but it lives here for now. }
 
 VAR Key: CHAR;
     TimeMark: TimeRecord;
@@ -603,10 +621,11 @@ VAR CharacterCount: INTEGER;
                 NewSendString := NewSendString + CallWindowString;
                 END;
 
-            ':': BEGIN   { I have no idea if this will work - but it is a good idea }
-                 RITEnable := False;
-                 SendKeyboardInput;
-                 RITEnable := True;
+            ':': BEGIN   { Forget everything and setup to send CW from keyboard }
+                 ExpandCrypticString := '';  { Make sure we don't try to send something }
+                 PreviousQSOState := QSOState;
+                 QSOState := QST_StartSendingKeyboardCW;
+                 Exit;
                  END;
 
             '\': NewSendString := NewSendString + MyCall;
@@ -679,6 +698,9 @@ PROCEDURE QSOMachineObject.SetTransmitIndicator;
         RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
         END;
 
+    { This is actually pretty nice - in that we check on CW actually being sent
+      as opposed to thinking CW should be being sent }
+
     IF TBSIQ_CW_Engine.CWBeingSent (Radio) THEN
         SetBackground (Red)
     ELSE
@@ -693,7 +715,7 @@ PROCEDURE QSOMachineObject.SetTransmitIndicator;
 
 PROCEDURE QSOMachineObject.ClearTransmitIndicator;
 
-{ Turns of the TX indicator }
+{ Turns off the TX indicator }
 
     BEGIN
     CASE Radio OF
@@ -783,11 +805,14 @@ VAR Key, ExtendedKey: CHAR;
             END;
         END;
 
-
     { Unlike the WindowEditor in LOGSUBS2, this will not block execution.  It will return
-      right away with ActionRequired = FALSE if no key was pressed }
+      right away with ActionRequired = FALSE if no key was pressed.  In the case of
+      QSOState = SendingKeyboardCW, all keystrokes will be returned instantly. }
 
-    WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
+    { We want to get to some states before the WindowEditor is called }
+
+    IF QSOState <> QST_StartSendingKeyboardCW THEN
+        WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
 
     CASE QSOState OF
 
@@ -1206,6 +1231,46 @@ VAR Key, ExtendedKey: CHAR;
                 END;
 
             END; { of QST_SearchAndPounce }
+
+        QST_StartSendingKeyboardCW:  { Only called once }
+            BEGIN
+            KeyboardCWMessage := '';
+            QSOState := QST_SendingKeyboardCWWaiting;
+            END;
+
+        QST_SendingKeyboardCWWaiting:
+            BEGIN
+            { Not sure if I need this step for sure - but will leave it in the chain }
+
+            IF ActionRequired THEN
+                BEGIN
+                END;
+
+            QSOState := QST_SendingKeyboardCW;
+            END;
+
+
+        QST_SendingKeyboardCW:
+            BEGIN
+            IF ActionRequired THEN
+                CASE Key OF
+                    CarriageReturn:
+                        BEGIN
+                        QSOState := PreviousQSOState;
+                        Exit;
+                        END;
+
+                    ELSE
+                        IF (Key >= ' ') AND (Key <= 'z') THEN
+                            BEGIN
+                            TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High, MessageNumber);
+                            KeyboardCWMessage := KeyboardCWMessage + Key;
+                            ShowCWMessage (KeyboardCWMessage);
+                            END;
+
+                    END;  { of CASE Key }
+            END;
+
         END;  { of case QSOState }
     END;
 
@@ -1348,6 +1413,9 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         QST_CQWaitingForExchange: Write ('Waiting for exchange');
         QST_CQSending73Message: Write ('Sending 73 message');
         QST_SearchAndPounceIdle: Write ('Search and Pounce - Idle');
+        QST_StartSendingKeyboardCW: Write ('Starting keyboard CW');
+        QST_SendingKeyboardCW: Write ('Keyboard CW - RETURN to end');
+        QST_SendingKeyboardCWWaiting: Write ('Keyboard CW - waiting on other TX')
         ELSE Write ('???');
         END;
 
@@ -1640,6 +1708,8 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
 FUNCTION QSOMachineObject.LegalKey (KeyChar: CHAR): BOOLEAN;
 
+{ Adapts to what the TBSIQ_ActiveWindow is }
+
     BEGIN
     LegalKey := True;
 
@@ -1649,13 +1719,22 @@ FUNCTION QSOMachineObject.LegalKey (KeyChar: CHAR): BOOLEAN;
     IF (KeyChar >= 'A') AND (KeyChar <= 'Z') THEN Exit;
     IF KeyChar = '/' THEN Exit;
 
-    { Legal keys in call window only }
+    { Legal keys in CallWindow or CWMessageWindow only }
 
-    IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+    IF (TBSIQ_ActiveWindow = TBSIQ_CallWindow) OR (TBSIQ_ActiveWindow = TBSIQ_CWMessageWindow) THEN
         BEGIN
         IF KeyChar = '?' THEN Exit;
         IF KeyChar = '.' THEN Exit;
         IF KeyChar = '\' THEN Exit;
+        END;
+
+    { Additional legal keys if typing in a CW message  - maybe not used }
+
+    IF TBSIQ_ActiveWindow = TBSIQ_CWMessageWindow THEN
+        BEGIN
+        IF KeyChar = ',' THEN Exit;
+        If KeyChar = '-' THEN Exit;
+        IF KeyChar = ' ' THEN Exit;
         END;
 
     { legal keys in exchange window }
@@ -1774,6 +1853,9 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
 
     ActionRequired := True;
     ExtendedKeyChar := Chr (0);
+
+    IF (QSOState = QST_StartSendingKeyboardCW) OR (QSOState = QST_SendingKeyboardCW) THEN
+        Exit;  { All keystrokes handled there }
 
     { Check for keys that are variables and require action by caller }
 

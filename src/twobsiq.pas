@@ -34,19 +34,22 @@ TODO LIST
 
 - S&P mode work to be done: lots.
 
-- Blank messages in Exchange function key memories sending garbage.
-
 - Currently - when I answer a guy - the callsign and the exchange are two
   different CW messages and the other radio can jump in between them.  Do
   I want to do something about this?
 
-- The : character is starting to work.  Maybe need to lockout the other TX?
-  Maybe I need a new mode.
-
 - AltP support would be nice to have.
+
+- "ActiveBand" cursor on the band totals display is not right.
+
+- CWT points not being calculated (callsigns as mults).
 
 
 CHANGE LOG
+
+18-Aug-2022
+
+  - Good enough support for : in CW message (expected to be in F10)
 
 17-Aug-2022
 
