@@ -40,11 +40,8 @@ TODO LIST
   different CW messages and the other radio can jump in between them.  Do
   I want to do something about this?
 
-- The : character is causing me issues.  It is found during the conversion
-  of the message string down in TBSIQ_CW - but then needs to be active within
-  the specific radio's QSOMachine?  Need to figure out the right way to do
-  this.  Likely doing the conversion of cryptic CW messages within the
-  specific radio's instance.
+- The : character is starting to work.  Maybe need to lockout the other TX?
+  Maybe I need a new mode.
 
 - AltP support would be nice to have.
 

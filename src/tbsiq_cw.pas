@@ -73,81 +73,11 @@ TYPE
         PROCEDURE ShowActiveRadio;  { Shows which radio has focus for CW sending }
         END;
 
-    FUNCTION  ExpandCrypticString (VAR SendString: STRING; Radio: RadioType;
-                                   CallWindowString: STRING; ExchangeWindowString: STRING): STRING;
-
-    PROCEDURE TBSIQ_SendKeyboardInput (Radio: RadioType);
-
 VAR
     TBSIQ_CW_Engine: TBSIQ_CWEngineObject;
 
 
 IMPLEMENTATION
-
-FUNCTION ExpandCrypticString (VAR SendString: STRING;
-                              Radio: RadioType;
-                              CallWindowString: STRING;
-                              ExchangeWindowString: STRING): STRING;
-
-VAR CharacterCount: INTEGER;
-    NewSendString: STRING;
-    SendChar: CHAR;
-
-{ This is a very scaled down version of what is in the main program }
-
-    BEGIN
-    IF Length (SendString) = 0 THEN
-        BEGIN
-        ExpandCrypticString := '';
-        Exit;
-        END;
-
-    NewSendString := '';
-
-    FOR CharacterCount := 1 TO Length (SendString) DO
-        BEGIN
-        SendChar := SendString [CharacterCount];
-
-        CASE SendChar OF
-            '#': BEGIN
-                 { For now - I am going to ignore QSO numbers.  }
-                 END;
-
-            '_': NewSendString := NewSendString + ' ';  { Leading space }
-
-            ControlD: IF CWStillBeingSent THEN NewSendString := NewSendString + ' ';
-
-            '@': BEGIN
-                 { The old routine actually did the callsign update here - but I am not
-                   going to support that out of the gate. }
-
-                NewSendString := NewSendString + CallWindowString;
-                END;
-
-            ':': BEGIN   { I have no idea if this will work - but it is a good idea }
-                 RITEnable := False;
-                 TBSIQ_SendKeyboardInput (Radio);
-                 RITEnable := True;
-                 END;
-
-            '\': NewSendString := NewSendString + MyCall;
-
-            '|': NewSendString := NewSendString + ReceivedData.Name;
-
-            '{': NewSendString := NewSendString + ReceivedData.Callsign;
-
-            '>': ClearRIT;
-
-            { Not a special character - just add it as is }
-
-            ELSE NewSendString := NewSendString + SendChar;
-            END;
-        END;
-
-    ExpandCrypticString := NewSendString;
-    END;
-
-
 
 PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
 
@@ -479,123 +409,6 @@ VAR BufferAddress: INTEGER;
     END;
 
 
-
-PROCEDURE TBSIQ_SendKeyboardInput (Radio: RadioType);
-
-{ This procedure will take input from the keyboard and send it until a
-  return is pressed.                                                    }
-
-VAR Key: CHAR;
-    TimeMark: TimeRecord;
-    Buffer: SendBufferType;
-    BufferStart, BufferEnd: INTEGER;
-
-    BEGIN
-    BufferStart := 0;
-    BufferEnd := 0;
-    Buffer[0] := ' '; //to kill buffer not initialized warning
-
-    IF NOT CWEnable THEN Exit;
-
-    ActiveRadio := Radio;
-    SendingOnRadioOne := False;
-    SendingOnRadioTwo := False;
-    SetUpToSendOnActiveRadio;
-
-    CASE Radio OF
-        RadioOne: SaveAndSetActiveWindow (TBSIQ_R1_CWMessageWindow);
-        RadioTwo: SaveAndSetActiveWindow (TBSIQ_R2_CWMessageWindow);
-        END;
-
-    ClrScr;
-    Write ('Keyboard CW.  ENTER to exit.');
-
-    REPEAT
-        MarkTime (TimeMark);
-
-        REPEAT
-            IF ActiveKeyer.BufferEmpty THEN
-                IF BufferStart <> BufferEnd THEN
-                    BEGIN
-                    ActiveKeyer.AddCharacterToBuffer (Buffer [BufferStart]);
-                    Inc (BufferStart);
-                    IF BufferStart = 256 THEN BufferStart := 0;
-                    TBSIQ_DisplayBuffer (Buffer, BufferStart, BufferEnd);
-                    END;
-            millisleep;
-        UNTIL NewKeyPressed;
-
-        Key := UpCase (NewReadKey);
-
-        IF Key >= ' ' THEN
-            BEGIN
-            IF BufferStart = BufferEnd THEN ClrScr;
-            Buffer [BufferEnd] := Key;
-            Inc (BufferEnd);
-            IF BufferEnd = 256 THEN BufferEnd := 0;
-            Write (Key);
-            END
-        ELSE
-            CASE Key OF
-                CarriageReturn:
-                    BEGIN
-                    WHILE BufferStart <> BufferEnd DO
-                        BEGIN
-                        ActiveKeyer.AddCharacterToBuffer (Buffer [BufferStart]);
-                        Inc (BufferStart);
-                        IF BufferStart = 256 THEN BufferStart := 0;
-                        END;
-
-                    ActiveKeyer.PTTUnForce;
-                    RemoveAndRestorePreviousWindow;
-                    Exit;
-                    END;
-
-                BackSpace:
-                    IF BufferEnd <> BufferStart THEN
-                        BEGIN
-                        Dec (BufferEnd);
-                        IF BufferEnd < 0 THEN BufferEnd := 255;
-                        TBSIQ_DisplayBuffer (Buffer, BufferStart, BufferEnd);
-                        END;
-
-                EscapeKey:
-                    BEGIN
-                    FlushCWBufferAndClearPTT;
-                    RemoveAndRestorePreviousWindow;
-                    Exit;
-                    END;
-
-                NullKey:
-                    CASE NewReadKey OF
-                        F10: BEGIN
-                             FlushCWBufferAndClearPTT;
-                             RemoveAndRestorePreviousWindow;
-                             Exit;
-                             END;
-
-                        DeleteKey:
-                            IF BufferEnd <> BufferStart THEN
-                                BEGIN
-                                Dec (BufferEnd);
-                                IF BufferEnd < 0 THEN BufferEnd := 255;
-                                TBSIQ_DisplayBuffer (Buffer, BufferStart, BufferEnd);
-                                END;
-
-                        END;
-
-                END;
-
-    UNTIL False;
-    END;
-
-
-
-
-
-
-
-
 
     BEGIN
     TBSIQ_CW_Engine := TBSIQ_CWEngineObject.Create;
