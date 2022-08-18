@@ -3474,6 +3474,20 @@ VAR QString, TString, TempString: Str40;
 
     WITH RData DO
         BEGIN
+        IF ActiveExchange = CWTExchange THEN
+            BEGIN
+            IF NumberReceived > 0 THEN
+                BEGIN
+                Str (NumberReceived, TempString);
+                TempString := TempString + ' ' + Name;
+                END
+            ELSE
+                TempString := Name + ' ' + QTHString;
+
+            GetInitialExchangeStringFromContestExchange := TempString;
+            Exit;
+            END;
+
         IF ActiveExchange = RSTAllJAPrefectureAndPrecedenceExchange THEN
             BEGIN
             GetInitialExchangeStringFromContestExchange := Precedence + ' ' + QTHString;

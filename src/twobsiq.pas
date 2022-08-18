@@ -103,11 +103,15 @@ CHANGE LOG
 
 17-Aug-2022
 
-  - I believe I fixed a bug that was causing hangs when employing auto start
-    send.  I was getting stuck in the CWFinished loop because I kept setting
-    the Index (temporary pointer) to the start of the cue.
+  - Fixed a bug that was causing hangs when employing auto start send.  I
+    was getting stuck in the CWFinished loop because I kept setting the Index
+    (temporary pointer) to the start of the cue.
 
-  - Made F1 and F2 work when exchange window up.
+  - Made F1 and F2 work when exchange window up.  Note that other keys
+    that are undefined seem to be sending garbage at the moment.
+
+  - Fixed intiial exchanges when working a station previously logged.
+
 
 }
 
