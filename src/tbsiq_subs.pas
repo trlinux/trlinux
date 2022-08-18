@@ -3174,13 +3174,15 @@ FUNCTION ValidFunctionKey (Key: CHAR): BOOLEAN;
     BEGIN
     ValidFunctionKey :=
        ((Key >= F1)         AND (Key <= F10)) OR
-       ((Key >= F11)        AND (Key <= F12)) OR
+       ((Key >= F11)        AND (Key <= F12));
+
+{       OR
        ((Key >= ShiftF1)    AND (Key <= ShiftF10)) OR
        ((Key >= ShiftF11)   AND (Key <= ShiftF12)) OR
        ((Key >= ControlF1)  AND (Key <= ControlF10)) OR
        ((Key >= ControlF11) AND (Key <= ControlF12)) OR
        ((Key >= AltF1)      AND (Key <= AltF10)) OR
-       ((Key >= AltF11)     AND (Key <= AltF12));
+       ((Key >= AltF11)     AND (Key <= AltF12));}
     END;
 
 
@@ -3198,7 +3200,7 @@ VAR MessageNumber: INTEGER;
     IF NOT ValidFunctionKey (Key) THEN Exit;
 
     IF OpMode = CQOpMode THEN
-        Message := GetCQMemoryString (Mode, Key)
+        Message := GetCQMemoryString (CW, Key)
     ELSE
         BEGIN
         IF Key = F1 THEN
@@ -3207,11 +3209,14 @@ VAR MessageNumber: INTEGER;
             IF Key = F2 THEN
                 Message := SearchAndPounceExchange
             ELSE
-                Message := GetEXMemoryString (Mode, Key);
+                Message := GetEXMemoryString (CW, Key);
         END;
 
-    Message := ExpandCrypticString (Message, Radio, CallWindowString, ExchangeWindowString);
-    TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High, MessageNumber);
+    IF Message <> '' THEN
+        BEGIN
+        Message := ExpandCrypticString (Message, Radio, CallWindowString, ExchangeWindowString);
+        TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High, MessageNumber);
+        END;
     END;
 
 

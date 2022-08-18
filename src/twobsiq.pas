@@ -49,8 +49,6 @@ TODO LIST
 - Initial exchanges for CWT coming okay from the TRMASTER file, but are messed
   up when coming from the editable window and the dupesheet.
 
-- Exchange function keys with nothing programmed in them send garbage.
-
 - AltP support would be nice to have.
 
 
@@ -112,7 +110,7 @@ CHANGE LOG
 
   - Fixed intiial exchanges when working a station previously logged.
 
-
+  - Fixed bug of empty function key exchanges sending garbage.
 }
 
 INTERFACE

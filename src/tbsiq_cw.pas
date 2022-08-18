@@ -96,7 +96,11 @@ VAR CharacterCount: INTEGER;
 { This is a very scaled down version of what is in the main program }
 
     BEGIN
-    IF Length (SendString) = 0 THEN Exit;
+    IF Length (SendString) = 0 THEN
+        BEGIN
+        ExpandCrypticString := '';
+        Exit;
+        END;
 
     NewSendString := '';
 
