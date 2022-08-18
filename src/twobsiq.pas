@@ -46,26 +46,22 @@ TODO LIST
   this.  Likely doing the conversion of cryptic CW messages within the
   specific radio's instance.
 
-- Initial exchanges for CWT coming okay from the TRMASTER file, but are messed
-  up when coming from the editable window and the dupesheet.
-
 - AltP support would be nice to have.
 
 
 CHANGE LOG
 
-14-Aug-2022 (or before)
+17-Aug-2022
 
-  - Added TX to the CW Speed display to show which rig has the TX focus if you
-    start sending by hand.  You can change it to the other rig with AltR (on
-    either keyboard).
+  - Fixed a bug that was causing hangs when employing auto start send.  I
+    was getting stuck in the CWFinished loop because I kept setting the Index
+    (temporary pointer) to the start of the cue.
 
-15-Aug-2022
+  - Made F1 and F2 work when exchange window up.
 
-  - Made PageUp/PageDn work to change CW speeds in real time
-  - Made TX indicator stay when changing code speed
-  - Enabled numeric keypad PageUp/Dn keys to control CW speed
-  - Started implemention of SearchAndPounce Mode - not completed yet.
+  - Fixed intiial exchanges when working a station previously logged.
+
+  - Fixed bug of empty function key exchanges sending garbage.
 
 16-Aug-2022
 
@@ -99,18 +95,19 @@ CHANGE LOG
   - Fixed bug that would stop CW from being sent if the CW speed was changed
     on the other radio.
 
-17-Aug-2022
+15-Aug-2022
 
-  - Fixed a bug that was causing hangs when employing auto start send.  I
-    was getting stuck in the CWFinished loop because I kept setting the Index
-    (temporary pointer) to the start of the cue.
+  - Made PageUp/PageDn work to change CW speeds in real time
+  - Made TX indicator stay when changing code speed
+  - Enabled numeric keypad PageUp/Dn keys to control CW speed
+  - Started implemention of SearchAndPounce Mode - not completed yet.
 
-  - Made F1 and F2 work when exchange window up.  Note that other keys
-    that are undefined seem to be sending garbage at the moment.
+14-Aug-2022 (or before)
 
-  - Fixed intiial exchanges when working a station previously logged.
+  - Added TX to the CW Speed display to show which rig has the TX focus if you
+    start sending by hand.  You can change it to the other rig with AltR (on
+    either keyboard).
 
-  - Fixed bug of empty function key exchanges sending garbage.
 }
 
 INTERFACE
