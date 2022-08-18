@@ -96,6 +96,7 @@ TYPE
         KeyboardCWMessage: STRING;
 
         LastQSOState: TBSIQ_QSOStateType;
+        LastSCPCall: CallString;
 
         Mode: ModeType;
 
@@ -103,6 +104,7 @@ TYPE
 
         PreviousQSOState: TBSIQ_QSOStateType;
 
+        SCPScreenFull: BOOLEAN;
         StartSendingCursorPosition: INTEGER; { initially = AutoSendCharacterCount }
         StationCalled: BOOLEAN;              { indicates auto start send already deployed }
 
@@ -113,6 +115,7 @@ TYPE
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayCodeSpeed;
         PROCEDURE DisplayFrequency;
+        PROCEDURE DisplaySCPCall (Call: CallString);
 
         FUNCTION  ExpandCrypticString (SendString: STRING): STRING;
 
@@ -134,6 +137,7 @@ TYPE
         PROCEDURE ShowCWMessage (Message: STRING);
         PROCEDURE ShowStateMachineStatus;
         PROCEDURE SetTransmitIndicator;
+        PROCEDURE SuperCheckPartial;
 
         PROCEDURE UpdateRadioDisplay;  { Band/mode/frequency }
 
@@ -454,6 +458,80 @@ VAR TimeString, FullTimeString, HourString: Str20;
         LastSixtyMins: Write ('Last 60 = ', TotalLastSixty);
         BandChanges:   Write ('Bnd Chg = ', BandChangesThisHour);
         END;
+
+    RestorePreviousWindow;
+    END;
+
+
+
+PROCEDURE QSOMachineObject.DisplaySCPCall (Call: CallString);
+
+    BEGIN
+    { See if we are out of room }
+
+    IF WhereX + Length (Call) >= 78 THEN
+        BEGIN
+        IF WhereY = 5 THEN
+            BEGIN
+            SCPScreenFull := True;
+            Exit;
+            END;
+
+        WriteLn;
+        END;
+
+    IF WhereX > 1 THEN Write (' ');
+
+    IF VisibleLog.CallIsADupe (Call, Band, Mode) THEN
+        BEGIN
+        TextBackground (SCPDupeBackground);
+        TextColor (SCPDupeColor);
+        Write (Call);
+        TextBackground (SelectedColors.EditableLogWindowBackground);
+        TextColor (SelectedColors.EditableLogWindowColor);
+        END
+    ELSE
+        Write (Call);
+
+    END;
+
+
+
+PROCEDURE QSOMachineObject.SuperCheckPartial;
+
+{ Super check partial routine leveraged from LOGEDIT - however, I assume
+  that I am only here if the CallWindowString is >= SCPMinimumLetters }
+
+VAR Call: CallString;
+
+    BEGIN
+    IF CD.SCPDisabledByApplication THEN Exit;
+    IF CallWindowString = LastSCPCall THEN Exit;
+
+    SCPScreenFull := False;
+    LastSCPCall := CallWindowString;
+
+    IF NOT CD.PartialCallSetup (CallWindowString) THEN Exit;
+
+    EditableLogDisplayed := False;
+    GridSquareListShown := False;
+
+    SaveSetAndClearActiveWindow (EditableLogWindow);
+
+    REPEAT
+        Call := CD.GetNextPartialCall;
+
+        IF Call <> '' THEN DisplaySCPCall (Call);
+
+        IF SCPScreenFull THEN Break;
+
+        IF TBSIQ_KeyPressed (Radio) THEN
+            BEGIN
+            LastSCPCall := '';
+            Break;
+            END;
+
+    UNTIL (Call = '') OR TBSIQ_KeyPressed (Radio);;
 
     RestorePreviousWindow;
     END;
@@ -896,7 +974,7 @@ VAR Key, ExtendedKey: CHAR;
 
                 IF SCPMinimumLetters > 0 THEN
                     IF Length (CallWindowString) >= SCPMinimumLetters THEN
-                        VisibleLog.SuperCheckPartial (CallWindowString, True, ActiveRadio);
+                        SuperCheckPartial;
 
                 END;
 
@@ -1227,7 +1305,7 @@ VAR Key, ExtendedKey: CHAR;
                 BEGIN
                 IF SCPMinimumLetters > 0 THEN
                     IF Length (CallWindowString) >= SCPMinimumLetters THEN
-                        VisibleLog.SuperCheckPartial (CallWindowString, True, ActiveRadio);
+                        SuperCheckPartial;
                 END;
 
             END; { of QST_SearchAndPounce }
@@ -1254,7 +1332,7 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             IF ActionRequired THEN
                 CASE Key OF
-                    CarriageReturn:
+                    CarriageReturn, EscapeKey:
                         BEGIN
                         QSOState := PreviousQSOState;
                         Exit;

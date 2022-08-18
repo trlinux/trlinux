@@ -51,6 +51,10 @@ CHANGE LOG
 
   - Good enough support for : in CW message (expected to be in F10)
 
+  - Copied SCP code from LOGEDIT.PAS into TBSIQ_SUBS and cleaned up the
+    routine to use TBSIQ keystrokes.  Not sure this resulted in any change
+    to how it appears to work.
+
 17-Aug-2022
 
   - Fixed a bug that was causing hangs when employing auto start send.  I

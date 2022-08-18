@@ -382,34 +382,6 @@ VAR MessageStarted: BOOLEAN;
 
 
 
-PROCEDURE TBSIQ_DisplayBuffer (Buffer: SendBufferType;
-                               BufferStart: INTEGER;
-                               BufferEnd: INTEGER);
-
-
-VAR BufferAddress: INTEGER;
-
-    BEGIN
-    ClrScr;
-
-    IF BufferStart = BufferEnd THEN
-        BEGIN
-        Write ('Buffer empty - type something to start sending or RETURN to stop');
-        Exit;
-        END;
-
-    BufferAddress := BufferStart;
-
-    WHILE BufferAddress <> BufferEnd DO
-        BEGIN
-        Write (Buffer [BufferAddress]);
-        Inc (BufferAddress);
-        IF BufferAddress = 256 THEN BufferAddress := 0;
-        END;
-    END;
-
-
-
     BEGIN
     TBSIQ_CW_Engine := TBSIQ_CWEngineObject.Create;
     TBSIQ_CW_Engine.CueHead := 0;
