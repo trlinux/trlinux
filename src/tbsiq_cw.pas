@@ -33,15 +33,9 @@ USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
 
 
 CONST
-    MaximumCuedMessages = 20;
+    MaximumCuedMessages = 40;
 
 TYPE
-    CuedMessageStatusType = (MessageCued,
-                             MessageBeingSent,
-                             MessageNotInCue);
-
-    TBSIQ_CWStateType = (TBSIQCWState_Idle);
-
     TBSIQ_CW_PriorityType = (CWP_Low,
                              CWP_Medium,
                              CWP_High,
@@ -58,18 +52,18 @@ TYPE
         CueHead: INTEGER;
         CueTail: INTEGER;
 
-        MessageNumberBeingSent: INTEGER;      { A -1 here will indicate that no message is being sent }
-
         MessageCue: ARRAY [0..MaximumCuedMessages - 1] OF CuedMessageType;
+        MessageStarted: BOOLEAN;
 
         PROCEDURE AddcharacterToBuffer (AddChar: CHAR; AddRadio: RadioType);
         PROCEDURE CheckMessages;    { Call often to make the message cue work }
         FUNCTION  ClearMessages (Radio: RadioType; InProcess: BOOLEAN): BOOLEAN;
-        PROCEDURE CueCWMessage (Message: STRING; Radio: RadioType; Priority: TBSIQ_CW_PriorityType; VAR MessageNumber: INTEGER);
-        FUNCTION  CuedMessageStatus (MessageNumber: INTEGER): CuedMessageStatusType;
+        PROCEDURE CueCWMessage (Message: STRING; Radio: RadioType; Priority: TBSIQ_CW_PriorityType);
         FUNCTION  CWFinished (Radio: RadioType): BOOLEAN;
         FUNCTION  CWBeingSent (Radio: RadioType): BOOLEAN;
         FUNCTION  DeleteLastCharacter (Radio: RadioType): BOOLEAN;
+        FUNCTION  MessageInCue (Radio: RadioType): BOOLEAN;
+        PROCEDURE SendNextMessage (PriorityLevel: TBSIQ_CW_PriorityType);
         PROCEDURE ShowActiveRadio;  { Shows which radio has focus for CW sending }
         END;
 
@@ -122,14 +116,39 @@ PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
             RestorePreviousWindow;
             END;
         END;
+
+    SaveSetAndClearActiveWindow (TBSIQ_R1_TransmitIndicatorWindow);
+
+    IF (ActiveRadio = RadioOne) AND CWStillBeingSent THEN
+        SetBackground (Red)
+    ELSE
+        IF MessageInCue (RadioOne) THEN
+            SetBackground (Yellow)
+        ELSE
+            SetBackground (Blue);
+
+    ClrScr;
+    RestorePreviousWindow;
+
+    SaveSetAndClearActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
+
+    IF (ActiveRadio = RadioTwo) AND CWStillBeingSent THEN
+        SetBackground (Red)
+    ELSE
+        IF MessageInCue (RadioTwo) THEN
+            SetBackground (Yellow)
+        ELSE
+            SetBackground (Blue);
+
+    ClrScr;
+    RestorePreviousWindow;
     END;
 
 
 
 PROCEDURE TBSIQ_CWEngineObject.CueCWMessage (Message: STRING;
                                              Radio: RadioType; Priority:
-                                             TBSIQ_CW_PriorityType;
-                                             VAR MessageNumber: INTEGER);
+                                             TBSIQ_CW_PriorityType);
 
 { Just like SendCWMessage - however it inserts the message into the cue instead of sending it immediately.
   This is first in first out for now.  A message number gives a way to check the status of the mssage }
@@ -138,63 +157,11 @@ PROCEDURE TBSIQ_CWEngineObject.CueCWMessage (Message: STRING;
     MessageCue [CueHead].Message  := Message;
     MessageCue [CueHead].Radio    := Radio;
     MessageCue [CueHead].Priority := Priority;
-    MessageNumber := CueHead;
 
     { Point head to next entry to be filled in }
 
     Inc (CueHead);
     IF CueHead = MaximumCuedMessages THEN CueHead := 0;
-    END;
-
-
-
-FUNCTION TBSIQ_CWEngineObject.CuedMessageStatus (MessageNumber: INTEGER): CuedMessageStatusType;
-
-VAR Index: INTEGER;
-
-    BEGIN
-    { Need to see if the MessageNumber, which is an index into the Cue - is in the cue.  Sorry for the
-      crude way of determing this.
-
-      I moved this first since it doesn't rely on any interaction with the
-      Arduino and thus should run pretty fast }
-
-    IF CueHead <> CueTail THEN  { Something in the cue }
-        BEGIN
-        Index := CueTail;    { Start at the beginning of the cue }
-
-        REPEAT
-            IF Index = MessageNumber THEN
-                BEGIN
-                CuedMessageStatus := MessageCued;
-                Exit;
-                END;
-
-            Inc (Index);
-            IF Index = MaximumCuedMessages THEN Index := 0;
-        UNTIL Index = CueHead;
-        END;
-
-    { See if this is the message being sent }
-
-    IF MessageNumber = MessageNumberBeingSent THEN
-        BEGIN
-        { If the message is currently being sent - see if CW is still active }
-
-        IF NOT CWStillBeingSent THEN
-            BEGIN
-            CuedMessageStatus := MessageNotInCue;
-            MessageNumberBeingSent := -1;
-            Exit;
-            END;
-
-        CuedMessageStatus := MessageBeingSent;
-        Exit;
-        END;
-
-    { Either the cue is empty - or the MessageNumber is no longer in the cue }
-
-    CuedMessageStatus := MessageNotInCue;
     END;
 
 
@@ -224,9 +191,7 @@ VAR TestTail: INTEGER;
     { The message needs to be added to the cued message for this radio }
 
     IF CueHead = CueTail THEN  { Unexpected this is }
-        BEGIN
         Exit;
-        END;
 
     TestTail := CueTail;
 
@@ -273,7 +238,6 @@ VAR Index: INTEGER;
         IF (ActiveRadio = Radio) AND CWStillBeingSent THEN
             BEGIN
             FlushCWBufferAndClearPTT;
-            MessageNumberBeingSent := -1;
             ClearMessages := True;
             END;
 
@@ -332,50 +296,114 @@ FUNCTION TBSIQ_CWEngineObject.CWBeingSent (Radio: RadioType): BOOLEAN;
 
 
 
-PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
+PROCEDURE TBSIQ_CWEngineObject.SendNextMessage (PriorityLevel: TBSIQ_CW_PriorityType);
 
-{ This is the "heartbeat" of the CW message cue.  Call this early and often so that any cued
-  messages will be sent after the current message is complete }
-
-VAR MessageStarted: BOOLEAN;
+VAR LowerPriorityMessageFound: BOOLEAN;
+    CueIndex: INTEGER;
 
     BEGIN
-    IF (MessageNumberBeingSent = -1) AND (CueHead = CueTail) THEN Exit;  { Nothing to tend to }
+    LowerPriorityMessageFound := False;
 
-    { We are sending some CW - let's see if we are done with it }
+    { Look through the cue to find a message that matches the priority level }
 
-    IF CWStillBeingSent THEN Exit;
+    IF CueHead = CueTail THEN Exit;  { Just to be sure }
 
-    MessageNumberBeingSent := -1;  { Clear the status of what message is being sent }
+    CueIndex := CueTail;
 
-    { If nothing else in the buffer, we are done }
+    WHILE CueHead <> CueIndex DO
+        BEGIN
+        WITH MessageCue [CueIndex] DO
+            IF Message <> '' THEN        { If the message got set to null - it was deleted }
+                BEGIN
+                IF Priority = PriorityLevel THEN
+                    BEGIN
+                    IF ActiveRadio <> Radio THEN
+                        BEGIN
+                        ActiveRadio := Radio;
+                        SetUpToSendOnActiveRadio;
+                        END;
 
-    IF CueHead = CueTail THEN Exit;
+                    AddStringToBuffer (Message, CWTone);
+                    MessageStarted := True;
 
-    { Start sending the next message }
+                    Message := '';    { This essentially deletes the message }
+
+                    IF NOT LowerPriorityMessageFound THEN  { We can delete the entry }
+                        BEGIN
+                        Inc (CueTail);
+                        IF CueTail = MaximumCuedMessages THEN CueTail := 0;
+                        END;
+
+                    Exit;  { Get out of here }
+                    END
+                ELSE
+                    BEGIN
+                    LowerPriorityMessageFound := True;    { We can't delete this }
+                    END;
+                END
+            ELSE
+                IF NOT LowerPriorityMessageFound THEN     { Remove empty message from cue }
+                    BEGIN
+                    Inc (CueTail);
+                    IF CueTail = MaximumCuedMessages THEN CueTail := 0;
+                    END;
+
+        Inc (CueIndex);
+        IF CueIndex = MaximumCuedMessages THEN CueIndex := 0;
+        END;
+    END;
+
+
+
+FUNCTION TBSIQ_CWEngineObject.MessageInCue (Radio: RadioType): BOOLEAN;
+
+{ Returns TRUE if a message is in the cue for the specified radio }
+
+VAR CueIndex: INTEGER;
+
+    BEGIN
+    MessageInCue := False;
+
+    IF CueHead = CueTail THEN Exit;  { No messages in cue }
+
+    CueIndex := CueTail;
+
+    WHILE CueHead <> CueIndex DO
+        BEGIN
+        IF MessageCue [CueIndex].Radio = Radio THEN
+            IF MessageCue [CueIndex].Message <> '' THEN
+                BEGIN
+                MessageInCue := True;
+                Exit;
+                END;
+
+        Inc (CueIndex);
+        IF CueIndex = MaximumCuedMessages THEN CueIndex := 0;
+        END;
+    END;
+
+
+
+PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
+
+{ This is the "heartbeat" of the CW message cue.  Call this early and
+  often so that any cued messages will be sent after the current message
+  is complete }
+
+    BEGIN
+    IF CWStillBeingSent THEN Exit;   { Still sending some CW }
+    IF CueHead = CueTail THEN Exit;  { Nothing to tend to }
+
+    { Find the next message to send in the cue }
 
     MessageStarted := False;
 
-    WITH MessageCue [CueTail] DO
-        BEGIN
-        IF Message <> '' THEN        { If the message got set to null - it was deleted }
-            BEGIN
-            IF ActiveRadio <> Radio THEN
-                BEGIN
-                ActiveRadio := Radio;
-                SetUpToSendOnActiveRadio;
-                END;
+    SendNextMessage (CWP_Urgent);
+    IF NOT MessageStarted THEN SendNextMessage (CWP_High);
+    IF NOT MessageStarted THEN SendNextMessage (CWP_Medium);
+    IF NOT MessageStarted THEN SendNextMessage (CWP_Low);
 
-            AddStringToBuffer (Message, CWTone);
-            MessageNumberBeingSent := CueTail;
-            MessageStarted := True;
-            END;
-
-        { Take this message off the cue }
-
-        Inc (CueTail);
-        IF CueTail = MaximumCuedMessages THEN CueTail := 0;
-        END;
+    { If we started a message - stay here until it starts }
 
     IF MessageStarted THEN REPEAT UNTIL CWStillBeingSent;
     END;

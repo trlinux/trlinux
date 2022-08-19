@@ -402,6 +402,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                GridMapCenter:= TempString;
            END;
 
+      HSE: EnableHeadphoneSwitching := NOT EnableHeadphoneSwitching;
 
       HFE: HFBandEnable      := NOT HFBandEnable;
 
@@ -1071,6 +1072,8 @@ VAR FileWrite: TEXT;
       FPR2: WriteLn (FileWrite, Rig2FreqPollRate); {KK1L: 6.71}
       FME: WriteLn (FileWrite, FrequencyMemoryEnable);
       GMC: WriteLn (FileWrite, GridMapCenter);
+
+      HSE: WriteLn (FileWrite, EnableHeadphoneSwitching);
       HFE: WriteLn (FileWrite, HFBandEnable);
 
       HDP: CASE HourDisplay OF
@@ -1435,6 +1438,7 @@ VAR TempString: Str40;
       FPR2: Str (Rig2FreqPollRate, TempString); {KK1L: 6.71}
       FME: IF FrequencyMemoryEnable THEN TempString := 'TRUE';
       GMC: TempString := GridMapCenter;
+      HSE: IF EnableHeadphoneSwitching THEN TempString := 'TRUE';
       HFE: IF HFBandEnable THEN TempString := 'TRUE';
 
       HDP: CASE HourDisplay OF

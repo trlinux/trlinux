@@ -109,8 +109,6 @@ TYPE
         StationCalled: BOOLEAN;              { indicates auto start send already deployed }
 
         PROCEDURE CheckQSOStateMachine;
-        PROCEDURE CheckTransmitIndicator;
-        PROCEDURE ClearTransmitIndicator;
         PROCEDURE DisplayAutoSendCharacterCount;
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayCodeSpeed;
@@ -136,7 +134,7 @@ TYPE
         PROCEDURE SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
         PROCEDURE ShowCWMessage (Message: STRING);
         PROCEDURE ShowStateMachineStatus;
-        PROCEDURE SetTransmitIndicator;
+        PROCEDURE ShowTransmitStatus;
         PROCEDURE SuperCheckPartial;
 
         PROCEDURE UpdateRadioDisplay;  { Band/mode/frequency }
@@ -725,26 +723,6 @@ VAR CharacterCount: INTEGER;
 
 
 
-
-
-PROCEDURE QSOMachineObject.CheckTransmitIndicator;
-
-{ Gets called by the other radio's QSOMachine when it stops sending CW and
-  gives us a chance to update the Transmitindicator if we are in a state
-  that transmits }
-
-    BEGIN
-    CASE QSOState OF
-        QST_Idle, QST_CQCalled, QST_CQWaitingForExchange:
-            BEGIN
-            END;
-        ELSE
-            SetTransmitIndicator;    { will be red now that our CW is being sent }
-        END;
-    END;
-
-
-
 PROCEDURE QSOMachineObject.DisplayAutoSendCharacterCount;
 
     BEGIN
@@ -766,49 +744,12 @@ PROCEDURE QSOMachineObject.DisplayAutoSendCharacterCount;
 
 
 
-PROCEDURE QSOMachineObject.SetTransmitIndicator;
+PROCEDURE QSOMachineObject.ShowTransmitStatus;
 
 { Turns on the TX indicator }
 
     BEGIN
-    CASE Radio OF
-        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_TransmitIndicatorWindow);
-        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
-        END;
-
-    { This is actually pretty nice - in that we check on CW actually being sent
-      as opposed to thinking CW should be being sent }
-
-    IF TBSIQ_CW_Engine.CWBeingSent (Radio) THEN
-        SetBackground (Red)
-    ELSE
-        SetBackground (Yellow);
-
-    ClrScr;
-    RestorePreviousWindow;
-
     TBSIQ_CW_Engine.ShowActiveRadio;
-    END;
-
-
-PROCEDURE QSOMachineObject.ClearTransmitIndicator;
-
-{ Turns off the TX indicator }
-
-    BEGIN
-    CASE Radio OF
-        RadioOne:
-            BEGIN
-            RemoveWindow (TBSIQ_R1_TransmitIndicatorWindow);
-            Radio2QSOMachine.CheckTransmitIndicator;
-            END;
-
-        RadioTwo:
-            BEGIN
-            RemoveWindow (TBSIQ_R2_TransmitIndicatorWindow);
-            Radio1QSOMachine.CheckTransmitIndicator;
-            END;
-        END;
     END;
 
 
@@ -818,7 +759,8 @@ PROCEDURE QSOMachineObject.ListenToBothRadios;
 { Puts the headphones into stereo mode }
 
     BEGIN
-    so2rbox.setrcvfocus (Stereo);
+    IF EnableHeadphoneSwitching THEN
+        so2rbox.setrcvfocus (Stereo);
     END;
 
 
@@ -830,6 +772,8 @@ PROCEDURE QSOMachineObject.ListenToOtherRadio;
   called again }
 
     BEGIN
+    IF NOT EnableHeadphoneSwitching THEN Exit;
+
     IF Radio = RadioOne THEN
         BEGIN
         IF TBSIQ_CW_Engine.CWBeingSent (RadioTwo) THEN Exit;
@@ -844,26 +788,11 @@ PROCEDURE QSOMachineObject.ListenToOtherRadio;
     END;
 
 
-PROCEDURE TBSIQ_UpdateWhichStateMachineStatus (Radio: RadioType);
-
-    BEGIN
-    SaveAndSetActiveWindow (BandMapWindow);
-    CASE Radio OF
-        RadioOne: WriteLn ('Radio one');
-        RadioTwo: WriteLn ('Radio two');
-        ELSE WriteLn ('???');
-        END;
-
-    millisleep;
-    RestorePreviousWindow;
-    END;
-
 PROCEDURE QSOMachineObject.CheckQSOStateMachine;
 
 VAR Key, ExtendedKey: CHAR;
     ExpandedString, TempString, InitialExchange, Message, WindowString: STRING;
     ActionRequired: BOOLEAN;
-    MessageNumber: INTEGER;
 
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
@@ -874,13 +803,15 @@ VAR Key, ExtendedKey: CHAR;
         BEGIN
         ShowStateMachineStatus;
         LastQSOState := QSOState;
+        ShowTransmitStatus;  { Update TX and cue indicators }
+        END;
 
-        CASE QSOState OF
-            QST_Idle, QST_CQCalled, QST_CQWaitingForExchange, QST_SearchAndPounceIdle:
-                ClearTransmitIndicator;
-            ELSE
-                SetTransmitIndicator;
-            END;
+    { Do not process any keystrokes while auto start send active on the
+      other radio }
+
+    CASE Radio OF
+        RadioOne: IF Radio2QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
+        RadioTwo: IF Radio1QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
         END;
 
     { Unlike the WindowEditor in LOGSUBS2, this will not block execution.  It will return
@@ -930,7 +861,7 @@ VAR Key, ExtendedKey: CHAR;
                                 END
                             ELSE
                                 BEGIN  { We have a callsign to send }
-                                TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High, MessageNumber);
+                                TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High);
                                 CallsignICameBackTo := WindowString;
                                 ShowCWMessage (WindowString);
                                 QSOState := QST_CQStationBeingAnswered;
@@ -963,7 +894,7 @@ VAR Key, ExtendedKey: CHAR;
                                     BEGIN
                                     { We need to start sending the callsign }
 
-                                    TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High, MessageNumber);
+                                    TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High);
                                     CallsignICameBackTo := CallWindowString;
                                     ShowCWMessage (CallWindowString);
                                     QSOState := QST_AutoStartSending;
@@ -990,38 +921,14 @@ VAR Key, ExtendedKey: CHAR;
               4. Someone hit RETURN to end input of the callsign.
               5. All of the entered letters have been sent - send exchange. }
 
-            { It appears that when I get to a hang condition - the program has printed the
-              CQ Exchange - so it thinks CW is finished.  What is really happening is that
-              the other radio is in a state where it thinks it is transmitting and it is
-              hanging...  and maybe it is all working okay, but we are hanging before the
-              new state of QST_CQExchangeBeingSent can be displayed! }
-
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
                 IF AutoCallTerminate THEN
                     BEGIN
                     ExpandedString := ExpandCrypticString (CQExchange);
-                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, MessageNumber);
+                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
                     ShowCWMessage (ExpandedString);
                     QSOState := QST_CQExchangeBeingSent;
-
-                    CASE Radio OF
-                        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_StateMachineStatusWindow);
-                        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_StateMachineStatusWindow);
-                        END;
-
-                    WriteLn ('WB6ZVC');
-                    RestorePreviousWindow;
                     Exit;
-                    END
-                ELSE
-                    BEGIN
-                    CASE Radio OF
-                        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_StateMachineStatusWindow);
-                        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_StateMachineStatusWindow);
-                        END;
-
-                    WriteLn ('WA6TUT');
-                    RestorePreviousWindow;
                     END;
 
             IF NOT ActionRequired THEN Exit;  { No keystroke to respond to }
@@ -1033,7 +940,7 @@ VAR Key, ExtendedKey: CHAR;
                 CarriageReturn:
                     BEGIN
                     ExpandedString := ExpandCrypticString (CQExchange);
-                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, MessageNumber);
+                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
                     ShowCWMessage (ExpandedString);
                     QSOState := QST_CQExchangeBeingSent;
                     END;
@@ -1047,7 +954,6 @@ VAR Key, ExtendedKey: CHAR;
                         Write (CallWindowString);
                         Dec (CallWindowCursorPosition);
                         END;
-
 
                 ELSE
                     BEGIN
@@ -1081,15 +987,12 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             ListenToOtherRadio;
 
-            { Waiting for the CW of the call who answered me to finish }
+            { We used to not do this until CW was done }
 
-            IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
-                BEGIN
-                ExpandedString := ExpandCrypticString (CQExchange);
-                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, MessageNumber);
-                ShowCWMessage (ExpandedString);
-                QSOState := QST_CQExchangeBeingSent;
-                END;
+            ExpandedString := ExpandCrypticString (CQExchange);
+            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+            ShowCWMessage (ExpandedString);
+            QSOState := QST_CQExchangeBeingSent;
             END;
 
         { We are sending the CQ exchange to the guy who came back.  We can get the
@@ -1212,7 +1115,7 @@ VAR Key, ExtendedKey: CHAR;
                             TempString := TempString + QSLMessage;
 
                             ExpandedString := ExpandCrypticString (TempString);
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, MessageNumber);
+                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
                             ShowCWMessage (ExpandedString);
                             END;
 
@@ -1341,7 +1244,7 @@ VAR Key, ExtendedKey: CHAR;
                     ELSE
                         IF (Key >= ' ') AND (Key <= 'z') THEN
                             BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High, MessageNumber);
+                            TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High);
                             KeyboardCWMessage := KeyboardCWMessage + Key;
                             ShowCWMessage (KeyboardCWMessage);
                             END;
@@ -3552,8 +3455,6 @@ FUNCTION ValidFunctionKey (Key: CHAR): BOOLEAN;
 
 PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRING);
 
-VAR MessageNumber: INTEGER;
-
     BEGIN
     IF NOT ValidFunctionKey (Key) THEN Exit;
 
@@ -3573,7 +3474,7 @@ VAR MessageNumber: INTEGER;
     IF Message <> '' THEN
         BEGIN
         Message := ExpandCrypticString (Message);
-        TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High, MessageNumber);
+        TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High);
         END;
     END;
 

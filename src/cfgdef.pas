@@ -146,6 +146,7 @@ PROCEDURE SetConfigurationDefaultValues;
 
     EightBitRTTYPort := False; {KK1L: 6.71}
 
+    EnableHeadphoneSwitching   := False;
     EnableSixDVKMessages       := True; {KK1L: 6.72}
     EscapeExitsSearchAndPounce := True;
     ExchangeFunctionKeyMenu := '';

@@ -1446,6 +1446,12 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'HEADPHONE SWITCHING ENABLE' THEN
+        BEGIN
+        EnableHeadphoneSwitching := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
 
     IF ID = 'HF BAND ENABLE' THEN
         BEGIN

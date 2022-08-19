@@ -100,6 +100,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       HFE,
                       HDP,
                       HOF,
+                      HSE,
                       ICP,
                       ITE,
                       IEX,
@@ -322,6 +323,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
 
       GMC: Description := 'GRID MAP CENTER';
 
+      HSE: Description := 'HEADPHONE SWITCHING ENABLE';
       HFE: Description := 'HF BAND ENABLE';
       HDP: Description := 'HOUR DISPLAY';
       HOF: Description := 'HOUR OFFSET';
@@ -611,6 +613,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       FPR2: Write (Rig2FreqPollRate); {KK1L: 6.71a}
       FME: Write (FrequencyMemoryEnable);
       GMC: Write (GridMapCenter);
+      HSE: Write (EnableHeadphoneSwitching);
       HFE: Write (HFBandEnable);
 
       HDP: CASE HourDisplay OF
@@ -1190,6 +1193,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('No grid map defined')
            ELSE
                Write ('Grid map center location');
+
+      HSE: IF EnableHeadphoneSwitching THEN
+               Write ('2BSIQ Headphone switching enabled')
+           ELSE
+               Write ('2BSIQ Headphone switching disabled');
 
       HFE: IF HFBandEnable THEN
                Write ('HF Bands enabled.')

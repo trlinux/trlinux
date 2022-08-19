@@ -1132,9 +1132,12 @@ FUNCTION ArduinoKeyer.CWStillBeingSent: BOOLEAN;
                dropouts of the PTT being asserted when using the
                AutoCallTerminate function - so made it false so that we
                can have more time to get the exchange (or dupe message)
-               cued up. }
+               cued up.
 
-            1: CWStillBeingSent := False;  { CW buffer empty - PTT On }
+               Then I set it back to True to see if things worked
+               better. }
+
+            1: CWStillBeingSent := True;  { CW buffer empty - PTT On }
             2: CWStillBeingSent := True;   { we are indeed sending CW }
 
             END;  { of case }

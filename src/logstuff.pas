@@ -271,6 +271,7 @@ VAR
     DVKPlaying:              BOOLEAN;
     DVKStartTime:            TimeRecord;
 
+    EnableHeadphoneSwitching:   BOOLEAN;
     EscapeDeletedCallEntry:     Str20;
     EscapeDeletedExchangeEntry: Str40;
     EscapeExitsSearchAndPounce: BOOLEAN;

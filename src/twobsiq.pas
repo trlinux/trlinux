@@ -28,15 +28,11 @@ UNIT TwoBSIQ;
 TODO LIST
 
 - There are some corner cases with auto start send edits while the other Tx
-  is sending that need to be worked out.  This liekly won't be an issue
+  is sending that need to be worked out.  This likely won't be an issue
   for most of the time - so maybe wait to see if it ever actually causes a
   problem.  Maybe the bug actually doesn't exist...
 
 - S&P mode work to be done: lots.
-
-- Currently - when I answer a guy - the callsign and the exchange are two
-  different CW messages and the other radio can jump in between them.  Do
-  I want to do something about this?
 
 - AltP support would be nice to have.
 
@@ -44,8 +40,30 @@ TODO LIST
 
 - CWT points not being calculated (callsigns as mults).
 
+- Add enable for microphone switching with SO2R box.
+
 
 CHANGE LOG
+
+19-Aug-2022
+
+  - Added new LOGCFG command - HEADPHONE SWITCHING ENABLE (TRUE or FALSE).
+    This is also in the ControlJ menu.  If FALSE, no headphone switching
+    is done with 2BSIQ.  Gets rid of annoying relay clicks if you are
+    not using it.
+
+  - Changed how the colored displays work for the transmit message status.
+    The information flows from the message cue now instead of being set
+    by the state machine.
+
+  - Changed how CQ messages are processed so that there is no longer a
+    window where you can press a key on the other radio and interject a
+    message between the callsign and CQ exchange.
+
+  - Did a bunch of work with the CW message cue - getting priorities to
+    work - although they really aren't doing anything for me at this point,
+    so you should not see any impact.
+
 
 18-Aug-2022
 
@@ -182,10 +200,11 @@ PROCEDURE Do2BSIQ;
     BEGIN
     REPEAT
         MilliSleep;     { This seems necessary or radio display doesn't work }
-        TBSIQ_CW_Engine.CheckMessages;
         TBSIQ_UpdateTimeAndrateDisplays;
         Radio1QSOMachine.CheckQSOStateMachine;
+        TBSIQ_CW_Engine.CheckMessages;
         Radio2QSOMachine.CheckQSOStateMachine;
+        TBSIQ_CW_Engine.CheckMessages;
     UNTIL False;
     END;
 
