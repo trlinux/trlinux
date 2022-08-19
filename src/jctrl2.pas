@@ -402,8 +402,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                GridMapCenter:= TempString;
            END;
 
-      HSE: EnableHeadphoneSwitching := NOT EnableHeadphoneSwitching;
-
       HFE: HFBandEnable      := NOT HFBandEnable;
 
       HDP: CASE HourDisplay OF
@@ -752,6 +750,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                  HSYMMETRIC: so2rbox.setheadphonemode(HNORMAL);
               end;
 
+      SO2RHS: EnableHeadphoneSwitching := NOT EnableHeadphoneSwitching;
+
       SO2RBE: so2rbox.setblend(not so2rbox.getblend);
 
       SO2RBV: begin
@@ -1073,7 +1073,6 @@ VAR FileWrite: TEXT;
       FME: WriteLn (FileWrite, FrequencyMemoryEnable);
       GMC: WriteLn (FileWrite, GridMapCenter);
 
-      HSE: WriteLn (FileWrite, EnableHeadphoneSwitching);
       HFE: WriteLn (FileWrite, HFBandEnable);
 
       HDP: CASE HourDisplay OF
@@ -1224,11 +1223,15 @@ VAR FileWrite: TEXT;
 
       SHE: WriteLn (FileWrite, SayHiEnable);
       SO2RLM: writeln(FileWrite,so2rbox.getlatch);
+
+      SO2RHS: WriteLn (FileWrite, EnableHeadphoneSwitching);
+
       SO2RHM: case so2rbox.getheadphonemode of
           HNORMAL: WriteLn (FileWrite,'NORMAL');
           HSPATIAL: WriteLn (FileWrite,'SPATIAL');
           HSYMMETRIC: WriteLn (FileWrite,'SYMMETRIC');
           end;
+
       SO2RBE: writeln(FileWrite,so2rbox.getblend);
       SO2RBV: writeln(FileWrite,so2rbox.getblendvalue);
       SO2RMR: writeln(FileWrite,so2rbox.getmicrelay);
@@ -1438,7 +1441,6 @@ VAR TempString: Str40;
       FPR2: Str (Rig2FreqPollRate, TempString); {KK1L: 6.71}
       FME: IF FrequencyMemoryEnable THEN TempString := 'TRUE';
       GMC: TempString := GridMapCenter;
-      HSE: IF EnableHeadphoneSwitching THEN TempString := 'TRUE';
       HFE: IF HFBandEnable THEN TempString := 'TRUE';
 
       HDP: CASE HourDisplay OF
@@ -1605,6 +1607,9 @@ VAR TempString: Str40;
       SAS: IF CallWindowShowAllSpots THEN TempString := 'TRUE';
       SMC: TempString := SlashMarkChar;
       SBD: IF SpaceBarDupeCheckEnable THEN TempString := 'TRUE';
+
+      SO2RHS: IF EnableHeadphoneSwitching THEN TempString := 'TRUE';
+
       SQR: IF SprintQSYRule THEN TempString := 'TRUE';
       SRP: IF SwapPacketSpotRadios THEN TempString := 'TRUE';
       SWP: IF ActiveKeyer.GetSwapPaddles THEN TempString := 'TRUE';

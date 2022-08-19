@@ -235,7 +235,6 @@ PROCEDURE ArduinoKeyer.SetMicRelay (On: boolean);
   upon headphone focus or not here in pascal land }
 
     BEGIN
-    Write ('.');
     IF On THEN
         SO2R_Config.Relays := 1
     ELSE
@@ -289,8 +288,9 @@ VAR Cmd: BYTE;
 
         { Microphone relay }
 
-        IF (SO2R_State.TX2 = 1) THEN
-            Cmd := Cmd OR $04;  { Set bit }
+        IF (SO2R_Config.Relays = 1) THEN
+            IF (SO2R_State.TX2 = 1) THEN
+                Cmd := Cmd OR $04;  { Set bit }
 
         ArduinoKeyerPort.PutChar (Char ($02));  { SO2R relay command }
         ArduinoKeyerPort.PutChar (Char (Cmd));  { SO2R relay data }

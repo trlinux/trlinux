@@ -40,17 +40,16 @@ TODO LIST
 
 - CWT points not being calculated (callsigns as mults).
 
-- Add enable for microphone switching with SO2R box.
-
-
 CHANGE LOG
 
 19-Aug-2022
 
-  - Added new LOGCFG command - HEADPHONE SWITCHING ENABLE (TRUE or FALSE).
+  - Added new LOGCFG command - 2BSIQ HEADPHONE SWITCHING ENABLE (TRUE or FALSE).
     This is also in the ControlJ menu.  If FALSE, no headphone switching
     is done with 2BSIQ.  Gets rid of annoying relay clicks if you are
     not using it.
+
+  - Made SO2R MICROPHONE RELAY ENABLE work with SO2R mini.
 
   - Changed how the colored displays work for the transmit message status.
     The information flows from the message cue now instead of being set

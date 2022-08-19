@@ -100,7 +100,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       HFE,
                       HDP,
                       HOF,
-                      HSE,
                       ICP,
                       ITE,
                       IEX,
@@ -186,6 +185,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       SHE,
                       SO2RLM,
                       SO2RHM,
+                      SO2RHS,
                       SO2RBE,
                       SO2RBV,
                       SO2RMR,
@@ -323,7 +323,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
 
       GMC: Description := 'GRID MAP CENTER';
 
-      HSE: Description := 'HEADPHONE SWITCHING ENABLE';
       HFE: Description := 'HF BAND ENABLE';
       HDP: Description := 'HOUR DISPLAY';
       HOF: Description := 'HOUR OFFSET';
@@ -350,6 +349,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       LFR: Description := 'LOOK FOR RST SENT';
 
       MSE: Description := 'MESSAGE ENABLE';
+
       MEN: Description := 'MOUSE ENABLE';
       MRM: Description := 'MULT REPORT MINIMUM BANDS';
       MIM: Description := 'MULTI INFO MESSAGE';
@@ -420,6 +420,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
 
       SO2RLM: Description := 'SO2R LATCH';
       SO2RHM: Description := 'SO2R HEADPHONE MODE';
+      SO2RHS: Description := 'SO2R HEADPHONE SWITCHING ENABLE';
       SO2RBE: Description := 'SO2R BLEND ENABLE';
       SO2RBV: Description := 'SO2R BLEND';
       SO2RMR: Description := 'SO2R MICROPHONE RELAY ENABLE';
@@ -613,7 +614,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       FPR2: Write (Rig2FreqPollRate); {KK1L: 6.71a}
       FME: Write (FrequencyMemoryEnable);
       GMC: Write (GridMapCenter);
-      HSE: Write (EnableHeadphoneSwitching);
       HFE: Write (HFBandEnable);
 
       HDP: CASE HourDisplay OF
@@ -772,6 +772,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
          HSPATIAL: write ('SPATIAL');
          end;
 
+      SO2RHS: Write (EnableHeadphoneSwitching);
       SO2RBE: write(so2rbox.getblend);
       SO2RBV: write(so2rbox.getblendvalue);
       SO2RMR: write(so2rbox.getmicrelay);
@@ -1194,11 +1195,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Grid map center location');
 
-      HSE: IF EnableHeadphoneSwitching THEN
-               Write ('2BSIQ Headphone switching enabled')
-           ELSE
-               Write ('2BSIQ Headphone switching disabled');
-
       HFE: IF HFBandEnable THEN
                Write ('HF Bands enabled.')
            ELSE
@@ -1572,6 +1568,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                  HSPATIAL: write('Rig 1 always left, Rig 2 always right');
                  HSYMMETRIC: write('Listen to one rig at a time - No stereo!');
               end;
+
+      SO2RHS: IF EnableHeadphoneSwitching THEN
+                  Write ('Automatic switching enabled')
+              ELSE
+                  Write ('Automatic switching disabled');
 
       SO2RBE: If so2rbox.getblend then
                  write('Right/Left headphone blending on')

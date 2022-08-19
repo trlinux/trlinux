@@ -1716,6 +1716,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF (ID = 'SO2R HEADPHONE SWITCHING ENABLE') THEN
+        BEGIN
+        EnableHeadphoneSwitching := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF (ID = 'SO2R BLEND ENABLE') then
         BEGIN
         IF (UpCase (CMD [1]) = 'T') THEN
