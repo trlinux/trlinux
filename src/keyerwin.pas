@@ -1095,7 +1095,9 @@ begin
    cwbufferstart := 0;
    cwbufferend := 0;
    WinKeyerPort.putchar(Char($0a));
-   WinKeyerPort.putchar(Char($1e));
+//   WinKeyerPort.putchar(Char($1e));
+   WinKeyerPort.putchar(Char($02));
+   WinKeyerPort.putchar(Char(CodeSpeed));
 end;
 
 procedure WinKeyer.flushLocal;
