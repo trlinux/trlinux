@@ -141,7 +141,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       PAR,
                       PBS,
                       PBP,
-                      PF8,
                       PLF,
                       PRM,
                       PSC, {KK1L: 6.71 Coded for PacketSpotComment started in 6.68}
@@ -185,7 +184,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       SHE,
                       SO2RLM,
                       SO2RHM,
-                      SO2RHS,
                       SO2RBE,
                       SO2RBV,
                       SO2RMR,
@@ -349,7 +347,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       LFR: Description := 'LOOK FOR RST SENT';
 
       MSE: Description := 'MESSAGE ENABLE';
-
       MEN: Description := 'MOUSE ENABLE';
       MRM: Description := 'MULT REPORT MINIMUM BANDS';
       MIM: Description := 'MULTI INFO MESSAGE';
@@ -374,7 +371,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       PAR: Description := 'PACKET AUTO CR';
       PBS: Description := 'PACKET BAND SPOTS';
       PBP: Description := 'PACKET BEEP';
-      PF8: Description := 'PACKET FT8 SPOTS';
       PLF: Description := 'PACKET LOG FILENAME';
       PRM: Description := 'PACKET RETURN PER MINUTE';
       PSC: Description := 'PACKET SPOT COMMENT'; {KK1L: 6.71 Implimented what I started in 6.68}
@@ -420,7 +416,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
 
       SO2RLM: Description := 'SO2R LATCH';
       SO2RHM: Description := 'SO2R HEADPHONE MODE';
-      SO2RHS: Description := 'SO2R HEADPHONE SWITCHING ENABLE';
       SO2RBE: Description := 'SO2R BLEND ENABLE';
       SO2RBV: Description := 'SO2R BLEND';
       SO2RMR: Description := 'SO2R MICROPHONE RELAY ENABLE';
@@ -690,7 +685,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       PAR: Write (PacketAutoCR);
       PBS: Write (Packet.PacketBandSpots);
       PBP: Write (Packet.PacketBeep);
-      PF8: Write (Packet.FT8SpotEnable);
       PLF: Write (Packet.PacketLogFileName);
 
       PRM: Write (PacketReturnPerMinute);
@@ -772,7 +766,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
          HSPATIAL: write ('SPATIAL');
          end;
 
-      SO2RHS: Write (EnableHeadphoneSwitching);
       SO2RBE: write(so2rbox.getblend);
       SO2RBV: write(so2rbox.getblendvalue);
       SO2RMR: write(so2rbox.getmicrelay);
@@ -1377,11 +1370,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Display incoming spots without beep');
 
-      PF8: IF Packet.FT8SpotEnable THEN
-               Write ('Spots on FT8 frequencies dhown')
-           ELSE
-               Write ('FT8 frequency spots not shown');
-
       PLF: IF Packet.PacketLogFileName = '' THEN
                Write ('Packet log file disabled')
            ELSE
@@ -1568,11 +1556,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                  HSPATIAL: write('Rig 1 always left, Rig 2 always right');
                  HSYMMETRIC: write('Listen to one rig at a time - No stereo!');
               end;
-
-      SO2RHS: IF EnableHeadphoneSwitching THEN
-                  Write ('Automatic switching enabled')
-              ELSE
-                  Write ('Automatic switching disabled');
 
       SO2RBE: If so2rbox.getblend then
                  write('Right/Left headphone blending on')

@@ -2005,10 +2005,6 @@ VAR OrigMode: INTEGER;
 // Key: CHAR;
 
     BEGIN
-    { Added this on 21-Jun-2022 }
-
-    WHILE KeyPressed DO ReadKey;
-
     OrigMode := LastMode;
     WriteLn;
     TextColor (Cyan);
