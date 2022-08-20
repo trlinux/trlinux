@@ -27,14 +27,7 @@ UNIT TwoBSIQ;
 
 TODO LIST
 
-- There are some corner cases with auto start send edits while the other Tx
-  is sending that need to be worked out.  This likely won't be an issue
-  for most of the time - so maybe wait to see if it ever actually causes a
-  problem.  Maybe the bug actually doesn't exist...
-
-- S&P mode work to be done: lots.
-
-- AltP support would be nice to have.
+- S&P mode not finished yet.
 
 - "ActiveBand" cursor on the band totals display is not right.
 
@@ -43,6 +36,13 @@ TODO LIST
 CHANGE LOG
 
 19-Aug-2022
+
+  - In order to guarantee we don't get a message interjected from
+    the other radio while finishing off an auto start send - I have
+    disabled the keyboard during the brief time auto start send has
+    started sending CW - until the call is terminated.
+
+  - AltP now works in 2BSIQ.
 
   - Added new LOGCFG command - 2BSIQ HEADPHONE SWITCHING ENABLE (TRUE or FALSE).
     This is also in the ControlJ menu.  If FALSE, no headphone switching

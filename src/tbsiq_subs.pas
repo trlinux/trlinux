@@ -217,6 +217,42 @@ TYPE
 
 
 
+PROCEDURE ResetKeyStatus (Radio: RadioType);
+
+    BEGIN
+    IF Radio = RadioOne THEN
+        WITH Radio1KeyStatus DO
+            BEGIN
+            KeyPressedCode := 0;
+            KeyPressed             := FALSE;
+            ExtendedKey            := FALSE;
+            ExtendedKeyNullSent    := FALSE;
+            LeftShiftKeyPressed    := FALSE;
+            RightShiftKeyPressed   := FALSE;
+            LeftAltKeyPressed      := FALSE;
+            RightAltKeyPressed     := FALSE;
+            LeftControlKeyPressed  := FALSE;
+            RightControlKeyPressed := FALSE;
+            END;
+
+    IF Radio = RadioTwo THEN
+        WITH Radio2KeyStatus DO
+            BEGIN
+            KeyPressedCode := 0;
+            KeyPressed             := FALSE;
+            ExtendedKey            := FALSE;
+            ExtendedKeyNullSent    := FALSE;
+            LeftShiftKeyPressed    := FALSE;
+            RightShiftKeyPressed   := FALSE;
+            LeftAltKeyPressed      := FALSE;
+            RightAltKeyPressed     := FALSE;
+            LeftControlKeyPressed  := FALSE;
+            RightControlKeyPressed := FALSE;
+            END;
+    END;
+
+
+
 PROCEDURE TBSIQ_ExitProgram;
 
 VAR TempString: Str160;
@@ -867,7 +903,10 @@ VAR Key, ExtendedKey: CHAR;
                                 QSOState := QST_CQStationBeingAnswered;
                                 END;
                     EscapeKey:
+                        BEGIN
                         QSOState := QST_Idle;
+                        ShowTransmitStatus;
+                        END;
 
                     TabKey:
                         BEGIN
@@ -1793,15 +1832,22 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
 
     IF ClearKeyCache THEN
         BEGIN
-        FOR Count := 1 TO 30 DO
-            BEGIN
+        Count := 30;
+
+        REPEAT
+            Dec (Count);
             Millisleep;
 
             IF TBSIQ_KeyPressed (Radio) THEN
+                BEGIN
                 TBSIQ_ReadKey (Radio);
-            END;
+                Count := 30;
+                END;
+
+        UNTIL Count = 0;
 
         ClearKeyCache := False;
+        ResetKeyStatus (Radio);
         Exit;
         END;
 
@@ -2193,6 +2239,15 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                           VisibleLog.SearchLog (CallWindowString);
 
                       RITEnable := True;
+                      ClearKeyCache := True;
+                      END;
+
+                  AltP:
+                      BEGIN
+                      RITEnable := False;
+                      MemoryProgram;
+                      RITEnable := True;
+                      VisibleLog.SetUpEditableLog;
                       ClearKeyCache := True;
                       END;
 
@@ -3838,32 +3893,8 @@ VAR Time, QSONumber: INTEGER;
 
 
 
-    BEGIN
-    WITH Radio1KeyStatus DO
-        BEGIN
-        KeyPressedCode := 0;
-        KeyPressed             := FALSE;
-        ExtendedKey            := FALSE;
-        ExtendedKeyNullSent    := FALSE;
-        LeftShiftKeyPressed    := FALSE;
-        RightShiftKeyPressed   := FALSE;
-        LeftAltKeyPressed      := FALSE;
-        RightAltKeyPressed     := FALSE;
-        LeftControlKeyPressed  := FALSE;
-        RightControlKeyPressed := FALSE;
-        END;
 
-    WITH Radio2KeyStatus DO
-        BEGIN
-        KeyPressedCode := 0;
-        KeyPressed             := FALSE;
-        ExtendedKey            := FALSE;
-        ExtendedKeyNullSent    := FALSE;
-        LeftShiftKeyPressed    := FALSE;
-        RightShiftKeyPressed   := FALSE;
-        LeftAltKeyPressed      := FALSE;
-        RightAltKeyPressed     := FALSE;
-        LeftControlKeyPressed  := FALSE;
-        RightControlKeyPressed := FALSE;
-        END;
+    BEGIN
+    ResetKeyStatus (RadioOne);
+    ResetKeyStatus (RadioTwo);
     END.
