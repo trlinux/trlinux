@@ -35,6 +35,13 @@ TODO LIST
 
 CHANGE LOG
 
+23-Aug-2022
+
+  - Added support for commands in function key and QSO messages.  A few were
+    deleted that make no sense in the context of 2BSIQ.  Also, LogLastCall
+    turned out to be difficult to implement without major surgery of the
+    existing code - so it was deleted.
+
 19-Aug-2022
 
   - In order to guarantee we don't get a message interjected from

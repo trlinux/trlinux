@@ -217,6 +217,242 @@ TYPE
 
 
 
+FUNCTION FoundCommand (VAR SendString: Str160): BOOLEAN;
+
+{ Taken from LOGSUBS2 and customized for this environment }
+
+VAR FileName, CommandString: Str40;
+    TempInt: INTEGER;
+
+    BEGIN
+    FoundCommand := False;
+
+    CommandUseInactiveRadio := FALSE; {KK1L: 6.73 Global var to support vectoring commands to inactive radio}
+
+    WHILE StringHas (SendString, ControlC) DO
+        BEGIN
+        IF NOT StringHas (SendString, ControlD) THEN Exit;
+
+        FoundCommand := StringHas (SendString, ControlD);
+
+        CommandString := UpperCase (BracketedString (SendString, ControlC, ControlD));
+        Delete (SendString, Pos (ControlC, SendString), Pos (ControlD, SendString) - Pos (ControlC, SendString) + 1);
+
+        IF Copy (CommandString, 1, 1) = ControlA THEN  {KK1L: 6.73 Vector commands to inactive radio with CTRL-A}
+            BEGIN
+            CommandUseInactiveRadio := TRUE;
+            Delete (CommandString, 1, 1);
+            END;
+
+        IF StringHas (CommandString, '=') THEN
+            BEGIN
+            FileName := PostcedingString (CommandString, '=');
+            CommandString := PrecedingString (CommandString, '=');
+            END;
+
+        IF CommandString = 'BANDUP'         THEN
+            BEGIN
+            RememberFrequency; {KK1L: 6.72 Added to match all other calls. Needed for loss of coms}
+            BandUp;
+            END;
+        IF CommandString = 'BANDDOWN'       THEN
+            BEGIN
+            RememberFrequency; {KK1L: 6.72 Added to match all other calls. Needed for loss of coms}
+            BandDown;
+            END;
+
+        IF CommandString = 'CONTROLENTER'   THEN CWMessageCommand := CWCommandControlEnter;
+        IF CommandString = 'CQMODE'         THEN CWMessageCommand := CWCommandCQMode;
+        IF CommandString = 'CWENABLETOGGLE' THEN CWEnable := NOT CWEnable;
+
+        IF CommandString = 'CWMONITORON'    THEN
+            BEGIN
+            IF OldCWTone = 0 THEN OldCWTone := 700;
+            CWTone := OldCWTone;
+            AddStringToBuffer ('', CWTone);
+            END;
+
+        IF CommandString = 'DVKDELAY' THEN
+            IF StringIsAllNumbers (FileName) THEN
+                BEGIN
+                Val (FileName, TempInt);
+                SetDVKDelay (TempInt);
+                END;
+
+        IF CommandString = 'CWMONITOROFF'   THEN
+            IF CWTone <> 0 THEN
+                BEGIN
+                OldCWTone := CWTone;
+                CWTone := 0;
+                AddStringToBuffer ('', CWTone);
+                END;
+
+        IF CommandString = 'DISABLECW'      THEN CWEnable := False;
+        IF CommandString = 'ENABLECW'       THEN CWEnable := True;
+
+        IF Commandstring = 'NEXTBANDMAP'    THEN
+            BEGIN
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CallWindowString := ''; {KK1L: 6.68 forces band map call to callwindow}
+
+            GoToNextBandMapFrequency;
+
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CWMessageCommand := CWCommandSAPMode;  {KK1L: 6.68 Takes you to S&P mode when surfing band map}
+            END;
+
+        {KK1L: 6.64 finds next entry from displayed bandmap rather than just current band/mode}
+
+        IF Commandstring = 'NEXTDISPLAYEDBANDMAP'    THEN
+            BEGIN
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CallWindowString := ''; {KK1L: 6.68 forces band map call to callwindow}
+
+            GoToNextDisplayedBandMapFrequency;
+
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CWMessageCommand := CWCommandSAPMode;  {KK1L: 6.68 Takes you to S&P mode when surfing band map}
+            END;
+
+        {KK1L: 6.68}
+        IF Commandstring = 'NEXTMULTBANDMAP'    THEN
+            BEGIN
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CallWindowString := ''; {KK1L: 6.68 forces band map call to callwindow}
+
+            GoToNextMultBandMapFrequency;
+
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CWMessageCommand := CWCommandSAPMode;  {KK1L: 6.68 Takes you to S&P mode when surfing band map}
+            END;
+        {KK1L: 6.68}
+        IF Commandstring = 'NEXTMULTDISPLAYEDBANDMAP'    THEN
+            BEGIN
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CallWindowString := ''; {KK1L: 6.68 forces band map call to callwindow}
+
+            GoToNextMultDisplayedBandMapFrequency;
+
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CWMessageCommand := CWCommandSAPMode;  {KK1L: 6.68 Takes you to S&P mode when surfing band map}
+            END;
+
+        IF CommandString = 'LASTCQFREQ'     THEN
+            BEGIN
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CallWindowString := ''; {KK1L: 6.69 clears callwindow}
+
+            GoToLastCQFrequency;
+
+            IF NOT CommandUseInactiveRadio THEN {KK1L: 6.73 applies to active radio only}
+                CWMessageCommand := CWCommandCQMode;   {KK1L: 6.68 Takes you to CQ mode when returning to CQ freq}
+            END;
+
+        IF CommandString = 'QSY'            THEN CWMessageCommand := CWCommandQSY;
+
+        IF CommandString = 'SAPMODE'        THEN CWMessageCommand := CWCommandSAPMode;
+
+        IF Copy (CommandString, 1, 5) = 'SPEED' THEN
+            BEGIN
+            Delete (CommandString, 1, 5);
+
+            IF StringIsAllNumbers (CommandString) THEN
+                BEGIN
+                Val (CommandString, TempInt);
+                SetSpeed (TempInt);
+                DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                END
+            ELSE
+                BEGIN
+                WHILE Copy (CommandString, 1, 1) = '+' DO
+                    BEGIN
+                    Delete (CommandString, 1, 1);
+
+                    IF CodeSpeed < 99 THEN
+                        BEGIN
+                        SetSpeed (CodeSpeed + 1);
+                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                        END;
+                    END;
+
+                WHILE Copy (CommandString, 1, 1) = '-' DO
+                    BEGIN
+                    Delete (CommandString, 1, 1);
+
+                    IF CodeSpeed > 1 THEN
+                        BEGIN
+                        SetSpeed (CodeSpeed - 1);
+                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                        END;
+                    END;
+                END;
+            END;
+
+        IF CommandString = 'SO2R' THEN
+            BEGIN
+            if filename = 'RX1' then so2rbox.setrcvfocus(RX1);
+            if filename = 'RX2' then so2rbox.setrcvfocus(RX2);
+            if filename = 'STEREO' then so2rbox.setrcvfocus(STEREO);
+            if filename = 'LATCHON' then so2rbox.setlatch(true);
+            if filename = 'LATCHOFF' then so2rbox.setlatch(false);
+            if filename = 'LATCHTOGGLE' then
+               so2rbox.setlatch(not so2rbox.getlatch);
+            if filename = 'RXA' then
+            begin
+               if activeradio = radioone then
+                  so2rbox.setrcvfocus(RX1)
+               else
+                  so2rbox.setrcvfocus(RX2)
+            end;
+            if filename = 'RXI' then
+            begin
+               if activeradio = radioone then
+                  so2rbox.setrcvfocus(RX2)
+               else
+                  so2rbox.setrcvfocus(RX1)
+            end;
+
+//            IF SendString <> '' THEN
+//                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
+            END;
+
+
+        IF CommandString = 'SRS' THEN
+            BEGIN
+               if activeradio = radioone then
+                  rig1.directcommand(filename)
+               else
+                  rig2.directcommand(filename);
+            END;
+
+        IF CommandString = 'SRS1' THEN
+            BEGIN
+               rig1.directcommand(filename);
+            END;
+
+        IF CommandString = 'SRS2' THEN
+            BEGIN
+               rig2.directcommand(filename);
+            END;
+
+        IF CommandString = 'SRSI' THEN
+            BEGIN
+               if activeradio = radioone then
+                  rig2.directcommand(filename)
+               else
+                  rig1.directcommand(filename);
+            END;
+
+        IF CommandString = 'TOGGLECW'        THEN ToggleCW (False);
+        IF CommandString = 'TOGGLEMODES'     THEN ToggleModes;
+        IF CommandString = 'TOGGLESTEREOPIN' THEN ToggleStereoPin; {KK1L: 6.71}
+        END;
+
+    CommandUseInactiveRadio := FALSE; {KK1L: 6.73 Put back to normal so other calls default to active radio}
+    END;
+
+
+
 PROCEDURE ResetKeyStatus (Radio: RadioType);
 
     BEGIN
@@ -705,7 +941,9 @@ VAR CharacterCount: INTEGER;
 { This is a very scaled down version of what is in the main program }
 
     BEGIN
-    IF Length (SendString) = 0 THEN
+    FoundCommand (SendString);
+
+    IF SendString = '' THEN
         BEGIN
         ExpandCrypticString := '';
         Exit;
@@ -3526,11 +3764,10 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                 Message := GetEXMemoryString (CW, Key);
         END;
 
-    IF Message <> '' THEN
-        BEGIN
-        Message := ExpandCrypticString (Message);
+    Message := ExpandCrypticString (Message);
+
+    IF Message <> '' THEN;
         TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High);
-        END;
     END;
 
 

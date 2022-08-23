@@ -134,15 +134,27 @@ PROCEDURE TimeAndDateSet;
 
 PROCEDURE DisplayBandTotals (Band: BandType);
 
+PROCEDURE GoToLastCQFrequency;
+PROCEDURE GoToNextBandMapFrequency;
+PROCEDURE GoToNextDisplayedBandMapFrequency;
+PROCEDURE GoToNextMultBandMapFrequency;
+PROCEDURE GoToNextMultDisplayedBandMapFrequency;
+
 FUNCTION  InitialExchangeEntry (Call: CallString): Str80;
+
 
 PROCEDURE MoveGridMap (Key: Char);
 
 FUNCTION  QuickEditResponseWithPartials (Prompt: Str80;
                                         MaxInputLength: INTEGER): Str80;
+PROCEDURE RememberFrequency;
 PROCEDURE SendCrypticCWString (SendString: Str160);
 PROCEDURE Send88Message;
 PROCEDURE ShowStationInformation (Call: CallString);
+
+PROCEDURE ToggleModes;
+PROCEDURE ToggleStereoPin; {KK1L: 6.71}
+
 FUNCTION  TotalContacts: INTEGER;
 FUNCTION  TotalCWContacts: INTEGER;
 FUNCTION  TotalPhoneContacts: INTEGER;
@@ -3993,7 +4005,6 @@ VAR QPoints, TotalMults: LongInt;
     TotalScore := QPoints * TotalMults;
     END;
 
-
 
 
 PROCEDURE DeleteLastContact;
@@ -4015,6 +4026,223 @@ PROCEDURE DeleteLastContact;
     END;
 
 
+
+PROCEDURE RememberFrequency;
+
+VAR Band: BandType;
+    Mode: ModeType;
+
+    BEGIN
+    Mode := ActiveMode;
+
+    IF ActiveRadio = RadioOne THEN
+        BEGIN
+        CalculateBandMode (StableRadio1Freq, Band, Mode);
+
+        IF (Band = ActiveBand) AND (Mode = ActiveMode) THEN
+            FreqMemory [ActiveBand, ActiveMode] := StableRadio1Freq;
+        END
+    ELSE
+        BEGIN
+        CalculateBandMode (StableRadio2Freq, Band, Mode);
+
+        IF (Band = ActiveBand) AND (Mode = ActiveMode) THEN
+            FreqMemory [ActiveBand, ActiveMode] := StableRadio2Freq;
+        END;
+    END;
+
+
+
+PROCEDURE GoToLastCQFrequency;
+
+    BEGIN
+    IF LastCQFrequency > 0 THEN
+        BEGIN
+        IF CommandUseInactiveRadio THEN {KK1L: 6.73}
+            BEGIN
+            SetRadioFreq (InactiveRadio, LastCQFrequency, LastCQMode, 'A');
+            CASE InactiveRadio OF
+                RadioOne:
+                    BEGIN
+                    PreviousRadioOneFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
+                    END;
+                RadioTwo:
+                    BEGIN
+                    PreviousRadioTwoFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
+                    END;
+                END;
+            END
+        ELSE
+            BEGIN
+            SetRadioFreq (ActiveRadio, LastCQFrequency, LastCQMode, 'A');
+            CASE ActiveRadio OF {KK1L: 6.69 Keeps LASTCQFREQ from changing to S&P Mode}
+                RadioOne:
+                    BEGIN
+                    PreviousRadioOneFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
+                    END;
+                RadioTwo:
+                    BEGIN
+                    PreviousRadioTwoFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
+                    END;
+                END;
+            END;
+        END;
+    END;
+
+
+PROCEDURE GoToNextBandMapFrequency;
+
+    BEGIN
+    {KK1L: 6.73}
+    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
+       (NextNonDupeEntryInBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
+            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
+    ELSE
+        IF NextNonDupeEntryInBandMap (ActiveBand, ActiveMode) THEN
+            BEGIN
+            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
+
+            IF ActiveWindow = ExchangeWindow THEN
+                BEGIN
+                ClrScr;
+                ExchangeWindowString := '';
+                RestorePreviousWindow;
+                END;
+            END;
+    END;
+
+
+{KK1L: 6.68}
+
+PROCEDURE GoToNextMultBandMapFrequency;
+    BEGIN
+    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
+       (NextMultiplierEntryInBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
+            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
+    ELSE
+        IF NextMultiplierEntryInBandMap (ActiveBand, ActiveMode) THEN
+            BEGIN
+            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
+
+            IF ActiveWindow = ExchangeWindow THEN
+                BEGIN
+                ClrScr;
+                ExchangeWindowString := '';
+                RestorePreviousWindow;
+                END;
+            END;
+    END;
+
+
+
+PROCEDURE GoToNextDisplayedBandMapFrequency;
+
+    BEGIN
+    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
+       (NextNonDupeEntryInDisplayedBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
+            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
+    ELSE
+        IF NextNonDupeEntryInDisplayedBandMap (ActiveBand, ActiveMode) THEN
+            BEGIN
+            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
+
+            IF ActiveWindow = ExchangeWindow THEN
+                BEGIN
+                ClrScr;
+                ExchangeWindowString := '';
+                RestorePreviousWindow;
+                END;
+            END;
+    END;
+
+
+{KK1L: 6.68}
+
+PROCEDURE GoToNextMultDisplayedBandMapFrequency;
+
+    BEGIN
+    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
+       (NextMultiplierEntryInDisplayedBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
+            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
+    ELSE
+        IF NextMultiplierEntryInDisplayedBandMap (ActiveBand, ActiveMode) THEN
+            BEGIN
+            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
+
+            IF ActiveWindow = ExchangeWindow THEN
+                BEGIN
+                ClrScr;
+                ExchangeWindowString := '';
+                RestorePreviousWindow;
+                END;
+            END;
+    END;
+
+
+
+PROCEDURE ToggleStereoPin; {KK1L: 6.71}
+
+    BEGIN
+    StereoPinState := not StereoPinState;
+    SetStereoPin (StereoControlPin, StereoPinState);
+    END;
+
+PROCEDURE ToggleModes;
+
+    BEGIN
+    IF (MultipleModesEnabled) OR (TotalContacts = 0) THEN
+        BEGIN
+        IF (ActiveMode = Phone) AND (ActiveBand >= Band6) AND (NOT FMMode) THEN
+            FMMode := True
+        ELSE
+            BEGIN
+            FMMode := False;
+
+            IF DigitalModeEnable THEN
+                BEGIN
+                CASE ActiveMode OF
+                    Phone:   ActiveMode := CW;
+                    CW:      ActiveMode := Digital;
+                    Digital: ActiveMode := Phone;
+                    ELSE     ActiveMode := CW;
+                    END;
+                END
+            ELSE
+                CASE ActiveMode OF
+                    Phone: ActiveMode := CW;
+                    CW:    ActiveMode := Phone;
+                    ELSE   ActiveMode := CW;
+                    END;
+            END;
+
+        DisplayBandMode  (ActiveBand, ActiveMode,
+                         (ActiveBand <= Band10) OR (ActiveBand = Band30) OR
+                         (ActiveBand = Band17) OR (ActiveBand = Band12));
+
+        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+
+        {KK1L: 6.73 This gets done in UpdateTimeAndRateDisplay. Only do if no radio connected.}
+        IF (ActiveRadio = RadioOne) AND ((Radio1ControlPort = nil) OR (NOT PollRadioOne)) THEN
+            ModeMemory [RadioOne] := ActiveMode
+        ELSE IF (ActiveRadio = RadioTwo) AND ((Radio2ControlPort = nil) OR (NOT PollRadioTwo)) THEN
+            ModeMemory [RadioTwo] := ActiveMode;
+
+        UpdateTotals;
+
+        IF QSOByMode THEN VisibleDupeSheetChanged := True;
+
+        IF MultByMode THEN
+            BEGIN
+            VisibleLog.ShowRemainingMultipliers;
+            VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
+            END;
+
+        BandMapBand := ActiveBand;
+        BandMapMode := ActiveMode; {KK1L: 6.68 BM now tracks mode with no radio connected on mode change}
+        DisplayBandMap;
+        END;
+    END;
+
 
     BEGIN
     EditInit;
