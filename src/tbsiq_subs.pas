@@ -1524,7 +1524,7 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_SearchAndPounceInit:  { Executed once when entering S&P Mode }
             BEGIN
-            IF CWStillBeingSent THEN Exit;
+            IF NOT TBSIQ_CW_Engine.CWFinished (Radio) THEN Exit;
 
             BandMapBand := DisplayedBand;
             DisplayBandMap;
@@ -1609,6 +1609,23 @@ VAR Key, ExtendedKey: CHAR;
                                 TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
                                 ShowCWMessage (ExpandedString);
                                 SearchAndPounceExchangeSent := True;
+                                END;
+
+                            { Maybe we haven't entered an exchange yet }
+
+                            IF ExchangeWindowString = '' THEN
+                                BEGIN
+                                IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                                    SwapWindows;
+
+                                InitialExchange := InitialExchangeEntry (CallWindowString);
+
+                                IF InitialExchange <> '' THEN
+                                    BEGIN
+                                    ExchangeWindowString := InitialExchange;
+                                    Write (ExchangeWindowString);
+                                    ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
+                                    END;
                                 END;
 
                             { Now we try to log the QSO }

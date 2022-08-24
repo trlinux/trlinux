@@ -36,7 +36,13 @@ CHANGE LOG
 23-Aug-2022
 
   - Search And Pounce implemented.  Probably lots of missing details, but you
-    can actually work guys with it.
+    can actually work guys with it.  Probably not working on SSB yet.
+
+  - One new feature with S&P.  If you have an empty call window - press F1 to
+    send your callsign and then enter a call - and then hit RETURN (nothing yet
+    entered into the exchange window) - the initial exchange will get filled
+    in the exchange window - and if there is enough info there to log the QSO,
+    it will be logged instantly.
 
   - Added support for commands in function key and QSO messages.  A few were
     deleted that make no sense in the context of 2BSIQ.  Also, LogLastCall
