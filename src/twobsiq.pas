@@ -27,8 +27,6 @@ UNIT TwoBSIQ;
 
 TODO LIST
 
-- S&P mode not finished yet.
-
 - "ActiveBand" cursor on the band totals display is not right.
 
 - CWT points not being calculated (callsigns as mults).
@@ -36,6 +34,9 @@ TODO LIST
 CHANGE LOG
 
 23-Aug-2022
+
+  - Search And Pounce implemented.  Probably lots of missing details, but you
+    can actually work guys with it.
 
   - Added support for commands in function key and QSO messages.  A few were
     deleted that make no sense in the context of 2BSIQ.  Also, LogLastCall
