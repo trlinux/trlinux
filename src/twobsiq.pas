@@ -29,9 +29,13 @@ TODO LIST
 
 - "ActiveBand" cursor on the band totals display is not right.
 
-- CWT points not being calculated (callsigns as mults).
+- Allow SSB function keys to be sent with 2BSIQ.
 
 CHANGE LOG
+
+24-Aug-2022
+
+  - Fixed CWT multiplier calculation.
 
 23-Aug-2022
 
