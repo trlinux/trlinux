@@ -1657,8 +1657,15 @@ VAR Key, ExtendedKey: CHAR;
 
                         ELSE
                             CASE ExtendedKey OF
+                                UpArrow:
+                                    IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
+                                        SetTBSIQWindow (TBSIQ_CallWindow);
 
-                                AltZ:
+                                DownArrow:
+                                    IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                                        SetTBSIQWindow (TBSIQ_ExchangeWindow);
+
+                                AltZ:   { I don't think this ever happens - AltZ handeled in WindowEditor }
                                     BEGIN
                                     IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                                         SetTBSIQWindow (TBSIQ_ExchangeWindow);
@@ -1826,7 +1833,7 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         QST_CQWaitingForExchange: Write ('Waiting for exchange');
         QST_CQSending73Message: Write ('Sending 73 message');
         QST_SearchAndPounce: Write ('Search and Pounce');
-        QST_SearchAndPounceInit: Write ('Search and Pounce - Init');
+        QST_SearchAndPounceInit: Write ('Search and Pounce');
         QST_StartSendingKeyboardCW: Write ('Starting keyboard CW');
         QST_SendingKeyboardCW: Write ('Keyboard CW - RETURN to end');
         QST_SendingKeyboardCWWaiting: Write ('Keyboard CW - waiting on other TX')
@@ -2712,20 +2719,21 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
 
                     IF InitialExchange <> '' THEN   { Hmm - maybe this test should go away }
                         BEGIN
-                        ExchangeWindowString := InitialExchange;
-                        ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
-
                         IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                             BEGIN
                             SetTBSIQWindow (TBSIQ_ExchangeWindow);
+                            ExchangeWindowString := InitialExchange;
+                            ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
                             ClrScr;
                             Write (ExchangeWindowString);
                             SetTBSIQWindow (TBSIQ_CallWindow);
                             END
                         ELSE
                             BEGIN
+                            WindowString := InitialExchange;
+                            CursorPosition := Length (ExchangeWindowString) + 1;
                             ClrScr;
-                            Write (ExchangeWindowString);
+                            Write (WindowString);
                             END;
                         END;
                     END; { of AltZ }
