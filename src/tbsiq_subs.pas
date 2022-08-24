@@ -56,6 +56,7 @@ TYPE
                           QST_CQSending73Message,
                           QST_SearchAndPounceInit,
                           QST_SearchAndPounce,
+                          QST_SearchAndPounceSpaceBarPressed,
                           QST_SendingKeyboardCW,
                           QST_StartSendingKeyboardCW,
                           QST_SendingKeyboardCWWaiting);
@@ -1187,6 +1188,16 @@ VAR Key, ExtendedKey: CHAR;
                     TabKey:
                         QSOState := QST_SearchAndPounceInit;
 
+                    SpaceBar:
+                        IF CallWindowString = '' THEN
+                            QSOState := QST_SearchAndPounceSpaceBarPressed
+                        ELSE
+                            BEGIN
+                            { Do a dupecheck on the callsign }
+
+                            END;
+
+
                     END; { of case Key }
 
                 END  { of QST_Idle and ActionRequired }
@@ -1543,6 +1554,32 @@ VAR Key, ExtendedKey: CHAR;
             QSOState := QST_SearchAndPounce;
             END;
 
+        QST_SearchAndPounceSpaceBarPressed:
+            BEGIN
+            { We come here when someone pressed the SPACE BAR with an empty
+              call window - so we need to jump into S&P mode and send my
+              callsign. }
+
+            ClearAutoSendDisplay;
+
+            ExchangeWindowString := '';
+            ExchangeWindowCursorPosition := 1;
+
+            SetTBSIQWindow (TBSIQ_ExchangeWindow);
+            ClrScr;
+            SetTBSIQWindow (TBSIQ_CallWindow);
+
+            SendFunctionKeyMessage (F1, Message);
+            ShowCWMessage (Message);
+
+            SearchAndPounceStationCalled := True;
+            SearchAndPounceExchangeSent := False;
+            QSOState := QST_SearchAndPounce;
+
+            BandMapBand := DisplayedBand;
+            DisplayBandMap;
+            END;
+
         QST_SearchAndPounce:
             BEGIN
             { SCP doesn't do anything if called with previous string }
@@ -1555,6 +1592,13 @@ VAR Key, ExtendedKey: CHAR;
                 BEGIN
                 CASE Key OF
                     TabKey: SwapWindows;
+
+                    SpaceBar:
+                        BEGIN
+                        SendFunctionKeyMessage (F1, Message);
+                        ShowCWMessage (Message);
+                        SearchAndPounceStationCalled := True;
+                        END;
 
                     EscapeKey:   { Only get this if we have an empty string }
                         IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN

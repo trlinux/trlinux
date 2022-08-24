@@ -44,6 +44,9 @@ CHANGE LOG
     in the exchange window - and if there is enough info there to log the QSO,
     it will be logged instantly.
 
+  - Allowed SPACE BAR with nothing in call window to jump into S&P and send
+    my call.
+
   - Added support for commands in function key and QSO messages.  A few were
     deleted that make no sense in the context of 2BSIQ.  Also, LogLastCall
     turned out to be difficult to implement without major surgery of the
