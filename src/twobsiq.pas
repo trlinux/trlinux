@@ -31,11 +31,26 @@ TODO LIST
 
 - Allow SSB function keys to be sent with 2BSIQ.
 
+- Occasionally, the auto start send doesn't start if I am busy on the other radio.
+
+- Insert mode display.
+
+- Implement ShowStationInformation
+
+- Implement PossibleCalls
+
 CHANGE LOG
 
 24-Aug-2022
 
+  - Added dupe checking for both CQ and S&P modes (if enabled).
+
+  - Bandmaps is stort of starting to work - but not sure it is 100 percent yet.
+
   - Fixed CWT multiplier calculation.
+
+  - Occasionally, Autostart send is brain dead if very busy on other radio.
+  - Need to setup @ + CQExchange on F3
 
 23-Aug-2022
 

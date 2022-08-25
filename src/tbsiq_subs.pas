@@ -97,10 +97,12 @@ TYPE
         Frequency: LONGINT;
 
         InitialExchangePutUp: BOOLEAN;
+        InsertMode: BOOLEAN;
 
         KeyboardCWMessage: STRING;
 
         LastQSOState: TBSIQ_QSOStateType;
+        LastPossibleCall: CallString;
         LastSCPCall: CallString;
 
         Mode: ModeType;
@@ -114,6 +116,7 @@ TYPE
 
         SCPScreenFull: BOOLEAN;
         StartSendingCursorPosition: INTEGER; { initially = AutoSendCharacterCount }
+        StationInformationCall: CallString;
 
         PROCEDURE CheckQSOStateMachine;
         PROCEDURE ClearAutoSendDisplay;  { for use during S&P }
@@ -122,7 +125,9 @@ TYPE
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayCodeSpeed;
         PROCEDURE DisplayFrequency;
+        PROCEDURE DisplayInsertMode;
         PROCEDURE DisplaySCPCall (Call: CallString);
+        PROCEDURE DoPossibleCalls (Callsign: CallString);
 
         FUNCTION  ExpandCrypticString (SendString: STRING): STRING;
 
@@ -143,11 +148,14 @@ TYPE
         PROCEDURE SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
         PROCEDURE ShowCWMessage (Message: STRING);
         PROCEDURE ShowStateMachineStatus;
+        PROCEDURE ShowStationInformation (Callsign: CallString);
         PROCEDURE ShowTransmitStatus;
         PROCEDURE SuperCheckPartial;
         PROCEDURE SwapWindows;     { Moves from exchange <> CQ window }
 
         PROCEDURE UpdateRadioDisplay;  { Band/mode/frequency }
+
+        FUNCTION  WindowDupeCheck: BOOLEAN;
 
         PROCEDURE WindowEditor (VAR WindowString: Str80;
                                 VAR KeyChar: CHAR;
@@ -226,6 +234,126 @@ TYPE
         END;
 
 
+
+PROCEDURE QSOMachineOBject.ShowStationInformation (Callsign: CallString);
+
+{ Placeholder for future development }
+
+    BEGIN
+    IF Callsign = StationInformationCall THEN Exit;
+    StationInformationCall := Callsign;
+    END;
+
+
+
+PROCEDURE QSOMachineOBject.DisplayInsertMode;
+
+{ Placeholder for future development }
+
+    BEGIN
+    END;
+
+
+
+PROCEDURE QSOMachineOBject.DoPossibleCalls (Callsign: CallString);
+
+{ Placeholder for future development }
+
+    BEGIN
+    IF LastPossibleCall = Callsign THEN Exit;
+    LastPossibleCall := Callsign;
+    END;
+
+
+
+FUNCTION QSOMachineObject.WindowDupeCheck: BOOLEAN;
+
+{ Taken from LOGSUBS2.  Returns TRUE if the CallWindow is a dupe.
+  It is assumed you are in the CallWindow }
+
+VAR RememberTime: TimeRecord;
+    MultString: Str40;
+    Mult: BOOLEAN;
+
+    BEGIN
+    WindowDupeCheck := False;
+
+    IF Length (CallWindowString) < 3 THEN Exit;  { I like 3 instead of 2 }
+
+    BandMapBand := Band;
+    BandMapMode := Mode;
+
+    IF VisibleLog.CallIsADupe (CallWindowString, Band, Mode) THEN
+        BEGIN
+        IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN SwapWindows;;
+        WindowDupeCheck := True;
+        GoToXY (Length (CallWindowString) + 1, WhereY);
+        Write (' DUPE');
+
+        MarkTime (RememberTime);  { Not sure this does anything for me in 2BSIQ? }
+
+        ShowCWMessage (CallWindowString + ' was a dupe.');
+
+        { Not sure exactly what this is buying me }
+
+        IF KeyRecentlyPressed (F1, 200) THEN    { Withing two seconds }
+            TBSIQ_CW_Engine.ClearMessages (Radio, True);
+
+        ShowStationInformation (CallWindowString);
+
+        IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
+            BEGIN
+            BandMapCursorFrequency := Frequency;
+            VisibleLog.DetermineIfNewMult (CallWindowString, ActiveBand, ActiveMode, MultString);
+            Mult := MultString <> '';
+
+            { Send to Multi = TRUE }
+
+            NewBandMapEntry (CallWindowString, Frequency, 0, ActiveMode, True, Mult, BandMapDecayTime, True);
+            END;
+
+        DoPossibleCalls (CallWindowString);
+
+        IF QSOState <> QST_SearchAndPounce THEN
+            BEGIN
+            RemoveExchangeWindow;
+            QSOState := QST_Idle;
+            END
+        ELSE
+            BEGIN
+            SwapWindows;
+            ClrScr;
+            ExchangeWindowString := '';
+            ExchangeWindowCursorPosition := 1;
+            SwapWindows;
+            END;
+
+        DisplayInsertMode;
+
+        IF NOT QTCsEnabled THEN
+            BEGIN
+            EscapeDeletedCallEntry := CallWindowString;
+            CallWindowString := '';
+            END;
+
+        ClrScr;
+        CallWindowString := '';
+        CallWindowCursorPosition := 1;
+        END
+    ELSE
+        BEGIN  { Not a dupe }
+        ShowStationInformation (CallWindowString);
+
+        IF BandMapEnable THEN
+            BEGIN
+            BandMapCursorFrequency := Frequency;
+            VisibleLog.DetermineIfNewMult (CallWindowString, ActiveBand, ActiveMode, MultString);
+            Mult := MultString <> '';
+            NewBandMapEntry (CallWindowString, Frequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
+            END;
+        END;
+    END;
+
 
 FUNCTION FoundCommand (VAR SendString: Str160): BOOLEAN;
 
@@ -1115,6 +1243,8 @@ VAR Key, ExtendedKey: CHAR;
         LastQSOState := QSOState;
         ShowTransmitStatus;  { Update TX and cue indicators }
 
+        ActiveBand := Band;
+
         IF (QSOState <> QST_SearchAndPounce) AND (QSOState <> QST_SearchAndPounceInit) THEN
             DisplayAutoSendCharacterCount;
         END;
@@ -1190,13 +1320,7 @@ VAR Key, ExtendedKey: CHAR;
 
                     SpaceBar:
                         IF CallWindowString = '' THEN
-                            QSOState := QST_SearchAndPounceSpaceBarPressed
-                        ELSE
-                            BEGIN
-                            { Do a dupecheck on the callsign }
-
-                            END;
-
+                            QSOState := QST_SearchAndPounceSpaceBarPressed;
 
                     END; { of case Key }
 
@@ -1246,13 +1370,21 @@ VAR Key, ExtendedKey: CHAR;
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
                 IF AutoCallTerminate THEN
-                    BEGIN
-                    ExpandedString := ExpandCrypticString (CQExchange);
-                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
-                    ShowCWMessage (ExpandedString);
-                    QSOState := QST_CQExchangeBeingSent;
-                    Exit;
-                    END;
+                    IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
+                        BEGIN
+                        ExpandedString := ExpandCrypticString (CQExchange);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                        ShowCWMessage (ExpandedString);
+                        QSOState := QST_CQExchangeBeingSent;
+                        Exit;
+                        END
+                    ELSE
+                        BEGIN
+                        ExpandedString := ExpandCrypticString (QSOBeforeMessage);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                        ShowCWMessage (ExpandedString);
+                        QSOState := QST_Idle;
+                        END;
 
             IF NOT ActionRequired THEN Exit;  { No keystroke to respond to }
 
@@ -1262,10 +1394,21 @@ VAR Key, ExtendedKey: CHAR;
 
                 CarriageReturn:
                     BEGIN
-                    ExpandedString := ExpandCrypticString (CQExchange);
-                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
-                    ShowCWMessage (ExpandedString);
-                    QSOState := QST_CQExchangeBeingSent;
+                    IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
+                        BEGIN
+                        ExpandedString := ExpandCrypticString (CQExchange);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                        ShowCWMessage (ExpandedString);
+                        QSOState := QST_CQExchangeBeingSent;
+                        Exit;
+                        END
+                    ELSE
+                        BEGIN
+                        ExpandedString := ExpandCrypticString (QSOBeforeMessage);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                        ShowCWMessage (ExpandedString);
+                        QSOState := QST_Idle;
+                        END;
                     END;
 
                 BackSpace:  { See if we can delete an unsent character }
@@ -1312,10 +1455,21 @@ VAR Key, ExtendedKey: CHAR;
 
             { We used to not do this until CW was done }
 
-            ExpandedString := ExpandCrypticString (CQExchange);
-            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
-            ShowCWMessage (ExpandedString);
-            QSOState := QST_CQExchangeBeingSent;
+            IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
+                BEGIN
+                ExpandedString := ExpandCrypticString (CQExchange);
+                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                ShowCWMessage (ExpandedString);
+                QSOState := QST_CQExchangeBeingSent;
+                Exit;
+                END
+            ELSE
+                BEGIN
+                ExpandedString := ExpandCrypticString (QSOBeforeMessage);
+                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                ShowCWMessage (ExpandedString);
+                QSOState := QST_Idle;
+                END;
             END;
 
         { We are sending the CQ exchange to the guy who came back.  We can get the
@@ -1614,6 +1768,19 @@ VAR Key, ExtendedKey: CHAR;
 
                     CarriageReturn:
                         BEGIN
+
+                        { This is a thing I don't normally do when programming - but it is very
+                          important that WindowDupeCheck be last in the next IF statement!  You
+                          do not want it executed if you have started the QSO }
+
+                        IF AutoDupeEnableSandP AND (NOT SearchAndPounceStationCalled) AND WindowDupeCheck THEN
+                            BEGIN  { get out of here }
+                            QSOState := QST_SearchAndPounceInit;
+                            Exit;
+                            END;
+
+                        { Not a dupe - or we are far enough along in the QSO not to care anymore }
+
                         IF NOT SearchAndPounceStationCalled THEN
                             BEGIN
                             SendFunctionKeyMessage (F1, Message);
@@ -1621,9 +1788,7 @@ VAR Key, ExtendedKey: CHAR;
 
                             IF CallWindowString <> '' THEN
                                 BEGIN
-
                                 { Not sure about doing anything here }
-
                                 END;
 
                             SetTBSIQWindow (TBSIQ_ExchangeWindow);
@@ -1639,9 +1804,10 @@ VAR Key, ExtendedKey: CHAR;
                                     ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
                                     END;
                                 END;
-
                             SearchAndPounceStationCalled := True;
                             END
+
+                        { Send the exchange if not sent already and try to log the QSO }
 
                         ELSE
                             BEGIN
@@ -1651,7 +1817,7 @@ VAR Key, ExtendedKey: CHAR;
                                 BEGIN
                                 ExpandedString := ExpandCrypticString (SearchAndPounceExchange);
                                 TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
-                                ShowCWMessage (ExpandedString);
+                                ShowCWMessage ('Hi ' + ExpandedString);
                                 SearchAndPounceExchangeSent := True;
                                 END;
 
@@ -1689,7 +1855,9 @@ VAR Key, ExtendedKey: CHAR;
                                 ClrScr;
 
                                 QSOState := QST_SearchAndPounceInit;
-                                END;
+                                END
+                            ELSE
+                                ShowCWMessage ('Unable to log this QSO yet');
                             END;
                         END;  { of CarriageReturn }
 
@@ -2652,7 +2820,17 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                         END;
                 END
             ELSE
-                Exit;  { Let someone do a dupe check? }
+                { Call Window active }
+
+                BEGIN
+                IF CallWindowString = '' THEN Exit;  { Let calling procedure deal with it }
+
+                IF WindowDupecheck THEN
+                    BEGIN
+                    WindowString := '';
+                    CursorPosition := 1;
+                    END;
+                END;
 
         NullKey:
             BEGIN
@@ -2942,7 +3120,7 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                         VisibleLog.ShowRemainingMultipliers;
                         VisibleLog.DisplayGridMap (Band, Mode);
   {                     DisplayTotalScore (TotalScore); }
-                        DisplayInsertMode (InsertMode);
+                        DisplayInsertMode;
                         DisplayNextQSONumber (TotalContacts + 1);
                         LastTwoLettersCrunchedOn := '';
                         ClearKeyCache := True;
@@ -2957,7 +3135,7 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                 InsertKey:
                     BEGIN
                     InsertMode := NOT InsertMode;
-                    DisplayInsertMode (InsertMode);
+                    DisplayInsertMode;
                     END;
 
                 { Any other ExtendedKeys not captured here will be dealt with by the calling Procedre }
@@ -4209,8 +4387,6 @@ VAR LogString: Str80;
         LastDeletedLogEntry := '';
         RemoveWindow (QuickCommandWindow);
         END;
-
-    WindowDupeCheckCall := RXData.Callsign;
 
     LastQSOLogged := RXData;
 
