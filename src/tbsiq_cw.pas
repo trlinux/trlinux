@@ -34,6 +34,7 @@ USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
 
 CONST
     MaximumCuedMessages = 40;
+    SerialNumberFileName = 'SERIALNUMBER.TXT';
 
 TYPE
     TBSIQ_CW_PriorityType = (CWP_Low,
@@ -51,10 +52,12 @@ TYPE
 
         NextSerialNumber: INTEGER;
 
-        FUNCTION GetNextSerialNumber (Callsign: CallString;
-                                      Frequency: LONGINT;
-                                      Band: BandType;
-                                      Mode: ModeType): INTEGER;
+        PROCEDURE CreateQSONumberLoggedEntry (SerialNumber: INTEGER; Call: CallString);
+
+        FUNCTION  GetNextSerialNumber (Callsign: CallString;
+                                       Frequency: LONGINT;
+                                       Band: BandType;
+                                       Mode: ModeType): INTEGER;
 
         PROCEDURE InitializeSerialNumbers;
         END;
@@ -98,9 +101,16 @@ VAR FileWrite: TEXT;
     BEGIN
     GetNextSerialNumber := NextSerialNumber;
 
-    IF OpenFileForAppend (FileWrite, 'SERIALNUMBER.TXT') THEN
+    IF OpenFileForAppend (FileWrite, SerialNumberFileName) THEN
         BEGIN
-        WriteLn (FileWrite, NextSerialNumber, ' ', CallSign, ' ',  Frequency, ' ', BandString [Band], ' ', ModeString [Mode]);
+        WriteLn (FileWrite, 'QNR: ', NextSerialNumber, ' ',
+                                     GetFullDateString, ' ',
+                                     GetFullTimeString, ' ',
+                                     CallSign, ' ',
+                                     Frequency, ' ',
+                                     BandString [Band], ' ',
+                                     ModeString [Mode]);
+
         Close (FileWrite);
         END;
 
@@ -109,19 +119,44 @@ VAR FileWrite: TEXT;
 
 
 
-PROCEDURE SerialNumberObject.InitializeSerialNumbers;
+PROCEDURE SerialNumberObject.CreateQSONumberLoggedEntry (SerialNumber: INTEGER; Call: CallString);
 
-VAR FileRead: TEXT;
-
-VAR NumberString, FileString: STRING;
+VAR FileWrite: TEXT;
 
     BEGIN
-    IF OpenFileForRead (FileRead, 'SERIALNUMBER.TXT') THEN
+    IF OpenFileForAppend (FileWrite, SerialNumberFilename) THEN
+        BEGIN
+        WriteLn (FileWrite, 'QLQ: ', SerialNumber, ' ',
+                                     GetFullDateString, ' ',
+                                     GetFullTimeString, ' ',
+                                     Call);
+
+        Close (FileWrite);
+        END;
+    END;
+
+
+PROCEDURE SerialNumberObject.InitializeSerialNumbers;
+
+{ Simply reads the serial number file and figures out what the
+  next serial number should be.  }
+
+VAR FileRead: TEXT;
+    NumberString, DataFlag, FileString: STRING;
+
+    BEGIN
+    IF OpenFileForRead (FileRead, SerialNumberFileName) THEN
         BEGIN
         WHILE NOT Eof (FileRead) DO
             BEGIN
             ReadLn (FileRead, FileString);
-            NumberString := RemoveFirstString (FileString);
+
+            { First element indicates what kind of data this is }
+
+            DataFlag := RemoveFirstString (FileString);
+
+            IF DataFlag = 'QNR:' THEN    { Serial Number request data }
+                NumberString := RemoveFirstString (FileString);
             END;
 
         Close (FileRead);

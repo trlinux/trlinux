@@ -48,16 +48,30 @@ TODO LIST
 
 CHANGE LOG
 
-31-Aug-200
+1-Sep-2022
+
+ - Changed format of the SERIALNUMBER.TXT file to have the prefix QNR: for lines
+   created when reserving a QSO number.  I updated the format shown under 31-Aug.
+
+ - Added QLQ: entry to SERIALNUMBER.TXT to show the contents of the call window
+   when the QSO is actually logged.
+
+   QLQ: 14 2022-09-01 21:55:03 K7BH
+
+ - Made the QSO number sent get logged.
+
+ - Fixed bug where exchanges were being put in the CW buffer as urgent priority and
+   could come out before the callsign was sent in some cases.
+
+31-Aug-2022
 
   - Came up with my prototype for doing QSO Numbers.  The key to this is a text file
     called SERIALNUMBER.TXT.  If there is no file, then the first QSO number that will
     be sent will be #1.  Whenever a new QSO number is sent - it is assigned to that
     QSO that is progress.  For each - and entry into the SERIALNUMBER.TXT file will be
-    made that looks like this:
+    made that looks like this (updated with 1-Sep changes):
 
-    1 K3LR 7027940 40 CW
-    2 N2NT 14035700 20 CW
+    QNR: 1 2022-08-31 21:23:50 K3LR 7027940 40 CW
 
     If a QSO ends up not getting logged - the entry stays in this file and the next
     QSO number will be fetched when needed.

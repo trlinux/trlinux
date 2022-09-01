@@ -208,7 +208,7 @@ FUNCTION  TBSIQ_KeyPressed (Radio: RadioType): BOOLEAN;  { Radio = 1 or 2 }
 
 PROCEDURE TBSIQ_LogContact (VAR RXData: ContestExchange);
 
-FUNCTION  TBSIQ_ParametersOkay (Call: CallString; ExchangeString: Str80;
+FUNCTION  TBSIQ_ParametersOkay (Call: CallString; QSONumberSent: INTEGER; ExchangeString: Str80;
                                 Band: BandType; Mode: ModeType; Freq: LONGINT;
                                 VAR RData: ContestExchange): BOOLEAN;
 
@@ -1382,7 +1382,7 @@ VAR Key, ExtendedKey: CHAR;
                     IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                         BEGIN
                         ExpandedString := ExpandCrypticString (CQExchange);
-                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
                         ShowCWMessage (ExpandedString);
                         QSOState := QST_CQExchangeBeingSent;
                         Exit;
@@ -1390,7 +1390,7 @@ VAR Key, ExtendedKey: CHAR;
                     ELSE
                         BEGIN
                         ExpandedString := ExpandCrypticString (QSOBeforeMessage);
-                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
                         ShowCWMessage (ExpandedString);
                         QSOState := QST_Idle;
                         END;
@@ -1406,7 +1406,7 @@ VAR Key, ExtendedKey: CHAR;
                     IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                         BEGIN
                         ExpandedString := ExpandCrypticString (CQExchange);
-                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
                         ShowCWMessage (ExpandedString);
                         QSOState := QST_CQExchangeBeingSent;
                         Exit;
@@ -1414,7 +1414,7 @@ VAR Key, ExtendedKey: CHAR;
                     ELSE
                         BEGIN
                         ExpandedString := ExpandCrypticString (QSOBeforeMessage);
-                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
                         ShowCWMessage (ExpandedString);
                         QSOState := QST_Idle;
                         END;
@@ -1467,7 +1467,7 @@ VAR Key, ExtendedKey: CHAR;
             IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                 BEGIN
                 ExpandedString := ExpandCrypticString (CQExchange);
-                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
                 ShowCWMessage (ExpandedString);
                 QSOState := QST_CQExchangeBeingSent;
                 Exit;
@@ -1475,7 +1475,7 @@ VAR Key, ExtendedKey: CHAR;
             ELSE
                 BEGIN
                 ExpandedString := ExpandCrypticString (QSOBeforeMessage);
-                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
                 ShowCWMessage (ExpandedString);
                 QSOState := QST_Idle;
                 END;
@@ -1581,7 +1581,10 @@ VAR Key, ExtendedKey: CHAR;
                             END;
 
                     CarriageReturn:
-                        IF TBSIQ_ParametersOkay (CallWindowString, ExchangeWindowString, Band, Mode, Frequency, RData) THEN
+                        IF TBSIQ_ParametersOkay (CallWindowString,
+                                                 QSONumberForThisQSO,
+                                                 ExchangeWindowString,
+                                                 Band, Mode, Frequency, RData) THEN
                             BEGIN
 
                             IF NOT BeSilent THEN
@@ -1607,6 +1610,9 @@ VAR Key, ExtendedKey: CHAR;
 
                             TBSIQ_LogContact (RData);
                             QSOState := QST_CQSending73Message;
+
+                            IF QSONumberForThisQSO > 0 THEN
+                                SerialNumberEngine.CreateQSONumberLoggedEntry (QSONumberForThisQSO, CallWindowString);
                             END;
 
                     NullKey:
@@ -1828,7 +1834,7 @@ VAR Key, ExtendedKey: CHAR;
                             IF NOT SearchAndPounceExchangeSent THEN
                                 BEGIN
                                 ExpandedString := ExpandCrypticString (SearchAndPounceExchange);
-                                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_Urgent);
+                                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
                                 ShowCWMessage ('Hi ' + ExpandedString);
                                 SearchAndPounceExchangeSent := True;
                                 END;
@@ -1852,7 +1858,10 @@ VAR Key, ExtendedKey: CHAR;
 
                             { Now we try to log the QSO }
 
-                            IF TBSIQ_ParametersOkay (CallWindowString, ExchangeWindowString, Band, Mode, Frequency, RData) THEN
+                            IF TBSIQ_ParametersOkay (CallWindowString,
+                                                     QSONumberForThisQSO,
+                                                     ExchangeWindowString,
+                                                     Band, Mode, Frequency, RData) THEN
                                 BEGIN
                                 TBSIQ_LogContact (RData);
 
@@ -1867,6 +1876,9 @@ VAR Key, ExtendedKey: CHAR;
                                 ClrScr;
 
                                 QSOState := QST_SearchAndPounceInit;
+
+                                IF QSONumberForThisQSO > 0 THEN
+                                    SerialNumberEngine.CreateQSONumberLoggedEntry (QSONumberForThisQSO, CallWindowString);
                                 END
                             ELSE
                                 ShowCWMessage ('Unable to log this QSO yet');
@@ -4194,6 +4206,7 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
 
 FUNCTION TBSIQ_ParametersOkay (Call: CallString;
+                               QSONumberSent: INTEGER;
                                ExchangeString: Str80;
                                Band: BandType;
                                Mode: ModeType;
@@ -4277,7 +4290,12 @@ VAR I: INTEGER;
         RData.Time       := Hours * 100 + Minutes;
         RData.Band       := Band;
         RData.Mode       := Mode;
-        RData.NumberSent := TotalContacts + 1;
+
+        IF QSONumberSent > 0 THEN
+            RData.NumberSent := QSONumberSent
+        ELSE
+            RData.NumberSent := TotalContacts + 1;
+
         RData.Frequency  := Freq;
 
         IF Mode = PHONE THEN
@@ -4331,7 +4349,12 @@ VAR I: INTEGER;
     RData.Time       := Hours * 100 + Minutes;
     RData.Band       := Band;
     RData.Mode       := Mode;
-    RData.NumberSent := TotalContacts + 1;
+
+    IF QSONumberSent > 0 THEN
+        RData.NumberSent := QSONumberSent
+    ELSE
+        RData.NumberSent := TotalContacts + 1;
+
     RData.Frequency  := Freq;
 
     IF RData.RSTSent = '' THEN
