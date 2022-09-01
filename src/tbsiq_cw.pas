@@ -47,6 +47,19 @@ TYPE
         Priority: TBSIQ_CW_PriorityType;
         END;
 
+    SeriaLNumberObject = CLASS
+
+        NextSerialNumber: INTEGER;
+
+        FUNCTION GetNextSerialNumber (Callsign: CallString;
+                                      Frequency: LONGINT;
+                                      Band: BandType;
+                                      Mode: ModeType): INTEGER;
+
+        PROCEDURE InitializeSerialNumbers;
+        END;
+
+
     TBSIQ_CWEngineObject = CLASS
 
         CueHead: INTEGER;
@@ -69,9 +82,61 @@ TYPE
 
 VAR
     TBSIQ_CW_Engine: TBSIQ_CWEngineObject;
+    SerialNumberEngine: SerialNumberObject;
 
 
 IMPLEMENTATION
+
+
+FUNCTION SerialNumberObject.GetNextSerialNumber (Callsign: CallString;
+                                                 Frequency: LONGINT;
+                                                 Band: BandType;
+                                                 Mode: ModeType): INTEGER;
+
+VAR FileWrite: TEXT;
+
+    BEGIN
+    GetNextSerialNumber := NextSerialNumber;
+
+    IF OpenFileForAppend (FileWrite, 'SERIALNUMBER.TXT') THEN
+        BEGIN
+        WriteLn (FileWrite, NextSerialNumber, ' ', CallSign, ' ',  Frequency, ' ', BandString [Band], ' ', ModeString [Mode]);
+        Close (FileWrite);
+        END;
+
+    Inc (NextSerialNumber);
+    END;
+
+
+
+PROCEDURE SerialNumberObject.InitializeSerialNumbers;
+
+VAR FileRead: TEXT;
+
+VAR NumberString, FileString: STRING;
+
+    BEGIN
+    IF OpenFileForRead (FileRead, 'SERIALNUMBER.TXT') THEN
+        BEGIN
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+            NumberString := RemoveFirstString (FileString);
+            END;
+
+        Close (FileRead);
+
+        { NumberString has last entry }
+
+        Val (NumberString, NextSerialNumber);
+        Inc (NextSerialNumber);
+        END
+
+    ELSE
+        NextSerialNumber := 1;
+    END;
+
+
 
 PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
 
@@ -414,6 +479,10 @@ PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
     TBSIQ_CW_Engine := TBSIQ_CWEngineObject.Create;
     TBSIQ_CW_Engine.CueHead := 0;
     TBSIQ_CW_Engine.CueTail := 0;
+
+    SeriaLNumberEngine := SerialNumberObject.Create;
+    SerialNumberEngine.InitializeSerialNumbers;
+
     ActiveRadio := NoRadio;
     END.
 

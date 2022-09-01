@@ -107,6 +107,7 @@ TYPE
 
         Mode: ModeType;
 
+        QSONumberForThisQSO: INTEGER;
         QSOState: TBSIQ_QSOStateType;
 
         PreviousQSOState: TBSIQ_QSOStateType;
@@ -1099,7 +1100,7 @@ VAR Key: CHAR;
 FUNCTION QSOMachineObject.ExpandCrypticString (SendString: STRING): STRING;
 
 VAR CharacterCount: INTEGER;
-    NewSendString: STRING;
+    QSONumberString, NewSendString: STRING;
     SendChar: CHAR;
 
 { This is a very scaled down version of what is in the main program }
@@ -1121,7 +1122,14 @@ VAR CharacterCount: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 { For now - I am going to ignore QSO numbers.  }
+                 IF QSONumberForThisQSO = 0 THEN
+                     QSONumberForThisQSO := SerialNumberEngine.GetNextSerialNumber (CallWindowString,
+                                                                                    DisplayedFrequency,
+                                                                                    Band,
+                                                                                    Mode);
+
+                 Str (QSONumberForThisQSO, QSONumberString);
+                 NewSendString := NewSendString + QSONumberString;
                  END;
 
             '_': NewSendString := NewSendString + ' ';  { Leading space }
@@ -1250,7 +1258,7 @@ VAR Key, ExtendedKey: CHAR;
         END;
 
     { Do not process any keystrokes while auto start send active on the
-      other radio }
+      other radio.  }
 
     CASE Radio OF
         RadioOne: IF Radio2QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
@@ -1273,6 +1281,7 @@ VAR Key, ExtendedKey: CHAR;
             { Clear the auto start send station called flag if the CallWindow is empty }
 
             IF CallWindowString = '' THEN AutoStartSendStationCalled := False;
+            QSONumberForThisQSO := 0;
 
             { See if we have a keystroke to look at }
 
@@ -1334,7 +1343,7 @@ VAR Key, ExtendedKey: CHAR;
                 { Check to see if AutoStartSend should be triggered }
 
                 IF AutoSendEnable AND (StartSendingCursorPosition > 0) AND (ActiveMode = CW) THEN
-                    IF Length (CallWindowString) = AutoSendCharacterCount THEN
+                    IF Length (CallWindowString) >= AutoSendCharacterCount THEN
                         IF NOT StringIsAllNumbersOrDecimal (CallWindowString) THEN
                             IF NOT StringHas ('/', CallWindowString) THEN
                                 IF NOT AutoStartSendStationCalled THEN

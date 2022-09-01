@@ -30,6 +30,7 @@ TODO LIST
 - "ActiveBand" cursor on the band totals display is not right.
 
 - Occasionally, the auto start send doesn't start if I am busy on the other radio.
+  Maybe fixed - see 31-Aug.
 
 - Insert mode display.
 
@@ -39,9 +40,39 @@ TODO LIST
 
 - Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
 
+- When starting AutoStartSend when the other radio is sending CW - the indicator is
+  yellow until the exchange starts.  This isn't a big deal and perhaps more trouble
+  than it is worth to fix it.
+
+ - Add some kind of display of next QSO number which can be used for SSB.
+
 CHANGE LOG
 
 31-Aug-200
+
+  - Came up with my prototype for doing QSO Numbers.  The key to this is a text file
+    called SERIALNUMBER.TXT.  If there is no file, then the first QSO number that will
+    be sent will be #1.  Whenever a new QSO number is sent - it is assigned to that
+    QSO that is progress.  For each - and entry into the SERIALNUMBER.TXT file will be
+    made that looks like this:
+
+    1 K3LR 7027940 40 CW
+    2 N2NT 14035700 20 CW
+
+    If a QSO ends up not getting logged - the entry stays in this file and the next
+    QSO number will be fetched when needed.
+
+    This file will be looked at when the program starts up to determine what the next
+    QSO number should be.  It will be one plus that last number in the file.
+
+    Using the # in the exchange memories during the QSO before it is logged will repeat
+    the same number that was originally sent.
+
+
+  - Made AutoStartSend start even if the call window string is > than the send
+    count.  Not sure it matters - but perhaps addresses the bug where occasionally
+    auto start send doesn't start when busy with the other radio.  I could not
+    reproduce this failure in the lab - so not really sure it fixed anything.
 
   - Fixed flashing cursor between call windows when both rigs sending 73 message.
 
