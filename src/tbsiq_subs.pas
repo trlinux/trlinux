@@ -558,9 +558,9 @@ VAR FileName, CommandString: Str40;
         IF CommandString = 'SRS' THEN
             BEGIN
                if activeradio = radioone then
-                  rig1.directcommand(filename)
+                  rig1.directcommand (filename)
                else
-                  rig2.directcommand(filename);
+                  rig2.directcommand (filename);
             END;
 
         IF CommandString = 'SRS1' THEN
@@ -1635,11 +1635,14 @@ VAR Key, ExtendedKey: CHAR;
 
             { Moved this up here instead of waiting for CW to end }
 
-            RemoveExchangeWindow;
-            CallWindowString := '';
-            CallWindowCursorPosition := 1;
-            SetTBSIQWindow (TBSIQ_CallWindow);
-            ClrScr;
+            IF ExchangeWindowIsUp THEN
+                BEGIN
+                RemoveExchangeWindow;
+                CallWindowString := '';
+                CallWindowCursorPosition := 1;
+                SetTBSIQWindow (TBSIQ_CallWindow);
+                ClrScr;
+                END;
 
             IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
                 BEGIN
@@ -2354,6 +2357,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     DisplayedBand := NoBand;
     DisplayedMode := NoMode;
     DisplayedFrequency := 0;
+    DisplayAutoSendCharacterCount;
     END;
 
 
@@ -4159,22 +4163,23 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     IF (QSOState = QST_Idle) OR (QSOState = QST_CallingCQ) OR
        (QSOState = QST_CQCalled) OR (QSOState = QST_AutoStartSending) OR
        (QSOState = QST_CQSending73Message) THEN
-           Message := GetCQMemoryString (CW, Key)
+           Message := GetCQMemoryString (Mode, Key)
        ELSE
            BEGIN
-           IF Key = F1 THEN
+           IF (Key = F1) AND (Mode = CW) THEN
                Message := '\'
            ELSE
-               IF Key = F2 THEN
+               IF (Key = F2) AND (Mode = CW) THEN
                    Message := SearchAndPounceExchange
                ELSE
-                   Message := GetEXMemoryString (CW, Key);
+                   Message := GetEXMemoryString (Mode, Key);
            END;
 
     Message := ExpandCrypticString (Message);
 
-    IF Message <> '' THEN;
-        TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High);
+    IF Mode = CW THEN
+        IF Message <> '' THEN;
+            TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High);
     END;
 
 

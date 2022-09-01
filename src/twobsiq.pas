@@ -29,8 +29,6 @@ TODO LIST
 
 - "ActiveBand" cursor on the band totals display is not right.
 
-- Allow SSB function keys to be sent with 2BSIQ.
-
 - Occasionally, the auto start send doesn't start if I am busy on the other radio.
 
 - Insert mode display.
@@ -39,7 +37,15 @@ TODO LIST
 
 - Implement PossibleCalls
 
+- Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
+
 CHANGE LOG
+
+31-Aug-200
+
+  - Fixed flashing cursor between call windows when both rigs sending 73 message.
+
+  - I believe I have made SSB work with function keys with 2BSIQ.
 
 24-Aug-2022
 
