@@ -68,6 +68,10 @@ CONST
     BigWindowRX = 80;
     BigWindowRY = 18;
 
+    CallWindowLX = 30;
+    CallWindowLY = 20;
+    CallWindowRX = 46;
+    CallWindowRY = 20;
 
 TYPE
 
@@ -201,6 +205,38 @@ TYPE
                   RateWindow,
                   RTTYWindow,
                   RTTYInverseWindow,
+
+                  { 2BSIQ Windows }
+
+                  TBSIQ_RateWindow,
+                  TBSIQ_HourRateWindow,
+
+                  TBSIQ_R1_BandModeWindow,
+                  TBSIQ_R1_StartSendingWindow,
+                  TBSIQ_R1_Callwindow,
+                  TBSIQ_R1_CodeSpeedWindow,
+                  TBSIQ_R1_CWMessageWindow,
+                  TBSIQ_R1_ExchangeWindow,
+                  TBSIQ_R1_FrequencyWindow,
+                  TBSIQ_R1_PossibleCallWindow,
+                  TBSIQ_R1_QuickCommandWindow,
+                  TBSIQ_R1_StateMachineStatusWindow,
+                  TBSIQ_R1_TransmitIndicatorWindow,
+                  TBSIQ_R1_UserInfoWindow,
+
+                  TBSIQ_R2_BandModeWindow,
+                  TBSIQ_R2_StartSendingWindow,
+                  TBSIQ_R2_Callwindow,
+                  TBSIQ_R2_CodeSpeedWindow,
+                  TBSIQ_R2_CWMessageWindow,
+                  TBSIQ_R2_ExchangeWindow,
+                  TBSIQ_R2_FrequencyWindow,
+                  TBSIQ_R2_PossibleCallWindow,
+                  TBSIQ_R2_QuickCommandWindow,
+                  TBSIQ_R2_StateMachineStatusWindow,
+                  TBSIQ_R2_TransmitIndicatorWindow,
+                  TBSIQ_R2_UserInfoWindow,
+
                   TotalScoreWindow,
                   TotalWindow,
                   WholeScreenWindow);
@@ -261,6 +297,8 @@ TYPE
         FunctionKeyWindowBackground:      INTEGER;
         FunctionKeyWindowColor:           INTEGER;
 
+        InactiveWindowBackground: INTEGER;
+
         InsertWindowBackground: INTEGER;
         InsertWindowColor:      INTEGER;
 
@@ -303,6 +341,29 @@ TYPE
 
         RTTYInverseWindowBackground:     INTEGER;
         RTTYInverseWindowColor:          INTEGER;
+
+        { 2BSIQ Windows - these will be used for both R1 and R2 }
+
+        TBSIQ_CallWindowBackground: INTEGER;
+        TBSIQ_CallWindowColor:      INTEGER;
+
+        TBSIQ_CWMessageWindowBackground: INTEGER;
+        TBSIQ_CWMessageWindowColor:      INTEGER;
+
+        TBSIQ_ExchangeWindowBackground: INTEGER;
+        TBSIQ_ExchangeWindowColor:      INTEGER;
+
+        TBSIQ_HourRateWindowBackground: INTEGER;
+        TBSIQ_HourRateWindowColor:      INTEGER;
+
+        TBSIQ_RateWindowBackground: INTEGER;
+        TBSIQ_RateWindowColor:      INTEGER;
+
+        TBSIQ_StateMachineStatusWindowBackground: INTEGER;
+        TBSIQ_StateMachineStatusWindowColor:      INTEGER;
+
+        TBSIQ_TransmitIndicatorWindowBackground: INTEGER;
+        TBSIQ_TransmitIndicatorWindowColor:      INTEGER;
 
         TotalScoreWindowBackground: INTEGER;
         TotalScoreWindowColor:      INTEGER;
@@ -634,6 +695,7 @@ VAR
     NumberBandMapEntries: INTEGER; {KK1L: 6.64 needed a global version of NumberVisibleBMEntries}
     NumberContactsThisMinute:  BYTE;
     NumberExchangeTemplates:   SHORTINT;
+    NumberMinutesProgramRunning: INTEGER;
     NumberQSOPointsThisMinute: INTEGER;
 
     NextQTCToBeAdded:   INTEGER;
@@ -706,6 +768,37 @@ VAR
     SuperDupeSheetWindowRY: INTEGER;
     SwapPacketSpotRadios:   BOOLEAN;
 
+    { TBSIQ Window stuff.  These variables instad of constants so that the
+      locations were defined by each instance of the TBSIQ object.  They are
+      computed from a reference point so that consistency is assured between
+      left and right radios }
+
+    TBSIQ_R1_BandModeWindowLX, TBSIQ_R1_BandModeWindowLY, TBSIQ_R1_BandModeWindowRX, TBSIQ_R1_BandModeWindowRY: INTEGER;
+    TBSIQ_R1_StartSendingWindowLX, TBSIQ_R1_StartSendingWindowLY, TBSIQ_R1_StartSendingWindowRX, TBSIQ_R1_StartSendingWindowRY: INTEGER;
+    TBSIQ_R1_CallWindowLX, TBSIQ_R1_CallWindowLY, TBSIQ_R1_CallWindowRX, TBSIQ_R1_CallWindowRY: INTEGER;
+    TBSIQ_R1_CodeSpeedWindowLX, TBSIQ_R1_CodeSpeedWindowLY, TBSIQ_R1_CodeSpeedWindowRX, TBSIQ_R1_CodeSpeedWindowRY: INTEGER;
+    TBSIQ_R1_CWMessageWindowLX, TBSIQ_R1_CWMessageWindowLY, TBSIQ_R1_CWMessageWindowRX, TBSIQ_R1_CWMessageWindowRY: INTEGER;
+    TBSIQ_R1_ExchangeWindowLX, TBSIQ_R1_ExchangeWindowLY, TBSIQ_R1_ExchangeWindowRX, TBSIQ_R1_ExchangeWindowRY: INTEGER;
+    TBSIQ_R1_FrequencyWindowLX, TBSIQ_R1_FrequencyWindowLY, TBSIQ_R1_FrequencyWindowRX, TBSIQ_R1_FrequencyWindowRY: INTEGER;
+    TBSIQ_R1_PossibleCallWindowLX, TBSIQ_R1_PossibleCallWindowLY, TBSIQ_R1_PossibleCallWindowRX, TBSIQ_R1_PossibleCallWindowRY: INTEGER;
+    TBSIQ_R1_QuickCommandWindowLX, TBSIQ_R1_QuickCommandWindowLY, TBSIQ_R1_QuickCommandWindowRX, TBSIQ_R1_QuickCommandWindowRY: INTEGER;
+    TBSIQ_R1_StateMachineStatusWindowLX, TBSIQ_R1_StateMachineStatusWindowLY, TBSIQ_R1_StateMachineStatusWindowRX, TBSIQ_R1_StateMachineStatusWindowRY: INTEGER;
+    TBSIQ_R1_TransmitIndicatorWindowLX, TBSIQ_R1_TransmitIndicatorWindowLY, TBSIQ_R1_TransmitIndicatorWindowRX, TBSIQ_R1_TransmitIndicatorWindowRY: INTEGER;
+    TBSIQ_R1_UserInfoWindowLX, TBSIQ_R1_UserInfoWindowLY, TBSIQ_R1_UserInfoWindowRX, TBSIQ_R1_UserInfoWindowRY: INTEGER;
+
+    TBSIQ_R2_BandModeWindowLX, TBSIQ_R2_BandModeWindowLY, TBSIQ_R2_BandModeWindowRX, TBSIQ_R2_BandModeWindowRY: INTEGER;
+    TBSIQ_R2_StartSendingWindowLX, TBSIQ_R2_StartSendingWindowLY, TBSIQ_R2_StartSendingWindowRX, TBSIQ_R2_StartSendingWindowRY: INTEGER;
+    TBSIQ_R2_CallWindowLX, TBSIQ_R2_CallWindowLY, TBSIQ_R2_CallWindowRX, TBSIQ_R2_CallWindowRY: INTEGER;
+    TBSIQ_R2_CodeSpeedWindowLX, TBSIQ_R2_CodeSpeedWindowLY, TBSIQ_R2_CodeSpeedWindowRX, TBSIQ_R2_CodeSpeedWindowRY: INTEGER;
+    TBSIQ_R2_CWMessageWindowLX, TBSIQ_R2_CWMessageWindowLY, TBSIQ_R2_CWMessageWindowRX, TBSIQ_R2_CWMessageWindowRY: INTEGER;
+    TBSIQ_R2_ExchangeWindowLX, TBSIQ_R2_ExchangeWindowLY, TBSIQ_R2_ExchangeWindowRX, TBSIQ_R2_ExchangeWindowRY: INTEGER;
+    TBSIQ_R2_FrequencyWindowLX, TBSIQ_R2_FrequencyWindowLY, TBSIQ_R2_FrequencyWindowRX, TBSIQ_R2_FrequencyWindowRY: INTEGER;
+    TBSIQ_R2_PossibleCallWindowLX, TBSIQ_R2_PossibleCallWindowLY, TBSIQ_R2_PossibleCallWindowRX, TBSIQ_R2_PossibleCallWindowRY: INTEGER;
+    TBSIQ_R2_QuickCommandWindowLX, TBSIQ_R2_QuickCommandWindowLY, TBSIQ_R2_QuickCommandWindowRX, TBSIQ_R2_QuickCommandWindowRY: INTEGER;
+    TBSIQ_R2_StateMachineStatusWindowLX, TBSIQ_R2_StateMachineStatusWindowLY, TBSIQ_R2_StateMachineStatusWindowRX, TBSIQ_R2_StateMachineStatusWindowRY: INTEGER;
+    TBSIQ_R2_TransmitIndicatorWindowLX, TBSIQ_R2_TransmitIndicatorWindowLY, TBSIQ_R2_TransmitIndicatorWindowRX, TBSIQ_R2_TransmitIndicatorWindowRY: INTEGER;
+    TBSIQ_R2_UserInfoWindowLX, TBSIQ_R2_UserInfoWindowLY, TBSIQ_R2_UserInfoWindowRX, TBSIQ_R2_UserInfoWindowRY: INTEGER;
+
     TenMinuteRule:  TenMinuteRuleType;
     TenMinuteTime:  TenMinuteTimeRecord;
     TimeSpentByBand: ARRAY [Band160..Band10] OF INTEGER;
@@ -733,8 +826,6 @@ VAR
     WideFreqDisplay:  BOOLEAN; {KK1L: 6.73}
     WRTC2018: BOOLEAN;
 
-
-
   PROCEDURE ActivateExchangeWindow;
 
   PROCEDURE AddBandMapModeCutoffFrequency (Freq: LONGINT);
@@ -761,6 +852,7 @@ VAR
   PROCEDURE ClearAutoSendDisplay;
   PROCEDURE ClearWindow (WindowName: WindowType);
 
+  PROCEDURE DecrementBandMapTimes;
   PROCEDURE DecrementQTCCount (Call: CallString; Count: INTEGER);
 
   PROCEDURE DeleteBandMapEntry (VAR Entry: BandMapEntryPointer);
@@ -869,9 +961,6 @@ VAR
   PROCEDURE UpdateTimeAndRateDisplays (ShowTime: BOOLEAN; DoRadios: BOOLEAN);
   PROCEDURE WindInit;
 
-
-
-
 IMPLEMENTATION
 
 Uses LogStuff,keycode,beep,xkb,timer;
@@ -960,11 +1049,6 @@ CONST
     QSONumberWindowUpRX = 29;
     QSONumberWindowUpRY = 19;
 
-    CallWindowLX = 30;
-    CallWindowLY = 20;
-    CallWindowRX = 46;
-    CallWindowRY = 20;
-
     CallWindowUpLX = 30;
     CallWindowUpLY = 19;
     CallWindowUpRX = 41;
@@ -1043,6 +1127,16 @@ CONST
     AlarmWindowRX = 67;
     AlarmWindowRY = 22;
 
+    TBSIQ_HourRateWindowLX = 53;
+    TBSIQ_HourRateWindowLY = 1;
+    TBSIQ_HourRateWindowRX = 67;
+    TBSIQ_HourRateWindowRY = 1;
+
+    TBSIQ_RateWindowLX = 69;
+    TBSIQ_RateWindowLY = 1;
+    TBSIQ_RateWindowRX = 79;
+    TBSIQ_RateWindowRY = 1;
+
     RateWindowLX = 69;
     RateWindowLY = 22;
     RateWindowRX = 79;
@@ -1075,6 +1169,7 @@ CONST
     FunctionKeyWindowRX = 80;
     FunctionKeyWindowRY = 25;
 
+
 TYPE
     SavedWindow = RECORD
         CursorX:           INTEGER;
@@ -1086,13 +1181,10 @@ TYPE
         SavedActiveWindow: WindowType;
         END;
 
-
-
 VAR
     Band: BandType;
     Continent: ContinentType;
 
-    NumberMinutesProgramRunning: INTEGER;
     NumberSavedWindows:          INTEGER;
 
     SavedWindowList:             ARRAY [0..12] OF SavedWindow;
@@ -1521,9 +1613,6 @@ PROCEDURE SetWindow (WindowName: WindowType);
           SetColor      (SelectedColors.DupeSheetWindowColor);
           END;
 
-
-
-
       EditableLogWindow:
           BEGIN
           Window (EditableLogWindowLX, EditableLogWindowLY, EditableLogWindowRX, EditableLogWindowRY);
@@ -1608,9 +1697,6 @@ PROCEDURE SetWindow (WindowName: WindowType);
           SetBackground (SelectedColors.NameSentWindowBackground);
           SetColor      (SelectedColors.NameSentWindowColor);
           END;
-
-
-
 
       PossibleCallWindow:
           BEGIN
@@ -1735,22 +1821,207 @@ PROCEDURE SetWindow (WindowName: WindowType);
           SetColor      (SelectedColors.WholeScreenColor);
           END;
 
-      ELSE SendMorse ('Illegal window name');
-      END;  { of case }
+      { TBSIQ Windows - These first two are geneic and not specific to an instance of a
+        TBSIQ QSO machine / radio }
 
+      TBSIQ_HourRateWindow:
+          BEGIN
+          Window (TBSIQ_HourRateWindowLX, TBSIQ_HourRateWindowLY, TBSIQ_HourRateWindowRX, TBSIQ_HourRateWindowRY);
+          SetBackground (SelectedColors.TBSIQ_HourRateWindowBackground);
+          SetColor      (SelectedColors.TBSIQ_HourRateWindowColor);
+          END;
+
+      TBSIQ_RateWindow:
+          BEGIN
+          Window (TBSIQ_RateWindowLX, TBSIQ_RateWindowLY, TBSIQ_RateWindowRX, TBSIQ_RateWindowRY);
+          SetBackground (SelectedColors.TBSIQ_RateWindowBackground);
+          SetColor      (SelectedColors.TBSIQ_RateWindowColor);
+          END;
+
+      TBSIQ_R1_BandModeWindow:
+          BEGIN
+          Window (TBSIQ_R1_BandModeWindowLX, TBSIQ_R1_BandModeWindowLY, TBSIQ_R1_BandModeWindowRX, TBSIQ_R1_BandModeWindowRY);
+          SetBackground (SelectedColors.BandModeWindowBackground);
+          SetColor (SelectedColors.BandModeWindowColor);
+          END;
+
+      TBSIQ_R1_StartSendingWindow:
+          BEGIN
+          Window (TBSIQ_R1_StartSendingWindowLX, TBSIQ_R1_StartSendingWindowLY, TBSIQ_R1_StartSendingWindowRX, TBSIQ_R1_StartSendingWindowRY);
+          SetBackground (SelectedColors.WholeScreenBackground);
+          SetColor (SelectedColors.TBSIQ_CallWindowColor);
+          END;
+
+      TBSIQ_R1_CallWindow:
+          BEGIN
+          Window (TBSIQ_R1_CallWindowLX, TBSIQ_R1_CallWindowLY, TBSIQ_R1_CallWindowRX, TBSIQ_R1_CallWindowRY);
+          SetBackground (SelectedColors.TBSIQ_CallWindowBackground);
+          SetColor (SelectedColors.TBSIQ_CallWindowColor);
+          END;
+
+      TBSIQ_R1_CodeSpeedWindow:
+          BEGIN
+          Window (TBSIQ_R1_CodeSpeedWindowLX, TBSIQ_R1_CodeSpeedWindowLY, TBSIQ_R1_CodeSpeedWindowRX, TBSIQ_R1_CodeSpeedWindowRY);
+          SetBackground (SelectedColors.CodeSpeedWindowBackground);
+          SetColor (SelectedColors.CodeSpeedWindowColor);
+          END;
+
+      TBSIQ_R1_CWMessageWindow:
+          BEGIN
+          Window (TBSIQ_R1_CWMessageWindowLX, TBSIQ_R1_CWMessageWindowLY, TBSIQ_R1_CWMessageWindowRX, TBSIQ_R1_CWMessageWindowRY);
+          SetBackground (SelectedColors.TBSIQ_CWMessageWindowBackground);
+          SetColor (SelectedColors.TBSIQ_CWMessageWindowColor);
+          END;
+
+      TBSIQ_R1_ExchangeWindow:
+          BEGIN
+          Window (TBSIQ_R1_ExchangeWindowLX, TBSIQ_R1_ExchangeWindowLY, TBSIQ_R1_ExchangeWindowRX, TBSIQ_R1_ExchangeWindowRY);
+          SetBackground (SelectedColors.TBSIQ_ExchangeWindowBackground);
+          SetColor (SelectedColors.TBSIQ_ExchangeWindowColor);
+          END;
+
+      TBSIQ_R1_FrequencyWindow:
+          BEGIN
+          Window (TBSIQ_R1_FrequencyWindowLX, TBSIQ_R1_FrequencyWindowLY, TBSIQ_R1_FrequencyWindowRX, TBSIQ_R1_FrequencyWindowRY);
+          SetBackground (SelectedColors.FrequencyOneWindowBackground);
+          SetColor (SelectedColors.FrequencyOneWindowColor);
+          END;
+
+      TBSIQ_R1_PossibleCallWindow:
+          BEGIN
+          Window (TBSIQ_R1_PossibleCallWindowLX, TBSIQ_R1_PossibleCallWindowLY, TBSIQ_R1_PossibleCallWindowRX, TBSIQ_R1_PossibleCallWindowRY);
+          SetBackground (SelectedColors.PossibleCallWindowBackground);
+          SetColor (SelectedColors.PossibleCallWindowColor);
+          END;
+
+      TBSIQ_R1_QuickCommandWindow:
+          BEGIN
+          Window (TBSIQ_R1_QuickCommandWindowLX, TBSIQ_R1_QuickCommandWindowLY, TBSIQ_R1_QuickCommandWindowRX, TBSIQ_R1_QuickCommandWindowRY);
+          SetBackground (SelectedColors.QuickCommandWindowBackground);
+          SetColor (SelectedColors.QuickCommandWindowColor);
+          END;
+
+      TBSIQ_R1_StateMachineStatusWindow:
+          BEGIN
+          Window (TBSIQ_R1_StateMachineStatusWindowLX, TBSIQ_R1_StateMachineStatusWindowLY, TBSIQ_R1_StateMachineStatusWindowRX, TBSIQ_R1_StateMachineStatusWindowRY);
+          SetBackground (SelectedColors.TBSIQ_StateMachineStatusWindowBackground);
+          SetColor (SelectedColors.TBSIQ_StateMachineStatusWindowColor);
+          END;
+
+      TBSIQ_R1_TransmitIndicatorWindow:
+          BEGIN
+          Window (TBSIQ_R1_TransmitIndicatorWindowLX, TBSIQ_R1_TransmitIndicatorWindowLY, TBSIQ_R1_TransmitIndicatorWindowRX, TBSIQ_R1_TransmitIndicatorWindowRY);
+          SetBackground (SelectedColors.TBSIQ_TransmitIndicatorWindowBackground);
+          SetColor (SelectedColors.TBSIQ_TransmitIndicatorWindowColor);
+          END;
+
+      TBSIQ_R1_UserInfoWindow:
+          BEGIN
+          Window (TBSIQ_R1_UserInfoWindowLX, TBSIQ_R1_UserInfoWindowLY, TBSIQ_R1_UserInfoWindowRX, TBSIQ_R1_UserInfoWindowRY);
+          SetBackground (SelectedColors.UserInfoWindowBackground);
+          SetColor (SelectedColors.UserInfoWindowColor);
+          END;
+
+      TBSIQ_R2_BandModeWindow:
+          BEGIN
+          Window (TBSIQ_R2_BandModeWindowLX, TBSIQ_R2_BandModeWindowLY, TBSIQ_R2_BandModeWindowRX, TBSIQ_R2_BandModeWindowRY);
+          SetBackground (SelectedColors.BandModeWindowBackground);
+          SetColor (SelectedColors.BandModeWindowColor);
+          END;
+
+      TBSIQ_R2_StartSendingWindow:
+          BEGIN
+          Window (TBSIQ_R2_StartSendingWindowLX, TBSIQ_R2_StartSendingWindowLY, TBSIQ_R2_StartSendingWindowRX, TBSIQ_R2_StartSendingWindowRY);
+          SetBackground (SelectedColors.WholeScreenBackground);
+          SetColor (SelectedColors.TBSIQ_CallWindowColor);
+          END;
+
+      TBSIQ_R2_CallWindow:
+          BEGIN
+          Window (TBSIQ_R2_CallWindowLX, TBSIQ_R2_CallWindowLY, TBSIQ_R2_CallWindowRX, TBSIQ_R2_CallWindowRY);
+          SetBackground (SelectedColors.TBSIQ_CallWindowBackground);
+          SetColor (SelectedColors.TBSIQ_CallWindowColor);
+          END;
+
+      TBSIQ_R2_CodeSpeedWindow:
+          BEGIN
+          Window (TBSIQ_R2_CodeSpeedWindowLX, TBSIQ_R2_CodeSpeedWindowLY, TBSIQ_R2_CodeSpeedWindowRX, TBSIQ_R2_CodeSpeedWindowRY);
+          SetBackground (SelectedColors.CodeSpeedWindowBackground);
+          SetColor (SelectedColors.CodeSpeedWindowColor);
+          END;
+
+      TBSIQ_R2_CWMessageWindow:
+          BEGIN
+          Window (TBSIQ_R2_CWMessageWindowLX, TBSIQ_R2_CWMessageWindowLY, TBSIQ_R2_CWMessageWindowRX, TBSIQ_R2_CWMessageWindowRY);
+          SetBackground (SelectedColors.TBSIQ_CWMessageWindowBackground);
+          SetColor (SelectedColors.TBSIQ_CWMessageWindowColor);
+          END;
+
+      TBSIQ_R2_ExchangeWindow:
+          BEGIN
+          Window (TBSIQ_R2_ExchangeWindowLX, TBSIQ_R2_ExchangeWindowLY, TBSIQ_R2_ExchangeWindowRX, TBSIQ_R2_ExchangeWindowRY);
+          SetBackground (SelectedColors.TBSIQ_ExchangeWindowBackground);
+          SetColor (SelectedColors.TBSIQ_ExchangeWindowColor);
+          END;
+
+      TBSIQ_R2_FrequencyWindow:
+          BEGIN
+          Window (TBSIQ_R2_FrequencyWindowLX, TBSIQ_R2_FrequencyWindowLY, TBSIQ_R2_FrequencyWindowRX, TBSIQ_R2_FrequencyWindowRY);
+          SetBackground (SelectedColors.FrequencyOneWindowBackground);
+          SetColor (SelectedColors.FrequencyOneWindowColor);
+          END;
+
+      TBSIQ_R2_PossibleCallWindow:
+          BEGIN
+          Window (TBSIQ_R2_PossibleCallWindowLX, TBSIQ_R2_PossibleCallWindowLY, TBSIQ_R2_PossibleCallWindowRX, TBSIQ_R2_PossibleCallWindowRY);
+          SetBackground (SelectedColors.PossibleCallWindowBackground);
+          SetColor (SelectedColors.PossibleCallWindowColor);
+          END;
+
+      TBSIQ_R2_QuickCommandWindow:
+          BEGIN
+          Window (TBSIQ_R2_QuickCommandWindowLX, TBSIQ_R2_QuickCommandWindowLY, TBSIQ_R2_QuickCommandWindowRX, TBSIQ_R2_QuickCommandWindowRY);
+          SetBackground (SelectedColors.QuickCommandWindowBackground);
+          SetColor (SelectedColors.QuickCommandWindowColor);
+          END;
+
+      TBSIQ_R2_StateMachineStatusWindow:
+          BEGIN
+          Window (TBSIQ_R2_StateMachineStatusWindowLX, TBSIQ_R2_StateMachineStatusWindowLY, TBSIQ_R2_StateMachineStatusWindowRX, TBSIQ_R2_StateMachineStatusWindowRY);
+          SetBackground (SelectedColors.TBSIQ_StateMachineStatusWindowBackground);
+          SetColor (SelectedColors.TBSIQ_StateMachineStatusWindowColor);
+          END;
+
+      TBSIQ_R2_TransmitIndicatorWindow:
+          BEGIN
+          Window (TBSIQ_R2_TransmitIndicatorWindowLX, TBSIQ_R2_TransmitIndicatorWindowLY, TBSIQ_R2_TransmitIndicatorWindowRX, TBSIQ_R2_TransmitIndicatorWindowRY);
+          SetBackground (SelectedColors.TBSIQ_TransmitIndicatorWindowBackground);
+          SetColor (SelectedColors.TBSIQ_TransmitIndicatorWindowColor);
+          END;
+
+      TBSIQ_R2_UserInfoWindow:
+          BEGIN
+          Window (TBSIQ_R2_UserInfoWindowLX, TBSIQ_R2_UserInfoWindowLY, TBSIQ_R2_UserInfoWindowRX, TBSIQ_R2_UserInfoWindowRY);
+          SetBackground (SelectedColors.UserInfoWindowBackground);
+          SetColor (SelectedColors.UserInfoWindowColor);
+          END;
+
+
+      END;  { of case }
     END;
 
-
-
+
 
 PROCEDURE SetActiveWindow (WindowName: WindowType);
 
-{ This procedure will set up the window paramters for the specified window.
+{ This procedure will set up the window parameters for the specified window.
   Nothing is saved on the SavedWindowList here.                       }
 
     BEGIN
     SetWindow (WindowName);
     ActiveWindow := WindowName;
+
+    { This hack seems to have been here a long time - not TBSIQ }
 
     IF (ActiveWindow = ExchangeWindow) AND (ExchangeWindowCursorPosition = 0) THEN
         ExchangeWindowCursorPosition := 1;
@@ -1763,6 +2034,9 @@ PROCEDURE SaveAndSetActiveWindow (WindowName: WindowType);
     BEGIN
     SaveActiveWindow;
     SetActiveWindow (WindowName);
+
+    { This is from the old stuff - not TBSIQ }
+
     IF WindowName = ExchangeWindow THEN
         GoToXY (ExchangeWindowCursorPosition, 1)
     ELSE

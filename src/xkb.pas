@@ -19,11 +19,12 @@
 //
 
 unit xkb;
-{$mode objfpc}  
+{$mode objfpc}
 
 interface
 
     procedure setupkeyboard;cdecl;
+    function xfocused:boolean;cdecl;
     function ctrlshift:boolean;cdecl;
     function ctrl:boolean;cdecl;
     function ctrlenter:boolean;cdecl;
@@ -34,11 +35,12 @@ interface
 implementation
 
     procedure setupkeyboard;cdecl;external;
+    function xfocused:boolean;cdecl;external;
     function ctrlshift:boolean;cdecl;external;
     function ctrl:boolean;cdecl;external;
     function ctrlenter:boolean;cdecl;external;
     function ritshift:integer;cdecl;external;
     procedure shiftchange(ishift: integer);cdecl;external;
     procedure shiftgrab(on: integer);cdecl;external;
-    
+
 end.

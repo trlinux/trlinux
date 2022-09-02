@@ -39,6 +39,8 @@ CONST
     SpaceBar       = ' ';
     ShiftTab       = Chr (15);        { After null char }
 
+    { Normal extended Keys }
+
     F1 = Chr (59);        { Function key codes }
     F2 = Chr (60);
     F3 = Chr (61);
@@ -144,7 +146,8 @@ CONST
     InsertKey   = Chr (82);
     DeleteKey   = Chr (83);
 
-    {KK1L: 6.65 Added following eight definitions}
+    { KK1L: 6.65 Added following eight definitions }
+
     AltInsert        = Chr (162);
     AltDelete        = Chr (163);
     ControlInsert    = Chr (146);
@@ -154,7 +157,8 @@ CONST
     ControlDownArrow = Chr (145);
     ControlUpArrow   = Chr (141);
 
-    {KK1L: 6.72 Added following set constant for Scandinavian letters}
+    { KK1L: 6.72 Added following set constant for Scandinavian letters }
+
     AccentedChars: set of char = [Chr(132), Chr(142),  {A umlaut  }
                                   Chr(134), Chr(143),  {A dot     }
                                   Chr(148), Chr(153)]; {O umlaut  }

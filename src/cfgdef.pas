@@ -146,6 +146,7 @@ PROCEDURE SetConfigurationDefaultValues;
 
     EightBitRTTYPort := False; {KK1L: 6.71}
 
+    EnableHeadphoneSwitching   := True;
     EnableSixDVKMessages       := True; {KK1L: 6.72}
     EscapeExitsSearchAndPounce := True;
     ExchangeFunctionKeyMenu := '';
@@ -271,6 +272,7 @@ PROCEDURE SetConfigurationDefaultValues;
     PacketSpotKey         := '`';
     PacketSpotPrefixOnly  := False; {KK1L: 6.72}
 
+    Packet.FT8SpotEnable     := True;
     Packet.PacketBandSpots   := False;
     Packet.PacketBaudRate    := 2400;
     Packet.PacketBeep        := True;
@@ -487,8 +489,6 @@ PROCEDURE SetConfigurationDefaultValues;
     WARCBandsEnabled := False;
     WildCardPartials := True;
 
-
-
     WITH MonoColors DO
         BEGIN
         AlarmWindowBackground                 := Black;
@@ -538,6 +538,9 @@ PROCEDURE SetConfigurationDefaultValues;
 
         FunctionKeyWindowBackground           := Black;
         FunctionKeyWindowColor                := White;
+
+        InactiveWindowBackground              := Black;
+
         InsertWindowBackground                := Black;
         InsertWindowColor                     := White;
         MultiplierInformationWindowBackground := Black;
@@ -569,6 +572,22 @@ PROCEDURE SetConfigurationDefaultValues;
         RemainingMultsWindowBackground        := Black;
         RemainingMultsWindowColor             := White;
         RemainingMultsWindowSubdue            := Black;
+
+        { TBSIQ Stuff }
+
+        TBSIQ_CallWindowColor                 := White;
+        TBSIQ_CallWindowBackground            := Black;
+        TBSIQ_CWMessageWindowColor            := White;
+        TBSIQ_CWMessageWindowBackground       := Black;
+        TBSIQ_ExchangeWindowColor             := White;
+        TBSIQ_ExchangeWindowBackground        := Black;
+        TBSIQ_HourRateWindowBackground        := Black;
+        TBSIQ_HourRateWindowColor             := White;
+        TBSIQ_RateWindowBackground            := Black;
+        TBSIQ_RateWindowColor                 := White;
+        TBSIQ_StateMachineStatusWindowColor   := White;
+        TBSIQ_StateMachineStatusWindowBackground := Black;
+
         TotalScoreWindowBackground            := Black;
         TotalScoreWindowColor                 := White;
         TotalWindowBackground                 := Black;
@@ -625,6 +644,7 @@ PROCEDURE SetConfigurationDefaultValues;
         EditableLogWindowColor      := Black;
 
         ExchangeSAndPWindowBackground := Green;
+
         ExchangeWindowBackground      := Magenta;
         ExchangeWindowColor           := Yellow;
 
@@ -641,6 +661,8 @@ PROCEDURE SetConfigurationDefaultValues;
 
         FunctionKeyWindowBackground      := White;
         FunctionKeyWindowColor           := Black;
+
+        InactiveWindowBackground := LightBlue;
 
         InsertWindowBackground := Cyan;
         InsertWindowColor      := Black;
@@ -687,6 +709,21 @@ PROCEDURE SetConfigurationDefaultValues;
         RTTYWindowBackground           := Black;
         RTTYInverseWindowColor         := Black;
         RTTYInverseWindowBackground    := White;
+
+        { TBSIQ Stuff }
+
+        TBSIQ_CallWindowColor                 := Yellow;
+        TBSIQ_CallWindowBackground            := Magenta;
+        TBSIQ_CWMessageWindowColor            := White;
+        TBSIQ_CWMessageWindowBackground       := Blue;
+        TBSIQ_ExchangeWindowColor             := Yellow;
+        TBSIQ_ExchangeWindowBackground        := Magenta;
+        TBSIQ_HourRateWindowBackground        := Cyan;
+        TBSIQ_HourRateWindowColor             := Black;
+        TBSIQ_RateWindowBackground            := Cyan;
+        TBSIQ_RateWindowColor                 := Black;
+        TBSIQ_StateMachineStatusWindowColor   := White;
+        TBSIQ_StateMachineStatusWindowBackground := Black;
 
         TotalScoreWindowBackground := White;
         TotalScoreWindowColor      := Black;

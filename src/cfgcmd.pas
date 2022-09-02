@@ -1446,6 +1446,12 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'HEADPHONE SWITCHING ENABLE' THEN
+        BEGIN
+        EnableHeadphoneSwitching := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
 
     IF ID = 'HF BAND ENABLE' THEN
         BEGIN
@@ -1707,6 +1713,13 @@ VAR xResult,tempint: INTEGER;
         end;
 
         ProcessConfigInstructions2 := false;
+        Exit;
+        END;
+
+    IF (ID = 'SO2R HEADPHONE SWITCHING ENABLE') THEN
+        BEGIN
+        EnableHeadphoneSwitching := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
         Exit;
         END;
 
@@ -2169,6 +2182,13 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'PACKET BEEP' THEN
         BEGIN
         Packet.PacketBeep := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'PACKET FT8 SPOTS' THEN
+        BEGIN
+        Packet.FT8SpotEnable := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions2 := True;
         Exit;
         END;
