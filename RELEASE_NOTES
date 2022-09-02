@@ -16,19 +16,44 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
-0.53
-- Updated score reporter URL.
-- Allow control of the launch of rigctld. If only the port is given rigctld
-  commands are are sent/received to/from port, but rigctld is not launched
-  by TR.
+0.54
 
-0.52 
+- Implementation of new user interface enabling 2BSIQ opeation.
+  To enter this - type the callsign 2BSIQ and hit RETURN.  You
+  will end up with two sets of call/exchange windows.  The basic
+  functions are all the same as the normal user interface.  There
+  are still some unimplemented functions, but there is enough
+  there to use it effectively on CW.  The SSB implementation has
+  not been finished but has some basic functionality.
+
+  You will need a 2nd USB keyboard which currently can not be the
+  same model as your existing one.  Hopefully, we can remove that
+  restriction in the next release.
+
+  Serial number coordination between the two rigs is being done
+  using a file called SERIALNUMBER.TXT.  If you want to start
+  over with serial #1, delete (or better yet rename) this file.
+
+- Added CWT and CWO contests.
+
+
+0.53
+
+- Updated score reporter URL.
+
+- Allow control of the launch of rigctld. If only the port is given,
+  rigctld commands are sent/received to/from port, but rigctld is
+  not launched by TR.
+
+
+0.52
+
 - This is the first release done by N6TR instead of W9CF
 
-- Added support for SO2R Mini - if running N6TR's firmware.  Use ardkeyer 
+- Added support for SO2R Mini - if running N6TR's firmware.  Use ardkeyer
   port = serial /dev/ttyUSB0.  You can see the version of the SO2R mini
-  firmware in the Control-J Version entry - second column.  Version 2 
-  of the Arduino firmware was released in tandem with 0.52.  
+  firmware in the Control-J Version entry - second column.  Version 2
+  of the Arduino firmware was released in tandem with 0.52.
 
 - Added support for SO2R mini commands in CW messages.  Use ^ to prefix
   the following commands:
@@ -43,8 +68,8 @@ You should have received a copy of the GNU General
 
   These commands are executed at the time after the previous CW character
   has been sent and before the next one is sent.  You can put commands all
-  by themselves in a CW message.  Probably some work to do with these 
-  functions being supported if in SSB mode.  
+  by themselves in a CW message.  Probably some work to do with these
+  functions being supported if in SSB mode.
 
 - Added support for CWT and 7QP contests.  The CWT is still WIP as far
   as accurately counting multiliers goes.  7QP categories not correct
@@ -88,7 +113,7 @@ You should have received a copy of the GNU General
 0.48
 - Online score reporting added. All options must be manually configured.
 
-0.47 
+0.47
 - Added latch mode for yccc so2r box.
 - Added DVK radio commands to access rig's voice keyer as a DVK
 
@@ -217,7 +242,7 @@ code to segmentation fault due to dereferenced bandmap nil pointers.
 - Installed new signal handlers so trlog will try to write a core file when
   an illegal instruction, floating point exception, or segmentation fault
   occurs. Typically, you need to set ulimit -c unlimited in order to produce
-  a core file. 
+  a core file.
 - Added a manual section to trloglinux.pdf, describing how to generate
   a core file when the program crashes, and what I need to find the problem
   that generated it.
@@ -233,7 +258,7 @@ code to segmentation fault due to dereferenced bandmap nil pointers.
 
 0.30
 - Fixed bug where Winkeyer sidetone pin changes were not sent to
-  the Winkeyer. 
+  the Winkeyer.
 - Fixed bug where race condition in YCCC box caused some dropped CW
   characters when interrupting a CQ message on one radio to send
   an alt-d space bar to work a station on the second radio.
@@ -253,7 +278,7 @@ code to segmentation fault due to dereferenced bandmap nil pointers.
 - Sped up multi network and packet. The original DOS code had delays to keep
   from overrunning the one byte hardware buffers of serial ports at 4800 baud.
   Since the linux kernel has 1K buffers, and network buffers are even larger,
-  these delays were removed. Reads/writes to the multi network and packet 
+  these delays were removed. Reads/writes to the multi network and packet
   now work with multiple bytes per simulated DOS interrupt.
 
 0.28
@@ -262,7 +287,7 @@ code to segmentation fault due to dereferenced bandmap nil pointers.
 0.27
 - Fixed setting the keyer weight. This fixes a bug in setting keyer weight
   introduced in the first winkeyer version when the different keyers
-  were separated. 
+  were separated.
 - Made PTT PADDLE HOLD COUNT work with the YCCC SO2R box keyer.
 
 0.26
@@ -274,7 +299,7 @@ code to segmentation fault due to dereferenced bandmap nil pointers.
 0.25
 - Fixed YCCC SO2R box keyer defaults not being set from LOGCFG.DAT
 - Removed USE BIOS KEY CALLS configuration parameter since direct reading
-  of BIOS memory wouldn't work on a real operating system anyway. 
+  of BIOS memory wouldn't work on a real operating system anyway.
 - Fixed bug in original 6.76 code where packet spots were given the wrong
   frequency.
 - Fixed bug in original 6.76 code where the check for stable rig frequency
