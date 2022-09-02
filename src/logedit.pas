@@ -119,15 +119,11 @@ PROCEDURE AddQTCToQTCBuffer (VAR QTCBuffer: LogEntryArray; QTCString: Str80; Mes
 
 PROCEDURE BandDown;
 PROCEDURE BandUp;
-
-PROCEDURE CheckForRemovedDupeSheetWindow;
 PROCEDURE CleanUpDisplay;
 
 FUNCTION  DetermineQTCNumberAndQuanity (InputString: Str80;
                                         VAR QTCNumber: INTEGER;
                                         VAR Quantity: INTEGER): BOOLEAN;
-
-PROCEDURE DeleteLastContact;
 
 PROCEDURE EditInit;
 PROCEDURE TimeAndDateSet;
@@ -147,8 +143,10 @@ PROCEDURE MoveGridMap (Key: Char);
 
 FUNCTION  QuickEditResponseWithPartials (Prompt: Str80;
                                         MaxInputLength: INTEGER): Str80;
+
 PROCEDURE RememberFrequency;
 PROCEDURE SendCrypticCWString (SendString: Str160);
+
 PROCEDURE Send88Message;
 PROCEDURE ShowStationInformation (Call: CallString);
 
@@ -158,7 +156,6 @@ PROCEDURE ToggleStereoPin; {KK1L: 6.71}
 FUNCTION  TotalContacts: INTEGER;
 FUNCTION  TotalCWContacts: INTEGER;
 FUNCTION  TotalPhoneContacts: INTEGER;
-FUNCTION  TotalScore: LONGINT;
 
 {KK1L: 6.64 Added to keep BM up to date with changes made while logging}
 PROCEDURE UpdateBandMapDupeStatus(RXCall: CallString; RXBand: BandType; RXMode: ModeType; MakeDupe: BOOLEAN);
@@ -4025,7 +4022,6 @@ PROCEDURE DeleteLastContact;
         END;
     END;
 
-
 
 PROCEDURE RememberFrequency;
 

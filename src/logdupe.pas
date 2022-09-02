@@ -2457,7 +2457,6 @@ VAR NumberMults: INTEGER;
         END;
 
 //Last test WRTC 2018 Remove DX mult if HQ station
-
     IF (RXData.DXQTH <> '') AND DoingDXMults AND
        (ActiveDXMult <> NoCountDXMults) AND
        (NOT (FoundDomesticQTH and NoMultDXIfDomestic)) THEN
@@ -2478,14 +2477,6 @@ VAR NumberMults: INTEGER;
 
     IF (RXData.Prefix <> '') AND DoingPrefixMults THEN
         BEGIN
-        { In 2022 - UA and EU QSOs do not count }
-
-        IF ActiveQSOPointMethod = CQWPXQSOPointMethod THEN
-            IF (RXData.QTH.CountryID = 'UA') OR (RXData.QTH.CountryID = 'UA2') OR
-               (RXdata.QTH.CountryID = 'UA9') OR (RXData.QTH.CountryID = 'R1FJ') OR
-               (RXData.QTH.CountryID = 'EU') THEN
-                Exit;  { No need to worry about zone mults }
-
         NumberMults := MultSheet.Totals [MultBand, MultMode].NumberPrefixMults;
 
         IF NumberMults = 0 THEN
@@ -3482,20 +3473,6 @@ VAR QString, TString, TempString: Str40;
 
     WITH RData DO
         BEGIN
-        IF ActiveExchange = CWTExchange THEN
-            BEGIN
-            IF NumberReceived > 0 THEN
-                BEGIN
-                Str (NumberReceived, TempString);
-                TempString := TempString + ' ' + Name;
-                END
-            ELSE
-                TempString := Name + ' ' + QTHString;
-
-            GetInitialExchangeStringFromContestExchange := TempString;
-            Exit;
-            END;
-
         IF ActiveExchange = RSTAllJAPrefectureAndPrecedenceExchange THEN
             BEGIN
             GetInitialExchangeStringFromContestExchange := Precedence + ' ' + QTHString;

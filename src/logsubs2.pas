@@ -2495,7 +2495,6 @@ VAR Result: INTEGER;
             END;
 
     UpdateTimeAndRateDisplays (True, True); {KK1L: 6.72 Moved here to speed up SCP and other things}
-
     IF RadioOnTheMove[ActiveRadio] THEN {KK1L: 6.73 To fix call popping up after already working them.}
         OkayToPutUpBandMapCall := True
     ELSE
@@ -2503,7 +2502,7 @@ VAR Result: INTEGER;
 
     END;
 
-
+
 
 PROCEDURE GoToLastCQFrequency;
 
@@ -7002,23 +7001,8 @@ VAR MTotals: MultTotalArrayType;
 
             GetInitialCall;
 
-            IF CallsignICameBackTo = '2BSIQ' THEN
-                BEGIN
-                TwoBandSIQ;
-                WriteLn ('You will need to restart the program now');
-                WaitForKeyPressed;
-                Halt;
-                END;
-
-            { We come out of this and it is possible that the callsign
-              has already been sent due to the auto start sending
-              feature (and auto call terminate).  Time is critical now
-              to get the exchange out there before the PTT drops }
-
             WindowDupeCheckCall := CallsignICameBackTo;
             END;
-
-        { If we are on CW and need to send the call - then do it }
 
         IF (ActiveMode = CW) AND (NOT TailEnding) AND (NOT CallAlreadySent) THEN
             BEGIN
@@ -7032,17 +7016,11 @@ VAR MTotals: MultTotalArrayType;
         IF (ActiveMode = Digital) AND (NOT CallAlreadySent) THEN
             StartRTTYTransmission (CallsignICameBackTo + ' ');
 
-        { Not sure why this is here - if it is real - then we should not
-          pretend to be about to send an exchange ? }
-
         IF DualingCQState = DualSendingCQ THEN
             BEGIN
             SwapRadios;
             DualingCQState := DualSendingExchange;
             END;
-
-        { Certainly turning off AutoDupeEnableCQ will result in a faster
-          transition to sending the exchange }
 
         IF AutoDupeEnableCQ AND
            VisibleLog.CallIsADupe (CallsignICameBackTo, ActiveBand, ActiveMode) THEN

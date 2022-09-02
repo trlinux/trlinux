@@ -402,6 +402,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                GridMapCenter:= TempString;
            END;
 
+
       HFE: HFBandEnable      := NOT HFBandEnable;
 
       HDP: CASE HourDisplay OF
@@ -557,7 +558,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       PBS: Packet.PacketBandSpots       := NOT Packet.PacketBandSpots;
       PBP: Packet.PacketBeep            := NOT Packet.PacketBeep;
-      PF8: Packet.FT8SpotEnable         := NOT Packet.FT8SpotEnable;
 
       PLF: Packet.PacketLogFileName := QuickEditResponse ('Enter packet log file name (none to disable) : ', 20);
 
@@ -618,7 +618,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
 
       PEN: PrinterEnabled           := NOT PrinterEnabled;
-      PTT: ActiveKeyer.SetPTTEnable (NOT ActiveKeyer.GetPTTEnable);
+      PTT: ActiveKeyer.SetPTTEnable(NOT ActiveKeyer.GetPTTEnable);
 
       PTD: BEGIN
            TempInt := QuickEditInteger ('Enter PTT delay count : ', 4);
@@ -749,8 +749,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                  HSPATIAL: so2rbox.setheadphonemode(HSYMMETRIC);
                  HSYMMETRIC: so2rbox.setheadphonemode(HNORMAL);
               end;
-
-      SO2RHS: EnableHeadphoneSwitching := NOT EnableHeadphoneSwitching;
 
       SO2RBE: so2rbox.setblend(not so2rbox.getblend);
 
@@ -1072,7 +1070,6 @@ VAR FileWrite: TEXT;
       FPR2: WriteLn (FileWrite, Rig2FreqPollRate); {KK1L: 6.71}
       FME: WriteLn (FileWrite, FrequencyMemoryEnable);
       GMC: WriteLn (FileWrite, GridMapCenter);
-
       HFE: WriteLn (FileWrite, HFBandEnable);
 
       HDP: CASE HourDisplay OF
@@ -1147,7 +1144,6 @@ VAR FileWrite: TEXT;
       PAR: WriteLn (FileWRite, PacketAutoCR);
       PBS: WriteLn (FileWrite, Packet.PacketBandSpots);
       PBP: WriteLn (FileWrite, Packet.PacketBeep);
-      PF8: WriteLn (FileWrite, Packet.FT8SpotEnable);
       PLF: WriteLn (FileWrite, Packet.PacketLogFileName);
 
       PRM: WriteLn (FileWrite, PacketReturnPerMinute);
@@ -1223,15 +1219,11 @@ VAR FileWrite: TEXT;
 
       SHE: WriteLn (FileWrite, SayHiEnable);
       SO2RLM: writeln(FileWrite,so2rbox.getlatch);
-
-      SO2RHS: WriteLn (FileWrite, EnableHeadphoneSwitching);
-
       SO2RHM: case so2rbox.getheadphonemode of
           HNORMAL: WriteLn (FileWrite,'NORMAL');
           HSPATIAL: WriteLn (FileWrite,'SPATIAL');
           HSYMMETRIC: WriteLn (FileWrite,'SYMMETRIC');
           end;
-
       SO2RBE: writeln(FileWrite,so2rbox.getblend);
       SO2RBV: writeln(FileWrite,so2rbox.getblendvalue);
       SO2RMR: writeln(FileWrite,so2rbox.getmicrelay);
@@ -1513,7 +1505,6 @@ VAR TempString: Str40;
       PAR: IF PacketAutoCR THEN TempString := 'TRUE';
       PBS: IF Packet.PacketBandSpots THEN TempString := 'TRUE';
       PBP: IF Packet.PacketBeep THEN TempString := 'TRUE';
-      PF8: IF Packet.FT8SpotEnable THEN TempString := 'TRUE';
 
       PRM: Str (PacketReturnPerMinute, TempString);
       PSC: TempString := PacketSpotComment; {KK1L: 6.71 Implimented what I started in 6.68}
@@ -1607,9 +1598,6 @@ VAR TempString: Str40;
       SAS: IF CallWindowShowAllSpots THEN TempString := 'TRUE';
       SMC: TempString := SlashMarkChar;
       SBD: IF SpaceBarDupeCheckEnable THEN TempString := 'TRUE';
-
-      SO2RHS: IF EnableHeadphoneSwitching THEN TempString := 'TRUE';
-
       SQR: IF SprintQSYRule THEN TempString := 'TRUE';
       SRP: IF SwapPacketSpotRadios THEN TempString := 'TRUE';
       SWP: IF ActiveKeyer.GetSwapPaddles THEN TempString := 'TRUE';
