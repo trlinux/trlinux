@@ -1366,32 +1366,7 @@ VAR TimeOut: INTEGER;
     VisibleDupeSheetChanged := True;
     END;
 
-
-PROCEDURE RememberFrequency;
-
-VAR Band: BandType;
-    Mode: ModeType;
-
-    BEGIN
-    Mode := ActiveMode;
-
-    IF ActiveRadio = RadioOne THEN
-        BEGIN
-        CalculateBandMode (StableRadio1Freq, Band, Mode);
-
-        IF (Band = ActiveBand) AND (Mode = ActiveMode) THEN
-            FreqMemory [ActiveBand, ActiveMode] := StableRadio1Freq;
-        END
-    ELSE
-        BEGIN
-        CalculateBandMode (StableRadio2Freq, Band, Mode);
-
-        IF (Band = ActiveBand) AND (Mode = ActiveMode) THEN
-            FreqMemory [ActiveBand, ActiveMode] := StableRadio2Freq;
-        END;
-    END;
-
-
+
 
 PROCEDURE CheckTwoRadioState (Action: TwoRadioAction);
 

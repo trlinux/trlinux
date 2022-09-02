@@ -1077,6 +1077,7 @@ VAR QTHString, PrefectureString: Str80;
 
         WHILE Length (QTHString) < 8 DO
             QTHString := QTHString + ' ';
+
         LogString := LogString + QTHString;
         Exit;
         END;

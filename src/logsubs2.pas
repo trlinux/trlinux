@@ -1031,70 +1031,7 @@ VAR InitialExchange: Str80;
             END;
     END;
 
-
-PROCEDURE ToggleStereoPin; {KK1L: 6.71}
-    BEGIN
-    StereoPinState := not StereoPinState;
-    SetStereoPin (StereoControlPin, StereoPinState);
-    END;
-
-PROCEDURE ToggleModes;
-
-    BEGIN
-    IF (MultipleModesEnabled) OR (TotalContacts = 0) THEN
-        BEGIN
-        IF (ActiveMode = Phone) AND (ActiveBand >= Band6) AND (NOT FMMode) THEN
-            FMMode := True
-        ELSE
-            BEGIN
-            FMMode := False;
-
-            IF DigitalModeEnable THEN
-                BEGIN
-                CASE ActiveMode OF
-                    Phone:   ActiveMode := CW;
-                    CW:      ActiveMode := Digital;
-                    Digital: ActiveMode := Phone;
-                    ELSE     ActiveMode := CW;
-                    END;
-                END
-            ELSE
-                CASE ActiveMode OF
-                    Phone: ActiveMode := CW;
-                    CW:    ActiveMode := Phone;
-                    ELSE   ActiveMode := CW;
-                    END;
-            END;
-
-        DisplayBandMode  (ActiveBand, ActiveMode,
-                         (ActiveBand <= Band10) OR (ActiveBand = Band30) OR
-                         (ActiveBand = Band17) OR (ActiveBand = Band12));
-
-        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
-
-        {KK1L: 6.73 This gets done in UpdateTimeAndRateDisplay. Only do if no radio connected.}
-        IF (ActiveRadio = RadioOne) AND ((Radio1ControlPort = nil) OR (NOT PollRadioOne)) THEN
-            ModeMemory [RadioOne] := ActiveMode
-        ELSE IF (ActiveRadio = RadioTwo) AND ((Radio2ControlPort = nil) OR (NOT PollRadioTwo)) THEN
-            ModeMemory [RadioTwo] := ActiveMode;
-
-        UpdateTotals;
-
-        IF QSOByMode THEN VisibleDupeSheetChanged := True;
-
-        IF MultByMode THEN
-            BEGIN
-            VisibleLog.ShowRemainingMultipliers;
-            VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
-            END;
-
-        BandMapBand := ActiveBand;
-        BandMapMode := ActiveMode; {KK1L: 6.68 BM now tracks mode with no radio connected on mode change}
-        DisplayBandMap;
-        END;
-    END;
-
-
+
 
 PROCEDURE DupeCheckOnInactiveRadio;
 
@@ -4832,7 +4769,7 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
     KeyStamp (ExtendedKey);
     END;
 
-
+
 
 PROCEDURE LogContact (VAR RXData: ContestExchange);
 
@@ -4995,7 +4932,7 @@ VAR LogString: Str80;
       END;
     END;
 
-
+
 
 PROCEDURE LogLastCall;
 
@@ -5040,7 +4977,7 @@ VAR Hours, Minutes, Seconds, Hundreths: Word;
     CleanUpDisplay;
     END;
 
-
+
 
 FUNCTION SearchAndPounce: BOOLEAN;
 

@@ -2425,10 +2425,18 @@ VAR NumberMults: INTEGER;
     IF MultByBand THEN MultBand := RXData.Band ELSE MultBand := All;
     IF MultByMode THEN MultMode := RXData.Mode ELSE MultMode := Both;
 
-    IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
-        RXData.DomMultQTH := RXData.DomesticQTH;
+    IF (ContestName = 'CWT') OR (ContestName = 'CWO') THEN { CWT and CWO uses calls for mults }
+        BEGIN
+        RXData.DomMultQTH := RXData.Callsign;
+        IF Length (RXData.DomMultQTH) > 6 THEN
+            RXData.DomMultQTH := Copy (RXData.DomMultQTH, 1, 6);
+        END
+    ELSE
+        IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
+            RXData.DomMultQTH := RXData.DomesticQTH;
 
     FoundDomesticQTH := RXData.DomMultQTH <> ''; //for WRTC 2018
+
     IF (RXData.DomMultQTH <> '') AND DoingDomesticMults THEN
         BEGIN
         NumberMults := MultSheet.Totals [MultBand, MultMode].NumberDomesticMults;

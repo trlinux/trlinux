@@ -796,6 +796,17 @@ VAR TempQTH: QTHRecord;
             FoundContest := True;
             END;
 
+         IF CMD = 'CWO' THEN
+            BEGIN
+            ActiveExchange := QSONumberAndNameExchange;
+            ActiveDomesticMult := WYSIWYGDomestic;
+            ActiveQSOPointMethod := OnePointPerQSO;
+            ContestName := 'CWO';
+            LiteralDomesticQTH := True;
+            QSOByBand := True;
+            FoundContest := True;
+            END;
+
          IF CMD = 'EUROPEAN HFC' THEN
             BEGIN
             ActiveExchange := RSTZoneExchange;
