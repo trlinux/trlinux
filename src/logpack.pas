@@ -63,6 +63,7 @@ TYPE
 
         EightBitPacketPort:       BOOLEAN;
 
+        FT8SpotEnable:            BOOLEAN;
         PacketBandSpots:          BOOLEAN;
         PacketBaudRate:           LONGINT;
         PacketBeep:               BOOLEAN;
@@ -381,6 +382,18 @@ VAR xResult: INTEGER;
 
         IF (TempFrequency > 2000000000) OR (TempFrequency < 0) THEN
             Exit;
+
+        { See if this is a useless FT8 spot }
+
+        IF NOT Packet.FT8SpotEnable THEN
+            BEGIN
+            IF (TempFrequency > 3572000) AND (TempFrequency < 3575000) THEN Exit;
+            IF (TempFrequency > 7073000) AND (TempFrequency < 7076000) THEN Exit;
+            IF (TempFrequency > 14073000) AND (TempFrequency < 14076000) THEN Exit;
+            IF (TempFrequency > 21073000) AND (TempFrequency < 21076000) THEN Exit;
+            IF (TempFrequency > 21091000) AND (TempFrequency < 21094000) THEN Exit;
+            IF (TempFrequency > 28073000) AND (TempFrequency < 28076000) THEN Exit;
+            END;
 
         { Convert real frequency to LONGINT }
 

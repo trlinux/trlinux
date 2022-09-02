@@ -60,9 +60,9 @@ TYPE
         Latch:                BOOLEAN;   { I really don't know what this does }
         map1:                 INTEGER;
         map2:                 INTEGER;
-        SO2R_config:          so2r_config_t;
-        SO2R_state:           so2r_state_t;
-        SO2R_switches:        so2r_switches_t;
+        SO2R_config:          so2r_config_t;   { not used except I remember if blend and relays are set  }
+        SO2R_state:           so2r_state_t;    { this gets used for RX focus and mic switching }
+        SO2R_switches:        so2r_switches_t; { not used }
 
         FUNCTION  EchoTest: BOOLEAN;
         PROCEDURE SendRelayStatusToSO2RMini;
@@ -235,7 +235,6 @@ PROCEDURE ArduinoKeyer.SetMicRelay (On: boolean);
   upon headphone focus or not here in pascal land }
 
     BEGIN
-    Write ('.');
     IF On THEN
         SO2R_Config.Relays := 1
     ELSE
@@ -275,22 +274,23 @@ VAR Cmd: BYTE;
     BEGIN
     IF KeyerInitialized THEN
         BEGIN
-        Cmd := 0;
+        Cmd := 0;  { default value }
 
         { Bit zero of the command is relay 1 - OFF = rig 1  ON = rig 2 }
 
         IF (SO2R_State.RX2 = 1) THEN
-            Cmd := Cmd OR $01;  { Set bit }
+            Cmd := $01;
 
-        { Bit one is for relay 2 - which is relay 1 is also on will do stereo }
+        { Bit one is for relay 2 - which if relay 1 is also on will do stereo }
 
         IF (SO2R_State.Stereo = 1) THEN
-            Cmd := Cmd OR $03;  { Set bits }
+            Cmd := $03;
 
         { Microphone relay }
 
-        IF (SO2R_State.TX2 = 1) THEN
-            Cmd := Cmd OR $04;  { Set bit }
+        IF (SO2R_Config.Relays = 1) THEN
+            IF (SO2R_State.TX2 = 1) THEN
+                Cmd := Cmd OR $04;  { Set bit }
 
         ArduinoKeyerPort.PutChar (Char ($02));  { SO2R relay command }
         ArduinoKeyerPort.PutChar (Char (Cmd));  { SO2R relay data }
@@ -488,17 +488,24 @@ VAR DelayLoops: INTEGER;
             IF Length (Version) = 7 THEN  { We have enough characters }
                 BEGIN
                 EchoTest := Copy (Version, 1, 4) = 'TRCW';
+                GoToXY (1, WhereY);
+                ClrEol;
                 Exit;
                 END;
             END
         ELSE
             BEGIN     { Here because we timed out }
             Inc (RetryCount);
+            GoToXY (1, WhereY);
+            Write ('SO2R Retry count = ', RetryCount);
 
             IF RetryCount > 20 THEN
                 BEGIN
                 ClrScr;
-                WriteLn ('Unable to communicat with Arduino after ', RetryCount, ' retries');
+                WriteLn;
+                WriteLn ('Unable to communicate with Arduino after ', RetryCount, ' retries');
+                WriteLn ('Returned string = ', Version);
+                WaitForKeyPressed;
                 Halt;
                 END;
 
@@ -595,27 +602,25 @@ PROCEDURE ArduinoKeyer.SetActiveRadio (Radio: RadioType);
     CASE Radio OF
         RadioOne:
             BEGIN
-            IF SO2r_Config.Relays = 1 THEN
-                SO2R_State.TX2 := 0;          { Set microphone to radio 1 }
+            SO2R_State.TX2 := 0;          { Set microphone to radio 1 }
 
             IF KeyerInitialized THEN
                 BEGIN
                 ArduinoKeyerPort.PutChar (Char ($0B));  { Radio select command }
                 ArduinoKeyerPort.PutChar (Char ($01));  { Radio One }
-                SendRelayStatusToSO2RMini ; { Update microphone relay }
+                SendRelayStatusToSO2RMini ;  { Update microphone relay  }
                 END;
             END;
 
         RadioTwo:
             BEGIN
-            IF SO2r_Config.Relays = 1 THEN
-                SO2R_State.TX2 := 1;          { Set microphone to radio 2 }
+            SO2R_State.TX2 := 1;          { Set microphone to radio 2 }
 
             IF KeyerInitialized THEN
                 BEGIN
                 ArduinoKeyerPort.PutChar (Char ($0B));  { Radio select command }
                 ArduinoKeyerPort.PutChar (Char ($02));  { Radio Two }
-                SendRelayStatusToSO2RMini;  { Update microphone relay }
+                SendRelayStatusToSO2RMini;   { Update microphone relay }
                 END;
             END;
 
@@ -1121,18 +1126,21 @@ FUNCTION ArduinoKeyer.CWStillBeingSent: BOOLEAN;
         REPEAT UNTIL ArduinoKeyerPort.CharReady;
 
         CASE Integer (ArduinoKeyerPort.ReadChar) OF
-            0: BEGIN
-                 CWStillBeingSent := False;
-                 END;
+            0: CWStillBeingSent := False;  { PTT dropped }
 
-            1: BEGIN
-                 CWStillBeingSent := True;  { we are doing the PTT wind down thing }
-                 END;
+             { A 1 result  used to return True - but I was seeing some
+               dropouts of the PTT being asserted when using the
+               AutoCallTerminate function - so made it false so that we
+               can have more time to get the exchange (or dupe message)
+               cued up.
 
-            2: BEGIN
-                 CWStillBeingSent := True;  { we are indeed sending CW }
-                 END;
-            END;
+               Then I set it back to True to see if things worked
+               better. }
+
+            1: CWStillBeingSent := True;  { CW buffer empty - PTT On }
+            2: CWStillBeingSent := True;   { we are indeed sending CW }
+
+            END;  { of case }
         END
     ELSE
         CWStillBeingSent := False;

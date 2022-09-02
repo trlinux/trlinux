@@ -27,6 +27,8 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+
+ - Made UA and EU QSOs not count for WPX
  - Fixed Paddle CW Speed so that zero will track the Computer Speed (keyerard + Ardunio)
  - Fixed the PTT Hold time for Paddle Sent CW (most in Ardunio)
  - Fixed not iniitializing the serial port speed for the Arduino (keyerard.pas)
@@ -3425,6 +3427,7 @@ Uses
      LogWAE,
      LogWind,
      Printer,
+     TwoBSIQ,
      trCrt,
      SlowTree,
      Tree,
