@@ -50,6 +50,8 @@ CHANGE LOG
 
 1-Sep-2022
 
+ - Attempted to make active radio go to the one you just hit a function key for.
+
  - Made SRS command go to the radio tied to the instance it was initiated from
 
  - Added CWO contest and added CWT and CWO to the log prompt menu.

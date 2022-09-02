@@ -389,12 +389,13 @@ VAR FileName, CommandString: Str40;
             CommandString := PrecedingString (CommandString, '=');
             END;
 
-        IF CommandString = 'BANDUP'         THEN
+        IF CommandString = 'BANDUP' THEN
             BEGIN
             RememberFrequency; {KK1L: 6.72 Added to match all other calls. Needed for loss of coms}
             BandUp;
             END;
-        IF CommandString = 'BANDDOWN'       THEN
+
+        IF CommandString = 'BANDDOWN' THEN
             BEGIN
             RememberFrequency; {KK1L: 6.72 Added to match all other calls. Needed for loss of coms}
             BandDown;
@@ -404,7 +405,7 @@ VAR FileName, CommandString: Str40;
         IF CommandString = 'CQMODE'         THEN CWMessageCommand := CWCommandCQMode;
         IF CommandString = 'CWENABLETOGGLE' THEN CWEnable := NOT CWEnable;
 
-        IF CommandString = 'CWMONITORON'    THEN
+        IF CommandString = 'CWMONITORON' THEN
             BEGIN
             IF OldCWTone = 0 THEN OldCWTone := 700;
             CWTone := OldCWTone;
@@ -1106,6 +1107,8 @@ VAR CharacterCount: INTEGER;
 { This is a very scaled down version of what is in the main program }
 
     BEGIN
+    IF Mode = Phone THEN ActiveRadio := Radio;
+
     FoundCommand (Radio, SendString);
 
     IF SendString = '' THEN
