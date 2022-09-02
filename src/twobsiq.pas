@@ -50,6 +50,8 @@ CHANGE LOG
 
 1-Sep-2022
 
+ - Made SRS command go to the radio tied to the instance it was initiated from
+
  - Added CWO contest and added CWT and CWO to the log prompt menu.
 
  - Changed format of the SERIALNUMBER.TXT file to have the prefix QNR: for lines

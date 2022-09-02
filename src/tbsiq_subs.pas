@@ -356,7 +356,7 @@ VAR RememberTime: TimeRecord;
     END;
 
 
-FUNCTION FoundCommand (VAR SendString: Str160): BOOLEAN;
+FUNCTION FoundCommand (Radio: RadioType; VAR SendString: Str160): BOOLEAN;
 
 { Taken from LOGSUBS2 and customized for this environment }
 
@@ -558,7 +558,7 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SRS' THEN
             BEGIN
-               if activeradio = radioone then
+               if radio = radioone then
                   rig1.directcommand (filename)
                else
                   rig2.directcommand (filename);
@@ -1106,7 +1106,7 @@ VAR CharacterCount: INTEGER;
 { This is a very scaled down version of what is in the main program }
 
     BEGIN
-    FoundCommand (SendString);
+    FoundCommand (Radio, SendString);
 
     IF SendString = '' THEN
         BEGIN
