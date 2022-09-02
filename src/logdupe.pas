@@ -2425,7 +2425,7 @@ VAR NumberMults: INTEGER;
     IF MultByBand THEN MultBand := RXData.Band ELSE MultBand := All;
     IF MultByMode THEN MultMode := RXData.Mode ELSE MultMode := Both;
 
-    IF ActiveExchange = CWTExchange THEN  { Exception for CWT where we use calls a mults }
+    IF (ContestName = 'CWT') OR (ContestName = 'CWO') THEN { CWT and CWO uses calls for mults }
         BEGIN
         RXData.DomMultQTH := RXData.Callsign;
         IF Length (RXData.DomMultQTH) > 6 THEN

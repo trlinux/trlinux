@@ -50,6 +50,8 @@ CHANGE LOG
 
 1-Sep-2022
 
+ - Added CWO contest and added CWT and CWO to the log prompt menu.
+
  - Changed format of the SERIALNUMBER.TXT file to have the prefix QNR: for lines
    created when reserving a QSO number.  I updated the format shown under 31-Aug.
 
