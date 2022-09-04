@@ -57,6 +57,7 @@ CHANGE LOG
 
 4-Sep-2022
 
+ - Made two keyboards with same mfg id work.
  - Insert display added for 2BSIQ.
  - Eliminated *** debug message when unknown key pressed
 
@@ -344,7 +345,7 @@ PROCEDURE TwoBandSIQ;
     ClrScr;
     WriteLn ('Welcome to the TR Log 2BSIQ Program - Enter at your own peril.');
 
-    IF NOT InitializeKeyboards THEN
+    IF NOT NewInitializeKeyboards THEN
         BEGIN
         Writeln ('Keyboards not properly initialized.');
         WHILE KeyPressed DO ReadKey;

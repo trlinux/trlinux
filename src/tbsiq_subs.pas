@@ -212,6 +212,8 @@ VAR
     TBSIQ_QSOState: TBSIQ_QSOStateType;
 
 FUNCTION  InitializeKeyboards: BOOLEAN;
+FUNCTION  NewInitializeKeyboards: BOOLEAN;
+
 FUNCTION  TBSIQ_KeyPressed (Radio: RadioType): BOOLEAN;  { Radio = 1 or 2 }
 PROCEDURE TBSIQ_LogContact (VAR RXData: ContestExchange);
 
@@ -4221,6 +4223,186 @@ VAR FileInfo: SearchRec;
         END;
 
     InitializeKeyboards := False;
+    END;
+
+
+
+FUNCTION NewInitializeKeyboards: BOOLEAN;
+
+{ Get the file names of the "by-id" files and determine which radio
+  corresponds to which files.  The Radio1Filedescriptior and
+  R2KeyboardID will be set and the files will be open }
+
+TYPE KeyboardFileRecord = RECORD
+        FileID: CINT;
+        FileName: STRING;
+        END;
+
+VAR FileInfo: SearchRec;
+    TimeOut, Address, NumberFiles: INTEGER;
+    KBData: ARRAY [0..10] OF KeyboardFileRecord;
+    TempFD: CINT;
+    KeyboardDataRecord: FileRecord;
+    Keyboard1Found, Keyboard2Found: BOOLEAN;
+    KeyStatus: KeyStatusRecord;
+    FDS: Tfdset;
+
+    BEGIN
+    NumberFiles := 0;
+
+    FindFirst ('/dev/input/by-path/*-kbd', Archive, FileInfo);
+
+    WHILE DosError = 0 DO
+        BEGIN
+        WITH KBData [Numberfiles] DO
+            BEGIN
+            FileName := Fileinfo.Name;
+            FileID := 0;
+            Inc (NumberFiles);
+            END;
+
+        FindNext (FileInfo);
+        END;
+
+    IF NumberFiles < 2 THEN
+        BEGIN
+        WriteLn ('Unable to find two keyboards');
+        NewInitializeKeyboards := False;
+        Exit;
+        END;
+
+    FOR Address := 0 TO NumberFiles - 1 DO
+        WITH KBData [Address] DO
+            FileID := FpOpen ('/dev/input/by-path/' + FileName, O_RdOnly);
+
+    Keyboard1Found := False;
+    Keyboard2Found := False;
+
+    WriteLn ('Press a key on the Radio 1 keyboard');
+
+    TimeOut := 0;
+
+    REPEAT
+        FOR Address := 0 TO NumberFiles - 1 DO
+            WITH KBData [Address] DO
+                BEGIN
+                WITH KeyStatus DO
+                    BEGIN
+                    KeyPressedCode := 0;
+                    KeyPressed             := FALSE;
+                    ExtendedKey            := FALSE;
+                    ExtendedKeyNullSent    := FALSE;
+                    LeftShiftKeyPressed    := FALSE;
+                    RightShiftKeyPressed   := FALSE;
+                    LeftAltKeyPressed      := FALSE;
+                    RightAltKeyPressed     := FALSE;
+                    LeftControlKeyPressed  := FALSE;
+                    RightControlKeyPressed := FALSE;
+                    END;
+
+                fpfd_set (FileID, FDS);
+                fpSelect (FileID + 1, @FDS, nil, nil, 0);
+
+                IF fpfd_ISSET (FileID, FDS) > 0 THEN
+                    BEGIN
+                    FPRead (FileID, KeyboardDataRecord, SizeOf (KeyboardDataRecord));
+
+                    ProcessKeyboardRecord (KeyboardDataRecord, Radio1KeyStatus);
+
+                    IF Radio1KeyStatus.KeyPressed THEN
+                        BEGIN
+                        R1KeyboardID := FileID;
+                        Keyboard1Found := True;
+                        FileID := 0;
+                        Break;
+                        END;
+                    END;
+                END;
+
+        MilliSleep;
+        Inc (TimeOut);
+    UNTIL Keyboard1Found OR (TimeOut > 10000);
+
+    IF TimeOut > 10000 THEN
+        BEGIN
+        WriteLn ('TIMEOUT!!  No keystroke found.');
+        NewInitializeKeyboards := False;
+        Exit;
+        END;
+
+    IF NOT Keyboard1Found THEN
+        BEGIN
+        WriteLn ('No keyboard found for Radio 1');
+        NewInitializeKeyboards := False;
+        Exit;
+        END;
+
+    WriteLn ('Press a key on the Radio 2 keyboard');
+
+    TimeOut := 0;
+
+    REPEAT
+        FOR Address := 0 TO NumberFiles - 1 DO
+            WITH KBData [Address] DO
+                IF FileID > 0 THEN
+                    BEGIN
+                    WITH KeyStatus DO
+                        BEGIN
+                        KeyPressedCode := 0;
+                        KeyPressed             := FALSE;
+                        ExtendedKey            := FALSE;
+                        ExtendedKeyNullSent    := FALSE;
+                        LeftShiftKeyPressed    := FALSE;
+                        RightShiftKeyPressed   := FALSE;
+                        LeftAltKeyPressed      := FALSE;
+                        RightAltKeyPressed     := FALSE;
+                        LeftControlKeyPressed  := FALSE;
+                        RightControlKeyPressed := FALSE;
+                        END;
+
+                    fpfd_zero (FDS);
+                    fpfd_set (FileID, FDS);
+                    fpSelect (FileID + 1, @FDS, nil, nil, 0);
+
+                    IF fpfd_ISSET (FileID, FDS) > 0 THEN
+                        BEGIN
+                        FPRead (FileID, KeyboardDataRecord, SizeOf (KeyboardDataRecord));
+
+                        ProcessKeyboardRecord (KeyboardDataRecord, KeyStatus);
+
+                        IF KeyStatus.KeyPressed THEN
+                            BEGIN
+                            R2KeyboardID := FileID;
+                            Keyboard2Found := True;
+                            FileID := 0;
+                            Break;
+                            END;
+                        END;
+                    END;
+
+        MilliSleep;
+        Inc (TimeOut);
+    UNTIL Keyboard2Found OR (TimeOut > 10000);
+
+    IF TimeOut > 10000 THEN
+        BEGIN
+        WriteLn ('TIMEOUT!!  No keystroke found.');
+        NewInitializeKeyboards := False;
+        Exit;
+        END;
+
+
+    IF NOT Keyboard2Found THEN
+        BEGIN
+        WriteLn ('No keyboard found for Radio 2');
+        NewInitializeKeyboards := False;
+        Exit;
+        END;
+
+    WHILE TBSIQ_KeyPressed (RadioOne) DO TBSIQ_ReadKey (RadioOne);
+    WHILE TBSIQ_KeyPressed (RadioTwo) DO TBSIQ_ReadKey (RadioTwo);
+
+    NewInitializeKeyboards := True;
     END;
 
 
