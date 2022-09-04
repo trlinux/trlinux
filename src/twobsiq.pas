@@ -27,12 +27,12 @@ UNIT TwoBSIQ;
 
 TODO LIST
 
+- For 2BSIQ - BAndmap blinking call / cursor not updating as you tune the radio.  CQs
+  not showing up.  Also not following radio on the move unless Auto S&P enabled.
+
 - "ActiveBand" cursor on the band totals display is not right.
 
 - Occasionally, the auto start send doesn't start if I am busy on the other radio.
-  Maybe fixed - see 31-Aug.
-
-- Insert mode display.
 
 - Implement ShowStationInformation
 
@@ -46,7 +46,48 @@ TODO LIST
 
  - Add some kind of display of next QSO number which can be used for SSB.
 
+ - Total Points not showing up in 2BSIQ and/or CWT/CWO
+
+ - In Classic mode - pressing F1 in S&P with a call in the call window does
+   indeed put you in the exchange window with the initial exchange, except
+   it is at the start of the window where the InitialExchangeCursorPos = AtEnd
+
+
 CHANGE LOG
+
+4-Sep-2022
+
+ - Insert display added for 2BSIQ.
+ - Eliminated *** debug message when unknown key pressed
+
+3-Sep-2022
+
+  - Implmeneted SPRINT QSY RULE for 2BSIQ.
+  - Tried again to fix the AutoStartSend being brain dead occasionally.  Need to test in CWT.
+  - Much improvement with BandMap and 2BSIQ
+  - Added support for \ key send QuickQSLMessage1.  Currently hardwired.
+  - Fixed speed changes during CW message aborting message.
+
+  - In 2BSIQ - Made hitting F1 or RETURN when calling a station in S&P put you in the
+    exchange window with the initial exchange if the call appears valid.  Note that the cursor
+    is always at the end - irregardless of the setting for initial exchange cursor pos.
+
+2-Sep-2022
+
+ - Fixed S/N not going past 1 in S&P.
+ - Fixed AltZ operation so the exchagne window always comes up and is correct
+ - Made # with no callwindow and no exchange window contents in 2BSIQ send previous QSO #
+
+ - Did a little code cleanup in LogWind in the UpdateTimeAndRate displays with the
+   radio display code.
+
+ - Fixed ESCAPE key with blank exchange window in S&P not resetting the flag indicating
+   that the callsign has been sent.  Note that in normal mode - if you press ESCAPE with
+   and empty exchange window - the call window clears too.  In 2BSIQ - you first end up
+   going to the call window - and then clearing it with a second escape.  Not sure this
+   inconsistency is a problem.
+
+**** 0.54 release
 
 1-Sep-2022
 
@@ -87,12 +128,6 @@ CHANGE LOG
 
     Using the # in the exchange memories during the QSO before it is logged will repeat
     the same number that was originally sent.
-
-
-  - Made AutoStartSend start even if the call window string is > than the send
-    count.  Not sure it matters - but perhaps addresses the bug where occasionally
-    auto start send doesn't start when busy with the other radio.  I could not
-    reproduce this failure in the lab - so not really sure it fixed anything.
 
   - Fixed flashing cursor between call windows when both rigs sending 73 message.
 

@@ -218,6 +218,7 @@ TYPE
                   TBSIQ_R1_CWMessageWindow,
                   TBSIQ_R1_ExchangeWindow,
                   TBSIQ_R1_FrequencyWindow,
+                  TBSIQ_R1_InsertWindow,
                   TBSIQ_R1_PossibleCallWindow,
                   TBSIQ_R1_QuickCommandWindow,
                   TBSIQ_R1_StateMachineStatusWindow,
@@ -231,6 +232,7 @@ TYPE
                   TBSIQ_R2_CWMessageWindow,
                   TBSIQ_R2_ExchangeWindow,
                   TBSIQ_R2_FrequencyWindow,
+                  TBSIQ_R2_InsertWindow,
                   TBSIQ_R2_PossibleCallWindow,
                   TBSIQ_R2_QuickCommandWindow,
                   TBSIQ_R2_StateMachineStatusWindow,
@@ -355,6 +357,9 @@ TYPE
 
         TBSIQ_HourRateWindowBackground: INTEGER;
         TBSIQ_HourRateWindowColor:      INTEGER;
+
+        TBSIQ_InsertWindowBackground: INTEGER;
+        TBSIQ_InsertWindowColor:      INTEGER;
 
         TBSIQ_RateWindowBackground: INTEGER;
         TBSIQ_RateWindowColor:      INTEGER;
@@ -780,6 +785,7 @@ VAR
     TBSIQ_R1_CWMessageWindowLX, TBSIQ_R1_CWMessageWindowLY, TBSIQ_R1_CWMessageWindowRX, TBSIQ_R1_CWMessageWindowRY: INTEGER;
     TBSIQ_R1_ExchangeWindowLX, TBSIQ_R1_ExchangeWindowLY, TBSIQ_R1_ExchangeWindowRX, TBSIQ_R1_ExchangeWindowRY: INTEGER;
     TBSIQ_R1_FrequencyWindowLX, TBSIQ_R1_FrequencyWindowLY, TBSIQ_R1_FrequencyWindowRX, TBSIQ_R1_FrequencyWindowRY: INTEGER;
+    TBSIQ_R1_InsertWindowLX, TBSIQ_R1_InsertWindowLY, TBSIQ_R1_InsertWindowRX, TBSIQ_R1_InsertWindowRY: INTEGER;
     TBSIQ_R1_PossibleCallWindowLX, TBSIQ_R1_PossibleCallWindowLY, TBSIQ_R1_PossibleCallWindowRX, TBSIQ_R1_PossibleCallWindowRY: INTEGER;
     TBSIQ_R1_QuickCommandWindowLX, TBSIQ_R1_QuickCommandWindowLY, TBSIQ_R1_QuickCommandWindowRX, TBSIQ_R1_QuickCommandWindowRY: INTEGER;
     TBSIQ_R1_StateMachineStatusWindowLX, TBSIQ_R1_StateMachineStatusWindowLY, TBSIQ_R1_StateMachineStatusWindowRX, TBSIQ_R1_StateMachineStatusWindowRY: INTEGER;
@@ -793,6 +799,7 @@ VAR
     TBSIQ_R2_CWMessageWindowLX, TBSIQ_R2_CWMessageWindowLY, TBSIQ_R2_CWMessageWindowRX, TBSIQ_R2_CWMessageWindowRY: INTEGER;
     TBSIQ_R2_ExchangeWindowLX, TBSIQ_R2_ExchangeWindowLY, TBSIQ_R2_ExchangeWindowRX, TBSIQ_R2_ExchangeWindowRY: INTEGER;
     TBSIQ_R2_FrequencyWindowLX, TBSIQ_R2_FrequencyWindowLY, TBSIQ_R2_FrequencyWindowRX, TBSIQ_R2_FrequencyWindowRY: INTEGER;
+    TBSIQ_R2_InsertWindowLX, TBSIQ_R2_InsertWindowLY, TBSIQ_R2_InsertWindowRX, TBSIQ_R2_InsertWindowRY: INTEGER;
     TBSIQ_R2_PossibleCallWindowLX, TBSIQ_R2_PossibleCallWindowLY, TBSIQ_R2_PossibleCallWindowRX, TBSIQ_R2_PossibleCallWindowRY: INTEGER;
     TBSIQ_R2_QuickCommandWindowLX, TBSIQ_R2_QuickCommandWindowLY, TBSIQ_R2_QuickCommandWindowRX, TBSIQ_R2_QuickCommandWindowRY: INTEGER;
     TBSIQ_R2_StateMachineStatusWindowLX, TBSIQ_R2_StateMachineStatusWindowLY, TBSIQ_R2_StateMachineStatusWindowRX, TBSIQ_R2_StateMachineStatusWindowRY: INTEGER;
@@ -1859,6 +1866,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           SetColor (SelectedColors.TBSIQ_CallWindowColor);
           END;
 
+      TBSIQ_R1_InsertWindow:
+          BEGIN
+          Window (TBSIQ_R1_InsertWindowLX, TBSIQ_R1_InsertWindowLY, TBSIQ_R1_InsertWindowRX, TBSIQ_R1_InsertWindowRY);
+          SetBackground (SelectedColors.InsertWindowBackground);
+          SetColor (SelectedColors.InsertWindowColor);
+          END;
+
       TBSIQ_R1_CodeSpeedWindow:
           BEGIN
           Window (TBSIQ_R1_CodeSpeedWindowLX, TBSIQ_R1_CodeSpeedWindowLY, TBSIQ_R1_CodeSpeedWindowRX, TBSIQ_R1_CodeSpeedWindowRY);
@@ -1941,6 +1955,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           Window (TBSIQ_R2_CallWindowLX, TBSIQ_R2_CallWindowLY, TBSIQ_R2_CallWindowRX, TBSIQ_R2_CallWindowRY);
           SetBackground (SelectedColors.TBSIQ_CallWindowBackground);
           SetColor (SelectedColors.TBSIQ_CallWindowColor);
+          END;
+
+      TBSIQ_R2_InsertWindow:
+          BEGIN
+          Window (TBSIQ_R2_InsertWindowLX, TBSIQ_R2_InsertWindowLY, TBSIQ_R2_InsertWindowRX, TBSIQ_R2_InsertWindowRY);
+          SetBackground (SelectedColors.InsertWindowBackground);
+          SetColor (SelectedColors.InsertWindowColor);
           END;
 
       TBSIQ_R2_CodeSpeedWindow:
@@ -3168,19 +3189,23 @@ LABEL IgnoreRadioOneFreq, IgnoreRadioTwoFreq;
 VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
     Hour, Minute, Second, Hundredths: WORD;
     AlarmInteger, RecordNumber, IntegerTime, RateMinute: INTEGER;
-    Freq: LONGINT;
-    Band: BandType;
-    Mode: ModeType;
+    Freq: LONGINT;   { From the radio }
+    Band: BandType;  { From the radio }
+    Mode: ModeType;  { From the radio }
 
     BEGIN
+    { In 2022 - I am not sure I understand why ShowTime is required in order
+      to do radios.  The only time I seem to call this with ShowTime = False
+      is when I am in LogHelp and DoRadios is also False }
+
     IF ShowTime THEN
         BEGIN
         FullTimeString := GetFullTimeString;
 
-  MILLISLEEP; //KS try again
-        GetTime (Hour, Minute, Second, Hundredths); {KK1L: 6.71a}
+        MILLISLEEP; //KS try again
 
-        LastSecond100 := Hundredths; {KK1L: 6.71a}
+        GetTime (Hour, Minute, Second, Hundredths); {KK1L: 6.71a}
+        LastSecond100 := Hundredths;                {KK1L: 6.71a}
 
         { Check to see if we have an interfaced radio to look at }
 
@@ -3189,90 +3214,81 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
         IF DoRadios AND (Radio1Type <> NoInterfacedRadio) AND PollRadioOne THEN
             BEGIN
-
-//            IF (ActiveRadio = RadioOne) THEN
-            IF TRUE THEN
+            IF GetRadioParameters (RadioOne, '', Freq, Band, Mode, TRUE, False) THEN
                 BEGIN
-                IF GetRadioParameters (RadioOne, '', Freq, Band, Mode, TRUE, False) THEN
+                IF (Abs (Freq - SplitFreq) <= 1000) THEN   { Why? }
+                       GoTo IgnoreRadioOneFreq;
+
+                RadioOnTheMove [RadioOne] := ((PreviousRadioOneFreq <> 0) AND
+                                             (Abs (PreviousRadioOneFreq - Freq) > (Rig1FreqPollRate * AutoSAPEnableRate div 1000))) OR
+                                            (ModeMemory [RadioOne] <> Mode);
+
+                RadioMovingInBandMode[RadioOne] := (RadioOnTheMove[RadioOne]) AND
+                                                   (ModeMemory [RadioOne] = Mode) AND
+                                                   (BandMemory [RadioOne] = Band);
+
+                BandMemory [RadioOne] := Band;
+                ModeMemory [RadioOne] := Mode;
+
+                IF FrequencyMemoryEnable THEN
+                    FreqMemory [Band, Mode] := Freq;
+
+                CurrentFreq [RadioOne] := Freq;
+                DisplayFrequency (Freq, RadioOne);
+
+                IF (ActiveRadio = RadioOne) THEN
                     BEGIN
-                    IF (Abs (Freq - SplitFreq) <= 1000) THEN
-                           GoTo IgnoreRadioOneFreq;
+                    IF ((Band <> LastDisplayedBand) OR (Mode <> LastDisplayedMode) OR
+                        (Band <> LastRadioOneBand)  OR (Mode <> LastRadioOneMode)) THEN
+                            IF Radio1TrackingEnable THEN
+                                BEGIN
+                                ActiveBand := Band;
+                                ActiveMode := Mode;
+                                DisplayBandMode (ActiveBand, ActiveMode, False);
 
-                    RadioOnTheMove[RadioOne] := ((PreviousRadioOneFreq <> 0) AND
-                                         (Abs (PreviousRadioOneFreq - Freq) > (Rig1FreqPollRate * AutoSAPEnableRate div 1000))) OR
-                                         (ModeMemory [RadioOne] <> Mode);
+                                VisibleDupeSheetChanged := True;
 
-                    RadioMovingInBandMode[RadioOne] := (RadioOnTheMove[RadioOne]) AND
-                                                       (ModeMemory [RadioOne] = Mode) AND
-                                                       (BandMemory [RadioOne] = Band);
-
-                    BandMemory [RadioOne] := Band;
-                    ModeMemory [RadioOne] := Mode;
-
-                    IF FrequencyMemoryEnable THEN
-                        FreqMemory [Band, Mode] := Freq;
-
-                    CurrentFreq[RadioOne] := Freq;
-
-                    DisplayFrequency (Freq, RadioOne); {KK1L: 6.73 Added Radio}
-
-                    IF (ActiveRadio = RadioOne) THEN
-                        BEGIN
-
-                        IF ((Band <> LastDisplayedBand) OR (Mode <> LastDisplayedMode) OR
-                            (Band <> LastRadioOneBand)  OR (Mode <> LastRadioOneMode)) THEN
-                                IF Radio1TrackingEnable THEN
+                                IF Mode <> LastRadioOneMode THEN
                                     BEGIN
-                                    ActiveBand := Band;
-                                    ActiveMode := Mode;
-                                    DisplayBandMode (ActiveBand, ActiveMode, False);
+                                    DisplayCodeSpeed (CodeSpeed,
+                                                      CWEnabled,
+                                                      DVPOn,
+                                                      ActiveMode);
 
-                                    VisibleDupeSheetChanged := True;
-
-                                    IF Mode <> LastRadioOneMode THEN
-                                        BEGIN
-                                        DisplayCodeSpeed (CodeSpeed,
-                                                          CWEnabled,
-                                                          DVPOn,
-                                                          ActiveMode);
-
-                                        DisplayAutoSendCharacterCount;
-                                        END;
-
-                                    LastRadioOneBand := Band;
-                                    LastRadioOneMode := Mode;
+                                    DisplayAutoSendCharacterCount;
                                     END;
 
-                        { See what radio two might be up to }
+                                LastRadioOneBand := Band;
+                                LastRadioOneMode := Mode;
+                                END;
 
-                        IF TwoRadioState = TwoRadiosDisabled THEN  { No 2nd radio }
+                    { See what radio two might be up to }
+
+                    IF TwoRadioState = TwoRadiosDisabled THEN  { No 2nd radio }
+                        BEGIN
+                        IF ((Freq <> BandMapCursorFrequency) OR (BandMapMode <> ActiveMode)) AND (Freq <> 0) THEN
                             BEGIN
-                            IF ((Freq <> BandMapCursorFrequency) OR (BandMapMode <> ActiveMode)) AND (Freq <> 0) THEN
+                            BandMapCursorFrequency := Freq;
+                            BandMapBand := Band;
+                            BandMapMode := Mode;
+                            DisplayBandMap;
+                            END;
+                        END
+                    ELSE
+                        BEGIN
+                        IF BandMapEnable THEN
+                            IF ((Band = BandMapBand) AND (Freq <> BandMapCursorFrequency) AND (Freq <> 0)) OR
+                                (RadioOnTheMove[RadioOne]) THEN {KK1L: 6.73 Consolidated logic}
                                 BEGIN
                                 BandMapCursorFrequency := Freq;
                                 BandMapBand := Band;
                                 BandMapMode := Mode;
                                 DisplayBandMap;
                                 END;
-                            END
-                        ELSE
-                            BEGIN
-                            IF BandMapEnable THEN
-                                IF ((Band = BandMapBand) AND (Freq <> BandMapCursorFrequency) AND (Freq <> 0)) OR
-                                    (RadioOnTheMove[RadioOne]) THEN {KK1L: 6.73 Consolidated logic}
-                                    BEGIN
-                                    BandMapCursorFrequency := Freq;
-                                    BandMapBand := Band;
-                                    BandMapMode := Mode;
-                                    DisplayBandMap;
-                                    END;
-                            END;
-                        END
-                    ELSE
-                        BEGIN
-
-                        IF (TwoRadioState <> TwoRadiosDisabled) THEN  {KK1L: 6.73 Added to display inactive radio freq}
-                            DisplayFrequency (Freq, RadioOne); {KK1L: 6.73 Display Radio One}
+                        END;
+                    END
+                ELSE
+                    BEGIN
 
                     { Okay, this isn't the active radio, but we might have
                       something to do if the band map is active.  If we are
@@ -3280,32 +3296,25 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                       going to assume that it is appropriate for the band
                       map on this band to be displayed! }
 
-                        IF (TwoRadioState <> TwoRadiosDisabled) AND BandMapEnable AND RadioOnTheMove[RadioOne] THEN
-                            BEGIN
-                            BandMapBand := Band;
-                            BandMapMode := Mode;
-                            BandMapCursorFrequency := Freq;
-                            DisplayBandMap;
-                            END;
-
-                    { We should also update the band output if it has
-                      changed bands. }
-
-                            OutputBandInfo (RadioOne, Band);
+                    IF (TwoRadioState <> TwoRadiosDisabled) AND BandMapEnable AND RadioOnTheMove [RadioOne] THEN
+                        BEGIN
+                        BandMapBand := Band;
+                        BandMapMode := Mode;
+                        BandMapCursorFrequency := Freq;
+                        DisplayBandMap;
                         END;
 
-                    {KK1L: 6.71 Same as what was LastRadio1Freq set in LOGK1EA. I made these variables}
-                    {           the same. It is set by the GetRadioParameter call.}
-                    {KK1L: 6.71b Put this back to fix AutoSAPEnable}
-                    PreviousRadioOneFreq := Freq;
-                    END
-                ELSE
-                    DisplayFrequency (0, RadioOne); {KK1L: 6.73 Added Radio}
+                    { We should also update the band output }
+
+                    OutputBandInfo (RadioOne, Band);
+                    END;
+
+                PreviousRadioOneFreq := Freq;
+                END
+            ELSE
+                DisplayFrequency (0, RadioOne);  { No frequency data from the radio }
 
         IgnoreRadioOneFreq:
-
-                END;
-            {QuickDisplay('Done with radio one'); }{KK1L: 6.72 DEBUG}
             END;
 
         IF NOT PollRadioTwo THEN
@@ -3313,87 +3322,81 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
         IF DoRadios AND (Radio2Type <> NoInterfacedRadio) AND PollRadioTwo THEN
             BEGIN
-//            IF (ActiveRadio = RadioTwo) THEN
-            IF TRUE THEN
+            IF GetRadioParameters (RadioTwo, '', Freq, Band, Mode, TRUE, False) THEN
                 BEGIN
-                IF GetRadioParameters (RadioTwo, '', Freq, Band, Mode, TRUE, False) THEN
+
+                IF (Abs (Freq - SplitFreq) <= 1000) THEN
+                       GoTo IgnoreRadioTwoFreq;
+
+                RadioOnTheMove[RadioTwo] := ((PreviousRadioTwoFreq <> 0) AND
+                                     (Abs (PreviousRadioTwoFreq - Freq) > (Rig2FreqPollRate * AutoSAPEnableRate div 1000))) OR
+                                     (ModeMemory [RadioTwo] <> Mode);
+
+                RadioMovingInBandMode[RadioTwo] := (RadioOnTheMove[RadioTwo]) AND
+                                                   (ModeMemory [RadioTwo] = Mode) AND
+                                                   (BandMemory [RadioTwo] = Band);
+
+                BandMemory [RadioTwo] := Band;
+                ModeMemory [RadioTwo] := Mode;
+
+                IF FrequencyMemoryEnable THEN
+                    FreqMemory [Band, Mode] := Freq;
+
+                CurrentFreq[RadioTwo] := Freq;
+
+                DisplayFrequency (Freq, RadioTwo);
+
+                IF (ActiveRadio = RadioTwo) THEN
                     BEGIN
+                    IF (Band <> LastDisplayedBand) OR (Mode <> LastDisplayedMode) OR
+                       (Band <> LastRadioTwoBand)  OR (Mode <> LastRadioTwoMode) THEN
+                           IF Radio2TrackingEnable THEN
+                               BEGIN
+                               ActiveBand := Band;
+                               ActiveMode := Mode;
 
-                    IF (Abs (Freq - SplitFreq) <= 1000) THEN
-                           GoTo IgnoreRadioTwoFreq;
+                               VisibleDupeSheetChanged := True;
 
-                    RadioOnTheMove[RadioTwo] := ((PreviousRadioTwoFreq <> 0) AND
-                                         (Abs (PreviousRadioTwoFreq - Freq) > (Rig2FreqPollRate * AutoSAPEnableRate div 1000))) OR
-                                         (ModeMemory [RadioTwo] <> Mode);
+                               DisplayBandMode (ActiveBand, ActiveMode, False);
 
-                    RadioMovingInBandMode[RadioTwo] := (RadioOnTheMove[RadioTwo]) AND
-                                                       (ModeMemory [RadioTwo] = Mode) AND
-                                                       (BandMemory [RadioTwo] = Band);
+                               IF Mode <> LastRadioOneMode THEN
+                                   DisplayCodeSpeed (CodeSpeed,
+                                                     CWEnabled,
+                                                     DVPOn,
+                                                     ActiveMode);
 
-                    BandMemory [RadioTwo] := Band;
-                    ModeMemory [RadioTwo] := Mode;
+                               LastRadioTwoBand := Band;
+                               LastRadioTwoMode := Mode;
+                               END;
 
-                    IF FrequencyMemoryEnable THEN
-                        FreqMemory [Band, Mode] := Freq;
+                    { See what the second radio might be up to }
 
-                    CurrentFreq[RadioTwo] := Freq;
-
-                    DisplayFrequency (Freq, RadioTwo);
-
-                    IF (ActiveRadio = RadioTwo) THEN
+                    IF TwoRadioState = TwoRadiosDisabled THEN
                         BEGIN
-                        IF (Band <> LastDisplayedBand) OR (Mode <> LastDisplayedMode) OR
-                           (Band <> LastRadioTwoBand)  OR (Mode <> LastRadioTwoMode) THEN
-                               IF Radio2TrackingEnable THEN
-                                   BEGIN
-                                   ActiveBand := Band;
-                                   ActiveMode := Mode;
 
-                                   VisibleDupeSheetChanged := True;
-
-                                   DisplayBandMode (ActiveBand, ActiveMode, False);
-
-                                   IF Mode <> LastRadioOneMode THEN
-                                       DisplayCodeSpeed (CodeSpeed,
-                                                         CWEnabled,
-                                                         DVPOn,
-                                                         ActiveMode);
-
-                                   LastRadioTwoBand := Band;
-                                   LastRadioTwoMode := Mode;
-                                   END;
-
-                        { See what the second radio might be up to }
-
-                        IF TwoRadioState = TwoRadiosDisabled THEN
+                        IF (Freq <> BandMapCursorFrequency) AND (Freq <> 0) THEN
                             BEGIN
-
-                            IF (Freq <> BandMapCursorFrequency) AND (Freq <> 0) THEN
-                                BEGIN
-                                BandMapBand := Band;
-                                BandMapMode := Mode;
-                                BandMapCursorFrequency := Freq;
-                                DisplayBandMap;
-                                END;
-                            END
-                        ELSE
-                            BEGIN
-                            IF BandMapEnable THEN
-                                IF ((Band = BandMapBand) AND (Freq <> BandMapCursorFrequency) AND (Freq <> 0)) OR
-                                    (RadioOnTheMove[RadioTwo]) THEN {KK1L: 6.73 consolodated logic}
-                                    BEGIN
-                                    BandMapCursorFrequency := Freq;
-                                    BandMapBand := Band;
-                                    BandMapMode := Mode;
-                                    DisplayBandMap;
-                                    END;
+                            BandMapBand := Band;
+                            BandMapMode := Mode;
+                            BandMapCursorFrequency := Freq;
+                            DisplayBandMap;
                             END;
                         END
                     ELSE
                         BEGIN
-
-                        IF (TwoRadioState <> TwoRadiosDisabled) THEN  {KK1L: 6.73 Added to display inactive radio freq}
-                            DisplayFrequency (Freq, RadioTwo); {KK1L: 6.73 Display Radio Two}
+                        IF BandMapEnable THEN
+                            IF ((Band = BandMapBand) AND (Freq <> BandMapCursorFrequency) AND (Freq <> 0)) OR
+                                (RadioOnTheMove[RadioTwo]) THEN {KK1L: 6.73 consolodated logic}
+                                BEGIN
+                                BandMapCursorFrequency := Freq;
+                                BandMapBand := Band;
+                                BandMapMode := Mode;
+                                DisplayBandMap;
+                                END;
+                        END;
+                    END
+                ELSE
+                    BEGIN
 
                     { Okay, this isn't the active radio, but we might have
                       something to do if the band map is active.  If we are
@@ -3401,37 +3404,31 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                       going to assume that it is appropriate for the band
                       map on this band to be displayed! }
 
-                        IF (TwoRadioState <> TwoRadiosDisabled) AND BandMapEnable AND RadioOnTheMove[RadioTwo] THEN
-                            BEGIN
-                            BandMapBand := Band;
-                            BandMapMode := Mode;
-                            BandMapCursorFrequency := Freq;
-                            DisplayBandMap;
-                            END;
-
-                    { We should also update the band output if it has
-                      changed bands. }
-
-                            OutputBandInfo (RadioTwo, Band);
+                    IF (TwoRadioState <> TwoRadiosDisabled) AND BandMapEnable AND RadioOnTheMove [RadioTwo] THEN
+                        BEGIN
+                        BandMapBand := Band;
+                        BandMapMode := Mode;
+                        BandMapCursorFrequency := Freq;
+                        DisplayBandMap;
                         END;
 
-                    {KK1L: 6.71 Same as what was LastRadio2Freq set in LOGK1EA. I made these variables}
-                    {           the same. It is set by the GetRadioParameter call.}
-                    {KK1L: 6.71b Put this back to fix AutoSAPEnable}
-                    PreviousRadioTwoFreq := Freq;
-                    END
-                ELSE
-                    DisplayFrequency (0, RadioTwo); {KK1L: 6.73 Added Radio}
+                    { We should also update the band output }
+                    OutputBandInfo (RadioTwo, Band);
+                    END;
 
-        IgnoreRadioTwoFreq:
+                PreviousRadioTwoFreq := Freq;
+                END
+            ELSE
+                { Nothing from Radio Two }
+                DisplayFrequency (0, RadioTwo); {KK1L: 6.73 Added Radio}
 
-                END;
-            {QuickDisplay('Done with radio two');} {KK1L: 6.72 DEBUG}
+    IgnoreRadioTwoFreq:
 
-        {KK1L: 6.71a This bit (til the next end) moved here so it only occurs once per second rather than}    END;
-        {           the once per 50ms or so that the radio stuff occurs}
+            END;
 
-        IF FullTimeString = LastFullTimeString THEN Exit; {KK1L: 6.71a This limits further execution to once per second}
+        IF FullTimeString = LastFullTimeString THEN Exit;
+
+        { We are only here once a second now }
 
         LastFullTimeString := FullTimeString;
 
@@ -3639,8 +3636,7 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
         END;
     END;
 
-
-
+
 
 PROCEDURE IncrementTime (Count: INTEGER);
 
