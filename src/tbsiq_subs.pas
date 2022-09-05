@@ -42,6 +42,7 @@ TYPE
                         TBSIQ_CWMessageWindow,
                         TBSIQ_ExchangeWindow,
                         TBSIQ_InsertWindow,
+                        TBSIQ_PossibleCallWindow,
                         TBSIQ_StartSendingWindow,
                         TBSIQ_StateMachineStatusWindow);
 
@@ -136,6 +137,7 @@ TYPE
         PROCEDURE DisplayCodeSpeed;
         PROCEDURE DisplayFrequency;
         PROCEDURE DisplayInsertMode;
+        PROCEDURE DisplayPossibleCalls (VAR PossibleCalls: PossibleCallRecord);
         PROCEDURE DisplaySCPCall (Call: CallString);
         PROCEDURE DoPossibleCalls (Callsign: CallString);
 
@@ -295,11 +297,16 @@ PROCEDURE QSOMachineObject.SetCodeSpeed (Speed: INTEGER);
 
 PROCEDURE QSOMachineOBject.DoPossibleCalls (Callsign: CallString);
 
-{ Placeholder for future development }
-
     BEGIN
     IF LastPossibleCall = Callsign THEN Exit;
     LastPossibleCall := Callsign;
+    PossibleCallList.NumberPossibleCalls := 0;
+    PossibleCallList.CursorPosition := 0;
+    IF NOT PossibleCallEnable THEN Exit;
+    CD.GeneratePossibleCallList (Callsign);
+    Sheet.MakePossibleCallList (Callsign, PossibleCallList);
+    FlagDupesInPossibleCallList (Band, Mode, PossibleCallList);
+    DisplayPossibleCalls (PossibleCallList);
     END;
 
 
@@ -1531,6 +1538,7 @@ VAR Key, ExtendedKey: CHAR;
                 ShowCWMessage (ExpandedString);
                 QSOState := QST_Idle;
                 END;
+
             END;
 
         { We are sending the CQ exchange to the guy who came back.  We can get the
@@ -1539,6 +1547,7 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQExchangeBeingSent:
             BEGIN
+            DoPossibleCalls (CallWindowString);
             ListenToOtherRadio;
 
             { Put up exchange window and any initial exchange }
@@ -1869,6 +1878,7 @@ VAR Key, ExtendedKey: CHAR;
 
                             IF GoodCallSyntax (CallWindowString) THEN
                                 BEGIN
+
                                 SetTBSIQWindow (TBSIQ_ExchangeWindow);
 
                                 IF ExchangeWindowString = '' THEN
@@ -1882,6 +1892,8 @@ VAR Key, ExtendedKey: CHAR;
                                         ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
                                         END;
                                     END;
+
+                                DoPossibleCalls (CallWindowString);
                                 END;
 
                             SearchAndPounceStationCalled := True;
@@ -2356,9 +2368,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             { CW Status Window sits just below the Exchange window }
 
             TBSIQ_R1_CWMessageWindowLX := WindowLocationX + 2;
-            TBSIQ_R1_CWMessageWindowLY := WindowLocationY + 5;
+            TBSIQ_R1_CWMessageWindowLY := WindowLocationY + 4;
             TBSIQ_R1_CWMessageWindowRX := WindowLocationX + 37;
-            TBSIQ_R1_CWMessageWindowRY := WindowLocationY + 5;
+            TBSIQ_R1_CWMessageWindowRY := WindowLocationY + 4;
 
             TBSIQ_R1_ExchangeWindowLX := WindowLocationX + 13;
             TBSIQ_R1_ExchangeWindowLY := WindowLocationY + 3;
@@ -2382,9 +2394,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             { Just below the exchange window }
 
             TBSIQ_R1_PossibleCallWindowLX := WindowLocationX;
-            TBSIQ_R1_PossibleCallWindowLY := WindowLocationY + 4;
-            TBSIQ_R1_PossibleCallWindowRX := WindowLocationX + 39;
-            TBSIQ_R1_PossibleCallWindowRY := WindowLocationY + 4;
+            TBSIQ_R1_PossibleCallWindowLY := WindowLocationY + 5;
+            TBSIQ_R1_PossibleCallWindowRX := WindowLocationX + 38;
+            TBSIQ_R1_PossibleCallWindowRY := WindowLocationY + 5;
 
             { Just below the exchange window - overlaps possible calls }
 
@@ -2442,9 +2454,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             { CW Status Window sits just below the Exchange window }
 
             TBSIQ_R2_CWMessageWindowLX := WindowLocationX + 2;
-            TBSIQ_R2_CWMessageWindowLY := WindowLocationY + 5;
+            TBSIQ_R2_CWMessageWindowLY := WindowLocationY + 4;
             TBSIQ_R2_CWMessageWindowRX := WindowLocationX + 37;
-            TBSIQ_R2_CWMessageWindowRY := WindowLocationY + 5;
+            TBSIQ_R2_CWMessageWindowRY := WindowLocationY + 4;
 
             TBSIQ_R2_ExchangeWindowLX := WindowLocationX + 13;
             TBSIQ_R2_ExchangeWindowLY := WindowLocationY + 3;
@@ -2468,9 +2480,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             { Just below the exchange window }
 
             TBSIQ_R2_PossibleCallWindowLX := WindowLocationX;
-            TBSIQ_R2_PossibleCallWindowLY := WindowLocationY + 4;
-            TBSIQ_R2_PossibleCallWindowRX := WindowLocationX + 39;
-            TBSIQ_R2_PossibleCallWindowRY := WindowLocationY + 4;
+            TBSIQ_R2_PossibleCallWindowLY := WindowLocationY + 5;
+            TBSIQ_R2_PossibleCallWindowRX := WindowLocationX + 38;
+            TBSIQ_R2_PossibleCallWindowRY := WindowLocationY + 5;
 
             { Just below the exchange window - overlaps possible calls }
 
@@ -2555,6 +2567,66 @@ FUNCTION QSOMachineObject.LegalKey (KeyChar: CHAR): BOOLEAN;
         END;
 
     LegalKey := False;
+    END;
+
+
+
+PROCEDURE QSOMachineObject.DisplayPossibleCalls (VAR PossibleCalls: PossibleCallRecord);
+
+{ Specific for TBSIQ - just uses half the screen }
+
+VAR CharacterPosition, PossibleCall: INTEGER;
+    Call: CallString;
+
+    BEGIN
+    CASE Radio OF
+        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_PossibleCallWindow);
+        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_PossibleCallWindow);
+        END;
+
+    CharacterPosition := 1;
+
+    IF PossibleCalls.NumberPossibleCalls > 0 THEN
+        BEGIN
+        FOR PossibleCall := 0 TO PossibleCalls.NumberPossibleCalls - 1 DO
+            BEGIN
+            Call := PossibleCalls.List [PossibleCall].Call;
+
+            IF PossibleCalls.List [PossibleCall].Dupe THEN
+                BEGIN
+                TextBackground (SelectedColors.PossibleCallWindowDupeBackground);
+                TextColor      (SelectedColors.PossibleCallWindowDupeColor);
+                END
+            ELSE
+                BEGIN
+                TextBackground (SelectedColors.PossibleCallWindowBackground);
+                TextColor      (SelectedColors.PossibleCallWindowColor);
+                END;
+
+            IF CharacterPosition + Length (Call) + 2 < 40 THEN
+                BEGIN
+                IF PossibleCall = PossibleCalls.CursorPosition THEN
+                    Write ('<', Call, '>')
+                ELSE
+                    Write (' ', Call, ' ');
+
+                CharacterPosition := CharacterPosition + Length (Call) + 2;
+                END
+            ELSE
+                BEGIN
+                { truncate the list }
+                PossibleCalls.NumberPossibleCalls := PossibleCall;
+                Break;
+                END;
+            END;
+        END
+    ELSE
+        BEGIN
+        GoToXY (9, 1);
+        Write ('No possible calls found');
+        END;
+
+    RestorePreviousWindow;
     END;
 
 
@@ -2698,6 +2770,52 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
     IF KeyChar = QuickQSLKey1 THEN Exit;
     IF KeyChar = QuickQSLKey2 THEN Exit;
     IF KeyChar = TailEndKey THEN Exit;
+
+    IF KeyChar = PossibleCallRightKey THEN
+        BEGIN
+        WITH PossibleCallList DO
+            IF (NumberPossibleCalls > 0) AND (CursorPosition < NumberPossibleCalls - 1) THEN
+                BEGIN
+                Inc (CursorPosition);
+                DisplayPossibleCalls (PossibleCallList);
+                END;
+        Exit;
+        END;
+
+    IF KeyChar = PossibleCallLeftKey THEN
+        BEGIN
+        WITH PossibleCallList DO
+            IF (NumberPossibleCalls > 0) AND (CursorPosition > 0) THEN
+                BEGIN
+                Dec (CursorPosition);
+                DisplayPossibleCalls (PossibleCallList);
+                END;
+        Exit;
+        END;
+
+    IF KeyChar = PossibleCallAcceptKey THEN
+        BEGIN
+        WITH PossibleCallList DO
+            IF NumberPossibleCalls > 0 THEN
+                BEGIN
+                CallWindowString := List [CursorPosition].Call;
+                CallWindowCursorPosition := Length (CallWindowString) + 1;
+
+                IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                    BEGIN
+                    ClrScr;
+                    Write (WindowString);
+                    END
+                ELSE
+                    BEGIN
+                    SwapWindows;
+                    ClrScr;
+                    Write (CallWindowString);
+                    SwapWindows;
+                    END;
+            END;
+        Exit;
+        END;
 
     { After the CASE statement - whatever WindowString is will be saved in either
       CallWindowString or ExchangeWindowString and also the cursor position in

@@ -1873,6 +1873,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           SetColor (SelectedColors.InsertWindowColor);
           END;
 
+      TBSIQ_R1_PossibleCallWindow:
+          BEGIN
+          Window (TBSIQ_R1_PossibleCallWindowLX, TBSIQ_R1_PossibleCallWindowLY, TBSIQ_R1_PossibleCallWindowRX, TBSIQ_R1_PossibleCallWindowRY);
+          SetBackground (SelectedColors.PossibleCallWindowBackground);
+          SetColor (SelectedColors.PossibleCallWindowColor);
+          END;
+
       TBSIQ_R1_CodeSpeedWindow:
           BEGIN
           Window (TBSIQ_R1_CodeSpeedWindowLX, TBSIQ_R1_CodeSpeedWindowLY, TBSIQ_R1_CodeSpeedWindowRX, TBSIQ_R1_CodeSpeedWindowRY);
@@ -1899,13 +1906,6 @@ PROCEDURE SetWindow (WindowName: WindowType);
           Window (TBSIQ_R1_FrequencyWindowLX, TBSIQ_R1_FrequencyWindowLY, TBSIQ_R1_FrequencyWindowRX, TBSIQ_R1_FrequencyWindowRY);
           SetBackground (SelectedColors.FrequencyOneWindowBackground);
           SetColor (SelectedColors.FrequencyOneWindowColor);
-          END;
-
-      TBSIQ_R1_PossibleCallWindow:
-          BEGIN
-          Window (TBSIQ_R1_PossibleCallWindowLX, TBSIQ_R1_PossibleCallWindowLY, TBSIQ_R1_PossibleCallWindowRX, TBSIQ_R1_PossibleCallWindowRY);
-          SetBackground (SelectedColors.PossibleCallWindowBackground);
-          SetColor (SelectedColors.PossibleCallWindowColor);
           END;
 
       TBSIQ_R1_QuickCommandWindow:
@@ -1964,6 +1964,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           SetColor (SelectedColors.InsertWindowColor);
           END;
 
+      TBSIQ_R2_PossibleCallWindow:
+          BEGIN
+          Window (TBSIQ_R2_PossibleCallWindowLX, TBSIQ_R2_PossibleCallWindowLY, TBSIQ_R2_PossibleCallWindowRX, TBSIQ_R2_PossibleCallWindowRY);
+          SetBackground (SelectedColors.PossibleCallWindowBackground);
+          SetColor (SelectedColors.PossibleCallWindowColor);
+          END;
+
       TBSIQ_R2_CodeSpeedWindow:
           BEGIN
           Window (TBSIQ_R2_CodeSpeedWindowLX, TBSIQ_R2_CodeSpeedWindowLY, TBSIQ_R2_CodeSpeedWindowRX, TBSIQ_R2_CodeSpeedWindowRY);
@@ -1990,13 +1997,6 @@ PROCEDURE SetWindow (WindowName: WindowType);
           Window (TBSIQ_R2_FrequencyWindowLX, TBSIQ_R2_FrequencyWindowLY, TBSIQ_R2_FrequencyWindowRX, TBSIQ_R2_FrequencyWindowRY);
           SetBackground (SelectedColors.FrequencyOneWindowBackground);
           SetColor (SelectedColors.FrequencyOneWindowColor);
-          END;
-
-      TBSIQ_R2_PossibleCallWindow:
-          BEGIN
-          Window (TBSIQ_R2_PossibleCallWindowLX, TBSIQ_R2_PossibleCallWindowLY, TBSIQ_R2_PossibleCallWindowRX, TBSIQ_R2_PossibleCallWindowRY);
-          SetBackground (SelectedColors.PossibleCallWindowBackground);
-          SetColor (SelectedColors.PossibleCallWindowColor);
           END;
 
       TBSIQ_R2_QuickCommandWindow:

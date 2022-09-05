@@ -36,8 +36,6 @@ TODO LIST
 
 - Implement ShowStationInformation
 
-- Implement PossibleCalls
-
 - Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
 
 - When starting AutoStartSend when the other radio is sending CW - the indicator is
@@ -52,11 +50,15 @@ TODO LIST
    indeed put you in the exchange window with the initial exchange, except
    it is at the start of the window where the InitialExchangeCursorPos = AtEnd
 
+- Decide when to clear out possible call list.
+
 
 CHANGE LOG
 
 4-Sep-2022
 
+ - Possible Calls added.  Moved the CW message display up to make room.
+ - Noticed rig two windows were starting at column 40, not 41.
  - Made two keyboards with same mfg id work.
  - Insert display added for 2BSIQ.
  - Eliminated *** debug message when unknown key pressed
@@ -312,7 +314,7 @@ PROCEDURE Initialize2BSIQOperatorInterface;
       numbers are the X Y reference points for the radio specific display }
 
     Radio1QSOMachine.InitializeQSOMachine (R1KeyboardID, RadioOne, 1, 19);
-    Radio2QSOMachine.InitializeQSOMachine (R2KeyboardID, RadioTwo, 40, 19);
+    Radio2QSOMachine.InitializeQSOMachine (R2KeyboardID, RadioTwo, 41, 19);
 
     ActiveRadio := RadioOne;
     SetUpToSendOnActiveRadio;

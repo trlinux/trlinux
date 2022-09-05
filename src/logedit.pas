@@ -134,6 +134,10 @@ PROCEDURE TimeAndDateSet;
 
 PROCEDURE DisplayBandTotals (Band: BandType);
 
+PROCEDURE FlagDupesInPossibleCallList (Band: Bandtype;
+                                       Mode: ModeType;
+                                       VAR PossCallList: PossibleCallRecord);
+
 PROCEDURE GoToLastCQFrequency;
 PROCEDURE GoToNextBandMapFrequency;
 PROCEDURE GoToNextDisplayedBandMapFrequency;
