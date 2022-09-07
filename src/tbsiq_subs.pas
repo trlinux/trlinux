@@ -153,6 +153,7 @@ TYPE
         PROCEDURE ListenToOtherRadio;
 
         PROCEDURE RemoveExchangeWindow;
+        PROCEDURE RemovePossibleCallWindow;
 
         PROCEDURE SendFunctionKeyMessage (Key: CHAR; VAR Message: STRING);
 
@@ -1334,7 +1335,10 @@ VAR Key, ExtendedKey: CHAR;
             { Clear the auto start send station called flag if the CallWindow is mostly empty }
 
             IF Length (CallWindowString)  <= 2 THEN
+                BEGIN
                 AutoStartSendStationCalled := False;
+                RemovePossibleCallWindow;
+                END;
 
             IF QSONumberForThisQSO > 0 THEN
                 BEGIN
@@ -1778,6 +1782,7 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             IF NOT TBSIQ_CW_Engine.CWFinished (Radio) THEN Exit;
 
+            RemovePossibleCallWindow;
             BandMapBand := DisplayedBand;
             DisplayBandMap;
 
@@ -2567,6 +2572,19 @@ FUNCTION QSOMachineObject.LegalKey (KeyChar: CHAR): BOOLEAN;
         END;
 
     LegalKey := False;
+    END;
+
+
+
+PROCEDURE QSOMachineObject.RemovePossibleCallWindow;
+
+    BEGIN
+    LastPossibleCall := '';
+
+    CASE Radio OF
+        RadioOne: RemoveWindow (TBSIQ_R1_PossibleCallWindow);
+        RadioTwo: RemoveWindow (TBSIQ_R2_PossibleCallWindow);
+        END;
     END;
 
 
@@ -4359,7 +4377,6 @@ TYPE KeyboardFileRecord = RECORD
 VAR FileInfo: SearchRec;
     TimeOut, Address, NumberFiles: INTEGER;
     KBData: ARRAY [0..10] OF KeyboardFileRecord;
-    TempFD: CINT;
     KeyboardDataRecord: FileRecord;
     Keyboard1Found, Keyboard2Found: BOOLEAN;
     KeyStatus: KeyStatusRecord;

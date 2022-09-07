@@ -50,10 +50,13 @@ TODO LIST
    indeed put you in the exchange window with the initial exchange, except
    it is at the start of the window where the InitialExchangeCursorPos = AtEnd
 
-- Decide when to clear out possible call list.
-
 
 CHANGE LOG
+
+7-Sep-2022
+
+ - PossibleCall window getting removed after logging QSO - or enough ESCAPES
+   pressed.
 
 4-Sep-2022
 
