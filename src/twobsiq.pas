@@ -27,12 +27,14 @@ UNIT TwoBSIQ;
 
 TODO LIST
 
-- For 2BSIQ - BAndmap blinking call / cursor not updating as you tune the radio.  CQs
-  not showing up.  Also not following radio on the move unless Auto S&P enabled.
+- Bandmap blinking call / cursor not updating as you tune the radio.  CQs
+  not showing up.  Also not following radio on the move unless Auto S&P
+  enabled.
 
 - "ActiveBand" cursor on the band totals display is not right.
 
 - Occasionally, the auto start send doesn't start if I am busy on the other radio.
+  This might be fixed as of 4-Sep - waiting to see if it shows up again.
 
 - Implement ShowStationInformation
 
@@ -44,18 +46,22 @@ TODO LIST
 
  - Add some kind of display of next QSO number which can be used for SSB.
 
- - Total Points not showing up in 2BSIQ and/or CWT/CWO
-
  - In Classic mode - pressing F1 in S&P with a call in the call window does
    indeed put you in the exchange window with the initial exchange, except
    it is at the start of the window where the InitialExchangeCursorPos = AtEnd
 
 
-CHANGE LOG
+CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+8-Sep-2022
+
+ - ShowStationInfo mostly working.  QSO and Mult status uses classic windows
+ - Added vertical line between the two QSO machines.
+ - TotalScore now getting updated after each QSO.
 
 7-Sep-2022
 
- - Added Alt-U command to 2BSIQ.
+ - Added Alt-U command
 
  - PossibleCall window getting removed after logging QSO - or enough ESCAPES
    pressed.
@@ -64,21 +70,22 @@ CHANGE LOG
 
  - Possible Calls added.  Moved the CW message display up to make room.
  - Noticed rig two windows were starting at column 40, not 41.
- - Made two keyboards with same mfg id work.
- - Insert display added for 2BSIQ.
+ - Made two keyboards with same mfg id work.  Can also use laptop keyboard.
+ - Insert display added
  - Eliminated *** debug message when unknown key pressed
 
 3-Sep-2022
 
-  - Implmeneted SPRINT QSY RULE for 2BSIQ.
+  - Implmeneted SPRINT QSY RULE
   - Tried again to fix the AutoStartSend being brain dead occasionally.  Need to test in CWT.
-  - Much improvement with BandMap and 2BSIQ
+  - Much improvement with BandMap
   - Added support for \ key send QuickQSLMessage1.  Currently hardwired.
   - Fixed speed changes during CW message aborting message.
 
-  - In 2BSIQ - Made hitting F1 or RETURN when calling a station in S&P put you in the
-    exchange window with the initial exchange if the call appears valid.  Note that the cursor
-    is always at the end - irregardless of the setting for initial exchange cursor pos.
+  - Made hitting F1 or RETURN when calling a station in S&P put you in the
+    exchange window with the initial exchange if the call appears valid.
+    Note that the cursor is always at the end - irregardless of the setting
+    for initial exchange cursor pos.
 
 2-Sep-2022
 
@@ -320,6 +327,7 @@ PROCEDURE Initialize2BSIQOperatorInterface;
 
     Radio1QSOMachine.InitializeQSOMachine (R1KeyboardID, RadioOne, 1, 19);
     Radio2QSOMachine.InitializeQSOMachine (R2KeyboardID, RadioTwo, 41, 19);
+    PaintVerticalLine;
 
     ActiveRadio := RadioOne;
     SetUpToSendOnActiveRadio;

@@ -35,7 +35,7 @@ USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
 TYPE
 
     { These window names are part of template for the QSO machine object.  When you
-      use the procedure SetTBSIQWindowm, it will figure out which radio is being
+      use the procedure SetTBSIQWindow, it will figure out which radio is being
       used and call the appropriate LogWind window }
 
     TBSIQ_WindowType = (TBSIQ_CallWindow,
@@ -139,6 +139,7 @@ TYPE
         PROCEDURE DisplayInsertMode;
         PROCEDURE DisplayPossibleCalls (VAR PossibleCalls: PossibleCallRecord);
         PROCEDURE DisplaySCPCall (Call: CallString);
+        PROCEDURE DisplayUserInfo (Call: CallString);
         PROCEDURE DoPossibleCalls (Callsign: CallString);
 
         FUNCTION  ExpandCrypticString (SendString: STRING): STRING;
@@ -162,7 +163,7 @@ TYPE
         PROCEDURE SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
         PROCEDURE ShowCWMessage (Message: STRING);
         PROCEDURE ShowStateMachineStatus;
-        PROCEDURE ShowStationInformation (Callsign: CallString);
+        PROCEDURE ShowStationInformation (Call: CallString);
         PROCEDURE ShowTransmitStatus;
         PROCEDURE SuperCheckPartial;
         PROCEDURE SwapWindows;     { Moves from exchange <> CQ window }
@@ -228,6 +229,7 @@ PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; My
 PROCEDURE TBSIQ_PutContactIntoLogFile (LogString: Str80);
 FUNCTION  TBSIQ_ReadKey (Radio: RadioType): CHAR;
 PROCEDURE TBSIQ_UpdateTimeAndRateDisplays;  { Not radio specific }
+PROCEDURE PaintVerticalLine;
 FUNCTION  ValidFunctionKey (Key: CHAR): BOOLEAN;
 
 IMPLEMENTATION
@@ -245,16 +247,84 @@ TYPE
 
 
 
-PROCEDURE QSOMachineOBject.ShowStationInformation (Callsign: CallString);
+PROCEDURE QSOMachineObject.DisplayUserInfo (Call: CallString);
 
-{ Placeholder for future development }
+VAR UserInfoString: STRING;
 
     BEGIN
-    IF Callsign = StationInformationCall THEN Exit;
-    StationInformationCall := Callsign;
+    UserInfoString := GetUserInfoString (Call);
+
+    IF UserInfoString <> '' THEN
+        BEGIN
+        CASE Radio OF
+            RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_UserInfoWindow);
+            RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_UserInfoWindow);
+            END;
+
+        Write (UserInfoString);
+        RestorePreviousWindow;
+        END
+    ELSE
+        CASE Radio OF
+            RadioOne: RemoveWindow (TBSIQ_R1_UserInfoWindow);
+            RadioTwo: RemoveWindow (TBSIQ_R2_UserInfoWindow);
+            END;
     END;
 
 
+
+PROCEDURE QSOMachineObject.ShowStationInformation (Call: CallString);
+
+VAR Name: STRING;
+
+    BEGIN
+    IF Copy (Call, 1, 3) = 'CQ-' THEN Exit;
+
+    { ShowName Call); }
+
+    Name := CD.GetName (RootCall (Call));
+
+    IF Name <> '' THEN
+        BEGIN
+        CASE Radio OF
+            RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_NameWindow);
+            RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_NameWindow);
+            END;
+
+        Write (Name);
+        RestorePreviousWindow;
+        END
+    ELSE
+        CASE Radio OF
+            RadioOne: RemoveWindow (TBSIQ_R1_NameWindow);
+            RadioTwo: RemoveWindow (TBSIQ_R2_NameWindow);
+            END;
+
+    { IF QTCsEnabled THEN
+          DisplayQTCNumber (NumberQTCsThisStation (StandardCallFormat (Call, False)));  }
+
+    { I guess for now - I will use the standard windows for this }
+
+    IF ContestName <> 'General QSOs' THEN
+        BEGIN
+        VisibleLog.ShowMultiplierStatus (Call);
+        VisibleLog.ShowQSOStatus        (Call);
+        END;
+
+{   IF ActiveDomesticMult <> GridSquares THEN
+        BEGIN
+        DisplayBeamHeading (Call);
+        DisplayCountryName (Call);
+        END; }
+
+    DisplayUserInfo (Call);
+
+{   IF CountryInformationFile <> '' THEN
+        DisplayCountryInformation (CountryInformationFile, Call); }
+    END;
+
+
+
 
 PROCEDURE QSOMachineObject.SetCodeSpeed (Speed: INTEGER);
 
@@ -1385,6 +1455,11 @@ VAR Key, ExtendedKey: CHAR;
                         BEGIN
                         QSOState := QST_Idle;
                         ShowTransmitStatus;
+
+                        CASE Radio OF
+                            RadioOne: RemoveWindow (TBSIQ_R1_NameWindow);
+                            RadioTwo: RemoveWindow (TBSIQ_R2_NameWindow);
+                            END;
                         END;
 
                     TabKey:
@@ -1844,6 +1919,7 @@ VAR Key, ExtendedKey: CHAR;
                         SendFunctionKeyMessage (F1, Message);
                         ShowCWMessage (Message);
                         SearchAndPounceStationCalled := True;
+                        ShowStationInformation (CallWindowString);
                         END;
 
                     EscapeKey:   { Only get this if we have an empty string }
@@ -2396,6 +2472,11 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R1_InsertWindowRX := WindowLocationX + 36;
             TBSIQ_R1_InsertWindowRY := WindowLocationY + 1;
 
+            TBSIQ_R1_NameWindowLX := WindowLocationX + 15;
+            TBSIQ_R1_NameWindowLY := WindowLocationY + 2;
+            TBSIQ_R1_NameWindowRX := WindowLocationX + 25;
+            TBSIQ_R1_NameWindowRY := WindowLocationY + 2;
+
             { Just below the exchange window }
 
             TBSIQ_R1_PossibleCallWindowLX := WindowLocationX;
@@ -2425,9 +2506,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             { Between CallWindow and ExchangeWindow }
 
             TBSIQ_R1_UserInfoWindowLX := WindowLocationX + 14;
-            TBSIQ_R1_UserInfoWindowLY := WindowLocationY + 4;
+            TBSIQ_R1_UserInfoWindowLY := WindowLocationY + 0;
             TBSIQ_R1_UserInfoWindowRX := WindowLocationX + 25;
-            TBSIQ_R1_UserInfoWindowRY := WindowLocationY + 4;
+            TBSIQ_R1_UserInfoWindowRY := WindowLocationY + 0;
             END;
 
         RadioTwo:
@@ -2482,6 +2563,11 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R2_InsertWindowRX := WindowLocationX + 36;
             TBSIQ_R2_InsertWindowRY := WindowLocationY + 1;
 
+            TBSIQ_R2_NameWindowLX := WindowLocationX + 15;
+            TBSIQ_R2_NameWindowLY := WindowLocationY + 2;
+            TBSIQ_R2_NameWindowRX := WindowLocationX + 25;
+            TBSIQ_R2_NameWindowRY := WindowLocationY + 2;
+
             { Just below the exchange window }
 
             TBSIQ_R2_PossibleCallWindowLX := WindowLocationX;
@@ -2511,9 +2597,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             { Between CallWindow and ExchangeWindow }
 
             TBSIQ_R2_UserInfoWindowLX := WindowLocationX + 14;
-            TBSIQ_R2_UserInfoWindowLY := WindowLocationY + 4;
+            TBSIQ_R2_UserInfoWindowLY := WindowLocationY + 0;
             TBSIQ_R2_UserInfoWindowRX := WindowLocationX + 25;
-            TBSIQ_R2_UserInfoWindowRY := WindowLocationY + 4;
+            TBSIQ_R2_UserInfoWindowRY := WindowLocationY + 0;
             END;
 
         END;
@@ -4862,6 +4948,7 @@ VAR LogString: Str80;
     IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
 
     UpdateTotals;
+    DisplayTotalScore (TotalScore);
 
     IF BandMapEnable THEN
         BEGIN
@@ -4970,6 +5057,27 @@ VAR Time, QSONumber: INTEGER;
 
 
 
+PROCEDURE PaintVerticalLine;
+
+    BEGIN
+    SetWindow (WholeScreenWindow);
+    GoToXY (40, 19);
+    Write ('|');
+    GoToXY (40, 20);
+    Write ('|');
+    GoToXY (40, 21);
+    Write ('|');
+    GoToXY (40, 22);
+    Write ('|');
+    GoToXY (40, 23);
+    Write ('|');
+    GoToXY (40, 24);
+    Write ('|');
+    GoToXY (40, 25);
+    Write ('|');
+    END;
+
+
 
     BEGIN
     ResetKeyStatus (RadioOne);

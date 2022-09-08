@@ -219,6 +219,7 @@ TYPE
                   TBSIQ_R1_ExchangeWindow,
                   TBSIQ_R1_FrequencyWindow,
                   TBSIQ_R1_InsertWindow,
+                  TBSIQ_R1_NameWindow,
                   TBSIQ_R1_PossibleCallWindow,
                   TBSIQ_R1_QuickCommandWindow,
                   TBSIQ_R1_StateMachineStatusWindow,
@@ -233,6 +234,7 @@ TYPE
                   TBSIQ_R2_ExchangeWindow,
                   TBSIQ_R2_FrequencyWindow,
                   TBSIQ_R2_InsertWindow,
+                  TBSIQ_R2_NameWindow,
                   TBSIQ_R2_PossibleCallWindow,
                   TBSIQ_R2_QuickCommandWindow,
                   TBSIQ_R2_StateMachineStatusWindow,
@@ -786,6 +788,7 @@ VAR
     TBSIQ_R1_ExchangeWindowLX, TBSIQ_R1_ExchangeWindowLY, TBSIQ_R1_ExchangeWindowRX, TBSIQ_R1_ExchangeWindowRY: INTEGER;
     TBSIQ_R1_FrequencyWindowLX, TBSIQ_R1_FrequencyWindowLY, TBSIQ_R1_FrequencyWindowRX, TBSIQ_R1_FrequencyWindowRY: INTEGER;
     TBSIQ_R1_InsertWindowLX, TBSIQ_R1_InsertWindowLY, TBSIQ_R1_InsertWindowRX, TBSIQ_R1_InsertWindowRY: INTEGER;
+    TBSIQ_R1_NameWindowLX, TBSIQ_R1_NameWindowLY, TBSIQ_R1_NameWindowRX, TBSIQ_R1_NameWindowRY: INTEGER;
     TBSIQ_R1_PossibleCallWindowLX, TBSIQ_R1_PossibleCallWindowLY, TBSIQ_R1_PossibleCallWindowRX, TBSIQ_R1_PossibleCallWindowRY: INTEGER;
     TBSIQ_R1_QuickCommandWindowLX, TBSIQ_R1_QuickCommandWindowLY, TBSIQ_R1_QuickCommandWindowRX, TBSIQ_R1_QuickCommandWindowRY: INTEGER;
     TBSIQ_R1_StateMachineStatusWindowLX, TBSIQ_R1_StateMachineStatusWindowLY, TBSIQ_R1_StateMachineStatusWindowRX, TBSIQ_R1_StateMachineStatusWindowRY: INTEGER;
@@ -800,6 +803,7 @@ VAR
     TBSIQ_R2_ExchangeWindowLX, TBSIQ_R2_ExchangeWindowLY, TBSIQ_R2_ExchangeWindowRX, TBSIQ_R2_ExchangeWindowRY: INTEGER;
     TBSIQ_R2_FrequencyWindowLX, TBSIQ_R2_FrequencyWindowLY, TBSIQ_R2_FrequencyWindowRX, TBSIQ_R2_FrequencyWindowRY: INTEGER;
     TBSIQ_R2_InsertWindowLX, TBSIQ_R2_InsertWindowLY, TBSIQ_R2_InsertWindowRX, TBSIQ_R2_InsertWindowRY: INTEGER;
+    TBSIQ_R2_NameWindowLX, TBSIQ_R2_NameWindowLY, TBSIQ_R2_NameWindowRX, TBSIQ_R2_NameWindowRY: INTEGER;
     TBSIQ_R2_PossibleCallWindowLX, TBSIQ_R2_PossibleCallWindowLY, TBSIQ_R2_PossibleCallWindowRX, TBSIQ_R2_PossibleCallWindowRY: INTEGER;
     TBSIQ_R2_QuickCommandWindowLX, TBSIQ_R2_QuickCommandWindowLY, TBSIQ_R2_QuickCommandWindowRX, TBSIQ_R2_QuickCommandWindowRY: INTEGER;
     TBSIQ_R2_StateMachineStatusWindowLX, TBSIQ_R2_StateMachineStatusWindowLY, TBSIQ_R2_StateMachineStatusWindowRX, TBSIQ_R2_StateMachineStatusWindowRY: INTEGER;
@@ -908,9 +912,10 @@ VAR
                                              VAR Mode: ModeType);
 
   {KK1L: 6.64 created a function for this step used in EditBandMap}
-  FUNCTION GetRecordForBandMapCursor (VAR Entry: BandMapEntryPointer;
+  FUNCTION  GetRecordForBandMapCursor (VAR Entry: BandMapEntryPointer;
                                           CursorEntryNumber: INTEGER) : BOOLEAN;
 
+  FUNCTION  GetUserInfoString (Call: CallString): STRING;
   PROCEDURE IncrementTime (Count: INTEGER);
 
   PROCEDURE LoadBandMap;
@@ -1873,6 +1878,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           SetColor (SelectedColors.InsertWindowColor);
           END;
 
+      TBSIQ_R1_NameWindow:
+          BEGIN
+          Window (TBSIQ_R1_NameWindowLX, TBSIQ_R1_NameWindowLY, TBSIQ_R1_NameWindowRX, TBSIQ_R1_NameWindowRY);
+          SetBackground (SelectedColors.NameSentWindowBackground);
+          SetColor (SelectedColors.NameSentWindowColor);
+          END;
+
       TBSIQ_R1_PossibleCallWindow:
           BEGIN
           Window (TBSIQ_R1_PossibleCallWindowLX, TBSIQ_R1_PossibleCallWindowLY, TBSIQ_R1_PossibleCallWindowRX, TBSIQ_R1_PossibleCallWindowRY);
@@ -1962,6 +1974,13 @@ PROCEDURE SetWindow (WindowName: WindowType);
           Window (TBSIQ_R2_InsertWindowLX, TBSIQ_R2_InsertWindowLY, TBSIQ_R2_InsertWindowRX, TBSIQ_R2_InsertWindowRY);
           SetBackground (SelectedColors.InsertWindowBackground);
           SetColor (SelectedColors.InsertWindowColor);
+          END;
+
+      TBSIQ_R2_NameWindow:
+          BEGIN
+          Window (TBSIQ_R2_NameWindowLX, TBSIQ_R2_NameWindowLY, TBSIQ_R2_NameWindowRX, TBSIQ_R2_NameWindowRY);
+          SetBackground (SelectedColors.NameSentWindowBackground);
+          SetColor (SelectedColors.NameSentWindowColor);
           END;
 
       TBSIQ_R2_PossibleCallWindow:
@@ -6065,8 +6084,9 @@ PROCEDURE DisplayPrefixInfo (Prefix: Str20);
 
 
 
+FUNCTION GetUserInfoString (Call: CallString): STRING;
 
-PROCEDURE DisplayUserInfo (Call: CallString);
+{ Moved here so TBSIQ could leverage it }
 
 VAR Data: DataBaseEntryRecord;
     TempString, InfoString, Command, CustomString: Str40;
@@ -6075,17 +6095,6 @@ VAR Data: DataBaseEntryRecord;
     Heading: INTEGER;
 
     BEGIN
-    IF UserInfoShown = NoUserInfo THEN Exit;
-
-    SaveSetAndClearActiveWindow (UserInfoWindow);
-
-    IF Call = '' THEN
-        BEGIN
-        ClrScr;
-        RestorePreviousWindow;
-        Exit;
-        END;
-
     FoundCall := CD.GetEntry (Call, Data);
 
     InfoString := '';
@@ -6260,8 +6269,29 @@ VAR Data: DataBaseEntryRecord;
                         InfoString := InfoString + Data.TenTen + ' ';
                 END;
             END;
+        END;  { of CASE }
 
+    GetUserInfoString := InfoString;
+    END;
+
+
+PROCEDURE DisplayUserInfo (Call: CallString);
+
+VAR InfoString: STRING;
+
+    BEGIN
+    IF UserInfoShown = NoUserInfo THEN Exit;
+
+    SaveSetAndClearActiveWindow (UserInfoWindow);
+
+    IF Call = '' THEN
+        BEGIN
+        ClrScr;
+        RestorePreviousWindow;
+        Exit;
         END;
+
+    InfoString := GetUserInfoString (Call);
 
     IF InfoString <> '' THEN
         BEGIN
