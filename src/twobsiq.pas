@@ -36,8 +36,6 @@ TODO LIST
 - Occasionally, the auto start send doesn't start if I am busy on the other radio.
   This might be fixed as of 4-Sep - waiting to see if it shows up again.
 
-- Implement ShowStationInformation
-
 - Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
 
 - When starting AutoStartSend when the other radio is sending CW - the indicator is
