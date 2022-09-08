@@ -29,7 +29,7 @@ UNIT TBSIQ_Subs;
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     slowtree, so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW;
 
 TYPE
@@ -2713,7 +2713,7 @@ PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
   changed it to a different window...  so you should check ActiveWindow
   first and change it to the right window before doing anything. }
 
-VAR CursorPosition, CharPointer, Count: INTEGER;
+VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     PreviousCursorChar: CHAR;
     TempString: STRING;
     TempExchange: ContestExchange;
@@ -3228,6 +3228,18 @@ VAR CursorPosition, CharPointer, Count: INTEGER;
                 AltT: BEGIN
                       TimeAndDateSet;
                       ClearKeyCache := True;
+                      END;
+
+                AltU: BEGIN
+                      FOR QSOCount := 1 TO NumberEditableLines DO
+                          BEGIN
+                          TempString := '';
+                          TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (TempString, True);
+                          END;
+
+                      DeleteFile (LogTempFileName);
+                      IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
+                      UpdateTotals;
                       END;
 
                 AltX: BEGIN

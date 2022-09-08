@@ -55,6 +55,8 @@ CHANGE LOG
 
 7-Sep-2022
 
+ - Added Alt-U command to 2BSIQ.
+
  - PossibleCall window getting removed after logging QSO - or enough ESCAPES
    pressed.
 
