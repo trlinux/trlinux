@@ -105,7 +105,6 @@ PROCEDURE SetConfigurationDefaultValues;
     CQExchange          := '';
     CQExchangeNameKnown := '';
     CQMenu := 'F1/2-CQ F3-Ex F4-73 F5-Call F6-DECall F7-WkdB4 F8-Agn F9-? F10-Keyboard CW';
-    CQP := False;
     CQPhoneExchange := 'CQECXHNG.DVP';
     CQPhoneExchangeNameKnown := 'CQEXNAME.DVP';
     CustomInitialExchangeString := '';

@@ -6488,6 +6488,13 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
         ThreePointsPerQSO:    RXData.QSOPoints := 3;
         TenPointsPerQSO:      RXData.QSOPoints := 10;
 
+        OnePhoneTwoCWThreeDigital:
+            CASE RXData.Mode OF
+                Phone:   RXData.QSOPoints := 1;
+                CW:      RXData.QSOPoints := 2;
+                Digital: RXData.QSOPoints := 3;
+                END;
+
         TwoPhoneFourCW:
           IF RXData.Mode = CW THEN RXData.QSOPoints := 4
           ELSE RXData.QSOPoints := 2;

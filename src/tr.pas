@@ -28,6 +28,15 @@ PROGRAM ContestLoggingProgram;
 {  CHANGE LOG
 
 
+08-Sep-2022
+
+ - Added New York QSO party.  Two new DOM files - NYQP.DOM and NYQPNY.DOM.  New QSO
+   point method OnePhoneTwoCWThreeDigital.  Put MY STATE = NY in your logcfg before
+   the CONTEST = NYQP statement.
+
+????-2022
+
+
  - Made UA and EU QSOs not count for WPX
  - Fixed Paddle CW Speed so that zero will track the Computer Speed (keyerard + Ardunio)
  - Fixed the PTT Hold time for Paddle Sent CW (most in Ardunio)

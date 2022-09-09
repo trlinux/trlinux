@@ -524,6 +524,7 @@ TYPE
                           ThreePointsPerQSO,
                           TwoPhoneFourCW,
                           OnePhoneTwoCW,
+                          OnePhoneTwoCWThreeDigital,
                           ThreePhoneFiveCW,
                           TwoPhoneThreeCW,
                           TenPointsPerQSO,

@@ -291,7 +291,6 @@ VAR ActiveDXMult:           DXMultType;
 
     CallsignUpdateEnable:   BOOLEAN;
     CountDomesticCountries: BOOLEAN;
-    CQP:                    BOOLEAN;
 
     DoingDomesticMults:      BOOLEAN;
     DoingDXMults:            BOOLEAN;
