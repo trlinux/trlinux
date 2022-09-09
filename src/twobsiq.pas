@@ -51,6 +51,10 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+9-Sep-2022
+
+ - Made ControlEnter work for moving forward in a QSO without sending CW.
+
 8-Sep-2022
 
  - ShowStationInfo mostly working.  QSO and Mult status uses classic windows

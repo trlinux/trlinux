@@ -33,11 +33,12 @@ CONST
     Beep           = Chr (7);
     BackSpace      = Chr (8);
     TabKey         = Chr (9);
-    CarriageReturn = Chr ($D);
+    CarriageReturn = Chr ($D);        { We use this extended too for ControlEnter }
     LineFeed       = Chr ($A);
     EscapeKey      = Chr ($1B);
     SpaceBar       = ' ';
-    ShiftTab       = Chr (15);        { After null char }
+
+    ShiftTab       = Chr (15);        { Extended }
 
     { Normal extended Keys }
 
@@ -186,7 +187,7 @@ CONST
     ControlJ = Chr (10);
     ControlK = Chr (11);
     ControlL = Chr (12);
-    ControlM = Chr (13);
+    ControlM = Chr (13);   { Same as a carriage return }
     ControlN = Chr (14);
     ControlO = Chr (15);
     ControlP = Chr (16);

@@ -52,6 +52,7 @@ TYPE
                           QST_CQCalled,
                           QST_AutoStartSending,
                           QST_CQStationBeingAnswered,
+                          QST_CQStationBeingAnsweredSilent,
                           QST_CQExchangeBeingSent,
                           QST_CQExchangeBeingSentAndExchangeWindowUp,
                           QST_CQWaitingForExchange,
@@ -1420,22 +1421,35 @@ VAR Key, ExtendedKey: CHAR;
 
             IF ActionRequired THEN
                 BEGIN
-                IF (Key = Chr (0)) AND ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
-                    BEGIN
-                    SendFunctionKeyMessage (ExtendedKey, Message);
-
-                    { Maybe add F9 here? }
-
-                    IF (ExtendedKey = F1) OR (ExtendedKey = F2) THEN
-                        QSOState := QST_CallingCQ;
-
-                    ShowCWMessage (Message);
-                    Exit;
-                    END;
 
                 { Not a function key message }
 
                 CASE Key OF
+                    NullKey:     { Extended key }
+                        BEGIN
+                        IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
+                            BEGIN
+                            SendFunctionKeyMessage (ExtendedKey, Message);
+
+                            { Maybe add F9 here? }
+
+                            IF (ExtendedKey = F1) OR (ExtendedKey = F2) THEN
+                                QSOState := QST_CallingCQ;
+
+                            ShowCWMessage (Message);
+                            Exit;
+                            END;
+
+                        IF ExtendedKey = CarriageReturn THEN  { don't send any CW }
+                            BEGIN
+                            CallsignICameBackTo := WindowString;
+                            QSOState := QST_CQStationBeingAnsweredSilent;
+                            Exit;
+                            END;
+
+                        END;  { of NullKey case }
+
+
                     CarriageReturn:
                         IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                             IF WindowString = '' THEN
@@ -1620,6 +1634,12 @@ VAR Key, ExtendedKey: CHAR;
 
             END;
 
+        QST_CQStationBeingAnsweredSilent:  { Special version that sends no CW }
+            BEGIN
+            ListenToOtherRadio;
+            QSOState := QST_CQExchangeBeingSent;
+            END;
+
         { We are sending the CQ exchange to the guy who came back.  We can get the
           exchange window prepared for data entry - and put the initial exchange there if
           we have one }
@@ -1676,6 +1696,10 @@ VAR Key, ExtendedKey: CHAR;
                         { Extened keys other than function keys }
 
                         CASE ExtendedKey OF
+                            CarriageReturn:  { Maybe not expecting this but could happen? }
+                                BEGIN
+                                END;
+
                             UpArrow:
                                 IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                                     SetTBSIQWindow (TBSIQ_CallWindow);
@@ -1776,6 +1800,24 @@ VAR Key, ExtendedKey: CHAR;
                         { Extened keys other than function keys }
 
                         CASE ExtendedKey OF
+                            CarriageReturn:   { Do not send any CW }
+                                IF TBSIQ_ParametersOkay (CallWindowString,
+                                                         QSONumberForThisQSO,
+                                                         ExchangeWindowString,
+                                                         Band, Mode, Frequency, RData) THEN
+                                    BEGIN
+                                    TBSIQ_LogContact (RData);
+                                    QSOState := QST_CQSending73Message;
+                                    AutoStartSendStationCalled := False;
+
+                                    IF QSONumberForThisQSO > 0 THEN
+                                        BEGIN
+                                        QSONumberForPreviousQSO := QSONumberForThisQSO;
+                                        SerialNumberEngine.CreateQSONumberLoggedEntry (QSONumberForThisQSO, CallWindowString);
+                                        QSONumberForThisQSO := 0;
+                                        END;
+                                    END;
+
                             UpArrow:
                                 IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                                     SetTBSIQWindow (TBSIQ_CallWindow);
@@ -2085,6 +2127,100 @@ VAR Key, ExtendedKey: CHAR;
 
                         ELSE
                             CASE ExtendedKey OF
+                                CarriageReturn:   { Just like CarriageReturn without CW }
+                                    BEGIN
+                                    IF AutoDupeEnableSandP AND (NOT SearchAndPounceStationCalled) AND WindowDupeCheck THEN
+                                        BEGIN  { get out of here }
+                                        QSOState := QST_SearchAndPounceInit;
+                                        Exit;
+                                        END;
+
+                                    { Not a dupe - or we are far enough along in the QSO not to care anymore }
+
+                                    IF NOT SearchAndPounceStationCalled THEN
+                                        BEGIN
+                                        IF GoodCallSyntax (CallWindowString) THEN
+                                            BEGIN
+                                            SetTBSIQWindow (TBSIQ_ExchangeWindow);
+
+                                            IF ExchangeWindowString = '' THEN
+                                                BEGIN
+                                                InitialExchange := InitialExchangeEntry (CallWindowString);
+
+                                                IF InitialExchange <> '' THEN
+                                                    BEGIN
+                                                    ExchangeWindowString := InitialExchange;
+                                                    Write (ExchangeWindowString);
+                                                    ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
+                                                    END;
+                                                END;
+
+                                            DoPossibleCalls (CallWindowString);
+                                            END;
+
+                                        SearchAndPounceStationCalled := True;
+                                        END
+
+                                    { Send the exchange if not sent already and try to log the QSO }
+
+                                    ELSE
+                                        BEGIN
+                                        { Maybe we haven't entered an exchange yet }
+
+                                        IF ExchangeWindowString = '' THEN
+                                            BEGIN
+                                            IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                                                SwapWindows;
+
+                                            InitialExchange := InitialExchangeEntry (CallWindowString);
+
+                                            IF InitialExchange <> '' THEN
+                                                BEGIN
+                                                ExchangeWindowString := InitialExchange;
+                                                Write (ExchangeWindowString);
+                                                ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
+                                                END;
+                                            END;
+
+                                        { Now we try to log the QSO }
+
+                                        IF TBSIQ_ParametersOkay (CallWindowString,
+                                                                 QSONumberForThisQSO,
+                                                                 ExchangeWindowString,
+                                                                 Band, Mode, Frequency, RData) THEN
+                                            BEGIN
+                                            TBSIQ_LogContact (RData);
+
+                                            ExchangeWindowString := '';
+                                            ExchangeWindowCursorPosition := 1;
+                                            SetTBSIQWindow (TBSIQ_ExchangeWindow);
+                                            ClrScr;
+
+                                            CallWindowString := '';
+                                            CallWindowCursorPosition := 1;
+                                            SetTBSIQWindow (TBSIQ_CallWindow);
+                                            ClrScr;
+
+                                            IF QSONumberForThisQSO > 0 THEN
+                                                BEGIN
+                                                QSONumberForPreviousQSO := QSONumberForThisQSO;
+                                                SerialNumberEngine.CreateQSONumberLoggedEntry (QSONumberForThisQSO, CallWindowString);
+                                                QSONumberForThisQSO := 0;
+                                                END;
+
+                                            IF SprintQSYRule THEN
+                                                BEGIN
+                                                QSOState := QST_Idle;
+                                                RemoveExchangeWindow;
+                                                ENd
+                                            ELSE
+                                                QSOState := QST_SearchAndPounceInit;
+                                            END
+                                        ELSE
+                                            ShowCWMessage ('Unable to log this QSO yet');
+                                        END;
+                                    END;  { of CarriageReturn }
+
                                 UpArrow:
                                     IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                                         SetTBSIQWindow (TBSIQ_CallWindow);
@@ -3896,6 +4032,8 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
 
         28: BEGIN                               { Carriage Return }
             KeyStatus.KeyChar := CarriageReturn;
+            IF ControlKey THEN KeyStatus.ExtendedKey := True;
+            IF AltKey THEN KeyStatus.ExtendedKey := True;   { Treat the same as control-enter }
             END;
 
         { 29: We don't need the left control key - it does not generate a response }
