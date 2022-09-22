@@ -499,7 +499,6 @@ VAR FileName, QSONumberString: Str20;
        ((Key >= AltF11)     AND (Key <= AltF12)) THEN
            BEGIN
            MessageKey := Key;
-           {QuickDisplay2('SendFunctionKeyMessage');}
 
            IF (ActiveMode = Phone) AND (DVPEnable OR DVKEnable) THEN
                IF (Key >= ControlF1) AND (Key <= ControlF10)
@@ -511,7 +510,6 @@ VAR FileName, QSONumberString: Str20;
            ELSE
                Message := GetEXMemoryString (ActiveMode, MessageKey); {KK1L: 6.73 Added mode}
 
-           {QuickDisplay2('SendFunctionKeyMessage..1');}
            FoundCommand (Message);
 
            IF Message = '' THEN Exit;    { Nothing left }
@@ -528,7 +526,6 @@ VAR FileName, QSONumberString: Str20;
                UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 30);
                END;
 
-           {QuickDisplay2('SendFunctionKeyMessage..1..2');}
            InactiveRigCallingCQ := False;
            SetUpToSendOnActiveRadio;
 
@@ -546,7 +543,6 @@ VAR FileName, QSONumberString: Str20;
                    IF Pos (ControlD, Message) = 0 THEN FlushCWBufferAndClearPTT;
                END;
 
-           {QuickDisplay2('SendFunctionKeyMessage..1..2..3');}
            { Special short cut way to program DVP }
 
            IF (ActiveMode = Phone) AND DVPEnable AND (Key >= ControlF1) AND (Key <= ControlF10) THEN

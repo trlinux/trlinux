@@ -451,6 +451,7 @@ VAR
 
     PROCEDURE IncrementQTCCount (Call: CallString);
 
+    FUNCTION  K3IsStillTalking: BOOLEAN;
     FUNCTION  KeyRecentlyPressed (Key: CHAR; MaxElaspedSec100: LONGINT): BOOLEAN;
     PROCEDURE KeyStamp (Key: CHAR);
 
@@ -557,6 +558,34 @@ VAR
 IMPLEMENTATION
 uses keycode,beep;
 
+
+
+
+FUNCTION  K3IsStillTalking: BOOLEAN;
+
+    BEGIN
+    IF ActiveRadio = RadioOne THEN
+        BEGIN
+        IF (Radio1Type = K3) OR (Radio1Type = K4) THEN
+            K3IsStillTalking := Rig1.K3IsSTillTalking
+        ELSE
+            K3IsStillTalking := False;
+
+        Exit;
+        END;
+
+    IF ActiveRadio = RadioTwo THEN
+        BEGIN
+        IF (Radio2Type = K3) OR (Radio2Type = K4) THEN
+            K3IsStillTalking := Rig2.K3IsSTillTalking
+        ELSE
+            K3IsStillTalking := False;
+
+        Exit;
+        END;
+
+    K3ISStillTalking := False;
+    END;
 
 
 

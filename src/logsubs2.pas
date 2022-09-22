@@ -2218,11 +2218,10 @@ VAR Result: INTEGER;
              DisplayPossibleCalls (PossibleCallList);
              END;
 
-    {KK1L: 6.72 Moved ahead of UpdateTimeAndRateDisplays to boost reation time}
-    {IF (ActiveWindow = CallWindow) AND (SCPMinimumLetters > 0) AND (NOT NewKeyPressed) THEN }
-    {    VisibleLog.SuperCheckPartial (WindowString, True);                                  }
+    { Check dualing CQ state machine.  If it is active and a message
+      has finished, do something }
 
-    IF (DualingCQState <> NoDualingCQs) AND NOT (CWStillBeingSent OR DVPMessagePlaying OR DVKMessagePlaying) THEN
+    IF (DualingCQState <> NoDualingCQs) AND NOT (CWStillBeingSent OR DVPMessagePlaying OR DVKMessagePlaying OR K3IsStillTalking) THEN
         CASE DualingCQState OF
 
             DualSendingQSL, SendingDupeMessage:
@@ -2276,17 +2275,34 @@ VAR Result: INTEGER;
                     SwapRadios;
                     SendFunctionKeyMessage (AltF1, CQOpMode);
 
-                    IF (ActiveMode = Phone) AND DVPActive THEN
+                    IF ActiveMode = Phone THEN
                         BEGIN
-                        TimeOut := 0;
+                        IF DVPActive THEN
+                            BEGIN
+                            TimeOut := 0;
 
-                        REPEAT
-                            Wait (5);
-                            Inc (TimeOut);
-                        UNTIL DVPMessagePlaying OR (TimeOut > 60) OR DVKMessagePlaying;
+                            REPEAT
+                                Wait (5);
+                                Inc (TimeOut);
+                            UNTIL DVPMessagePlaying OR (TimeOut > 60) OR DVKMessagePlaying;
+                            END;
+
+                        IF ActiveRadio = RadioOne THEN
+                            IF (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                                REPEAT
+                                    Wait (5);
+                                    Inc (TimeOut);
+                                UNTIL Rig1.K3IsStillTalking OR (TimeOut > 600);
+
+                        IF ActiveRadio = RadioTwo THEN
+                            IF (Radio2Type = K3) OR (Radio2Type = K4) THEN
+                                REPEAT
+                                    Wait (5);
+                                    Inc (TimeOut);
+                                UNTIL Rig2.K3IsStillTalking OR (TimeOut > 600);
+
                         END;
                     END;
-
             END;
 
     { W9RE }
@@ -2636,7 +2652,9 @@ VAR FileName, CommandString: Str40;
     BEGIN
     FoundCommand := False;
 
-    CommandUseInactiveRadio := FALSE; {KK1L: 6.73 Global var to support vectoring commands to inactive radio}
+    { KK1L 6.73 - Global var to support vectoring commands to inactive radio }
+
+    CommandUseInactiveRadio := FALSE;
 
     WHILE StringHas (SendString, ControlC) DO
         BEGIN
@@ -2647,7 +2665,13 @@ VAR FileName, CommandString: Str40;
         CommandString := UpperCase (BracketedString (SendString, ControlC, ControlD));
         Delete (SendString, Pos (ControlC, SendString), Pos (ControlD, SendString) - Pos (ControlC, SendString) + 1);
 
-        IF Copy (CommandString, 1, 1) = ControlA THEN  {KK1L: 6.73 Vector commands to inactive radio with CTRL-A}
+        IF Copy (CommandString, 1, 1) = ControlA THEN
+            BEGIN
+            CommandUseInactiveRadio := TRUE;
+            Delete (CommandString, 1, 1);
+            END;
+
+        IF Copy (CommandString, 1, 1) = ControlB THEN
             BEGIN
             CommandUseInactiveRadio := TRUE;
             Delete (CommandString, 1, 1);
@@ -2828,59 +2852,49 @@ VAR FileName, CommandString: Str40;
             if filename = 'STEREO' then so2rbox.setrcvfocus(STEREO);
             if filename = 'LATCHON' then so2rbox.setlatch(true);
             if filename = 'LATCHOFF' then so2rbox.setlatch(false);
-            if filename = 'LATCHTOGGLE' then
-               so2rbox.setlatch(not so2rbox.getlatch);
-            if filename = 'RXA' then
-            begin
-               if activeradio = radioone then
-                  so2rbox.setrcvfocus(RX1)
-               else
-                  so2rbox.setrcvfocus(RX2)
-            end;
-            if filename = 'RXI' then
-            begin
-               if activeradio = radioone then
-                  so2rbox.setrcvfocus(RX2)
-               else
-                  so2rbox.setrcvfocus(RX1)
-            end;
 
-//            IF SendString <> '' THEN
-//                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
+            if filename = 'LATCHTOGGLE' then
+                so2rbox.setlatch(not so2rbox.getlatch);
+
+            if filename = 'RXA' then
+                if activeradio = radioone then
+                    so2rbox.setrcvfocus(RX1)
+                else
+                    so2rbox.setrcvfocus(RX2);
+
+            if filename = 'RXI' then
+                if activeradio = radioone then
+                    so2rbox.setrcvfocus(RX2)
+                else
+                    so2rbox.setrcvfocus(RX1)
             END;
 
 
         IF CommandString = 'SRS' THEN
-            BEGIN
-               if activeradio = radioone then
-                  rig1.directcommand(filename)
-               else
-                  rig2.directcommand(filename);
-            END;
+            if activeradio = radioone then
+                rig1.directcommand(filename)
+            else
+                rig2.directcommand(filename);
 
         IF CommandString = 'SRS1' THEN
-            BEGIN
-               rig1.directcommand(filename);
-            END;
+            rig1.directcommand(filename);
 
         IF CommandString = 'SRS2' THEN
-            BEGIN
-               rig2.directcommand(filename);
-            END;
+            rig2.directcommand(filename);
 
         IF CommandString = 'SRSI' THEN
-            BEGIN
-               if activeradio = radioone then
-                  rig2.directcommand(filename)
-               else
-                  rig1.directcommand(filename);
-            END;
+            if activeradio = radioone then
+                rig2.directcommand(filename)
+            else
+                rig1.directcommand(filename);
 
         IF CommandString = 'SWAPRADIOS'     THEN
             BEGIN
             SwapRadios;
-            {KK1L: 6.73 Used to use a variable CheckSpeed}
-            Str (SpeedMemory[InactiveRadio], SpeedString);
+
+            { Speed string used for Alt-D "okay" message for inactive radio CW WPM }
+
+            Str (SpeedMemory [InactiveRadio], SpeedString);
             END;
 
         IF CommandString = 'TOGGLECW'        THEN ToggleCW (False);
@@ -2888,7 +2902,9 @@ VAR FileName, CommandString: Str40;
         IF CommandString = 'TOGGLESTEREOPIN' THEN ToggleStereoPin; {KK1L: 6.71}
         END;
 
-    CommandUseInactiveRadio := FALSE; {KK1L: 6.73 Put back to normal so other calls default to active radio}
+    { Clear this so other commands go to the right place }
+
+    CommandUseInactiveRadio := FALSE;
     END;
 
 
@@ -3699,14 +3715,34 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                                SendFunctionKeyMessage (AltF1, CQOpMode);
                                DualingCQState := DualSendingCQ;
 
-                               IF (ActiveMode = Phone) AND DVPActive THEN
+                               { If we are on phone, we need to wait until the message gets kicked off }
+
+                               IF ActiveMode = Phone THEN
                                    BEGIN
                                    TimeOut := 0;
 
-                                   REPEAT
-                                       Wait (5);
-                                       Inc (TimeOut);
-                                   UNTIL DVPMessagePlaying OR (TimeOut > 60) OR DVKMessagePlaying;
+                                   IF DVPActive THEN
+                                       REPEAT
+                                           Wait (5);
+                                           Inc (TimeOut);
+                                       UNTIL DVPMessagePlaying OR (TimeOut > 60) OR DVKMessagePlaying;
+
+                                   { If we are using a K3 or K4 - we need to wait for the message to start }
+
+                                   IF ActiveRadio = RadioOne THEN
+                                       IF (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                                           REPEAT
+                                               Wait (5);
+                                               Inc (TimeOut);
+                                           UNTIL Rig1.K3IsStillTalking OR (TimeOut > 600);
+
+                                   IF ActiveRadio = RadioTwo THEN
+                                       IF (Radio2Type = K3) OR (Radio2Type = K4) THEN
+                                           REPEAT
+                                               Wait (5);
+                                               Inc (TimeOut);
+                                           UNTIL Rig2.K3IsStillTalking OR (TimeOut > 600);
+
                                    END;
                                END
                            ELSE
@@ -4094,8 +4130,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                       IF Freq > 1000000 THEN
                           BEGIN
-                          {SetRadioFreq (ActiveRadio, Freq, ActiveMode, 'B');}
-                          {PutRadioIntoSplit (ActiveRadio);} {KK1L: 6.71 Moved here from before case for TS850 change}
                           SetRadioFreq (RadioToSet, Freq, ModeMemory[RadioToSet], 'B'); {KK1L: 6.73}
                           PutRadioIntoSplit (RadioToSet); {KK1L: 6.73}
                           SplitFreq := Freq;
@@ -4427,8 +4461,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
               IF Freq > 1000000 THEN
                   BEGIN
-                  {SetRadioFreq (ActiveRadio, Freq, ActiveMode, 'B'); }
-                  {PutRadioIntoSplit (ActiveRadio);} {KK1L: 6.71 Moved here from before case for TS850 change}
                   SetRadioFreq (RadioToSet, Freq, ModeMemory[RadioToSet], 'B'); {KK1L: 6.73}
                   PutRadioIntoSplit (RadioToSet); {KK1L: 6.73}
                   SplitFreq := Freq;
@@ -6143,11 +6175,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                                                 with Two Radio mode and DX
                                                                 mults showing up in next QSO }
                         IF ActiveRadio = RadioOne THEN
-                            BEGIN
-                            CQRITEnabled := Radio1Type = TS850;
-                            END
+                            CQRITEnabled := (Radio1Type = TS850) OR (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4)
                         ELSE
-                            CQRITEnabled := Radio2Type = TS850;
+                            CQRITEnabled := (Radio2Type = TS850) OR (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4);
 
                         IF (TwoRadioState = SendingExchange) THEN
                             CheckTwoRadioState (ContactDone)
@@ -6211,11 +6241,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                         ClearContestExchange (ReceivedData);
 
                         IF ActiveRadio = RadioOne THEN
-                            BEGIN
-                            CQRITEnabled := Radio1Type = TS850;
-                            END
+                            CQRITEnabled := (Radio1Type = TS850) OR (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4)
                         ELSE
-                            CQRITEnabled := Radio2Type = TS850;
+                            CQRITEnabled := (Radio2Type = TS850) OR (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4);
 
 
                         RemoveWindow (ExchangeWindow);
@@ -6245,12 +6273,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 ClearContestExchange (ReceivedData);
 
                 IF ActiveRadio = RadioOne THEN
-                    BEGIN
-                    CQRITEnabled := Radio1Type = TS850;
-                    END
+                    CQRITEnabled := (Radio1Type = TS850) OR (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4)
                 ELSE
-                    CQRITEnabled := Radio2Type = TS850;
-
+                    CQRITEnabled := (Radio2Type = TS850) OR (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4);
 
                 DisplayAutoSendCharacterCount;
 
@@ -6306,11 +6331,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                             ClearContestExchange (ReceivedData);
 
                             IF ActiveRadio = RadioOne THEN
-                                BEGIN
-                                CQRITEnabled := Radio1Type = TS850;
-                                END
+                                CQRITEnabled := (Radio1Type = TS850) OR (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4)
                             ELSE
-                                CQRITEnabled := Radio2Type = TS850;
+                                CQRITEnabled := (Radio2Type = TS850) OR (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4);
 
                             DisplayAutoSendCharacterCount;
 

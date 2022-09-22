@@ -876,6 +876,7 @@ VAR xResult, Speed, TempValue: INTEGER;
            END;
 
         DVKEnable := ActiveDVKPort <> nil;
+
         IF ActiveDVKPort <> nil THEN
             BEGIN
             SetCQMemoryString (Phone,  F1, 'DVK1');
@@ -2822,8 +2823,20 @@ VAR xResult,tempint: INTEGER;
 
         IF Copy (CMD, 1, 2) = 'K2' THEN
             BEGIN
-            {Radio1Type := K2;}
-            Radio1Type := TS850; {KK1L:6.73 missing "OR K2"s in TS850 statements in LOGSUBS2. Easier fix!}
+            Radio1Type := K2;
+            Radio1ControlDelay := 1;
+            END;
+
+        IF Copy (CMD, 1, 2) = 'K3' THEN
+            BEGIN
+            Radio1Type := K3;
+            Radio1ControlDelay := 1;
+            END;
+
+        IF Copy (CMD, 1, 2) = 'K4' THEN
+            BEGIN
+            WriteLn ('K4 found');
+            Radio1Type := K4;
             Radio1ControlDelay := 1;
             END;
 
@@ -2990,8 +3003,19 @@ VAR xResult,tempint: INTEGER;
 
         IF Copy (CMD, 1, 2) = 'K2' THEN
             BEGIN
-            {Radio2Type := K2;}
-            Radio2Type := TS850; {KK1L:6.73 missing "OR K2"s in TS850 statements in LOGSUBS2. Easier fix!}
+            Radio2Type := K2;
+            Radio2ControlDelay := 1;
+            END;
+
+        IF Copy (CMD, 1, 2) = 'K3' THEN
+            BEGIN
+            Radio2Type := K3;
+            Radio2ControlDelay := 1;
+            END;
+
+        IF Copy (CMD, 1, 2) = 'K4' THEN
+            BEGIN
+            Radio2Type := K4;
             Radio2ControlDelay := 1;
             END;
 

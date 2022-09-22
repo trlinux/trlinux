@@ -28,6 +28,12 @@ PROGRAM ContestLoggingProgram;
 {  CHANGE LOG
 
 
+20-Sep-2022
+
+ - Added ControlB for message commands to force subsequent commands to go to the
+   active radio (opposite of Control-A command which steers subsequent commands
+   to the inactive radio).
+
 08-Sep-2022
 
  - Added New York QSO party.  Two new DOM files - NYQP.DOM and NYQPNY.DOM.  New QSO

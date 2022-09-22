@@ -35,12 +35,17 @@ type
       procedure bumpritdown;override;
       procedure bumpvfoup;override;
       procedure bumpvfodown;override;
+
       function getradioparameters(var f: longint; var b: bandtype;
          var m: modetype): boolean;override;
+
       procedure responsetimeout(ms: integer);override;
       function getresponsetimeout:longint;override;
       procedure timer(caughtup: boolean);override;
       procedure directcommand(s: string);override;
+
+      FUNCTION K3IsStillTalking: BOOLEAN;override;
+
       private
          commandtime: longint;
          commandcount: longint;
@@ -215,7 +220,7 @@ begin
       else
       if (freq < 10000000) then
          sendstring(lsbmode)
-      else 
+      else
          sendstring(usbmode);
    end;
    mode := m;
@@ -270,8 +275,27 @@ begin
 // fixme
    getradioparameters := true;
 end;
-   
-procedure kenwoodctl.timer(caughtup: boolean);
+
+
+
+FUNCTION kenwoodctl.K3IsStillTalking: BOOLEAN;
+
+{ It turns out that I don't have a clear communication channel to a K3 to
+  ask if it is busy transmitting. So I can't use the TQ; command.  Instead,
+  I will return the status from the last IF command which has the same
+  data }
+
+VAR Response: Str80;
+    Timeout: INTEGER;
+    RC: CHAR;
+
+    BEGIN
+    K3IsStillTalking := txon;
+    END;
+
+
+
+procedure kenwoodctl.timer (caughtup: boolean);
 var c: char;
     response: string;
     command: string;
@@ -281,81 +305,108 @@ var c: char;
 begin
    inherited timer(caughtup);
    if radioport = nil then exit;
+
    while radioport.charready do
-   begin
+      BEGIN
       c := radioport.readchar();
       if debugopen then write(debugfile,c);
-      if c <> ';' then
-      begin
+
+      IF c <> ';' THEN { Not ; = add to response buffer }
+         BEGIN
          fromrig[fromrigend] := c;
          fromrigend := (fromrigend + 1) mod rigbuffersize;
-      end
-      else
-      begin
+         END
+      ELSE
+
+         { We found the semi-colon indicating we have the whole response }
+
+         BEGIN
          if debugopen then writeln(debugfile,c);
+
          waiting := false;
          i := 0;
-         while fromrigstart <> fromrigend do
-         begin
+
+
+         { Generate response string from buffer }
+
+         WHILE fromrigstart <> fromrigend do
+            BEGIN
             inc(i);
             response[i] := fromrig[fromrigstart];
             fromrigstart := (fromrigstart + 1) mod rigbuffersize;
-         end;
+            END;
+
          inc(i);
          response[i] := c;
          setlength(response,i);
-         if response[1] = '?' then
-         begin
+
+         IF response[1] = '?' then
+            BEGIN
             if debugopen then writeln(debugfile,'received ? resending');
             inc(commandretrycount);
+
             if commandretrycount <= commandmaxretry then
-            begin
+               BEGIN
                for k := 1 to length(lastcommand) do
-               begin
+                  begin
                   if debugopen then write(debugfile,lastcommand[k]);
                   radioport.putchar(lastcommand[k]);
-               end;
+                  end;
                waiting := true;
                if debugopen then writeln(debugfile);
-            end
+               END
             else
-            begin
+               BEGIN
                waiting := false;
                commandretrycount := 0;
                commandcount := 0;
                if debugopen then writeln(debugfile,'giving up on retries');
-            end;
-         end;
-         if (response[1] = 'I') and (response[2] = 'F') and
-            (length(response) = responselength) then
-         begin
-            if debugopen then writeln(debugfile,'polled information message');
-            val(copy(response,freqpos,freqdigits),freqnow,code);
-            if ignorefreq then
-            begin
-               freqnow := freq;
-               inc(ignorefreqcount);
-               ignorefreq := (ignorefreqcount <= 2);
-               if debugopen then writeln(debugfile,'ignoring frequency');
-           end;
-            if code = 0 then freq := freqnow;
-            case response[modepos] of
-               '1', '2', '4', '5': mode := Phone;
-               '6', '9': mode := Digital;
-               else mode := cw;
-            end;
-         end;
-      end;
-   end;
+               END;
+            END
+
+         ELSE  { Not a ? }
+
+            IF (response[1] = 'I') and (response[2] = 'F') and (length(response) = responselength) then
+               BEGIN
+               if debugopen then writeln(debugfile,'polled information message');
+
+               val(copy(response,freqpos,freqdigits),freqnow,code);
+
+               if ignorefreq then
+                  BEGIN
+                  freqnow := freq;
+                  inc(ignorefreqcount);
+                  ignorefreq := (ignorefreqcount <= 2);
+                  if debugopen then writeln(debugfile,'ignoring frequency');
+                  END;
+
+               if code = 0 then freq := freqnow;
+
+               case response[modepos] of
+                  '1', '2', '4', '5': mode := Phone;
+                  '6', '9': mode := Digital;
+                  else mode := cw;
+                  END;  { of case mode }
+
+               { Parse if the transmitter is on - one character before the modpos }
+
+               txon := response[modepos - 1] = '1';
+               END;
+         END;
+      END;
+
    if bumpignore then
-   begin
+      BEGIN
       inc(bumpcount);
       bumpignore := (bumpcount <= bumptime);
-   end;
-   if waiting then begin
+      END;
+
+   IF waiting then
+      BEGIN
       inc(commandcount);
-      if commandcount >= commandtime then
-      begin
+
+      IF commandcount >= commandtime then
+         BEGIN
          if debugopen then writeln(debugfile,'time out flushing read buffer');
          while radioport.charready do radioport.readchar();
          fromrigstart := 0;
@@ -363,22 +414,30 @@ begin
          commandcount := 0;
          commandretrycount := 0;
          waiting := false;
-      end;
-   end;
+         END;
+      END;
+
    if ((not waiting) and (pollcounter >= polltime)) and pollradio then
-   begin
+      BEGIN
       sendstring('IF;');
       pollcounter := 0;
-   end;
-   inc(pollcounter);
-   if not waiting then begin
+      END;
+
+   inc (pollcounter);
+
+   if not waiting then
+      BEGIN
       i := 0;
       j := torigstart;
-      while j <> torigend do begin
+
+      while j <> torigend do
+         BEGIN
          inc(i);
          command[i] := torig[j];
          j := (j+1) mod rigbuffersize;
-         if command[i] = ';' then begin
+
+         if command[i] = ';' then
+            BEGIN
             setlength(command,i);
             torigstart := j;
             if debugopen then writeln(debugfile,'sending ' + command);
@@ -387,9 +446,9 @@ begin
             waiting := true;
             commandcount := 0;
             break;
-         end;
-      end;
-   end;
+            END;
+         END;
+      END;
 end;
 
 procedure kenwoodctl.directcommand(s: string);

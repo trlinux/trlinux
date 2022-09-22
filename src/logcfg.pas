@@ -366,7 +366,7 @@ VAR FileWrite: TEXT;
                addtimer(@rig1.timer);
             end;
 
-            TS850, K2: begin
+            TS850, K2, K3, K4: begin
                Radio1ControlPort.setparams(Radio1BaudRate,8,NoParity,2);
                rig1 := kenwoodctl.create(radiodebugmode);
                rig1.setport(radio1controlport);
@@ -415,7 +415,7 @@ VAR FileWrite: TEXT;
                addtimer(@rig2.timer);
             end;
 
-            TS850, K2: begin
+            TS850, K2, K3, K4: begin
                Radio2ControlPort.setparams(Radio2BaudRate,8,NoParity,2);
                rig2 := kenwoodctl.create(radiodebugmode);
                rig2.setport(radio2controlport);

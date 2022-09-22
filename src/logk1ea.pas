@@ -92,6 +92,8 @@ TYPE
     ShiftKeyType = (Shift, AltShift, None);
 
     InterfacedRadioType = (NoInterfacedRadio, K2,
+                                              K3,
+                                              K4,
                                               TS850,
                                               IC706,
                                               IC706II,
@@ -122,6 +124,7 @@ TYPE
 VAR ActiveDVKPort:     parallelportx;
     DVKEnable:         boolean;
     DVKRadioEnable:    boolean;
+
     DVKRadio1StopCmd:  STR80;
     DVKRadio1DVK1Cmd:  STR80;
     DVKRadio1DVK2Cmd:  STR80;
@@ -129,6 +132,7 @@ VAR ActiveDVKPort:     parallelportx;
     DVKRadio1DVK4Cmd:  STR80;
     DVKRadio1DVK5Cmd:  STR80;
     DVKRadio1DVK6Cmd:  STR80;
+
     DVKRadio2StopCmd:  STR80;
     DVKRadio2DVK1Cmd:  STR80;
     DVKRadio2DVK2Cmd:  STR80;
@@ -136,6 +140,7 @@ VAR ActiveDVKPort:     parallelportx;
     DVKRadio2DVK4Cmd:  STR80;
     DVKRadio2DVK5Cmd:  STR80;
     DVKRadio2DVK6Cmd:  STR80;
+
     DVKControlKeyRecord: boolean;
     k1eatimerx:        k1eatimer;
 
@@ -289,6 +294,9 @@ PROCEDURE SetRadioFreq (Radio: RadioType; Freq: LONGINT; Mode: ModeType; VFO: Ch
 PROCEDURE SetRelayForActiveRadio (Radio: RadioType);
 PROCEDURE SetStereoPin (PinNumber: INTEGER; PinSet: BOOLEAN); {KK1L: 6.71}
 PROCEDURE StartDVK (MemorySwitch: INTEGER);
+
+FUNCTION  TS850CompatableRadio (Radio: InterfacedRadioType): BOOLEAN;
+
 PROCEDURE Wait (DelayTimeMs: LONGINT);
 PROCEDURE TimerInit;
 PROCEDURE CloseDebug;
@@ -334,6 +342,16 @@ VAR
 
     RTTYCharacterSentDelayCount: INTEGER;
     RTTYDelayCount:              INTEGER;
+
+
+FUNCTION TS850CompatableRadio (Radio: InterfacedRadioType): BOOLEAN;
+
+{ Used to see if some function that the TS850 supports (and radios that
+  support the TS850 instructions) like RIT. }
+
+    BEGIN
+    TS850CompatableRadio := (Radio = TS850) OR (Radio = K2) OR (Radio = K3) OR (Radio = K4);
+    END;
 
 
 PROCEDURE AddK1EACheckSumToString (VAR Message: STRING);
@@ -481,6 +499,7 @@ VAR Image: BYTE;
     END;
 
 
+
 
 PROCEDURE StartDVK (MemorySwitch: INTEGER);
 

@@ -57,10 +57,12 @@ type
       procedure setpolltime(ms: integer);virtual;
       procedure setcwreverse(on: boolean);virtual;
       procedure closedebug();
+      FUNCTION K3IsStillTalking: BOOLEAN;virtual;
 
       protected
       freq: longint;
       mode: modetype;
+      txon: BOOLEAN;
       debug: boolean;
       debugopen: boolean;
       polltime: integer;
@@ -122,6 +124,12 @@ begin
    debugopen := false;
    cwreverse := false;
 end;
+
+
+function radioctl.k3isstilltalking: boolean;
+    begin
+    k3isstilltalking := false;
+    end;
 
 procedure radioctl.setpolltime(ms: integer);
 begin

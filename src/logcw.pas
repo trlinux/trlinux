@@ -108,9 +108,6 @@ VAR
     PROCEDURE FlushCWBufferAndClearPTT;
 
     PROCEDURE InitializeKeyer;
-    PROCEDURE SendStringAndStop (MSG: Str160);
-    PROCEDURE SetSpeed (Speed: INTEGER);
-    PROCEDURE UnInitializeKeyer;
 
     FUNCTION  GetCQMemoryString (Mode: ModeType; Key: CHAR): Str80;{KK1L: 6.73 Added mode}
     FUNCTION  GetEXMemoryString (Mode: ModeType; Key: CHAR): Str80;{KK1L: 6.73 Added mode}
@@ -118,19 +115,23 @@ VAR
     PROCEDURE MemoryProgram;
 
     PROCEDURE PTTForceOn;
+
     FUNCTION  QSONumberString (QSONumber: INTEGER): Str80;
 
     PROCEDURE SendKeyboardInput;
     PROCEDURE SendKeysToRTTY;
+    PROCEDURE SendStringAndStop (MSG: Str160);
+    PROCEDURE SetSpeed (Speed: INTEGER);
     PROCEDURE SetCQMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
     PROCEDURE SetEXMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
     PROCEDURE SetNewCodeSpeed;
     PROCEDURE SetUpToSendOnActiveRadio;
     PROCEDURE SetUpToSendOnInactiveRadio;
-
     PROCEDURE StartRTTYTransmission (MSG: Str160);
 
     PROCEDURE ToggleCW (DisplayPrompt: BOOLEAN);
+
+    PROCEDURE UnInitializeKeyer;
 
 IMPLEMENTATION
 
@@ -1755,10 +1756,10 @@ PROCEDURE SetEXMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
 PROCEDURE InitializeKeyer;
 
     BEGIN
-    ActiveKeyer.SetActiveRadio(RadioOne);
+    ActiveKeyer.SetActiveRadio (RadioOne);
     TimerInit;
     ActiveKeyer.InitializeKeyer;
-    ActiveKeyer.SetActiveRadio(RadioOne); // for yccc box
+    ActiveKeyer.SetActiveRadio (RadioOne); // for yccc box
     END;
 
 

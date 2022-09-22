@@ -6511,6 +6511,7 @@ VAR Band: BandType;
 
     CalledFromCQMode        := TRUE; {KK1L: 6.73}
     CallLastTimeIWasHere    := ''; {KK1L: 6.73 Used in LOGSUBS2 to trigger band map info update}
+
     CommandUseInactiveRadio := FALSE; {KK1L: 6.73 Global var to support vectoring commands to inactive radio}
 
     DisplayBandMapEnable   := TRUE; {KK1L: 6.73}
