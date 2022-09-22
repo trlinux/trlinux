@@ -27,6 +27,10 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+22-Sep-2022
+
+ - Made Control-Dash Alternating CQs work with K3/K4 radios.  Not sure how
+   elegantly we are exiting it.
 
 20-Sep-2022
 
