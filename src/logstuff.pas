@@ -561,7 +561,7 @@ uses keycode,beep;
 
 
 
-FUNCTION  K3IsStillTalking: BOOLEAN;
+FUNCTION K3IsStillTalking: BOOLEAN;
 
     BEGIN
     IF ActiveRadio = RadioOne THEN

@@ -27,6 +27,10 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+23-Sep-2022
+ - Improved 2BSIQ with SSB.  F1-F4 are locked out if either rig is on SSB
+   and the other rig is transmitting.
+
 22-Sep-2022
 
  - Made Control-Dash Alternating CQs work with K3/K4 radios.  Not sure how

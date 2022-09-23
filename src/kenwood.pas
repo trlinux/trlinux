@@ -285,10 +285,6 @@ FUNCTION kenwoodctl.K3IsStillTalking: BOOLEAN;
   I will return the status from the last IF command which has the same
   data }
 
-VAR Response: Str80;
-    Timeout: INTEGER;
-    RC: CHAR;
-
     BEGIN
     K3IsStillTalking := txon;
     END;

@@ -133,6 +133,7 @@ TYPE
         PROCEDURE CheckQSOStateMachine;
         PROCEDURE ClearAutoSendDisplay;  { for use during S&P }
 
+        FUNCTION  DisableF1ThroughF4: BOOLEAN;
         PROCEDURE DisplayAutoSendCharacterCount;
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayCodeSpeed;
@@ -145,6 +146,7 @@ TYPE
 
         FUNCTION  ExpandCrypticString (SendString: STRING): STRING;
 
+        FUNCTION  IAmTransmitting: BOOLEAN;
         PROCEDURE InitializeQSOMachine (KBFile: CINT;
                                         RadioID: RadioType;
                                         WinX, WinY: INTEGER);
@@ -4798,10 +4800,84 @@ FUNCTION ValidFunctionKey (Key: CHAR): BOOLEAN;
 
 
 
+FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
+
+{ Typically called by the other radio to see if this one is transmitting.
+  Mostly likely used to disable some function keys when in SSB mode }
+
+    BEGIN
+    CASE Mode OF
+        CW: IAmTransmitting := TBSIQ_CW_Engine.CWBeingSent (Radio);
+
+        Phone:
+            CASE Radio OF
+                RadioOne: IAmTransmitting := Rig1.K3IsStillTalking;
+                RadioTwo: IAmTransmitting := Rig2.K3IsStillTalking;
+                END;  { of case Radio }
+
+        ELSE
+            IAmTransmitting := False;
+
+        END;  { of case Mode }
+
+    END;
+
+
+
+FUNCTION QSOMachineObject.DisableF1ThroughF4: BOOLEAN;
+
+{ This is a tricky function.  It will return TRUE if we should not process
+  a function key press for F1 to F4.  The criteria is basically one of
+  these two conditions:
+
+  1. We are on SSB - and the other rig is either sending CW or is in SSB mode
+     and is transmitting.
+
+  2. We are on CW and the other radio is on SSB and is transmitting.  }
+
+    BEGIN
+    CASE Radio OF
+        RadioOne:
+            BEGIN
+            IF (Mode = CW) and (Radio2QSOMachine.Mode = CW) THEN
+                BEGIN
+                DisableF1ThroughF4 := False;
+                Exit;
+                END;
+
+            { One radio or the other is on phone }
+
+            DisableF1ThroughF4 := Radio2QSOMachine.IAmTransmitting;
+            Exit;
+            END;
+
+        RadioTwo:
+            BEGIN
+            IF (Mode = CW) and (Radio1QSOMachine.Mode = CW) THEN
+                BEGIN
+                DisableF1ThroughF4 := False;
+                Exit;
+                END;
+
+            { One radio or the other is on phone }
+
+            DisableF1ThroughF4 := Radio1QSOMachine.IAmTransmitting;
+            Exit;
+            END;
+
+        END;  { of case Radio }
+    END;
+
+
+
 PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRING);
+
+{ New and improved to make sure we are using the right mode }
 
     BEGIN
     IF NOT ValidFunctionKey (Key) THEN Exit;
+
+    { Well this seems to be okay for mode }
 
     IF (QSOState = QST_Idle) OR (QSOState = QST_CallingCQ) OR
        (QSOState = QST_CQCalled) OR (QSOState = QST_AutoStartSending) OR
@@ -4817,6 +4893,15 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                ELSE
                    Message := GetEXMemoryString (Mode, Key);
            END;
+
+    { When doing ExpandCrypticString, a function key message could start a
+      transmission on this radio while the other one is busy either sending
+      CW or transmitting an SSB message.  We want to disable F1-F4 from being
+      processed if the other transmitter is engaged. }
+
+    IF (Key >= F1) AND (Key <= F4) THEN
+        IF DisableF1ThroughF4 THEN
+            Exit;
 
     Message := ExpandCrypticString (Message);
 
