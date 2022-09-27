@@ -55,6 +55,7 @@ TYPE
 
      private
         CodeSpeed:        INTEGER;
+        SendDelay:        INTEGER;
         curtmode: CurtisMode;
         KeyerInitialized: BOOLEAN;
 //        ElementLength:         INTEGER;
@@ -198,6 +199,8 @@ begin
    wait := false;
    status := $c0;
    swappaddles := false;
+   debugoutput := false;
+   SendDelay := 0;
 end;
 
 function Winkeyer.echoTest:boolean;
@@ -206,6 +209,12 @@ begin
    WinKeyerPort.putchar(Char($00)); //echo test
    WinKeyerPort.putchar(Char($04)); //echo test
    WinKeyerPort.putchar(Char($55)); //test character
+   if debugoutput then
+   begin
+      writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+         ' echo test sending $00 $04 $55');
+      flush(debugfile);
+   end;
    for i := 0 to 500 do // wait up to 500ms
    begin
       delay(1);
@@ -213,11 +222,17 @@ begin
    end;
    i := 0; //check if returned test character
    if WinKeyerPort.charready then i := Integer(WinKeyerPort.readchar);
+   if debugoutput then
+   begin
+      writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+         ' echo test returned $',inttohex(i,2));
+      flush(debugfile);
+   end;
    echoTest := (i = $55);
 end;
 
 Procedure WinKeyer.InitializeKeyer;
-var i,f: integer;
+var i,j,f: integer;
     passed: boolean;
 begin
    CWBufferStart    := 0;
@@ -233,6 +248,7 @@ begin
    WinKeyerPort.putchar(Char($13));
    WinKeyerPort.putchar(Char($13));
    WinKeyerPort.putchar(Char($13));
+   delay(4*9);
    while WinKeyerPort.charready do WinKeyerPort.readchar; //purge garbage
    passed := echoTest; //echo test
    if not passed then passed := echotest; //try again
@@ -247,13 +263,30 @@ begin
    WinKeyerPort.putchar(Char($03)); //close host mode
    WinKeyerPort.putchar(Char($00)); //open host mode
    WinKeyerPort.putchar(Char($02)); //open host mode
-   for i := 0 to 5000 do // wait up to 5000ms
+   delay(4*9);
+   if debugoutput then
    begin
-      delay(1);
-      if WinKeyerPort.charready then break;
+      writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+         ' close then open host mode $00 $03 $00 $02');
+      flush(debugfile);
    end;
    i := 0;
-   if WinKeyerPort.charready then i := Integer(WinKeyerPort.readchar);
+   for j := 0 to 5000 do // wait up to 5000ms
+   begin
+      delay(1);
+      if WinKeyerPort.charready then
+      begin
+         i := Integer(WinKeyerPort.readchar);
+         if ((i and $c0) <> $c0) and ((i and $c0) <> $80) then break;
+         i := 0;
+      end
+   end;
+   if debugoutput then
+   begin
+      writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+         ' Winkeyer version returned $',inttohex(i,2));
+      flush(debugfile);
+   end;
    if i = 0 then
    begin
       writeln('Winkeyer version not returned -- check connection');
@@ -270,6 +303,13 @@ begin
          WinKeyerPort.putchar(Char($0b)); //wk2 mode
          WinKeyerPort.putchar(Char($00)); //open host mode
          WinKeyerPort.putchar(Char($02)); //open host mode
+         delay(6*9);
+         if debugoutput then
+         begin
+            writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+               ' close set to wk2 then reopen $00 $03 $00 $0B $00 $02');
+            flush(debugfile);
+         end;
          for i := 0 to 5000 do // wait up to 5000ms
          begin
             delay(1);
@@ -277,6 +317,12 @@ begin
          end;
          i := 0;
          if WinKeyerPort.charready then i := Integer(WinKeyerPort.readchar);
+         if debugoutput then
+         begin
+            writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+               ' Winkeyer version returned $',inttohex(i,2));
+            flush(debugfile);
+         end;
          if i = 0 then
          begin
             writeln('Winkeyer 2 version not returned -- check connection');
@@ -291,31 +337,73 @@ begin
    end;
    
    WinKeyerPort.putchar(Char($0f)); // load current values
+   delay(8);
    WinKeyerPort.putchar(getMode);
+   delay(8);
    WinKeyerPort.putchar(Char(CodeSpeed));
+   delay(8);
    WinKeyerPort.putchar(getSideTone); //possibly change this to load a variable
                                       //that is updated with monitor tone 
+   delay(8);
    WinKeyerPort.putchar(Char(weight));
+   delay(8);
    WinKeyerPort.putchar(Char(PTTTurnOnDelay));
+   delay(8);
    WinKeyerPort.putchar(Char($02)); //tail
+   delay(8);
    WinKeyerPort.putchar(Char(5)); //5 wpm min for speed pot
+   delay(8);
    WinKeyerPort.putchar(Char(85)); //99 wpm max for speed pot
+   delay(8);
    WinKeyerPort.putchar(Char($00)); //time before keying starts
+   delay(8);
    WinKeyerPort.putchar(Char($00)); //key comp
+   delay(8);
    if FarnsworthEnable then
       WinKeyerPort.putchar(Char(FarnsworthSpeed))
    else
       WinKeyerPort.putchar(Char($00));
+   delay(8);
    WinKeyerPort.putchar(Char(50)); //paddle set point
+   delay(8);
    WinKeyerPort.putchar(Char(50)); //ratio
+   delay(8);
    if Winkeyer1 then
       pincfg := Char($04)  //radio1 no sidetone or ptt
    else
       pincfg := Char($07); //radio1 sidetone enable
    WinKeyerPort.putchar(pincfg);
+   delay(8);
    WinKeyerPort.putchar(Char($ff)); //don't care
+   delay(8);
    KeyerInitialized := True;
-   pincfgsave := pincfg
+   pincfgsave := pincfg;
+   if debugoutput then
+   begin
+      writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+         ' Loading state block 15 values:');
+      write(debugfile,' $0f');
+      write(debugfile,' $'+ inttohex(ord(getMode),2));
+      write(debugfile,' $'+inttohex(CodeSpeed,2));
+      write(debugfile,' $'+inttohex(ord(getSideTone),2));
+      write(debugfile,' $'+inttohex(ord(weight),2));
+      write(debugfile,' $'+inttohex(ord(PTTTurnOnDelay),2));
+      write(debugfile,' $02');
+      write(debugfile,' $05');
+      write(debugfile,' $55');
+      write(debugfile,' $00');
+      write(debugfile,' $00');
+      if FarnsworthEnable then
+         write(debugfile,' $'+inttohex(FarnsworthSpeed),2)
+      else
+         write(debugfile,' $00');
+      write(debugfile,' $32');
+      write(debugfile,' $32');
+      write(debugfile,' $'+inttohex(ord(pincfg),2));
+      writeln(debugfile,' $ff');
+      flush(debugfile);
+   end;
+   SetPTTEnable(pttenable);
 end;
 
 Function WinKeyer.getMode:char;
@@ -372,6 +460,12 @@ begin
    begin
       WinKeyerPort.putchar(Char($03));
       WinKeyerPort.putchar(Char(weight));
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Set weight $03 $',inttohex(weight,2));
+         flush(debugfile);
+      end;
    end;
 end;
 
@@ -389,6 +483,12 @@ begin
       WinKeyerPort.putchar(Char($04));
       WinKeyerPort.putchar(Char(PTTTurnOnDelay));
       WinKeyerPort.putchar(Char(0));
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Set ptt turn on delay $04 $',inttohex(PTTTurnOnDelay,2),' $00');
+         flush(debugfile);
+      end;
    end;
 end;
 
@@ -415,6 +515,12 @@ begin
    begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Set active radio $09 $',inttohex(ord(pincfg),2));
+         flush(debugfile);
+      end;
    end;
    pincfgsave := pincfg
 end;
@@ -440,6 +546,12 @@ begin
    begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Ptt hold count $09 $',inttohex(ord(pincfg),2));
+         flush(debugfile);
+      end;
    end;
    pincfgsave := pincfg
 end;
@@ -466,6 +578,12 @@ begin
    begin
       WinKeyerPort.putchar(Char($02));
       WinKeyerPort.putchar(Char(CodeSpeed));
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Code speed $02 $',inttohex(CodeSpeed,2));
+         flush(debugfile);
+      end;
    end;
 end;
 
@@ -483,6 +601,12 @@ begin
       while WinKeyerPort.charready do WinKeyerPort.readchar; //purge garbage
       WinKeyerPort.putchar(Char($0e));
       WinKeyerPort.putchar(getMode);
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Swap paddles $0E $',inttohex(ord(getMode),2));
+         flush(debugfile);
+      end;
    end;
 end;
 
@@ -500,6 +624,12 @@ begin
       while WinKeyerPort.charready do WinKeyerPort.readchar; //purge garbage
       WinKeyerPort.putchar(Char($0e));
       WinKeyerPort.putchar(getMode);
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Set Curtis Mode $0E $',inttohex(ord(getMode),2));
+         flush(debugfile);
+      end;
    end;
 end;
 
@@ -517,6 +647,12 @@ begin
       while WinKeyerPort.charready do WinKeyerPort.readchar; //purge garbage
       WinKeyerPort.putchar(Char($0e));
       WinKeyerPort.putchar(getMode);
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Set Paddle bug $0E $',inttohex(ord(getMode),2));
+         flush(debugfile);
+      end;
    end;
 end;
 
@@ -696,6 +832,12 @@ begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
    end;
+   if debugoutput then
+   begin
+      writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+         ' Ptt enable ',on,' $09'+inttohex(ord(pincfg),2));
+      flush(debugfile);
+   end;
    pincfgsave := pincfg
 end;
 
@@ -710,6 +852,12 @@ begin
    begin
       WinKeyerPort.putchar(Char($00));
       WinKeyerPort.putchar(Char($03));
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Uninitialize keyer closing ','$00 $03');
+         closefile(debugfile);
+      end;
    end;
 end;
 
@@ -748,6 +896,16 @@ begin
          WinKeyerPort.putchar(Char(FarnsworthSpeed))
       else
          WinKeyerPort.putchar(Char($00));
+      if debugoutput then
+      begin
+         write(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Farnsworth enable $0D $',inttohex(CodeSpeed,2));
+         if FarnsworthEnable then
+            writeln(debugfile,' $',inttohex(FarnsworthSpeed,2))
+         else
+            writeln(debugfile,' $00');
+         flush(debugfile);
+      end;
    end;
 end;
 
@@ -785,6 +943,13 @@ begin
          pincfg := Char(Integer(pincfg) or $02);
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
+      if debugoutput then
+      begin
+         write(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Set Monitor Tone $01 $',inttohex(ord(getSideTone),2));
+         writeln(debugfile,' $09 $',inttohex(ord(pincfg),2));
+         flush(debugfile);
+      end;
    end;
    pincfgsave := pincfg
 end;
@@ -802,6 +967,13 @@ begin
          pincfg := Char(Integer(pincfg) or $02);
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
+      if debugoutput then
+      begin
+         write(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Set Paddle Monitor Tone $01 $',inttohex(ord(getSideTone),2));
+         writeln(debugfile,' $09 $',inttohex(ord(pincfg),2));
+         flush(debugfile);
+      end;
    end;
    pincfgsave := pincfg
 end;
@@ -835,6 +1007,12 @@ begin
       WinKeyerPort.putchar(Pincfg);
       WinKeyerPort.putchar(Char($18));
       WinKeyerPort.putchar(Char($01));
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' DVP PTT on $09 $',inttohex(ord(pincfg),2),' $18 $01');
+         flush(debugfile);
+      end;
    end
    else
    begin
@@ -844,6 +1022,12 @@ begin
       pincfg := pincfgsave;
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' DVP PTT off $18 $00 $09 $',inttohex(ord(pincfg),2));
+         flush(debugfile);
+      end;
    end;
 end;
 
@@ -879,6 +1063,7 @@ var
     i: integer;
 begin
    if not KeyerInitialized then exit;
+   if SendDelay >= 0 then dec(SendDelay); //delay for small Microham DXP buffer
    if ctrlshift then
    begin
       if not tuning then
@@ -892,12 +1077,26 @@ begin
             WinKeyerPort.putchar(Char(75));
             WinKeyerPort.putchar(Char($14));
             WinKeyerPort.putchar(Char($02)); //opposite of wk2 documentation
+            SendDelay := SendDelay+4*5;
+            if debugoutput then
+            begin
+               writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+                  ' Tune with dits $02 $4B $14 $02');
+               flush(debugfile);
+            end;
          end
          else
          begin
             while WinKeyerPort.charready do WinKeyerPort.readchar;
             WinKeyerPort.putchar(Char($0b));
             WinKeyerPort.putchar(Char($01));
+            SendDelay := SendDelay+2*5;
+            if debugoutput then
+            begin
+               writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+                  ' Tune $0B $01');
+               flush(debugfile);
+            end;
          end;
       end;
    end
@@ -908,19 +1107,46 @@ begin
       begin
          WinKeyerPort.putchar(Char($14));
          WinKeyerPort.putchar(Char($00));
+         SendDelay := SendDelay+2*5;
+         if debugoutput then
+         begin
+            writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+               ' Tune with dits off $14 $00');
+            flush(debugfile);
+         end;
       end
       else
       begin
          WinKeyerPort.putchar(Char($0b));
          WinKeyerPort.putchar(Char($00));
+         SendDelay := SendDelay+2*5;
+         if debugoutput then
+         begin
+            writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+               ' Tune off $0B $00');
+            flush(debugfile);
+         end;
       end;
       WinKeyerPort.putchar(Char($02));
       WinKeyerPort.putchar(Char(CodeSpeed));
+      SendDelay := SendDelay+2*5;
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Reset Code Speed $02 $',inttohex(CodeSpeed,2));
+         flush(debugfile);
+      end;
    end;
 
    while WinKeyerPort.charready do
    begin
       c := WinKeyerPort.readchar;
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Received Character $',inttohex(ord(c),2));
+         flush(debugfile);
+      end;
       if (Integer(c) and $c0) = $c0 then
       begin
          if (Integer(c) and $c8) = $c0 then
@@ -931,6 +1157,13 @@ begin
             busy := (Integer(c) and $04) = $04;
             wait := (Integer(c) and $10) = $10;
             if breakin then flushlocal;
+            if debugoutput then
+            begin
+               writeln(debugfile,
+                  'Status Byte xoff = ',xoff,' breakin = ',breakin,
+                  ' busy = ',busy,' wait = ',wait);
+               flush(debugfile);
+            end;
          end
          else
          begin
@@ -941,18 +1174,39 @@ begin
          if (Integer(c) and $c0) = $80 then
          begin
            // speed pot
+            if debugoutput then
+            begin
+               writeln(debugfile,'Speed pot Byte ignored');
+               flush(debugfile);
+            end;
          end
          else
          begin
             //echo back?
+            if debugoutput then
+            begin
+               writeln(debugfile,'Probable echo back byte ',c);
+               flush(debugfile);
+            end;
             if (mirrorstart <> mirrorend) then
             begin
                if (c = mirror[mirrorstart]) then
                begin
                   mirrorstart := (mirrorstart+1) mod 128;
+                  if debugoutput then
+                  begin
+                     writeln(debugfile,'Echo back matched');
+                     flush(debugfile);
+                  end;
                end
                else
                begin
+                  if debugoutput then
+                  begin
+                     writeln(debugfile,'Echo back incorrect, abort sending ',
+                        'Received ',c,' Expected ',mirror[mirrorstart]);
+                     flush(debugfile);
+                  end;
                   flushcwbuffer;
                end;
             end;
@@ -960,7 +1214,7 @@ begin
       end;
    end;
 
-   if (cwbufferend <> cwbufferstart) and (not xoff) then
+   if (cwbufferend <> cwbufferstart) and (not xoff) and (SendDelay <= 0) then
    begin
       i := Integer(cwbuffer[cwbufferstart]);
       case i of
@@ -975,6 +1229,15 @@ begin
                cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
                WinkeyerPort.putchar(c1);
                WinkeyerPort.putchar(c2);
+               SendDelay := SendDelay+2*5;
+            end;
+            if debugoutput then
+            begin
+               writeln(debugfile,
+                  FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+                  ' Sending 2 byte command $'+inttohex(ord(c1),2)+
+                  ' $'+inttohex(ord(c2),2));
+               flush(debugfile);
             end;
          end;
 
@@ -993,7 +1256,16 @@ begin
                   WinkeyerPort.putchar(c1);
                   WinkeyerPort.putchar(c2);
                   WinkeyerPort.putchar(c3);
-               end
+                  SendDelay := SendDelay+3*5;
+               end;
+               if debugoutput then
+               begin
+                  writeln(debugfile,
+                     FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+                     ' Sending merge character $1b $'+inttohex(ord(c2),2)+
+                     ' $'+inttohex(ord(c3),2));
+                  flush(debugfile);
+               end;
            end;
          end;
 
@@ -1002,6 +1274,13 @@ begin
             c1 := Char(i);
             cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
             WinkeyerPort.putchar(c1);
+            SendDelay := SendDelay+5;
+            if debugoutput then
+            begin
+               writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+                  ' Sending $1e $1f or | Chararacter $'+inttohex(ord(c1),2));
+               flush(debugfile);
+            end;
          end;
 
          $06:
@@ -1013,7 +1292,14 @@ begin
             if CodeSpeed > 99 then CodeSpeed := 99;
             WinkeyerPort.putchar(Char($1c));
             WinkeyerPort.putchar(Char(CodeSpeed));
+            SendDelay := SendDelay+2*5;
             cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
+            if debugoutput then
+            begin
+               writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+                  ' Change Speed $1c $',' $',inttohex(CodeSpeed,2));
+               flush(debugfile);
+            end;
          end;
 
          $13:
@@ -1024,8 +1310,15 @@ begin
             if CodeSpeed > 6 then Dec (CodeSpeed);
             WinkeyerPort.putchar(Char($1c));
             WinkeyerPort.putchar(Char(CodeSpeed));
+            SendDelay := SendDelay+2*5;
             cwbufferstart := (cwbufferstart+1) mod CWBufferSize;
-         end;
+            if debugoutput then
+            begin
+               writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+                  ' Change Speed $1c $',' $',inttohex(CodeSpeed,2));
+               flush(debugfile);
+            end;
+         end
 
          else
          begin
@@ -1034,6 +1327,13 @@ begin
             mirror[mirrorend] := c1;
             mirrorend := (mirrorend+1) mod 128;
             WinkeyerPort.putchar(c1);
+            SendDelay := SendDelay+5;
+            if debugoutput then
+            begin
+               writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+                  ' Sending Chararacter to Keyer ',c1,' $'+inttohex(ord(c1),2));
+               flush(debugfile);
+            end;
          end;
 
       end;
@@ -1084,6 +1384,13 @@ begin
    if DeleteLastCharacter then
    begin
       WinKeyerPort.putchar(Char($08));
+      SendDelay := SendDelay+5;
+      if debugoutput then
+      begin
+         writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+            ' Delete Last Chararacter $08');
+         flush(debugfile);
+      end;
       mirrorend := (mirrorend + 127) mod 128;
    end;
 end;
@@ -1096,6 +1403,13 @@ begin
    cwbufferend := 0;
    WinKeyerPort.putchar(Char($0a));
    WinKeyerPort.putchar(Char($1e));
+   SendDelay := SendDelay+2*5;
+   if debugoutput then
+   begin
+      writeln(debugfile,FormatDateTime('DD/MM/YYYY hh:nn:ss.zzz',Now),
+         ' Flush Buffer $0a $1e');
+      flush(debugfile);
+   end;
 end;
 
 procedure WinKeyer.flushLocal;
