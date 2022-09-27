@@ -55,7 +55,9 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 27-Sep-2022
 
  - Fixed CW messages getting sent when not in CW mode
- -
+ - Support for QSO number on SSB.  You need to put # in the apporpirate member.
+   Note that if you put the # in the S&P SSB EXCHANGE message - you have to
+   press F2 for that message to be "executed" and thus generate a QSO Number.
 
 9-Sep-2022
 
