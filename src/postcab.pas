@@ -869,8 +869,8 @@ VAR Key:             CHAR;
 
     SniffForTransmitter := False;
 
-    CallSignLength := 13;              { Default maximum callsign length }
-    ReceivedCallCursorPosition := 56;  { Default location of received call }
+    CallSignLength := 13;                 { Default maximum callsign length }
+    ReceivedCallCursorPosition := 56;     { Default location of received call }
 
     RSTIsPartOfTheExchange := False;
     NumberExchangeElementsToRecord := 0;  { 0 is disable counting }
@@ -1027,13 +1027,14 @@ VAR Key:             CHAR;
 
             QTH := GetResponse ('Enter the zone you were sending : ');
             IF QTH = '' THEN Exit;
+
             IF (MyQTH.CountryId = 'K')   OR (MyQTH.CountryID = 'VE') then
-               Section := GetResponse ('Enter your state: ')
-            else
+               Section := GetResponse ('Enter your state or province : ')
+            ELSE
                Section := 'DX';
 
             SentInformation := '$ ' + QTH + ' ' + Section;
-            end;
+            END;
 
         IARU:        { Okay }
             BEGIN
@@ -1231,9 +1232,9 @@ VAR Key:             CHAR;
             CQ160:       WriteLn (FileWrite, 'CONTEST: CQ-160-', ModeString,Chr(13));
             CQVHF:       WriteLn (FileWrite, 'CONTEST: CQ-VHF',Chr(13));
             CQWPX:       WriteLn (FileWrite, 'CONTEST: CQ-WPX-', ModeString,Chr(13));
-            CQWPXRTTY:       WriteLn (FileWrite, 'CONTEST: CQ-WPX-RTTY',Chr(13));
+            CQWPXRTTY:   WriteLn (FileWrite, 'CONTEST: CQ-WPX-RTTY',Chr(13));
             CQWW:        WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
-            CQWWRTTY:        WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
+            CQWWRTTY:    WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
             IARU:        WriteLn (FileWrite, 'CONTEST: IARU-HF',Chr(13));
             IntSprint:   WriteLn (FileWrite, 'CONTEST: INTERNET-SPRINT',Chr(13));
             NAQSO:       WriteLn (FileWrite, 'CONTEST: NAQP-', ModeString,Chr(13));
@@ -1708,7 +1709,6 @@ Call fields end here for length=12                                
                         ELSE
                             RSTReceived := '59';
 
-
                 IF ReceivedQSONumberLength > 0 THEN
                     BEGIN
                     NumberReceived := RemoveFirstLongInteger (ExchangeString);
@@ -1738,6 +1738,21 @@ Call fields end here for length=12                                
 
                 WHILE Pos ('$', FileString) > 0 DO
                     FileString [Pos ('$', FileString)] := ' ';
+
+                { Hack to change DX country indicator to DX for the CQ WW RTTY contest }
+
+                IF Contest = CQWWRTTY THEN
+                    BEGIN
+                    TempString := GetLastString (ExchangeString);
+
+                    { Domestic QTH will have lower case character at the end }
+
+                    IF TempString [Length (TempString)] < 'a' THEN
+                        BEGIN
+                        RemoveLastString (ExchangeString);
+                        ExchangeString := ExchangeString + ' DX';
+                        END
+                    END;
 
                 Mode := GetLogEntryMode (FileString);
 
@@ -1831,6 +1846,8 @@ Call fields end here for length=12                                
 
                 CabrilloString := CabrilloString + CallReceivedString + ' ';
 
+                { Construct the received exchange data }
+
                 IF RSTIsPartOfTheExchange THEN
                     CabrilloString := CabrilloString + RSTReceived + ' ' + ExchangeString
                 ELSE
@@ -1862,15 +1879,14 @@ Call fields end here for length=12                                
 
                 WriteLn (FileWrite, CabrilloString,Chr(13));
 
-
                 Inc (NumberQSOs);
                 GoToXY (1, WhereY);
                 Write (NumberQSOs);
                 END;
-            END;
-        Close (FileRead);
 
-        GenerateLogPortionOfCabrilloFile := True;
+            END;  { of WHILE Nof Eof }
+
+        Close (FileRead);
         END
 
     ELSE

@@ -78,7 +78,9 @@ VAR
     RememberCWSpeed:         INTEGER;
     RepeatSearchAndPounceExchange: Str80;
     RepeatSearchAndPouncePhoneExchange: Str80;
+
     RTTYTransmissionStarted: BOOLEAN;
+
     SearchAndPounceExchange: Str80;
     SearchAndPouncePhoneExchange: Str80;
     SendingOnRadioOne: BOOLEAN; {KK1L: 6.72 Moved from local (IMPLIMENTATION section) for use in LOGSUBS}
@@ -209,8 +211,24 @@ PROCEDURE FlushCWBufferAndClearPTT;
     BEGIN
     ActiveKeyer.PTTUnForce;
     ActiveKeyer.FlushCWBuffer;
+
+    { Legacy stuff }
+
     if (activerttyport <> nil) and (activemode = Digital) then
         ActiveRttyPort.putchar(chr(27));
+
+    { New RTTY support with K3/K4 }
+
+    IF ActiveMode = Digital THEN
+        BEGIN
+        IF ActiveRadio = RadioOne THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                rig1.directcommand ('KY ' + ControlD + ';');
+
+        IF ActiveRadio = RadioTwo THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                rig2.directcommand ('KY ' + ControlD + ';');
+        END;
     END;
 
 
@@ -219,15 +237,14 @@ PROCEDURE StartRTTYTransmission (MSG: Str160);
 VAR CharPointer: INTEGER;
 
     BEGIN
-    IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) THEN
-       BEGIN
-       RTTYTransmissionStarted := True;
-       RTTYReceiveCharBuffer.AddEntry (Ord (CarriageReturn));
-       RTTYReceiveCharBuffer.AddEntry (Ord (LineFeed));
-       END;
+    { This is legacy stuff - I have no idea if anyone uses it }
 
     IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) THEN
         BEGIN
+        RTTYTransmissionStarted := True;
+        RTTYReceiveCharBuffer.AddEntry (Ord (CarriageReturn));
+        RTTYReceiveCharBuffer.AddEntry (Ord (LineFeed));
+
         WHILE NOT RTTYSendCharBuffer.FreeSpace >= Length (MSG) + 1 DO;
 
         IF Length (RTTYSendString) > 0 THEN
@@ -237,7 +254,31 @@ VAR CharPointer: INTEGER;
         IF Length (MSG) > 0 THEN
             FOR CharPointer := 1 TO Length (MSG) DO
                RTTYSendCharBuffer.AddEntry (Ord (MSG [CharPointer]));
+
+        Exit;   { Added so the K3/K4 case doesn't get executed }
         END;
+
+    { New stuff for K3/K4 }
+
+    IF ActiveMode = Digital THEN
+        BEGIN
+        IF ActiveRadio = RadioOne THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                BEGIN
+                rig1.directcommand ('TX;');
+                IF MSG <> '' THEN
+                    rig1.directcommand ('KYW' + MSG + ';');
+                END;
+
+        IF ActiveRadio = RadioTwo THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                BEGIN
+                rig2.directcommand ('TX;');
+                IF MSG <> '' THEN
+                    rig2.directcommand ('KYW' + MSG + ';');
+                END;
+        END;
+
     END;
 
 
@@ -254,6 +295,18 @@ VAR CharPointer: INTEGER;
             FOR CharPointer := 1 TO Length (MSG) DO
                 RTTYSendCharBuffer.AddEntry (Ord (MSG [CharPointer]));
 
+        Exit;  { Added so K3/K4 code does not get executed }
+        END;
+
+    IF ActiveMode = Digital THEN
+        BEGIN
+        IF ActiveRadio = RadioOne THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                rig1.directcommand ('KYW' + MSG + ';');
+
+        IF ActiveRadio = RadioTwo THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                rig2.directcommand ('KYW' + MSG + ';');
         END;
     END;
 
@@ -276,6 +329,33 @@ VAR CharPointer: INTEGER;
                RTTYSendCharBuffer.AddEntry (Ord (RTTYReceiveString [CharPointer]));
 
         END;
+
+    { K3/K4 stuff - not sure if the KY leaves me in TX mode or not... }
+
+    IF ActiveMode = Digital THEN
+        BEGIN
+        IF ActiveRadio = RadioOne THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                IF MSG <> '' THEN
+                    BEGIN
+                    WHILE Pos ('_', MSG) > 0 DO
+                        MSG [Pos ('_', MSG)] := ' ';
+
+                    rig1.directcommand ('KY ' + MSG + '|;');
+                    END;
+
+        IF ActiveRadio = RadioTwo THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                IF MSG <> '' THEN
+                    BEGIN
+                    WHILE Pos ('_', MSG) > 0 DO
+                        MSG [Pos ('_', MSG)] := ' ';
+
+                    rig2.directcommand ('KY ' + MSG + '|;');
+                    END;
+
+        END;
+
 
     RTTYTransmissionStarted := False;
     END;
@@ -965,8 +1045,8 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
     BEGIN
     CASE ActiveMode OF
-        Phone: FirstExchangeFunctionKey := F1;
-        CW, Digital:    FirstExchangeFunctionKey := F3;
+        Phone, Digital: FirstExchangeFunctionKey := F1;
+        CW:             FirstExchangeFunctionKey := F3;
         END;
 
     RemoveWindow (QuickCommandWindow);

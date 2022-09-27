@@ -2078,7 +2078,7 @@ PROCEDURE CheckEverything (VAR KeyChar: CHAR; VAR WindowString: Str80);
 
 VAR Result: INTEGER;
     BandMapInitialExchange: Str20;
-    TimeOut: BYTE;
+    TimeOut: INTEGER;
     PacketChar: CHAR;
 
     BEGIN
@@ -2275,17 +2275,15 @@ VAR Result: INTEGER;
                     SwapRadios;
                     SendFunctionKeyMessage (AltF1, CQOpMode);
 
+                    Timeout := 0;
+
                     IF ActiveMode = Phone THEN
                         BEGIN
                         IF DVPActive THEN
-                            BEGIN
-                            TimeOut := 0;
-
                             REPEAT
                                 Wait (5);
                                 Inc (TimeOut);
                             UNTIL DVPMessagePlaying OR (TimeOut > 60) OR DVKMessagePlaying;
-                            END;
 
                         IF ActiveRadio = RadioOne THEN
                             IF (Radio1Type = K3) OR (Radio1Type = K4) THEN
@@ -2996,7 +2994,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
     NumberString: Str20;
     FirstCommand, FootSwitchPressed: BOOLEAN;
     RealFreq: REAL;
-    TimeOut: BYTE;
+    TimeOut: INTEGER;
     VFOString: Str80; {KK1L: 6.73 added VFOString}
     VFOChar: Char; {KK1L 6.73}
     RadioToSet: RadioType; {KK1L: 6.73}
@@ -4697,16 +4695,13 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
 
     SetSpeed (DisplayedCodeSpeed);
 
-{
-
     IF ActiveMode <> CW THEN
         BEGIN
-        SendFunctionKeyMessage (ExtendedKey, NotCQMode);
+        SendFunctionKeyMessage (ExtendedKey, SearchAndPounceOpMode);
         IF (ExtendedKey = F2) THEN ExchangeHasBeenSent := True;
         IF (ExtendedKey = F1) THEN ExchangeHasBeenSent := False;
         Exit;
         END;
-}
 
     CASE ExtendedKey OF
         F1: BEGIN

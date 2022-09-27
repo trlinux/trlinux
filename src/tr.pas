@@ -27,7 +27,13 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+26-Sep-2022
+
+ - Added functionality for RTTY commands to go to K2/K3/K4 radio (not 2BSIQ yet)
+ - Fixed Cabrillo output for CQ WW RTTY to show DX instead of country ID
+
 23-Sep-2022
+
  - Improved 2BSIQ with SSB.  F1-F4 are locked out if either rig is on SSB
    and the other rig is transmitting.
 
@@ -64,7 +70,6 @@ PROGRAM ContestLoggingProgram;
  - Added CWT contest - might need some cleanup on headers of printable log page
  - Removed unused xResults and got to zero "notes" during compile
  - Added a lengthy explaining of how a QSO gets logged to the start of LOGSUBS2.PAS
-
 
    To make TRTTY, change TREE.PAS so that RTY shows up between CW and SSB.
    Change the mode change command.

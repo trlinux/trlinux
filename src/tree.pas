@@ -63,14 +63,12 @@ TYPE
                 Band24G, BandLight, All, NoBand);
 
 
-     ModeType = (CW, Digital, Phone, Both, NoMode, FM);  { Use for TR }
-{    ModeType = (CW, Phone, Both, NoMode, FM, Digital);   }{ Use for calltest }
+    ModeType = (CW, Digital, Phone, Both, NoMode, FM);  { Use for TR }
 
     MultiBandAddressArrayType = ARRAY [BandType] OF BYTE;
 
 
 CONST
-
     HexChars: ARRAY [0..$F] of Char = '0123456789ABCDEF';
 
     BandString: ARRAY [BandType] OF STRING [3] = ('160',

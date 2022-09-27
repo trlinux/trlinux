@@ -51,6 +51,12 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+
+27-Sep-2022
+
+ - Fixed CW messages getting sent when not in CW mode
+ -
+
 9-Sep-2022
 
  - Made ControlEnter work for moving forward in a QSO without sending CW.

@@ -1219,6 +1219,77 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'EX DIGITAL MEMORY F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'MEMORY F');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryString (Digital, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryString (Digital, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryString (Digital, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryString (Digital, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryString (Digital, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryString (Digital, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryString (Digital, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryString (Digital, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryString (Digital, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryString (Digital, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryString (Digital, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryString (Digital, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+
+
+    IF StringHas (ID, 'EX DIGITAL MEMORY ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryString (Digital, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryString (Digital, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryString (Digital, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryString (Digital, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryString (Digital, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryString (Digital, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryString (Digital, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryString (Digital, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryString (Digital, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryString (Digital, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryString (Digital, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryString (Digital, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX DIGITAL MEMORY CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryString (Digital, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryString (Digital, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryString (Digital, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryString (Digital, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryString (Digital, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryString (Digital, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryString (Digital, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryString (Digital, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryString (Digital, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryString (Digital, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryString (Digital, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryString (Digital, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
     IF ID = 'EX MENU' THEN
         BEGIN
         Delete(CMD, 80, 100); {KK1L: 6.65 limits CMD to size of ExchangeFunctionKeyMenu}
