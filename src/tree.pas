@@ -319,6 +319,7 @@ VAR CodeSpeed:  BYTE;
 
     PROCEDURE IncrementASCIIInteger (VAR ASCIIString: Str80);
     PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
+
     FUNCTION  WordValueFromCharacter (Character: CHAR): WORD;
 
 
@@ -699,6 +700,7 @@ FUNCTION  NUMBYTES (Call1: Pointer; Call2: Pointer): INTEGER;CDECL;EXTERNAL;
     procedure lsound(Hz: Integer);CDECL;external;
     procedure lnosound;CDECL;external;
 
+
 
 FUNCTION AddBand (Band: BandType): CHAR;
 

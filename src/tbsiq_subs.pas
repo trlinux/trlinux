@@ -3536,6 +3536,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                   AltP:
                       BEGIN
                       RITEnable := False;
+                      ActiveMode := Mode;
                       MemoryProgram;
                       RITEnable := True;
                       VisibleLog.SetUpEditableLog;

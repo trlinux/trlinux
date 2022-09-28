@@ -30,7 +30,7 @@ CONST
     WinkeyerHangTime: Array [0..3] of Integer = (8, 9, 11, 15);
 
 TYPE
- 
+
     WinkeyerState = record
        modereg: Char;
        speed: Char;
@@ -110,7 +110,7 @@ TYPE
         Function getSideTone:char;
         procedure flushLocal;
         function echoTest:boolean;
-        
+
     public
 
         Constructor create;
@@ -335,7 +335,7 @@ begin
    begin
       WinkeyerFreqs[i] := f div i;
    end;
-   
+
    WinKeyerPort.putchar(Char($0f)); // load current values
    delay(8);
    WinKeyerPort.putchar(getMode);
@@ -343,7 +343,7 @@ begin
    WinKeyerPort.putchar(Char(CodeSpeed));
    delay(8);
    WinKeyerPort.putchar(getSideTone); //possibly change this to load a variable
-                                      //that is updated with monitor tone 
+                                      //that is updated with monitor tone
    delay(8);
    WinKeyerPort.putchar(Char(weight));
    delay(8);
@@ -394,7 +394,7 @@ begin
       write(debugfile,' $00');
       write(debugfile,' $00');
       if FarnsworthEnable then
-         write(debugfile,' $'+inttohex(FarnsworthSpeed),2)
+         write(debugfile,' $'+inttohex(FarnsworthSpeed,2))
       else
          write(debugfile,' $00');
       write(debugfile,' $32');
@@ -456,7 +456,7 @@ begin
    weight := round(50.0*w);
    if weight < 25 then weight := 25;
    if weight > 75 then weight := 75;
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       WinKeyerPort.putchar(Char($03));
       WinKeyerPort.putchar(Char(weight));
@@ -478,7 +478,7 @@ Procedure WinKeyer.SetPTTTurnOnDelay(delay: integer);
 begin
    PTTTurnOnDelay := round(real(delay)*0.17);
    if PTTTurnOnDelay > 250 then PTTTurnOnDelay := 250;
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       WinKeyerPort.putchar(Char($04));
       WinKeyerPort.putchar(Char(PTTTurnOnDelay));
@@ -499,7 +499,7 @@ end;
 
 Procedure WinKeyer.SetActiveRadio(r: RadioType);
 begin
-   Pincfg := Char(Integer(Pincfg) and $f3); 
+   Pincfg := Char(Integer(Pincfg) and $f3);
    case r of
       RadioOne:
       begin
@@ -511,7 +511,7 @@ begin
          Pincfg := Char(Integer(Pincfg) or $08);
       end;
    end;
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
@@ -542,7 +542,7 @@ begin
    HangTime := j;
    Pincfg := Char(Integer(Pincfg) and $8f);
    Pincfg := Char(Integer(Pincfg) or (HangTime shl 4));
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
@@ -574,7 +574,7 @@ begin
    CodeSpeed := Speed;
    if CodeSpeed > 99 then CodeSpeed := 99;
    if CodeSpeed < 5 then CodeSpeed := 5;
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       WinKeyerPort.putchar(Char($02));
       WinKeyerPort.putchar(Char(CodeSpeed));
@@ -595,7 +595,7 @@ end;
 procedure WinKeyer.SetSwapPaddles(on: boolean);
 begin
    SwapPaddles := on;
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       flushcwbuffer;
       while WinKeyerPort.charready do WinKeyerPort.readchar; //purge garbage
@@ -618,7 +618,7 @@ end;
 procedure WinKeyer.SetCurtisMode(m: CurtisMode);
 begin
    CurtMode := m;
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       flushcwbuffer;
       while WinKeyerPort.charready do WinKeyerPort.readchar; //purge garbage
@@ -641,7 +641,7 @@ end;
 procedure WinKeyer.SetPaddleBug(on: boolean);
 begin
    PaddleBug := on;
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       flushcwbuffer;
       while WinKeyerPort.charready do WinKeyerPort.readchar; //purge garbage
@@ -706,7 +706,7 @@ begin
          CWBufferEnd := (CWBufferEnd+1) mod CWBufferSize;
       end;
 
-      
+
       Char(148), Char(153):
       begin
          CWBuffer[CWBufferEnd] := Char($1b);
@@ -801,7 +801,7 @@ begin
         begin
            //decrease weight by .03 not implemented
         end;
- 
+
         ControlY:   { Increase weight command }
         begin
            //increase weight by .03 not implemented
@@ -827,7 +827,7 @@ begin
        pincfg := Char(Integer(pincfg) or 1)
    else
        pincfg := Char(Integer(pincfg) and $fe);
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       WinKeyerPort.putchar(Char($09));
       WinKeyerPort.putchar(Pincfg);
@@ -848,7 +848,7 @@ end;
 
 procedure WinKeyer.UninitializeKeyer;
 begin
-   if KeyerInitialized then 
+   if KeyerInitialized then
    begin
       WinKeyerPort.putchar(Char($00));
       WinKeyerPort.putchar(Char($03));
