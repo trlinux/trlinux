@@ -27,6 +27,10 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+29-Sep-2022
+
+ - Winkey fix from W9CF
+
 26-Sep-2022
 
  - Added functionality for RTTY commands to go to K2/K3/K4 radio (not 2BSIQ yet)

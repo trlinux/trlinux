@@ -1533,7 +1533,7 @@ VAR Key, ExtendedKey: CHAR;
                 BEGIN
                 { Check to see if AutoStartSend should be triggered }
 
-                IF AutoSendEnable AND (StartSendingCursorPosition > 0) AND (ActiveMode = CW) THEN
+                IF AutoSendEnable AND (StartSendingCursorPosition > 0) AND (Mode = CW) THEN
                     IF Length (CallWindowString) >= AutoSendCharacterCount THEN
                         IF NOT StringIsAllNumbersOrDecimal (CallWindowString) THEN
                             IF NOT StringHas ('/', CallWindowString) THEN

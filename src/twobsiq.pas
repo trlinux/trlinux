@@ -51,6 +51,12 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+28-Sep-2022
+
+ - Found a case where AutoStartSend didn't want to work.  Changed ActiveMode to Mode
+   as a qualifier and that seemed to fix it.
+
+ - Improved how the Alt-P memories are shown with regard to mode.
 
 27-Sep-2022
 
