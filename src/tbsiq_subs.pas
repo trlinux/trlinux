@@ -658,23 +658,21 @@ VAR FileName, CommandString: Str40;
             if filename = 'STEREO' then so2rbox.setrcvfocus(STEREO);
             if filename = 'LATCHON' then so2rbox.setlatch(true);
             if filename = 'LATCHOFF' then so2rbox.setlatch(false);
+
             if filename = 'LATCHTOGGLE' then
-               so2rbox.setlatch(not so2rbox.getlatch);
+                so2rbox.setlatch(not so2rbox.getlatch);
+
             if filename = 'RXA' then
-            begin
-               if Radio = Radioone then
-                  so2rbox.setrcvfocus(RX1)
-               else
-                  so2rbox.setrcvfocus(RX2)
-            end;
+                IF  Radio = Radioone then
+                    so2rbox.setrcvfocus(RX1)
+                else
+                    so2rbox.setrcvfocus(RX2);
 
             if filename = 'RXI' then
-            begin
-               if Radio = radioone then
-                  so2rbox.setrcvfocus(RX2)
-               else
-                  so2rbox.setrcvfocus(RX1)
-            end;
+                IF Radio = radioone then
+                    so2rbox.setrcvfocus(RX2)
+                else
+                    so2rbox.setrcvfocus(RX1);
 
 //            IF SendString <> '' THEN
 //                REPEAT millisleep UNTIL RadioSendBufferEmpty (ActiveRadio);
@@ -683,29 +681,25 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SRS' THEN
             BEGIN
-               if Radio = radioone then
-                  rig1.directcommand (filename)
-               else
-                  rig2.directcommand (filename);
+            write ('&&&');
+            IF Radio = radioone then
+                rig1.directcommand (filename)
+            ELSE
+                rig2.directcommand (filename);
             END;
+
 
         IF CommandString = 'SRS1' THEN
-            BEGIN
-               rig1.directcommand(filename);
-            END;
+            rig1.directcommand (filename);
 
         IF CommandString = 'SRS2' THEN
-            BEGIN
-               rig2.directcommand(filename);
-            END;
+            Rig2.directcommand (filename);
 
         IF CommandString = 'SRSI' THEN
-            BEGIN
-               if radio = radioone then
-                  rig2.directcommand(filename)
-               else
-                  rig1.directcommand(filename);
-            END;
+            IF Radio = radioone then
+                rig2.directcommand(filename)
+            else
+                rig1.directcommand(filename);
 
         IF CommandString = 'TOGGLECW'        THEN ToggleCW (False);
         IF CommandString = 'TOGGLEMODES'     THEN ToggleModes;
