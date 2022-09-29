@@ -2845,6 +2845,7 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SO2R' THEN
             BEGIN
+            write ('$$$');
             if filename = 'RX1' then so2rbox.setrcvfocus(RX1);
             if filename = 'RX2' then so2rbox.setrcvfocus(RX2);
             if filename = 'STEREO' then so2rbox.setrcvfocus(STEREO);
