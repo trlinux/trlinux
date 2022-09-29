@@ -661,14 +661,15 @@ VAR FileName, CommandString: Str40;
                so2rbox.setlatch(not so2rbox.getlatch);
             if filename = 'RXA' then
             begin
-               if activeradio = radioone then
+               if Radio = Radioone then
                   so2rbox.setrcvfocus(RX1)
                else
                   so2rbox.setrcvfocus(RX2)
             end;
+
             if filename = 'RXI' then
             begin
-               if activeradio = radioone then
+               if Radio = radioone then
                   so2rbox.setrcvfocus(RX2)
                else
                   so2rbox.setrcvfocus(RX1)
@@ -681,7 +682,7 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SRS' THEN
             BEGIN
-               if radio = radioone then
+               if Radio = radioone then
                   rig1.directcommand (filename)
                else
                   rig2.directcommand (filename);
@@ -699,7 +700,7 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SRSI' THEN
             BEGIN
-               if activeradio = radioone then
+               if radio = radioone then
                   rig2.directcommand(filename)
                else
                   rig1.directcommand(filename);
