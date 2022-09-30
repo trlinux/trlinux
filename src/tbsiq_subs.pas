@@ -652,7 +652,6 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SO2R' THEN
             BEGIN
-            write ('***');
             if filename = 'RX1' then so2rbox.setrcvfocus(RX1);
             if filename = 'RX2' then so2rbox.setrcvfocus(RX2);
             if filename = 'STEREO' then so2rbox.setrcvfocus(STEREO);
@@ -681,7 +680,6 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SRS' THEN
             BEGIN
-            write ('&&&');
             IF Radio = radioone then
                 rig1.directcommand (filename)
             ELSE
@@ -4896,15 +4894,13 @@ FUNCTION ValidFunctionKey (Key: CHAR): BOOLEAN;
     BEGIN
     ValidFunctionKey :=
        ((Key >= F1)         AND (Key <= F10)) OR
-       ((Key >= F11)        AND (Key <= F12));
-
-{       OR
+       ((Key >= F11)        AND (Key <= F12)) OR
        ((Key >= ShiftF1)    AND (Key <= ShiftF10)) OR
        ((Key >= ShiftF11)   AND (Key <= ShiftF12)) OR
        ((Key >= ControlF1)  AND (Key <= ControlF10)) OR
        ((Key >= ControlF11) AND (Key <= ControlF12)) OR
        ((Key >= AltF1)      AND (Key <= AltF10)) OR
-       ((Key >= AltF11)     AND (Key <= AltF12));}
+       ((Key >= AltF11)     AND (Key <= AltF12));
     END;
 
 
