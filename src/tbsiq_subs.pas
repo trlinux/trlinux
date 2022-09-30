@@ -347,10 +347,6 @@ PROCEDURE QSOMachineObject.SetCodeSpeed (Speed: INTEGER);
                 ActiveKeyer.SetActiveRadio (RadioOne);
                 SetSpeed (CodeSpeed);
                 SetRelayForActiveRadio (ActiveRadio);
-
-{                                   Not sure I need these?
-                SendingOnRadioOne := False;
-                SendingOnRadioTwo := False;  }
                 SetRelayForActiveRadio (ActiveRadio);
                 END;
 
@@ -360,10 +356,6 @@ PROCEDURE QSOMachineObject.SetCodeSpeed (Speed: INTEGER);
                 ActiveKeyer.SetActiveRadio (RadioTwo);
                 SetSpeed (CodeSpeed);
                 SetRelayForActiveRadio (ActiveRadio);
-
-{                                   Not sure I need these?
-                SendingOnRadioOne := False;
-                SendingOnRadioTwo := False;  }
                 SetRelayForActiveRadio (ActiveRadio);
                 END;
 
@@ -1118,6 +1110,8 @@ VAR Key: CHAR;
     IF NOT CWEnable THEN Exit;
 
     ActiveRadio := Radio;
+    ActiveMode := Mode;
+
     SendingOnRadioOne := False;
     SendingOnRadioTwo := False;
     SetUpToSendOnActiveRadio;
@@ -1328,7 +1322,7 @@ PROCEDURE QSOMachineObject.DisplayQSONumber (QSONumber: INTEGER);
         END;  { of case }
 
     ClrScr;
-    Write ('# ', QSONumber);
+    Write (QSONumber:4);
     RestorePreviousWindow;
     END;
 
@@ -2449,7 +2443,6 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     TimeString := GetFullTimeString;
 
-    TBSIQ_CW_Engine.ShowTransmitIndicators;
 
     { Get the radio information - note that this will get the last read data
       from the radio - not ask for a fresh set of data.  That means it might
@@ -2479,10 +2472,13 @@ VAR FrequencyChange, TempFreq: LONGINT;
     IF FrequencyMemoryEnable THEN
         FreqMemory [Band, Mode] := Frequency;
 
+    TBSIQ_CW_Engine.ShowTransmitIndicators;
+
     { Check to see if the second clock has ticked }
 
     IF TimeString = LastFullTimeString THEN Exit;
     LastFullTimeString := TimeString;
+
 
     { We are now only executing this code once a second - per radio }
 
@@ -2680,7 +2676,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             TBSIQ_R1_BandModeWindowLX := WindowLocationX;
             TBSIQ_R1_BandModeWindowLY := WindowLocationY + 1;
-            TBSIQ_R1_BandModeWindowRX := WindowLocationX + 7;
+            TBSIQ_R1_BandModeWindowRX := WindowLocationX + 6;
             TBSIQ_R1_BandModeWindowRY := WindowLocationY + 1;
 
             TBSIQ_R1_CallWindowLX := WindowLocationX + 13;
@@ -2734,10 +2730,10 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R1_PossibleCallWindowRY := WindowLocationY + 5;
 
 
-            TBSIQ_R1_QSONumberWindowLX := WindowLocationX + 30;
-            TBSIQ_R1_QSONumberWindowLY := WindowLocationY + 2;
-            TBSIQ_R1_QSONumberWindowRX := WindowLocationX + 38;
-            TBSIQ_R1_QSONumberWindowRY := WindowLocationY + 2;
+            TBSIQ_R1_QSONumberWindowLX := WindowLocationX + 8;
+            TBSIQ_R1_QSONumberWindowLY := WindowLocationY + 1;
+            TBSIQ_R1_QSONumberWindowRX := WindowLocationX + 12;
+            TBSIQ_R1_QSONumberWindowRY := WindowLocationY + 1;
 
             { Just below the exchange window - overlaps possible calls }
 
@@ -2777,7 +2773,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             TBSIQ_R2_BandModeWindowLX := WindowLocationX;
             TBSIQ_R2_BandModeWindowLY := WindowLocationY + 1;
-            TBSIQ_R2_BandModeWindowRX := WindowLocationX + 7;
+            TBSIQ_R2_BandModeWindowRX := WindowLocationX + 6;
             TBSIQ_R2_BandModeWindowRY := WindowLocationY + 1;
 
             TBSIQ_R2_CallWindowLX := WindowLocationX + 13;
@@ -2830,10 +2826,10 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R2_PossibleCallWindowRX := WindowLocationX + 38;
             TBSIQ_R2_PossibleCallWindowRY := WindowLocationY + 5;
 
-            TBSIQ_R2_QSONumberWindowLX := WindowLocationX + 30;
-            TBSIQ_R2_QSONumberWindowLY := WindowLocationY + 2;
-            TBSIQ_R2_QSONumberWindowRX := WindowLocationX + 38;
-            TBSIQ_R2_QSONumberWindowRY := WindowLocationY + 2;
+            TBSIQ_R2_QSONumberWindowLX := WindowLocationX + 8;
+            TBSIQ_R2_QSONumberWindowLY := WindowLocationY + 1;
+            TBSIQ_R2_QSONumberWindowRX := WindowLocationX + 12;
+            TBSIQ_R2_QSONumberWindowRY := WindowLocationY + 1;
 
             { Just below the exchange window - overlaps possible calls }
 
@@ -5049,6 +5045,11 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     IF (Key >= F1) AND (Key <= F4) THEN
         IF DisableF1ThroughF4 THEN
             Exit;
+
+    { New on 30-Sep-2022 }
+
+    ActiveRadio := Radio;
+    ActiveMode := Mode;
 
     Message := ExpandCrypticString (Message);
 
