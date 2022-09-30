@@ -54,6 +54,7 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 29-Sep-2022
 
  - Fixed control/shift function key memories not working.
+ - Added support for F13, F14 and F15 on an apple keyboard > Control-F3, F4 and F5.
 
 28-Sep-2022
 

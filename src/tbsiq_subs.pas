@@ -1394,6 +1394,7 @@ PROCEDURE QSOMachineObject.CheckQSOStateMachine;
 VAR Key, ExtendedKey: CHAR;
     ExpandedString, TempString, InitialExchange, Message, WindowString: STRING;
     ActionRequired: BOOLEAN;
+    Freq: LONGINT;
 
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
@@ -1489,14 +1490,24 @@ VAR Key, ExtendedKey: CHAR;
                                 END
                             ELSE
                                 BEGIN  { We have a callsign to send }
-                                IF Mode = CW THEN
+                                IF StringIsAllNumbersOrDecimal (WindowString) THEN
                                     BEGIN
-                                    TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High);
-                                    CallsignICameBackTo := WindowString;
-                                    ShowCWMessage (WindowString);
-                                    END;
+                                    Val (WindowString, Freq);
+                                    SetRadioFreq (Radio, Freq, Mode, 'A');
+                                    WindowString := '';
+                                    ClrScr;
+                                    END
+                                ELSE
+                                    BEGIN
+                                    IF Mode = CW THEN
+                                        BEGIN
+                                        TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High);
+                                        CallsignICameBackTo := WindowString;
+                                        ShowCWMessage (WindowString);
+                                        END;
 
-                                QSOState := QST_CQStationBeingAnswered;
+                                    QSOState := QST_CQStationBeingAnswered;
+                                    END;
                                 END;
                     EscapeKey:
                         BEGIN
@@ -4484,20 +4495,23 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
             IF AltKey THEN KeyStatus.KeyChar := AltDelete;
             END;
 
+        { These are for K5TR's apple keyboard }
+
         183: BEGIN                               { Apple F13 }
-            KeyStatus.ExtendedKey := True;
-            KeyStatus.KeyChar := ControlF3;
-            END;
+             KeyStatus.ExtendedKey := True;
+             KeyStatus.KeyChar := ControlF3;
+             END;
 
         184: BEGIN                               { Apple F14 }
-            KeyStatus.ExtendedKey := True;
-            KeyStatus.KeyChar := ControlF4;
-            END;
+             KeyStatus.ExtendedKey := True;
+             KeyStatus.KeyChar := ControlF4;
+             END;
 
         185: BEGIN                               { Apple F15 }
-            KeyStatus.ExtendedKey := True;
-            KeyStatus.KeyChar := ControlF5;
-            END;
+             KeyStatus.ExtendedKey := True;
+             KeyStatus.KeyChar := ControlF5;
+             END;
+
         END;  { of case }
     END;
 
