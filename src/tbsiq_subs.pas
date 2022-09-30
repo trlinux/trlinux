@@ -1494,7 +1494,8 @@ VAR Key, ExtendedKey: CHAR;
                                     BEGIN
                                     Val (WindowString, Freq);
                                     SetRadioFreq (Radio, Freq, Mode, 'A');
-                                    WindowString := '';
+                                    CallWindowString := '';
+                                    CallWindowCursorPosition := 1;
                                     ClrScr;
                                     END
                                 ELSE
