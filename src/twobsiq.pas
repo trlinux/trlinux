@@ -51,6 +51,10 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+29-Sep-2022
+
+ - Fixed control/shift function key memories not working.
+
 28-Sep-2022
 
  - Found a case where AutoStartSend didn't want to work.  Changed ActiveMode to Mode
