@@ -652,7 +652,6 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SO2R' THEN
             BEGIN
-            write ('%%%');
             if filename = 'RX1' then so2rbox.setrcvfocus(RX1);
             if filename = 'RX2' then so2rbox.setrcvfocus(RX2);
             if filename = 'STEREO' then so2rbox.setrcvfocus(STEREO);
@@ -4483,6 +4482,21 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
             KeyStatus.KeyChar := DeleteKey;
             IF ControlKey THEN KeyStatus.KeyChar := ControlDelete;
             IF AltKey THEN KeyStatus.KeyChar := AltDelete;
+            END;
+
+        183: BEGIN                               { Apple F13 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := ControlF3;
+            END;
+
+        184: BEGIN                               { Apple F14 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := ControlF4;
+            END;
+
+        185: BEGIN                               { Apple F15 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := ControlF5;
             END;
         END;  { of case }
     END;
