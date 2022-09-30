@@ -1347,7 +1347,7 @@ PROCEDURE QSOMachineObject.RemoveQSONumberWindow;
 
 PROCEDURE QSOMachineObject.ShowTransmitStatus;
 
-{ Turns on the TX indicator }
+{ Turns on the TX indicator and the colored squares depending on status }
 
     BEGIN
     TBSIQ_CW_Engine.ShowActiveRadio;
@@ -1405,7 +1405,7 @@ VAR Key, ExtendedKey: CHAR;
         BEGIN
         ShowStateMachineStatus;
         LastQSOState := QSOState;
-        ShowTransmitStatus;  { Update TX and cue indicators }
+        ShowTransmitStatus;                { Update TX and Cue indicators }
 
         ActiveBand := Band;
 
@@ -1483,6 +1483,7 @@ VAR Key, ExtendedKey: CHAR;
 
                     CarriageReturn:
                         IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                            BEGIN
                             IF WindowString = '' THEN
                                 BEGIN
                                 SendFunctionKeyMessage (F1, Message);
@@ -1510,6 +1511,8 @@ VAR Key, ExtendedKey: CHAR;
                                     QSOState := QST_CQStationBeingAnswered;
                                     END;
                                 END;
+                            END;
+
                     EscapeKey:
                         BEGIN
                         QSOState := QST_Idle;
@@ -2430,6 +2433,9 @@ PROCEDURE QSOMachineObject.UpdateRadioDisplay;
   also updated the time and rate displays.  Here - we just focus on the
   radio stuff.
 
+  A new feature is to check to see if the radio is transmitting, and if so,
+  put up the red box.  This is primarily used for SSB I think.
+
   There is some cross over at the moment with BandMap stuff here and also
   in the UpdateTimeAndRate displays.  Maybe we fix that? }
 
@@ -2443,7 +2449,11 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     TimeString := GetFullTimeString;
 
-    { Get the radio information }
+    TBSIQ_CW_Engine.ShowTransmitIndicators;
+
+    { Get the radio information - note that this will get the last read data
+      from the radio - not ask for a fresh set of data.  That means it might
+      be a few hundred miliiseconds old }
 
     IF NOT GetRadioParameters (Radio, ' ', TempFreq, TempBand, TempMode, True, False) THEN
         BEGIN
@@ -2454,7 +2464,6 @@ VAR FrequencyChange, TempFreq: LONGINT;
         END;
 
     Frequency := TempFreq;
-
 
     Band := TempBand;
     Mode := TempMode;
@@ -5351,7 +5360,7 @@ VAR Time, QSONumber: INTEGER;
     FileWrite: TEXT;
 
     BEGIN
-    IF Copy (LogString, 1, 1) = ';' THEN
+    IF Copy (LogString, 1, 1) = ';' THEN  { Its a note - just copy it and be done }
         BEGIN
         WriteLogEntry (LogString);
         Exit;
@@ -5422,8 +5431,10 @@ VAR Time, QSONumber: INTEGER;
 
 PROCEDURE PaintVerticalLine;
 
+{ Paints a vertical line between the radios on the 2BSIQ display }
+
     BEGIN
-    SetWindow (WholeScreenWindow);
+    SaveAndSetActiveWindow (WholeScreenWindow);
     GoToXY (40, 19);
     Write ('|');
     GoToXY (40, 20);
@@ -5438,6 +5449,7 @@ PROCEDURE PaintVerticalLine;
     Write ('|');
     GoToXY (40, 25);
     Write ('|');
+    RestorePreviousWindow;
     END;
 
 

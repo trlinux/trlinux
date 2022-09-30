@@ -51,6 +51,10 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+30-Sep-2022
+
+ - Fixed cursor being in wrong place after initializing the second radio.
+
 29-Sep-2022
 
  - Enabled frequency input in call window for VFO A
@@ -68,7 +72,7 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
  - Fixed CW messages getting sent when not in CW mode
 
- - Support for QSO number on SSB.  You need to put # in the apporpirate member.
+ - Support for QSO number on SSB.  You need to put # in the apporpirate memory.
    Note that if you put the # in the S&P SSB EXCHANGE message - you have to
    press F2 for that message to be "executed" and thus generate a QSO Number.
 
@@ -86,15 +90,15 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
  - Added Alt-U command
 
- - PossibleCall window getting removed after logging QSO - or enough ESCAPES
-   pressed.
+ - PossibleCall window getting removed after logging QSO - or enough ESCAPE
+   presses.
 
 4-Sep-2022
 
  - Possible Calls added.  Moved the CW message display up to make room.
  - Noticed rig two windows were starting at column 40, not 41.
  - Made two keyboards with same mfg id work.  Can also use laptop keyboard.
- - Insert display added
+ - Insert mode display added
  - Eliminated *** debug message when unknown key pressed
 
 3-Sep-2022
@@ -350,6 +354,7 @@ PROCEDURE Initialize2BSIQOperatorInterface;
 
     Radio1QSOMachine.InitializeQSOMachine (R1KeyboardID, RadioOne, 1, 19);
     Radio2QSOMachine.InitializeQSOMachine (R2KeyboardID, RadioTwo, 41, 19);
+
     PaintVerticalLine;
 
     ActiveRadio := RadioOne;

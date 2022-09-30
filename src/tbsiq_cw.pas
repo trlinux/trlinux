@@ -81,6 +81,7 @@ TYPE
         FUNCTION  MessageInCue (Radio: RadioType): BOOLEAN;
         PROCEDURE SendNextMessage (PriorityLevel: TBSIQ_CW_PriorityType);
         PROCEDURE ShowActiveRadio;  { Shows which radio has focus for CW sending }
+        PROCEDURE ShowTransmitIndicators;
         END;
 
 VAR
@@ -173,6 +174,40 @@ VAR FileRead: TEXT;
 
 
 
+PROCEDURE TBSIQ_CWEngineObject.ShowTransmitIndicators;
+
+    BEGIN
+    SaveSetAndClearActiveWindow (TBSIQ_R1_TransmitIndicatorWindow);
+
+    IF ((ActiveMode = CW) AND (ActiveRadio = RadioOne) AND CWStillBeingSent) OR
+       ((ActiveMode = Phone) AND Rig1.K3IsStillTalking) THEN
+        SetBackground (Red)
+    ELSE
+        IF MessageInCue (RadioOne) THEN
+            SetBackground (Yellow)
+        ELSE
+            SetBackground (Blue);
+
+    ClrScr;
+    RestorePreviousWindow;
+
+    SaveSetAndClearActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
+
+    IF ((ActiveMode = CW) AND (ActiveRadio = RadioTwo) AND CWStillBeingSent) OR
+       ((ActiveMode = Phone) AND Rig2.K3IsStillTalking) THEN
+        SetBackground (Red)
+    ELSE
+        IF MessageInCue (RadioTwo) THEN
+            SetBackground (Yellow)
+        ELSE
+            SetBackground (Blue);
+
+    ClrScr;
+    RestorePreviousWindow;
+    END;
+
+
+
 PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
 
     BEGIN
@@ -217,34 +252,8 @@ PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
             END;
         END;
 
-    SaveSetAndClearActiveWindow (TBSIQ_R1_TransmitIndicatorWindow);
-
-    IF (ActiveRadio = RadioOne) AND CWStillBeingSent THEN
-        SetBackground (Red)
-    ELSE
-        IF MessageInCue (RadioOne) THEN
-            SetBackground (Yellow)
-        ELSE
-            SetBackground (Blue);
-
-    ClrScr;
-    RestorePreviousWindow;
-
-    SaveSetAndClearActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
-
-    IF (ActiveRadio = RadioTwo) AND CWStillBeingSent THEN
-        SetBackground (Red)
-    ELSE
-        IF MessageInCue (RadioTwo) THEN
-            SetBackground (Yellow)
-        ELSE
-            SetBackground (Blue);
-
-    ClrScr;
-    RestorePreviousWindow;
+    ShowTransmitIndicators;
     END;
-
-
 
 PROCEDURE TBSIQ_CWEngineObject.CueCWMessage (Message: STRING;
                                              Radio: RadioType; Priority:
