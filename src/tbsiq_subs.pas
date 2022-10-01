@@ -1389,6 +1389,8 @@ VAR Key, ExtendedKey: CHAR;
     ExpandedString, TempString, InitialExchange, Message, WindowString: STRING;
     ActionRequired: BOOLEAN;
     Freq: LONGINT;
+    RealFreq: REAL;
+    xResult: INTEGER;
 
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
@@ -1487,8 +1489,36 @@ VAR Key, ExtendedKey: CHAR;
                                 BEGIN  { We have a callsign to send }
                                 IF StringIsAllNumbersOrDecimal (WindowString) THEN
                                     BEGIN
-                                    Val (WindowString, Freq);
-                                    SetRadioFreq (Radio, Freq, Mode, 'A');
+                                    IF Length (WindowString) = 3 THEN
+                                        BEGIN
+                                        CASE BandMemory[Radio] OF
+                                            Band160: TempString := '1'   + WindowString;
+                                            Band80:  TempString := '3'   + WindowString;
+                                            Band40:  TempString := '7'   + WindowString;
+                                            Band30:  TempString := '10'  + WindowString;
+                                            Band20:  TempString := '14'  + WindowString;
+                                            Band17:  TempString := '18'  + WindowString;
+                                            Band15:  TempString := '21'  + WindowString;
+                                            Band12:  TempString := '24'  + WindowString;
+                                            Band10:  TempString := '28'  + WindowString;
+                                            Band6:   TempString := '50'  + WindowString;
+                                            ELSE     TempString := '144' + WindowString;
+                                            END;
+                                        END
+                                    ELSE
+                                        TempString := WindowString;
+
+                                    IF StringHas (TempString, '.') THEN
+                                        BEGIN
+                                        Val (TempString, RealFreq, xResult);
+                                        Freq := Round (RealFreq * 1000.0);
+                                        END
+                                    ELSE
+                                        Val (TempString + '000', Freq, xResult);
+
+                                    IF xResult = 0 THEN
+                                        SetRadioFreq (Radio, Freq, Mode, 'A');
+
                                     CallWindowString := '';
                                     CallWindowCursorPosition := 1;
                                     ClrScr;
