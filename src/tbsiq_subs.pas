@@ -1916,7 +1916,9 @@ VAR Key, ExtendedKey: CHAR;
                         IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
                             BEGIN
                             SendFunctionKeyMessage (ExtendedKey, Message);
-                            QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;
+
+                            IF Mode = CW THEN
+                                QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;
                             Exit;
                             END;
 
