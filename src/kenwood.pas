@@ -286,8 +286,8 @@ FUNCTION kenwoodctl.K3IsStillTalking: BOOLEAN;
   data }
 
     BEGIN
-{    K3IsStillTalking := txon;}
     K3IsStillTalking := txon;
+    K3IsStillTalking := false;
     END;
 
 
