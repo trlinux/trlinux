@@ -42,6 +42,10 @@ TYPE
                              CWP_High,
                              CWP_Urgent);
 
+    TXColorType = (NoTXColor, TX_Red, TX_Yellow, TX_Blue);
+
+    InsertIndicatorType = (NoInsertIndicator, InsertOffIndicator, InsertOnIndicator);
+
     CuedMessageType = RECORD
         Message: STRING;
         Radio: RadioType;
@@ -68,6 +72,7 @@ TYPE
         CueHead: INTEGER;
         CueTail: INTEGER;
 
+        LastActiveRadioShown: RadioType;
         MessageCue: ARRAY [0..MaximumCuedMessages - 1] OF CuedMessageType;
         MessageStarted: BOOLEAN;
 
@@ -78,10 +83,10 @@ TYPE
         FUNCTION  CWFinished (Radio: RadioType): BOOLEAN;
         FUNCTION  CWBeingSent (Radio: RadioType): BOOLEAN;
         FUNCTION  DeleteLastCharacter (Radio: RadioType): BOOLEAN;
+        FUNCTION  GetTransmitColor (Radio: RadioType): TXColorType;
         FUNCTION  MessageInCue (Radio: RadioType): BOOLEAN;
         PROCEDURE SendNextMessage (PriorityLevel: TBSIQ_CW_PriorityType);
         PROCEDURE ShowActiveRadio;  { Shows which radio has focus for CW sending }
-        PROCEDURE ShowTransmitIndicators;
         END;
 
 VAR
@@ -174,43 +179,34 @@ VAR FileRead: TEXT;
 
 
 
-PROCEDURE TBSIQ_CWEngineObject.ShowTransmitIndicators;
+FUNCTION TBSIQ_CWEngineObject.GetTransmitColor (Radio: RadioType): TXColorType;
 
     BEGIN
-    SaveSetAndClearActiveWindow (TBSIQ_R1_TransmitIndicatorWindow);
+    IF (ActiveMode = CW) AND (ActiveRadio = Radio) AND CWStillBeingSent THEN
+        BEGIN
+        GetTransmitColor := TX_Red;
+        Exit;
+        END;
 
-    IF ((ActiveMode = CW) AND (ActiveRadio = RadioOne) AND CWStillBeingSent) OR
-       ((ActiveMode = Phone) AND Rig1.K3IsStillTalking) THEN
-        SetBackground (Red)
-    ELSE
-        IF MessageInCue (RadioOne) THEN
-            SetBackground (Yellow)
-        ELSE
-            SetBackground (Blue);
+   IF MessageInCue (Radio) THEN
+       BEGIN
+       GetTransmitColor := TX_Yellow;
+       Exit;
+       END;
 
-    ClrScr;
-    RestorePreviousWindow;
-
-    SaveSetAndClearActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
-
-    IF ((ActiveMode = CW) AND (ActiveRadio = RadioTwo) AND CWStillBeingSent) OR
-       ((ActiveMode = Phone) AND Rig2.K3IsStillTalking) THEN
-        SetBackground (Red)
-    ELSE
-        IF MessageInCue (RadioTwo) THEN
-            SetBackground (Yellow)
-        ELSE
-            SetBackground (Blue);
-
-    ClrScr;
-    RestorePreviousWindow;
-    END;
-
+   GetTransmitColor := TX_Blue;
+   END;
 
 
 PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
 
+{ Perhaps this is okay here.  Removes any ambiguity about which radio
+  is active }
+
     BEGIN
+    IF ActiveRadio = LastActiveRadioShown THEN Exit;
+    LastActiveRadioShown := ActiveRadio;
+
     CASE ActiveRadio OF
         NoRadio:
             BEGIN
@@ -251,9 +247,9 @@ PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
             RestorePreviousWindow;
             END;
         END;
-
-    ShowTransmitIndicators;
     END;
+
+
 
 PROCEDURE TBSIQ_CWEngineObject.CueCWMessage (Message: STRING;
                                              Radio: RadioType; Priority:
@@ -523,6 +519,7 @@ PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
     TBSIQ_CW_Engine := TBSIQ_CWEngineObject.Create;
     TBSIQ_CW_Engine.CueHead := 0;
     TBSIQ_CW_Engine.CueTail := 0;
+    TBSIQ_CW_Engine.LastActiveRadioShown := NoRadio;
 
     SeriaLNumberEngine := SerialNumberObject.Create;
     SerialNumberEngine.InitializeSerialNumbers;

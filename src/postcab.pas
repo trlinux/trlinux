@@ -1887,7 +1887,8 @@ Call fields end here for length=12                                
             END;  { of WHILE Nof Eof }
 
         Close (FileRead);
-        END
+        GenerateLogPortionOfCabrilloForm := True;
+        END { of WHILE NOT Eof }
 
     ELSE
         BEGIN

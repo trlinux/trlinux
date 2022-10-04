@@ -37,6 +37,9 @@ CONST
     NumberEditableLines = 5;
     MaximumReminderRecords = 100;
     MaxExchangeTemplateEntries = 20;
+    MaxQSONumber = 10000;
+
+    QSONumberFileName = 'QSOARRAY.DAT';
 
     QSOInformationWindowLX = 55;
     QSOInformationWindowLY =  4;
@@ -74,6 +77,12 @@ CONST
     CallWindowRY = 20;
 
 TYPE
+
+    QSONumberArrayEntryType = (Unassigned, CheckedOut, Skipped, Used);
+
+    { QSONumberArray is a rare array starting at index 1 }
+
+    QSONumberArrayType = ARRAY [1..MaxQSONumber] OF QSONumberArrayEntryType;
 
     SpecialCommandType = (NoSpecialCommand, SendF1Message);
 
@@ -700,6 +709,8 @@ VAR
     MyState:              Str10;  {KK1L: 6.67 Was Str20}
     MyZone:               ZoneMultiplierString;
 
+    NextQSONumberToGiveOut: INTEGER;
+
     NoMultMarineMobile: BOOLEAN; {KK1L: 6.68 Added for WRTC 2002 as flag to not count /MM or /AM as mults or countries}
     NoMultDxIfDomestic: BOOLEAN; {Needed for WRTC2018, HQ are not country mults}
     NumberBandMapEntries: INTEGER; {KK1L: 6.64 needed a global version of NumberVisibleBMEntries}
@@ -728,6 +739,8 @@ VAR
     PrefixInfoFileName:     Str40;
     PreviousRadioOneFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}
     PreviousRadioTwoFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}
+
+    QSONumberArray: QSONumberArrayType;
 
     QSOPointsDomesticCW:    INTEGER;
     QSOPointsDomesticPhone: INTEGER;
@@ -920,11 +933,14 @@ VAR
   FUNCTION  GetRecordForBandMapCursor (VAR Entry: BandMapEntryPointer;
                                           CursorEntryNumber: INTEGER) : BOOLEAN;
 
+  FUNCTION  GetNextQSONumber: INTEGER;
   FUNCTION  GetUserInfoString (Call: CallString): STRING;
   PROCEDURE IncrementTime (Count: INTEGER);
 
   PROCEDURE LoadBandMap;
   PROCEDURE LookForOnDeckCall (VAR ExchangeString: Str80);
+
+  PROCEDURE MarkQSONumberAsUsed (QSONumber: INTEGER);
 
   FUNCTION  NextNonDupeEntryInBandMap (Band: BandType; Mode: ModeType): BOOLEAN;
   FUNCTION  NextMultiplierEntryInBandMap (Band: BandType; Mode: ModeType): BOOLEAN; {KK1L: 6.68}
@@ -6631,7 +6647,104 @@ VAR Band: BandType;
     WakeUpCount                 := 0;
     END;
 
+
+
+PROCEDURE InitializeQSONumberArray;
+
+{ Looks to see if there is a file QSONUMBER.DAt and load in the data.
+  If no file found - will just setup a new fresh array full on unassigned
+  numbers }
+
+VAR FileRead: TEXT;
+    FileString: Str80;
+    QSONumber: INTEGER;
+
+    BEGIN
+    FOR QSONumber := 1 TO MaxQSONumber DO
+        QSONumberArray [QSONumber] := Unassigned;
+
+    NextQSONumberToGiveOut := 1;
+
+    { Okay - we have a fresh QSO Number array - now see if any numbers need
+      to be marked as Used or Skipped }
+
+    IF OpenFileForRead (FileRead, QSONumberFileName) THEN
+        BEGIN
+        ReadLn (FileRead, FileString);
+        FileString := UpperCase (FileString);
+
+        GetRidOfPrecedingSpaces (FileString);
+
+        IF FileString <> '' THEN
+            BEGIN
+            RemoveFirstString (FileString);  { Date/time stamp }
+            QSONumber := RemoveFirstLongInteger (FileString);
+
+            IF QSONumber <= MaxQSONumber THEN
+                BEGIN
+                IF StringHas (FileString, 'CHECK') THEN
+                    BEGIN
+                    QSONumberArray [QSONumber] := CheckedOut;
+                    NextQSONumberToGiveOut := QSONumber + 1;
+                    END;
+
+                IF StringHas (FileString, 'SKIP') THEN
+                    BEGIN
+                    QSONumberArray [QSONumber] := Skipped;
+                    NextQSONumberToGiveOut := QSONumber + 1;
+                    END;
+
+                IF StringHas (FileString, 'USED') THEN
+                    BEGIN
+                    QSONumberArray [QSONumber] := Used;
+                    NextQSONumberToGiveOut := QSONumber + 1;
+                    END;
+                END;
+            END;
+
+        Close (Fileread);
+        END;
+
+    END;
+
+
+
+FUNCTION GetNextQSONumber: INTEGER;
+
+{ Returns next available serial number and marks it as checked out }
+
+    BEGIN
+    GetNextQSONumber := NextQSONumberToGiveOut;
+
+    QSONumberArray [NextQSONumbertoGiveout] := CheckedOut;
+
+    IF NextQSONumberToGiveOut = MaxQSONumber THEN
+        BEGIN
+        WriteLn ('Out of QSO numbers!');
+        Halt;
+        END;
+
+    Inc (NextQSONumberToGiveOut);
+    END;
+
+
+PROCEDURE MarkQSONumberAsUsed (QSONumber: INTEGER);
+
+VAR FileWrite: TEXT;
+
+    BEGIN
+    QSONumberArray [QSONumber] := Used;
+
+    IF OpenFileForAppend (FileWrite, QSONumberFileName) THEN
+        BEGIN
+        WriteLn (FileWrite, GetDateString, ':', GetTimeString, ' ', QSONumber, ' USED');
+        Close (FileWrite);
+        END;
+    END;
+
+
 
     BEGIN
     WindInit;
+    InitializeQSONumberArray;
     END.

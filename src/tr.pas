@@ -27,6 +27,10 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+04-Oct-2022
+
+ - Fixed bug of Cabrillo file not having END-OF-FILE
+
 29-Sep-2022
 
  - Winkey fix from W9CF

@@ -92,7 +92,9 @@ TYPE
 
         DisplayedBand: BandType;
         DisplayedFrequency: LONGINT;
+        DisplayedInsertIndicator: InsertIndicatorType;
         DisplayedMode: ModeType;
+        DisplayedTXColor: TXColorType;
 
         ExchangeWindowIsUp: BOOLEAN;
         ExchangeWindowString: STRING;
@@ -135,14 +137,17 @@ TYPE
         PROCEDURE ClearAutoSendDisplay;  { for use during S&P }
 
         FUNCTION  DisableF1ThroughF4: BOOLEAN;
+
+        PROCEDURE DisplayActiveRadio;              { Shows TX next to active radio }
         PROCEDURE DisplayAutoSendCharacterCount;
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayCodeSpeed;
         PROCEDURE DisplayFrequency;
         PROCEDURE DisplayInsertMode;
         PROCEDURE DisplayPossibleCalls (VAR PossibleCalls: PossibleCallRecord);
-        PROCEDURE DisplayQSONumber (QSONumber: INTEGER);
+        PROCEDURE DisplayQSONumber;
         PROCEDURE DisplaySCPCall (Call: CallString);
+        PROCEDURE DisplayTXColor;     { Red, Yellow or Blue}
         PROCEDURE DisplayUserInfo (Call: CallString);
         PROCEDURE DoPossibleCalls (Callsign: CallString);
 
@@ -1233,27 +1238,13 @@ VAR CharacterCount: INTEGER;
         SendChar := SendString [CharacterCount];
 
         CASE SendChar OF
-            '#': IF (CallWindowString = '') AND (ExchangeWindowString = '') AND (QSONumberForThisQSO = 0) THEN
-                     BEGIN
-                     Str (QSONumberForPreviousQSO, QSONumberString);
-                     NewSendString := NewSendString + QSONumberString;
-                     END
-                 ELSE
-                     BEGIN
-                     IF QSONumberForThisQSO = 0 THEN
-                         BEGIN
-                         QSONumberForThisQSO := SerialNumberEngine.GetNextSerialNumber (CallWindowString,
-                                                                                        DisplayedFrequency,
-                                                                                        Band,
-                                                                                        Mode);
-                         DisplayQSONumber (QSONumberForThisQSO);
-                         END;
 
-                     { ELSE just send the existing number }
+            { # can't get a new serial number - it has to use the QSONumberForThisQSO }
 
-                     Str (QSONumberForThisQSO, QSONumberString);
-                     NewSendString := NewSendString + QSONumberString;
-                     END;
+            '#': BEGIN
+                 Str (QSONumberForThisQSO, QSONumberString);
+                 NewSendString := NewSendString + QSONumberString;
+                 END;
 
             '_': NewSendString := NewSendString + ' ';  { Leading space }
 
@@ -1313,7 +1304,9 @@ PROCEDURE QSOMachineObject.DisplayAutoSendCharacterCount;
 
 
 
-PROCEDURE QSOMachineObject.DisplayQSONumber (QSONumber: INTEGER);
+PROCEDURE QSOMachineObject.DisplayQSONumber;
+
+{ Uses QSONumberForThisQSO }
 
     BEGIN
     CASE Radio OF
@@ -1322,7 +1315,7 @@ PROCEDURE QSOMachineObject.DisplayQSONumber (QSONumber: INTEGER);
         END;  { of case }
 
     ClrScr;
-    Write (QSONumber:4);
+    Write (QSONumberForThisQSO:4);
     RestorePreviousWindow;
     END;
 
@@ -1436,13 +1429,6 @@ VAR Key, ExtendedKey: CHAR;
                 BEGIN
                 AutoStartSendStationCalled := False;
                 RemovePossibleCallWindow;
-                END;
-
-            IF QSONumberForThisQSO > 0 THEN
-                BEGIN
-                QSONumberForPreviousQSO := QSONumberForThisQSO;
-                QSONumberForThisQSO := 0;
-                RemoveQSONumberWindow;
                 END;
 
             { See if we have a keystroke to look at }
@@ -1902,13 +1888,10 @@ VAR Key, ExtendedKey: CHAR;
                             QSOState := QST_CQSending73Message;
                             AutoStartSendStationCalled := False;
 
-                            IF QSONumberForThisQSO > 0 THEN
-                                BEGIN
-                                QSONumberForPreviousQSO := QSONumberForThisQSO;
-                                SerialNumberEngine.CreateQSONumberLoggedEntry (QSONumberForThisQSO, CallWindowString);
-                                QSONumberForThisQSO := 0;
-                                RemoveQSONumberWindow;
-                                END;
+                            MarkQSONumberAsUsed (QSONumberForThisQSO);
+                            QSONumberForPreviousQSO := QSONumberForThisQSO;
+                            QSONumberForThisQSO := GetNextQSONumber;
+                            DisplayQSONumber;
                             END;
 
                     NullKey:
@@ -1935,13 +1918,10 @@ VAR Key, ExtendedKey: CHAR;
                                     QSOState := QST_CQSending73Message;
                                     AutoStartSendStationCalled := False;
 
-                                    IF QSONumberForThisQSO > 0 THEN
-                                        BEGIN
-                                        QSONumberForPreviousQSO := QSONumberForThisQSO;
-                                        SerialNumberEngine.CreateQSONumberLoggedEntry (QSONumberForThisQSO, CallWindowString);
-                                        QSONumberForThisQSO := 0;
-                                        RemoveQSONumberWindow;
-                                        END;
+                                    MarkQSONumberAsUsed (QSONumberForThisQSO);
+                                    QSONumberForPreviousQSO := QSONumberForThisQSO;
+                                    QSONumberForThisQSO := GetNextQSONumber;
+                                    DisplayQSONumber;
                                     END;
 
                             UpArrow:
@@ -2209,13 +2189,10 @@ VAR Key, ExtendedKey: CHAR;
                                 SetTBSIQWindow (TBSIQ_CallWindow);
                                 ClrScr;
 
-                                IF QSONumberForThisQSO > 0 THEN
-                                    BEGIN
-                                    QSONumberForPreviousQSO := QSONumberForThisQSO;
-                                    SerialNumberEngine.CreateQSONumberLoggedEntry (QSONumberForThisQSO, CallWindowString);
-                                    QSONumberForThisQSO := 0;
-                                    RemoveQSONumberWindow;
-                                    END;
+                                MarkQSONumberAsUsed (QSONumberForThisQSO);
+                                QSONumberForPreviousQSO := QSONumberForThisQSO;
+                                QSONumberForThisQSO := GetNextQSONumber;
+                                DisplayQSONumber;
 
                                 IF SprintQSYRule THEN
                                     BEGIN
@@ -2338,13 +2315,10 @@ VAR Key, ExtendedKey: CHAR;
                                             SetTBSIQWindow (TBSIQ_CallWindow);
                                             ClrScr;
 
-                                            IF QSONumberForThisQSO > 0 THEN
-                                                BEGIN
-                                                QSONumberForPreviousQSO := QSONumberForThisQSO;
-                                                SerialNumberEngine.CreateQSONumberLoggedEntry (QSONumberForThisQSO, CallWindowString);
-                                                QSONumberForThisQSO := 0;
-                                                RemoveQSONumberWindow;
-                                                END;
+                                            MarkQSONumberAsUsed (QSONumberForThisQSO);
+                                            QSONumberForPreviousQSO := QSONumberForThisQSO;
+                                            QSONumberForThisQSO := GetNextQSONumber;
+                                            DisplayQSONumber;
 
                                             IF SprintQSYRule THEN
                                                 BEGIN
@@ -2504,7 +2478,8 @@ VAR FrequencyChange, TempFreq: LONGINT;
     IF FrequencyMemoryEnable THEN
         FreqMemory [Band, Mode] := Frequency;
 
-    TBSIQ_CW_Engine.ShowTransmitIndicators;
+    DisplayTXColor;
+    DisplayActiveRadio;
 
     { Check to see if the second clock has ticked }
 
@@ -2697,7 +2672,13 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     RadioOnTheMove := False;
     SearchAndPounceStationCalled := False;
     StartSendingCursorPosition := AutoSendCharacterCount;
+
+    { For now - this is a global and not specific to each radio }
+
     TBSIQ_InsertMode := InsertMode;
+
+    DisplayedInsertIndicator := NoInsertIndicator;
+    DisplayedTXColor := NoTXColor;
 
     { Setup the window locations derived from the X,Y reference }
 
@@ -2904,6 +2885,11 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     DisplayInsertMode;
     ShowStateMachineStatus;
 
+    { Get the next QSO Number }
+
+    QSONumberForThisQSO := GetNextQSONumber;
+    DisplayQSONumber;
+
     { Put up a blank call window }
 
     SetTBSIQWindow (TBSIQ_CallWindow);
@@ -3028,21 +3014,68 @@ VAR CharacterPosition, PossibleCall: INTEGER;
 
 
 
+PROCEDURE QSOMachineObject.DisplayTXColor;
+
+{ Displays the TX indicator if it is different than what is already
+  displayed }
+
+VAR Color: TXColorType;
+
+    BEGIN
+    Color := TBSIQ_CW_Engine.GetTransmitColor (Radio);
+
+    IF DisplayedTXColor <> Color THEN
+        BEGIN
+        CASE Radio OF
+            RadioOne: SaveAndSetActiveWindow (TBSIQ_R1_TransmitIndicatorWindow);
+            RadioTwo: SaveAndSetActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
+            END;
+
+        CASE Color OF
+            TX_Red:    SetBackground (Red);
+            TX_Yellow: SetBackground (Yellow);
+            TX_Blue:   SetBackground (Blue);
+            END;
+
+        ClrScr;
+        RestorePreviousWindow;
+        DisplayedTXColor := Color;
+        END;
+    END;
+
+
+
+PROCEDURE QSOMachineObject.DisplayActiveRadio;
+
+    BEGIN
+    TBSIQ_CW_Engine.ShowActiveRadio;
+    END;
+
+
 PROCEDURE QSOMachineObject.DisplayInsertMode;
 
     BEGIN
-    CASE Radio OF
-        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_InsertWindow);
-        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_InsertWindow);
-        END;
+    IF (DisplayedInsertIndicator = NoInsertIndicator) OR
+       ((DisplayedInsertIndicator = InsertOffIndicator) AND TBSIQ_InsertMode) OR
+       ((DisplayedInsertIndicator = InsertOnIndicator) AND NOT TBSIQ_InsertMode) THEN
+           BEGIN
+           CASE Radio OF
+               RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_InsertWindow);
+               RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_InsertWindow);
+               END;
 
-    IF TBSIQ_InsertMode THEN
-        BEGIN
-        Write (' INSERT');
-        RestorePreviousWindow;
-        END
-    ELSE
-        RemoveAndRestorePreviousWindow;
+           IF TBSIQ_InsertMode THEN
+               BEGIN
+               Write (' INSERT');
+               RestorePreviousWindow;
+               DisplayedInsertIndicator := InsertOnIndicator;
+               END
+           ELSE
+               BEGIN
+               RemoveAndRestorePreviousWindow;
+               DisplayedInsertIndicator := InsertOffIndicator;
+               END;
+           END;
     END;
 
 

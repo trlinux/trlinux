@@ -51,6 +51,19 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+4-Oct-2022
+
+ - New QSO number methodology.  Not put into classic mode yet.
+
+2-Oct-2022
+
+ - Change how the TX ID and TX Color and Insert get displayed - I remember what
+   was last displayed and if someone is asking to display the same thing, I do
+   not do anything.  This eliminated some scenarios where rapid flashing would
+   occur.
+
+- Momentarily removed the lockout from the transmitter being busy.
+
 30-Sep-2022
 
  - Fixed cursor being in wrong place after initializing the second radio.
