@@ -1242,7 +1242,11 @@ VAR CharacterCount: INTEGER;
             { # can't get a new serial number - it has to use the QSONumberForThisQSO }
 
             '#': BEGIN
-                 Str (QSONumberForThisQSO, QSONumberString);
+                 IF CallWindowString = '' THEN
+                     Str (QSONumberForPreviousQSO, QSONumberString)
+                 ELSE
+                     Str (QSONumberForThisQSO, QSONumberString);
+
                  NewSendString := NewSendString + QSONumberString;
                  END;
 
