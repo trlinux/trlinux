@@ -238,7 +238,8 @@ PROCEDURE CleanUpDisplay;
     RemoveWindow (NameSentWindow);
     RemoveWindow (PossibleCallWindow);
 
-    DisplayNextQSONumber (TotalContacts + 1);
+    DisplayNextQSONumber (QSONumberForThisQSO);
+
     DisplayBandMode      (ActiveBand, ActiveMode, False);
     DisplayFreeMemory;
 
@@ -669,7 +670,7 @@ PROCEDURE BandUp;
             DisplayBandMap;
 
             IF QSONumberByBand THEN
-                DisplayNextQSONumber (TotalContacts + 1);
+                DisplayNextQSONumber (QSONumberForThisQSO);
             END;
         END;
     END;
@@ -717,7 +718,7 @@ PROCEDURE BandDown;
             DisplayBandMap;
 
             IF QSONumberByBand THEN
-                DisplayNextQSONumber (TotalContacts + 1);
+                DisplayNextQSONumber (QSONumberForThisQSO);
 
             END;
         END;
@@ -4020,7 +4021,11 @@ PROCEDURE DeleteLastContact;
     VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
     DisplayTotalScore (TotalScore);
     DisplayInsertMode (InsertMode);
-    DisplayNextQSONumber (TotalContacts + 1);
+
+
+    { Not sure yet about dealing with getting the QSO Number back }
+
+    DisplayNextQSONumber (QSONumberForThisQSO);
 
     IF VisibleDupeSheetEnable THEN
         BEGIN

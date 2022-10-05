@@ -619,7 +619,8 @@ VAR MultiString, MessageString: STRING;
 
                 DisplayTotalScore (TotalScore);
                 DisplayInsertMode (InsertMode);
-                DisplayNextQSONumber (TotalContacts + 1);
+
+                DisplayNextQSONumber (QSONumberForThisQSO);
 
                 IF FloppyFileSaveFrequency > 0 THEN
                     IF QSOTotals [All, Both] > 0 THEN
@@ -794,7 +795,7 @@ VAR MultiString, MessageString: STRING;
 
                 DisplayTotalScore (TotalScore);
                 DisplayInsertMode (InsertMode);
-                DisplayNextQSONumber (TotalContacts + 1);
+                DisplayNextQSONumber (QSONumberForThisQSO);
 
                 IF FloppyFileSaveFrequency > 0 THEN
                     IF QSOTotals [All, Both] > 0 THEN
@@ -1121,7 +1122,11 @@ PROCEDURE DeleteLastContact;
     VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
     DisplayTotalScore (TotalScore);
     DisplayInsertMode (InsertMode);
-    DisplayNextQSONumber (TotalContacts + 1);
+
+    { This maybe can be refined to reuse the serial number }
+
+    DisplayNextQSONumber (QSONumberForThisQSO);
+
     IF VisibleDupeSheetEnable THEN
         BEGIN
         VisibleDupeSheetChanged := True;
@@ -1347,9 +1352,12 @@ VAR Key: CHAR;
                   AltB: BEGIN
                         RememberFrequency;
                         BandUp;
+
                         {KK1L: 6.73 NOTE the following statement is redundant. It is in BandUp and BandDown.}
+
                         IF QSONumberByBand THEN
-                            DisplayNextQSONumber (TotalContacts + 1);
+                            DisplayNextQSONumber (QSONumberForThisQSO);
+
                         END;
 
                   AltD: IF K1EANetworkEnable THEN
@@ -1541,7 +1549,9 @@ VAR Key: CHAR;
                           VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
                           DisplayTotalScore (TotalScore);
                           DisplayInsertMode (InsertMode);
-                          DisplayNextQSONumber (TotalContacts + 1);
+
+                          DisplayNextQSONumber (QSONumberForThisQSO);
+
                           LastTwoLettersCrunchedOn := '';
 
                           IF VisibleDupeSheetEnable THEN
@@ -4056,7 +4066,9 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
                         DisplayTotalScore (TotalScore);
                         DisplayInsertMode (InsertMode);
-                        DisplayNextQSONumber (TotalContacts + 1);
+
+                        DisplayNextQSONumber (QSONumberForThisQSO);
+
                         LastTwoLettersCrunchedOn := '';
 
                         IF VisibleDupeSheetEnable THEN
@@ -4390,7 +4402,9 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                               VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
                               DisplayTotalScore (TotalScore);
                               DisplayInsertMode (InsertMode);
-                              DisplayNextQSONumber (TotalContacts + 1);
+
+                              DisplayNextQSONumber (QSONumberForThisQSO);
+
                               LastTwoLettersCrunchedOn := '';
                               END
                           ELSE
@@ -4907,6 +4921,10 @@ VAR LogString: Str80;
            VisibleLog.ShowDomesticMultiplierStatus (RXData.DomMultQTH);
 
     IF Trace THEN Write ('*');
+
+    { Here is where we get the next QSO Number for the first QSO }
+
+    QSONumberForThisQSO := GetNextQSONumber;
 
     Inc (NumberContactsThisMinute);
     NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + RXData.QSOPoints;
@@ -5771,7 +5789,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
     ExchangeWindowString := '';
 
     CleanUpDisplay;
-//OK to here
 
     IF DDXState = SAndPExchangeSent THEN
         DDX (NormalContactComplete);
@@ -6160,7 +6177,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                         REPEAT
                             PutUpExchangeWindow;
-                            DisplayNextQSONumber (TotalContacts + 1);
+
+                            DisplayNextQSONumber (QSONumberForThisQSO);
+
                             ClearContestExchange (ReceivedData);
                             ExchangeHasBeenSent := False;
                             SearchAndPounceStatus := SearchAndPounce;
@@ -6228,7 +6247,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                         REPEAT
                             PutUpExchangeWindow;
-                            DisplayNextQSONumber (TotalContacts + 1);
+
+                            DisplayNextQSONumber (QSONumberForThisQSO);
+
                             ClearContestExchange (ReceivedData);
                             ExchangeHasBeenSent := False;
                         UNTIL NOT SearchAndPounce;
@@ -6260,7 +6281,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 BEGIN
                 REPEAT
                     PutUpExchangeWindow;
-                    DisplayNextQSONumber (TotalContacts + 1);
+
+                    DisplayNextQSONumber (QSONumberForThisQSO);
+
                     ClearContestExchange (ReceivedData);
                     ExchangeHasBeenSent := False;
                 UNTIL NOT SearchAndPounce;
@@ -6318,7 +6341,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                             REPEAT
                                 PutUpExchangeWindow;
-                                DisplayNextQSONumber (TotalContacts + 1);
+
+                                DisplayNextQSONumber (QSONumberForThisQSO);
+
                                 ClearContestExchange (ReceivedData);
                                 ExchangeHasBeenSent := False;
                             UNTIL NOT SearchAndPounce;
@@ -6990,6 +7015,7 @@ VAR MTotals: MultTotalArrayType;
     DisplayTotalScore (TotalScore);
     ClearContestExchange (ReceivedData);
     SetUpToSendOnActiveRadio;
+    QSONumberForThisQSO := GetNextQSONumber;
 
     REPEAT
         SeventyThreeMessageSent := False;

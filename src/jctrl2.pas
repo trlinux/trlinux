@@ -550,6 +550,15 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       MBA: MultipleBandsEnabled   := NOT MultipleBandsEnabled;
       MMD: MultipleModesEnabled   := NOT MultipleModesEnabled;
       NFE: NameFlagEnable         := NOT NameFlagEnable;
+
+      NEQ: BEGIN
+           TempString := QuickEditResponse ('Enter next QSO # (none to abort) : ', 5);
+
+           IF TempString <> '' THEN
+               IF StringIsAllNumbers (TempString) THEN
+                   Val (TempString, NextQSONumberToGiveout);
+           END;
+
       NLQ: NoLog                  := NOT NoLog;
       NPP: NoPollDuringPTT        := NOT NoPollDuringPTT;
       PAL: PacketAddLF            := NOT PacketAddLF;

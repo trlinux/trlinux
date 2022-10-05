@@ -125,7 +125,7 @@ PROCEDURE SetConfigurationDefaultValues;
     DupeCheckSound          := DupeCheckBeepIfDupe;
     DVPEnable               := False;
 
-    Packet.EightBitPacketPort := False;
+
     DVKEnable               := False;
     DVKRadioEnable          := False;
     DVKRadio1StopCmd        := '';
@@ -242,8 +242,6 @@ PROCEDURE SetConfigurationDefaultValues;
     MultiUpdateMultDisplay := True;
     MultReportMinimumBands := 4;
 
-
-
     MyCall       := '';
     MyCheck      := '';
     MyContinent  := UnknownContinent;
@@ -260,6 +258,8 @@ PROCEDURE SetConfigurationDefaultValues;
     NameFlagEnable  := True;
     NoLog           := False;
     NoPollDuringPTT := False;
+
+    Packet.EightBitPacketPort := False;
 
     PacketAddLF           := False;
     PacketAutoCR          := False;
@@ -286,6 +286,7 @@ PROCEDURE SetConfigurationDefaultValues;
     CPUKeyer.SetPaddleSpeed(0);
     Winkey.SetPaddleSpeed(0);
     Yccckey.SetPaddleSpeed(0);
+
     ParameterOkayMode        := Standard;
     PartialCallEnable        := True;
     PartialCallLoadLogEnable := False;

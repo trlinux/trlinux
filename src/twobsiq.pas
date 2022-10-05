@@ -42,8 +42,6 @@ TODO LIST
   yellow until the exchange starts.  This isn't a big deal and perhaps more trouble
   than it is worth to fix it.
 
- - Add some kind of display of next QSO number which can be used for SSB.
-
  - In Classic mode - pressing F1 in S&P with a call in the call window does
    indeed put you in the exchange window with the initial exchange, except
    it is at the start of the window where the InitialExchangeCursorPos = AtEnd
@@ -51,9 +49,12 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
-4-Oct-2022
+5-Oct-2022
 
- - New QSO number methodology.  Not put into classic mode yet.
+ - Rate windows moved to just above the QSONeeds window.
+
+ - New QSO number methodology.  Next QSO number comes from looking at the log
+   files.  Also implemented consistently with classic mode.
 
 2-Oct-2022
 
@@ -329,6 +330,13 @@ USES TBSIQ_Subs;
 PROCEDURE Initialize2BSIQOperatorInterface;
 
     BEGIN
+    { We need to trick the QSONumber generator into giving us the last QSO
+      Number given out again.  NextQSONumberToGiveOut should be at least
+      equal to 2, but we check just in case }
+
+    IF NextQSONumberToGiveOut > 1 THEN
+        Dec (NextQSONumberToGiveOut);
+
     { Remove windows below the editable log window so we have room }
 
     RemoveWindow (CallWindow);

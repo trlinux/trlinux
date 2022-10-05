@@ -132,7 +132,7 @@ VAR StringPointer, QSONumber: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 QSONumber := TotalContacts + 1;
+                 QSONumber := QSONumberForThisQSO;
 
                  IF TailEnding THEN Inc (QSONumber);
 
@@ -330,7 +330,7 @@ VAR CharacterCount, QSONumber: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 QSONumber := TotalContacts + 1;
+                 QSONumber := QSONumberForThisQSO;  { Get the # that was reserved }
 
                  IF TailEnding THEN Inc (QSONumber);
 
@@ -781,6 +781,7 @@ VAR FileName, QSONumberString: Str20;
                END;
 
            { Finally we are ready to send the message }
+
            IF ((Key >= F1) AND (Key <= AltF10)) OR ((Key >= F11) AND (Key <= AltF11)) THEN
                 BEGIN
                 SendCrypticMessage (Message);
@@ -793,7 +794,7 @@ VAR FileName, QSONumberString: Str20;
                             BEGIN
                             IF LastDisplayedFreq [RadioOne] <> 0 THEN
                                 BEGIN
-                                Str (TotalContacts + 1, QSONumberString);
+                                Str (QSONumberForThisQSO, QSONumberString);
 
                                 {BandMapCursorFrequency := LastDisplayedFreq [RadioOne];}
 
@@ -810,7 +811,7 @@ VAR FileName, QSONumberString: Str20;
 
                             IF LastDisplayedFreq [RadioTwo] <> 0 THEN
                                 BEGIN
-                                Str (TotalContacts + 1, QSONumberString);
+                                Str (QSONumberForThisQSO, QSONumberString);
                                 { BandMapCursorFrequency := Frequency;}
 
                                 NewBandMapEntry ('CQ/' + QSONumberString,
@@ -1040,7 +1041,7 @@ VAR TimeOut: INTEGER;
     UpdateTotals;
 
     IF QSONumberByBand THEN
-        DisplayNextQSONumber (TotalContacts + 1);
+        DisplayNextQSONumber (QSONumberForThisQSO);
 
     IF MultByBand THEN
         BEGIN
@@ -1157,7 +1158,7 @@ VAR TimeOut: INTEGER;
     UpdateTotals;
 
     IF QSONumberByBand THEN
-        DisplayNextQSONumber (TotalContacts + 1);
+        DisplayNextQSONumber (QSONumberForThisQSO);
 
     IF MultByBand THEN
         BEGIN

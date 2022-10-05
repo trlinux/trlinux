@@ -228,7 +228,6 @@ TYPE
 
 
 VAR
-    SSEx: SSExchangeType;
 
     AddedNoteString:        STRING [100];
     AllCWMessagesChainable: BOOLEAN;
@@ -356,6 +355,8 @@ VAR
     ProcessedMultiMessagesStart: INTEGER;
     ProcessedMultiMessagesEnd:   INTEGER;
 
+    QSONumberForThisQSO: INTEGER;   { Used for classic mode QSOs }
+
     QSONumberByBand: BOOLEAN;
     QSXEnable:       BOOLEAN;
 
@@ -406,6 +407,7 @@ VAR
     SingleRadioMode:            BOOLEAN;
     SkipActiveBand:             BOOLEAN;
     SpaceBarDupeCheckEnable:    BOOLEAN;
+    SSEx:                       SSExchangeType;
     StartSendingNowKey:         CHAR;
     StationInformationCall:     CallString;
     SwitchRadioKey:             CHAR;

@@ -494,6 +494,8 @@ VAR FileWrite: TEXT;
             CWEnabled := False;
             END;
         END;
+
+    InitializeNextQSONumber;
     END;
 
 

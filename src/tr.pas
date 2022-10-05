@@ -27,6 +27,13 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+05-Oct-2022
+
+  - Implemented new QSO Number metodology.  The next QSO number to be used will
+    be determined when looking at the .DAT and .TMP files.  They will be scanned
+    for the largest QSO number that was given out and the next QSO number will
+    be one more.  Note that it appears QSONumberByBand might be broken.
+
 04-Oct-2022
 
  - Fixed bug of Cabrillo file not having END-OF-FILE

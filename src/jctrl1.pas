@@ -135,6 +135,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MIO,
                       MZN,
                       NFE,
+                      NEQ,
                       NLQ,
                       NPP,
                       PAL,
@@ -367,6 +368,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MZN: Description := 'MY ZONE';
 
       NFE: Description := 'NAME FLAG ENABLE';
+      NEQ: Description := 'NEXT QSO NUMBER';
       NLQ: Description := 'NO LOG';
       NPP: Description := 'NO POLL DURING PTT';
 
@@ -683,6 +685,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MIO: Write (MyIOTA);
       MZN: Write (MyZone);
       NFE: Write (NameFlagEnable);
+      NEQ: Write (NextQSONumberToGiveOut);
       NLQ: Write (NoLog);
       NPP: Write (NoPollDuringPTT);
 
@@ -1346,6 +1349,8 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Asterisk shows calls with known name')
            ELSE
                Write ('No asterisk to flag known names');
+
+      NEQ: Write ('Next QSO number to be given out');
 
       NLQ: IF NoLog THEN
                Write ('No QSOs can be logged on this computer')

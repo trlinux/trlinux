@@ -37,7 +37,6 @@ CONST
     NumberEditableLines = 5;
     MaximumReminderRecords = 100;
     MaxExchangeTemplateEntries = 20;
-    MaxQSONumber = 10000;
 
     QSONumberFileName = 'QSOARRAY.DAT';
 
@@ -77,12 +76,6 @@ CONST
     CallWindowRY = 20;
 
 TYPE
-
-    QSONumberArrayEntryType = (Unassigned, CheckedOut, Skipped, Used);
-
-    { QSONumberArray is a rare array starting at index 1 }
-
-    QSONumberArrayType = ARRAY [1..MaxQSONumber] OF QSONumberArrayEntryType;
 
     SpecialCommandType = (NoSpecialCommand, SendF1Message);
 
@@ -710,6 +703,10 @@ VAR
     MyZone:               ZoneMultiplierString;
 
     NextQSONumberToGiveOut: INTEGER;
+    NextQTCToBeAdded:   INTEGER;
+    NextQTCToBeSent:    INTEGER;
+    NumberQTCBooksSent: INTEGER;
+    NumberQTCStations:  INTEGER;
 
     NoMultMarineMobile: BOOLEAN; {KK1L: 6.68 Added for WRTC 2002 as flag to not count /MM or /AM as mults or countries}
     NoMultDxIfDomestic: BOOLEAN; {Needed for WRTC2018, HQ are not country mults}
@@ -719,10 +716,6 @@ VAR
     NumberMinutesProgramRunning: INTEGER;
     NumberQSOPointsThisMinute: INTEGER;
 
-    NextQTCToBeAdded:   INTEGER;
-    NextQTCToBeSent:    INTEGER;
-    NumberQTCBooksSent: INTEGER;
-    NumberQTCStations:  INTEGER;
 
     NumberReminderRecords:    BYTE;
     NumberTotalScoreMessages: BYTE;
@@ -739,8 +732,6 @@ VAR
     PrefixInfoFileName:     Str40;
     PreviousRadioOneFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}
     PreviousRadioTwoFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}
-
-    QSONumberArray: QSONumberArrayType;
 
     QSOPointsDomesticCW:    INTEGER;
     QSOPointsDomesticPhone: INTEGER;
@@ -935,12 +926,12 @@ VAR
 
   FUNCTION  GetNextQSONumber: INTEGER;
   FUNCTION  GetUserInfoString (Call: CallString): STRING;
+
   PROCEDURE IncrementTime (Count: INTEGER);
+  PROCEDURE InitializeNextQSONumber;
 
   PROCEDURE LoadBandMap;
   PROCEDURE LookForOnDeckCall (VAR ExchangeString: Str80);
-
-  PROCEDURE MarkQSONumberAsUsed (QSONumber: INTEGER);
 
   FUNCTION  NextNonDupeEntryInBandMap (Band: BandType; Mode: ModeType): BOOLEAN;
   FUNCTION  NextMultiplierEntryInBandMap (Band: BandType; Mode: ModeType): BOOLEAN; {KK1L: 6.68}
@@ -1160,15 +1151,15 @@ CONST
     AlarmWindowRX = 67;
     AlarmWindowRY = 22;
 
-    TBSIQ_HourRateWindowLX = 53;
-    TBSIQ_HourRateWindowLY = 1;
-    TBSIQ_HourRateWindowRX = 67;
-    TBSIQ_HourRateWindowRY = 1;
+    TBSIQ_HourRateWindowLX = 55;
+    TBSIQ_HourRateWindowLY = 3;
+    TBSIQ_HourRateWindowRX = 69;
+    TBSIQ_HourRateWindowRY = 3;
 
-    TBSIQ_RateWindowLX = 69;
-    TBSIQ_RateWindowLY = 1;
-    TBSIQ_RateWindowRX = 79;
-    TBSIQ_RateWindowRY = 1;
+    TBSIQ_RateWindowLX = 70;
+    TBSIQ_RateWindowLY = 3;
+    TBSIQ_RateWindowRX = 80;
+    TBSIQ_RateWindowRY = 3;
 
     RateWindowLX = 69;
     RateWindowLY = 22;
@@ -2524,10 +2515,14 @@ PROCEDURE DisplayNextQSONumber (QSONumber: INTEGER);
 
     BEGIN
     SaveSetAndClearActiveWindow (QSONumberWindow);
+
     IF QSONumber > 9999 THEN
         Write (QSONumber:5)
     ELSE
         Write (QSONumber:4);
+
+    { Create a clear space after the number }
+
     Window (QSONumberWindowRX, QSONumberWindowRY, QSONumberWindowRX, QSONumberWindowRY);
     TextBackground (SelectedColors.WholeScreenBackground);
     ClrScr;
@@ -6649,102 +6644,92 @@ VAR Band: BandType;
 
 
 
-PROCEDURE InitializeQSONumberArray;
+PROCEDURE InitializeNextQSONumber;
 
-{ Looks to see if there is a file QSONUMBER.DAt and load in the data.
-  If no file found - will just setup a new fresh array full on unassigned
-  numbers }
+{ Looks though the log file and editable log file to figure out what the
+  next QSO Number is that should be sent.  }
 
 VAR FileRead: TEXT;
-    FileString: Str80;
-    QSONumber: INTEGER;
+    TempString, FileString: Str80;
+    LargestQSONumberFound, QSONumber: INTEGER;
 
     BEGIN
-    FOR QSONumber := 1 TO MaxQSONumber DO
-        QSONumberArray [QSONumber] := Unassigned;
+    LargestQSONumberfound := 0;
 
-    NextQSONumberToGiveOut := 1;
-
-    { Okay - we have a fresh QSO Number array - now see if any numbers need
-      to be marked as Used or Skipped }
-
-    IF OpenFileForRead (FileRead, QSONumberFileName) THEN
+    IF OpenFileForRead (FileRead, LogTempFileName) THEN
         BEGIN
-        ReadLn (FileRead, FileString);
-        FileString := UpperCase (FileString);
-
-        GetRidOfPrecedingSpaces (FileString);
-
-        IF FileString <> '' THEN
+        WHILE NOT Eof (FileRead) DO
             BEGIN
-            RemoveFirstString (FileString);  { Date/time stamp }
-            QSONumber := RemoveFirstLongInteger (FileString);
+            ReadLn (FileRead, FileString);
 
-            IF QSONumber <= MaxQSONumber THEN
+            RemoveFirstString (FileString);   { Band/Mode }
+            RemoveFirstString (FileString);   { Date }
+            RemoveFirstString (FileString);   { Time }
+
+            IF FileString <> '' THEN
                 BEGIN
-                IF StringHas (FileString, 'CHECK') THEN
-                    BEGIN
-                    QSONumberArray [QSONumber] := CheckedOut;
-                    NextQSONumberToGiveOut := QSONumber + 1;
-                    END;
+                TempString := RemoveFirstString (FileString);
 
-                IF StringHas (FileString, 'SKIP') THEN
+                IF StringIsAllNumbers (TempString) THEN
                     BEGIN
-                    QSONumberArray [QSONumber] := Skipped;
-                    NextQSONumberToGiveOut := QSONumber + 1;
-                    END;
-
-                IF StringHas (FileString, 'USED') THEN
-                    BEGIN
-                    QSONumberArray [QSONumber] := Used;
-                    NextQSONumberToGiveOut := QSONumber + 1;
+                    Val (TempString, QSONumber);
+                    IF QSONumber > LargestQSONumberFound THEN
+                        LargestQSONumberFound := QSONumber;
                     END;
                 END;
             END;
 
-        Close (Fileread);
+        Close (FileRead);
         END;
 
+    { Look through the log file to make sure there isn't a larger number
+      hiding in there }
+
+    IF OpenFileForRead (FileRead, LogFileName) THEN
+        BEGIN
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+
+            RemoveFirstString (FileString);   { Band/Mode }
+            RemoveFirstString (FileString);   { Date }
+            RemoveFirstString (FileString);   { Time }
+
+            IF FileString <> '' THEN
+                BEGIN
+                TempString := RemoveFirstString (FileString);
+
+                IF StringIsAllNumbers (TempString) THEN
+                    BEGIN
+                    Val (TempString, QSONumber);
+                    IF QSONumber > LargestQSONumberFound THEN
+                        LargestQSONumberFound := QSONumber;
+                    END;
+                END;
+            END;
+
+        Close (FileRead);
+        END;
+
+    IF LargestQSONumberFound > 0 THEN
+        NextQSONumberToGiveOut := LargestQSONumberFound + 1
+    ELSE
+        NextQSONumberToGiveOut := 1;
     END;
 
 
 
 FUNCTION GetNextQSONumber: INTEGER;
 
-{ Returns next available serial number and marks it as checked out }
+{ Returns next available serial number }
 
     BEGIN
     GetNextQSONumber := NextQSONumberToGiveOut;
-
-    QSONumberArray [NextQSONumbertoGiveout] := CheckedOut;
-
-    IF NextQSONumberToGiveOut = MaxQSONumber THEN
-        BEGIN
-        WriteLn ('Out of QSO numbers!');
-        Halt;
-        END;
-
     Inc (NextQSONumberToGiveOut);
-    END;
-
-
-PROCEDURE MarkQSONumberAsUsed (QSONumber: INTEGER);
-
-VAR FileWrite: TEXT;
-
-    BEGIN
-    QSONumberArray [QSONumber] := Used;
-
-    IF OpenFileForAppend (FileWrite, QSONumberFileName) THEN
-        BEGIN
-        WriteLn (FileWrite, GetDateString, ':', GetTimeString, ' ', QSONumber, ' USED');
-        Close (FileWrite);
-        END;
     END;
 
 
 
     BEGIN
     WindInit;
-    InitializeQSONumberArray;
     END.

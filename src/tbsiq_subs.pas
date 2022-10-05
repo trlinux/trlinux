@@ -1242,7 +1242,7 @@ VAR CharacterCount: INTEGER;
             { # can't get a new serial number - it has to use the QSONumberForThisQSO }
 
             '#': BEGIN
-                 IF CallWindowString = '' THEN
+                 IF AutoQSONumberDecrement AND (CallWindowString = '') AND (ExchangeWindowString = '')  THEN
                      Str (QSONumberForPreviousQSO, QSONumberString)
                  ELSE
                      Str (QSONumberForThisQSO, QSONumberString);
@@ -1319,7 +1319,21 @@ PROCEDURE QSOMachineObject.DisplayQSONumber;
         END;  { of case }
 
     ClrScr;
-    Write (QSONumberForThisQSO:4);
+
+    IF QSONumberForThisQSO > 9999 THEN
+        Write (QSONumberForThisQSO:5)
+    ELSE
+        Write (QSONumberForThisQSO:4);
+
+    { Create a clear space after the number }
+
+    CASE Radio OF
+        RadioOne: Window (TBSIQ_R1_QSONumberWindowRX, TBSIQ_R1_QSONumberWindowRY, TBSIQ_R1_QSONumberWindowRX, TBSIQ_R1_QSONumberWindowRY);
+        RadioTwo: Window (TBSIQ_R2_QSONumberWindowRX, TBSIQ_R2_QSONumberWindowRY, TBSIQ_R2_QSONumberWindowRX, TBSIQ_R2_QSONumberWindowRY);
+        END;
+
+    TextBackground (SelectedColors.WholeScreenBackground);
+    ClrScr;
     RestorePreviousWindow;
     END;
 
@@ -1892,7 +1906,6 @@ VAR Key, ExtendedKey: CHAR;
                             QSOState := QST_CQSending73Message;
                             AutoStartSendStationCalled := False;
 
-                            MarkQSONumberAsUsed (QSONumberForThisQSO);
                             QSONumberForPreviousQSO := QSONumberForThisQSO;
                             QSONumberForThisQSO := GetNextQSONumber;
                             DisplayQSONumber;
@@ -1922,7 +1935,6 @@ VAR Key, ExtendedKey: CHAR;
                                     QSOState := QST_CQSending73Message;
                                     AutoStartSendStationCalled := False;
 
-                                    MarkQSONumberAsUsed (QSONumberForThisQSO);
                                     QSONumberForPreviousQSO := QSONumberForThisQSO;
                                     QSONumberForThisQSO := GetNextQSONumber;
                                     DisplayQSONumber;
@@ -2193,7 +2205,6 @@ VAR Key, ExtendedKey: CHAR;
                                 SetTBSIQWindow (TBSIQ_CallWindow);
                                 ClrScr;
 
-                                MarkQSONumberAsUsed (QSONumberForThisQSO);
                                 QSONumberForPreviousQSO := QSONumberForThisQSO;
                                 QSONumberForThisQSO := GetNextQSONumber;
                                 DisplayQSONumber;
@@ -2319,7 +2330,6 @@ VAR Key, ExtendedKey: CHAR;
                                             SetTBSIQWindow (TBSIQ_CallWindow);
                                             ClrScr;
 
-                                            MarkQSONumberAsUsed (QSONumberForThisQSO);
                                             QSONumberForPreviousQSO := QSONumberForThisQSO;
                                             QSONumberForThisQSO := GetNextQSONumber;
                                             DisplayQSONumber;
@@ -3785,7 +3795,6 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                         VisibleLog.DisplayGridMap (Band, Mode);
   {                     DisplayTotalScore (TotalScore); }
                         DisplayInsertMode;
-                        DisplayNextQSONumber (TotalContacts + 1);
                         LastTwoLettersCrunchedOn := '';
                         ClearKeyCache := True;
                         END
