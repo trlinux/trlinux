@@ -4313,7 +4313,9 @@ VAR Call: CallString;
     Call := 'NEW' + TempString;
     Str(Seconds, TempString);
     Call := Call + TempString;
+
     {KK1L: 6.68 Added stuff to get freq if no radio connected. Used to simply use BandMapFrequency.}
+
     IF GetRadioParameters (ActiveRadio, '', Frequency, Band, TempMode, FALSE, False) THEN
         AddBandMapEntry (Call, Frequency, 0, TempMode, False,  False, BandMapDecayTime)
     ELSE
@@ -4327,6 +4329,7 @@ VAR Call: CallString;
                 BandMapCursorFrequency := Frequency; {KK1L: 6.68 band map will track manual entry}
                 END;
             END;
+
     DisplayBandMap;
     END;
 

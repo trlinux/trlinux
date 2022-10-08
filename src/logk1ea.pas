@@ -849,39 +849,40 @@ FUNCTION GetRadioParameters (Radio: RadioType;
 
 
     BEGIN
-
     IF Radio = RadioOne THEN
-    begin
-        rig1.getradioparameters(freq,band,mode);
-        IF (Abs (LastRadioOneFreq - Freq) > 200000)
-           AND (StableRadio1Freq <> 0) THEN
-           BEGIN
-              LastRadioOneFreq := Freq;
-              Freq := StableRadio1Freq;
-           END
-           ELSE
-           BEGIN
-              LastRadioOneFreq := Freq;
-              StableRadio1Freq := Freq;
-           END;
-           Freq := Freq + Radio1FrequencyAdder;
-    end
-    ELSE
-    begin
+        BEGIN
+        rig1.getradioparameters (freq, band, mode);
+
+        IF (Abs (LastRadioOneFreq - Freq) > 200000) AND (StableRadio1Freq <> 0) THEN
+            BEGIN
+            LastRadioOneFreq := Freq;
+            Freq := StableRadio1Freq;
+            END
+        ELSE
+            BEGIN
+            LastRadioOneFreq := Freq;
+            StableRadio1Freq := Freq;
+            END;
+        Freq := Freq + Radio1FrequencyAdder;
+        END
+
+    ELSE  { RadioTwo }
+        BEGIN
         rig2.getradioparameters(freq,band,mode);
-        IF (Abs (LastRadioTwoFreq - Freq) > 200000
-           ) AND (StableRadio2Freq <> 0) THEN
-           BEGIN
-              LastRadioTwoFreq := Freq;
-              Freq := StableRadio2Freq;
-           END
-           ELSE
-           BEGIN
-              LastRadioTwoFreq := Freq;
-              StableRadio2Freq := Freq;
-           END;
-           Freq := Freq + Radio2FrequencyAdder;
-    end;
+
+        IF (Abs (LastRadioTwoFreq - Freq) > 200000) AND (StableRadio2Freq <> 0) THEN
+            BEGIN
+            LastRadioTwoFreq := Freq;
+            Freq := StableRadio2Freq;
+            END
+        ELSE
+            BEGIN
+            LastRadioTwoFreq := Freq;
+            StableRadio2Freq := Freq;
+            END;
+
+        Freq := Freq + Radio2FrequencyAdder;
+        END;
 
     GetRadioParameters := True;
     END;
@@ -944,10 +945,10 @@ VAR TempChar:   CHAR;
 
     { Decrement or increment various counts or timers }
 
-    IF DelayCount > 0 THEN Dec (DelayCount);
-    IF BumpCount > 0 THEN Dec (BumpCount);
+    IF DelayCount > 0  THEN Dec (DelayCount);
+    IF BumpCount > 0   THEN Dec (BumpCount);
     IF ReforkCount > 0 THEN Dec (ReforkCount);
-    IF DVKDelay   > 0 THEN Dec (DVKDelay);
+    IF DVKDelay   > 0  THEN Dec (DVKDelay);
 
     { I have a problem doing this with the Arduino Keyer since it is the
       sole authority on how long the CW has been stopped }
@@ -955,7 +956,7 @@ VAR TempChar:   CHAR;
     IF ActiveKeyer <> ArdKeyer THEN
         BEGIN
         tempint := ActiveKeyer.GetCountsSinceLastCW;
-        IF tempint <> 0 THEN ActiveKeyer.SetCountsSinceLastCW(tempint+1);
+        IF tempint <> 0 THEN ActiveKeyer.SetCountsSinceLastCW (tempint + 1);
         END;
 
     { I am not sure I like sending this every millisecond? I am not even sure
@@ -973,9 +974,11 @@ VAR TempChar:   CHAR;
        END;
 
     { Check the Beep count and status. }
+
     if caughtup then Tone.Timer;
 
     { First we check the keyer status }
+
     if caughtup then ActiveKeyer.Timer;
 
     if caughtup then Footsw.timer;

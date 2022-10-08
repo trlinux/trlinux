@@ -21,7 +21,8 @@
 unit kenwood;
 
 interface
-uses rig,timer,tree;
+
+uses rig, timer, tree;
 
 type
    kenwoodctl = class(radioctl)
@@ -40,7 +41,7 @@ type
          var m: modetype): boolean;override;
 
       procedure responsetimeout(ms: integer);override;
-      function getresponsetimeout:longint;override;
+      function  getresponsetimeout:longint;override;
       procedure timer(caughtup: boolean);override;
       procedure directcommand(s: string);override;
 
@@ -280,39 +281,43 @@ end;
 
 FUNCTION kenwoodctl.K3IsStillTalking: BOOLEAN;
 
-{ It turns out that I don't have a clear communication channel to a K3 to
-  ask if it is busy transmitting. So I can't use the TQ; command.  Instead,
-  I will return the status from the last IF command which has the same
-  data }
+{ Returns the current state of the txon parameter.  Note that this normally
+  comes from the IF; command which has significant latency.  If you want a
+  quicker response - you should set K3TXPollMode to TRUE using the
+  SetK3RXPollMode procedure.  }
 
     BEGIN
-{    K3IsStillTalking := txon;}
-    K3IsStillTalking := false;
+    K3IsStillTalking := txon;
     END;
 
 
 
 procedure kenwoodctl.timer (caughtup: boolean);
+
 var c: char;
     response: string;
     command: string;
     i,j,k: integer;
     freqnow: longint;
     code: word = 0;
-begin
-   inherited timer(caughtup);
-   if radioport = nil then exit;
 
-   while radioport.charready do
+    BEGIN
+    inherited timer (caughtup);
+
+    if radioport = nil then exit;
+
+    { Read in any characters that have arrived }
+
+    while radioport.charready do
       BEGIN
       c := radioport.readchar();
       if debugopen then write(debugfile,c);
 
       IF c <> ';' THEN { Not ; = add to response buffer }
-         BEGIN
-         fromrig[fromrigend] := c;
-         fromrigend := (fromrigend + 1) mod rigbuffersize;
-         END
+          BEGIN
+          fromrig[fromrigend] := c;
+          fromrigend := (fromrigend + 1) mod rigbuffersize;
+          END
       ELSE
 
          { We found the semi-colon indicating we have the whole response }
@@ -322,7 +327,6 @@ begin
 
          waiting := false;
          i := 0;
-
 
          { Generate response string from buffer }
 
@@ -340,6 +344,7 @@ begin
          IF response[1] = '?' then
             BEGIN
             if debugopen then writeln(debugfile,'received ? resending');
+
             inc(commandretrycount);
 
             if commandretrycount <= commandmaxretry then
@@ -363,9 +368,16 @@ begin
 
          ELSE  { Not a ? }
 
+            { Special response when polling TX status }
+
+            IF (response[1] = 'T') and (response[2] = 'Q') and (length(response) = 3) then
+                BEGIN
+                txon := response [3] = '1';
+                END;
+
             IF (response[1] = 'I') and (response[2] = 'F') and (length(response) = responselength) then
                BEGIN
-               if debugopen then writeln(debugfile,'polled information message');
+               if debugopen then writeln (debugfile, 'polled information message');
 
                val(copy(response,freqpos,freqdigits),freqnow,code);
 
@@ -405,7 +417,13 @@ begin
       IF commandcount >= commandtime then
          BEGIN
          if debugopen then writeln(debugfile,'time out flushing read buffer');
+
+         { Dump any characters coming from the radio }
+
          while radioport.charready do radioport.readchar();
+
+         { Reinitialize everything }
+
          fromrigstart := 0;
          fromrigend := 0;
          commandcount := 0;
@@ -414,13 +432,28 @@ begin
          END;
       END;
 
-   if ((not waiting) and (pollcounter >= polltime)) and pollradio then
+  { If we are still waiting - then we aren't going to send any commands }
+
+  if waiting then exit;
+
+  { We are adding another type of request instead of the IF; here.  In order to
+    see when a transmission is completed more quickly, we have the ability to
+    set the k3tightloop parameter to TRUE and send the TQ; command instead. }
+
+  if ((not waiting) and (pollcounter >= polltime)) and pollradio then
       BEGIN
-      sendstring('IF;');
+      IF K3TXPollMode THEN      { Ask for TX state only }
+          SendString ('TQ;')
+      ELSE
+          sendstring ('IF;');   { Ask for everything }
+
       pollcounter := 0;
       END;
 
    inc (pollcounter);
+
+   { if we aren't waiting for a response, we are going to send the command
+     to the radio }
 
    if not waiting then
       BEGIN

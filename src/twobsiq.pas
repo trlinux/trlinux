@@ -49,6 +49,10 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+8-Oct-2022
+
+ - Added immediate flag for transmit status on SSB.
+
 5-Oct-2022
 
  - Rate windows moved to just above the QSONeeds window.

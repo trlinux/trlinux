@@ -103,13 +103,13 @@ TYPE
         Frequency: LONGINT;   { The most current frequency for the radio }
 
         InitialExchangePutUp: BOOLEAN;
+        InsertMode: BOOLEAN;
 
+        K3RXPollActive: BOOLEAN;
         KeyboardCWMessage: STRING;
 
         LastFrequency: LONGINT;
-
-        LastFullTimeString: STRING;   { Used for RadioOnTheMove denominator }
-
+        LastFullTimeString: STRING;          { Used 1 second timer }
         LastQSOState: TBSIQ_QSOStateType;
         LastPossibleCall: CallString;
         LastSCPCall: CallString;
@@ -124,14 +124,13 @@ TYPE
 
         RadioOnTheMove: BOOLEAN;   { Replaces the classic RadioOntheMove [radio] }
 
+        SCPScreenFull: BOOLEAN;
         SearchAndPounceStationCalled: BOOLEAN;
         SearchAndPounceExchangeSent: BOOLEAN;
-
-        SCPScreenFull: BOOLEAN;
         StartSendingCursorPosition: INTEGER; { initially = AutoSendCharacterCount }
         StationInformationCall: CallString;
 
-        TBSIQ_InsertMode: BOOLEAN;
+        TransmitCountDown: INTEGER;      { Set > 0 for # of seconds to fake "I am transmitting" }
 
         PROCEDURE CheckQSOStateMachine;
         PROCEDURE ClearAutoSendDisplay;  { for use during S&P }
@@ -255,6 +254,9 @@ TYPE
         KB_Code: WORD;
         KB_Value: LONGINT;
         END;
+
+CONST
+    InitialTransmitCountdown = 3;
 
 
 
@@ -1615,6 +1617,9 @@ VAR Key, ExtendedKey: CHAR;
                         BEGIN
                         CASE Mode OF
                             CW:    ExpandedString := ExpandCrypticString (CQExchange);
+
+                            { Note sure we ever could be here on Phone }
+
                             Phone: ExpandedString := ExpandCrypticString (CQPhoneExchange);
                             END;
 
@@ -1723,6 +1728,11 @@ VAR Key, ExtendedKey: CHAR;
         QST_CQStationBeingAnswered:
             BEGIN
             ListenToOtherRadio;
+
+            { If we are on phone - let's assume we are going to be in transmit mode for at
+              least a couple of seconds }
+
+            IF Mode = Phone THEN TransmitCountDown := InitialTransmitCountdown;
 
             { We used to not do this until CW was done }
 
@@ -1875,6 +1885,11 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             IF NOT BeSilent THEN
                                 BEGIN
+
+                                { Assume we will be in TX on phone for at least a couple of seconds }
+
+                                IF Mode = Phone THEN TransmitCountDown := InitialTransmitCountdown;
+
                                 { Let's build the string we need to send to acknowledge the QSO }
 
                                 TempString := '';
@@ -2500,8 +2515,32 @@ VAR FrequencyChange, TempFreq: LONGINT;
     IF TimeString = LastFullTimeString THEN Exit;
     LastFullTimeString := TimeString;
 
-
     { We are now only executing this code once a second - per radio }
+
+    IF TransmitCountDown > 0 THEN
+        BEGIN
+        IF TransmitCountDown = InitialTransmitCountdown THEN  { First time here }
+            BEGIN
+            CASE Radio OF
+                RadioOne:
+                    BEGIN
+                    rig1.SetK3TXPollMode (TRUE);
+                    rig1.SetPollTime (100);
+                    END;
+
+                RadioTwo:
+                    BEGIN
+                    rig2.SetK3TXPollMode (TRUE);
+                    rig2.SetPollTime (100);
+                    END;
+
+                END;  { of CASE }
+
+            K3RXPollActive := True;
+            END;
+
+        Dec (TransmitCountDown);
+        END;
 
     IF LastFrequency = 0 THEN      { This is like the first time we are here }
         BEGIN
@@ -2675,24 +2714,22 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     CodeSpeed := SpeedMemory [Radio];
     CWMessageDisplayed := '';
     DisplayedBand := NoBand;
-    DisplayedMode := NoMode;
     DisplayedFrequency := 0;
+    DisplayedInsertIndicator := NoInsertIndicator;
+    DisplayedMode := NoMode;
+    DisplayedTXColor := NoTXColor;
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
+    K3RXPollActive := False;
+    InsertMode := InsertMode;
     LastFrequency := 0;
     LastQSOState := QST_None;
     QSOState := QST_Idle;
     RadioOnTheMove := False;
     SearchAndPounceStationCalled := False;
     StartSendingCursorPosition := AutoSendCharacterCount;
-
-    { For now - this is a global and not specific to each radio }
-
-    TBSIQ_InsertMode := InsertMode;
-
-    DisplayedInsertIndicator := NoInsertIndicator;
-    DisplayedTXColor := NoTXColor;
+    TransmitCountDown := 0;
 
     { Setup the window locations derived from the X,Y reference }
 
@@ -3036,7 +3073,13 @@ PROCEDURE QSOMachineObject.DisplayTXColor;
 VAR Color: TXColorType;
 
     BEGIN
-    Color := TBSIQ_CW_Engine.GetTransmitColor (Radio);
+    IF Mode = CW THEN
+        Color := TBSIQ_CW_Engine.GetTransmitColor (Radio)
+    ELSE
+        IF IAmTransmitting THEN
+            Color := TX_Red
+        ELSE
+            Color := TX_Blue;
 
     IF DisplayedTXColor <> Color THEN
         BEGIN
@@ -3070,15 +3113,15 @@ PROCEDURE QSOMachineObject.DisplayInsertMode;
 
     BEGIN
     IF (DisplayedInsertIndicator = NoInsertIndicator) OR
-       ((DisplayedInsertIndicator = InsertOffIndicator) AND TBSIQ_InsertMode) OR
-       ((DisplayedInsertIndicator = InsertOnIndicator) AND NOT TBSIQ_InsertMode) THEN
+       ((DisplayedInsertIndicator = InsertOffIndicator) AND InsertMode) OR
+       ((DisplayedInsertIndicator = InsertOnIndicator) AND NOT InsertMode) THEN
            BEGIN
            CASE Radio OF
                RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_InsertWindow);
                RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_InsertWindow);
                END;
 
-           IF TBSIQ_InsertMode THEN
+           IF InsertMode THEN
                BEGIN
                Write (' INSERT');
                RestorePreviousWindow;
@@ -3527,7 +3570,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
         SpaceBar:
             IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                 BEGIN
-                IF TBSIQ_InsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
+                IF InsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
                     BEGIN
                     IF CursorPosition > 1 THEN
                         BEGIN
@@ -3723,7 +3766,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                 DeleteKey:
                     BEGIN
-                    IF TBSIQ_InsertMode THEN
+                    IF InsertMode THEN
                         BEGIN
                         IF CursorPosition <= Length (WindowString) THEN
                             BEGIN
@@ -3807,7 +3850,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                 InsertKey:
                     BEGIN
-                    TBSIQ_InsertMode := NOT TBSIQ_InsertMode;
+                    InsertMode := NOT InsertMode;
                     DisplayInsertMode;
                     END;
 
@@ -3822,7 +3865,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
             IF LegalKey (KeyChar) THEN
                 BEGIN
-                IF TBSIQ_InsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
+                IF InsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
                     BEGIN
                     IF CursorPosition > 1 THEN
                         BEGIN
@@ -5028,10 +5071,52 @@ FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
         CW: IAmTransmitting := TBSIQ_CW_Engine.CWBeingSent (Radio);
 
         Phone:
+            BEGIN
+            { We need to have an artifical result after a message is
+              started since it takes a second or two for the txon flag
+              to get set by the radio interface protocol.  }
+
+            IF TransmitCountDown > 0 THEN
+                BEGIN
+                IAmTransmitting := True;
+                Exit;
+                END;
+
+            { We are going to rely on the radio status }
+
             CASE Radio OF
-                RadioOne: IAmTransmitting := Rig1.K3IsStillTalking;
-                RadioTwo: IAmTransmitting := Rig2.K3IsStillTalking;
+                RadioOne:
+                    IF Rig1.K3IsStillTalking THEN
+                        IAmTransmitting := True
+                    ELSE
+                        BEGIN
+                        IAmTransmitting := False;
+
+                        IF K3RXPollActive THEN
+                            BEGIN
+                            rig1.SetK3TXPollMode (False);
+                            rig1.SetPollTime (Rig1FreqPollRate);
+                            K3RXPollActive := False;
+                            END;
+                        END;
+
+                RadioTwo:
+                    IF Rig2.K3IsStillTalking THEN
+                        IAmTransmitting := True
+                    ELSE
+                        BEGIN
+                        IAmTransmitting := False;
+
+                        IF K3RXPollActive THEN
+                            BEGIN
+                            rig2.SetK3TXPollMode (False);
+                            rig2.SetPollTime (Rig1FreqPollRate);
+                            K3RXPollActive := False;
+                            END;
+                        END;
+
                 END;  { of case Radio }
+            END;
 
         ELSE
             IAmTransmitting := False;
@@ -5094,6 +5179,11 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
     BEGIN
     IF NOT ValidFunctionKey (Key) THEN Exit;
+
+    { Assume we will be in TX on phone for at least a couple of seconds }
+
+    IF Mode = Phone THEN
+        TransmitCountDown := 2;
 
     { Well this seems to be okay for mode }
 
