@@ -2525,13 +2525,13 @@ VAR FrequencyChange, TempFreq: LONGINT;
                 RadioOne:
                     BEGIN
                     rig1.SetK3TXPollMode (TRUE);
-                    rig1.SetPollTime (100);
+                    rig1.SetPollTime (20);
                     END;
 
                 RadioTwo:
                     BEGIN
                     rig2.SetK3TXPollMode (TRUE);
-                    rig2.SetPollTime (100);
+                    rig2.SetPollTime (20);
                     END;
 
                 END;  { of CASE }
