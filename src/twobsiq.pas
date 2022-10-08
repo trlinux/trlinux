@@ -52,6 +52,8 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 8-Oct-2022
 
  - Added immediate flag for transmit status on SSB.
+ - Put K3/K4 radio into faster poll rate for TX status when looking for the
+   end of a transmission.
 
 5-Oct-2022
 
