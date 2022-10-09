@@ -496,7 +496,7 @@ PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
   is complete }
 
     BEGIN
-    IF CWStillBeingSent THEN Exit;   { Still sending some CW }
+    IF CWStillBeingSent  THEN Exit;   { Still sending some CW }
     IF CueHead = CueTail THEN Exit;  { Nothing to tend to }
 
     { Find the next message to send in the cue }

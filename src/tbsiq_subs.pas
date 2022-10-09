@@ -285,6 +285,7 @@ VAR Message: STRING;
 
         { Done with the CQ - now to to the other radio }
 
+        ActiveKeyer.SetActiveRadio (RadioTwo);
         Radio2QSOMachine.SendFunctionKeyMessage (AltF1, Message);
         DualingCQState := DualingCQOnRadioTwo;
         END;
@@ -293,6 +294,7 @@ VAR Message: STRING;
         BEGIN
         IF Radio2QSOMachine.IAmTransmitting THEN Exit;
 
+        ActiveKeyer.SetActiveRadio (RadioOne);
         Radio1QSOMachine.SendFunctionKeyMessage (AltF1, Message);
         DualingCQState := DualingCQOnRadioOne;
         END;
@@ -3268,6 +3270,9 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
     IF NOT TBSIQ_KeyPressed (Radio) THEN Exit;  { No reason to be here }
 
+    { A keystroke will stop the DualingCQ activity.  Note that you are likely
+      on the wrong radio with the CW }
+
     IF DualingCQState <> NoDualingCQs THEN
         DualingCQState := NoDualingCQs;
 
@@ -5131,11 +5136,12 @@ FUNCTION ValidFunctionKey (Key: CHAR): BOOLEAN;
 FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
 
 { Typically called by the other radio to see if this one is transmitting.
-  Mostly likely used to disable some function keys when in SSB mode }
+  Mostly likely used to disable some function keys when in SSB mode or for
+  dualing CQs }
 
     BEGIN
     CASE Mode OF
-        CW: IAmTransmitting := TBSIQ_CW_Engine.CWBeingSent (Radio);
+        CW: IAmTransmitting := NOT TBSIQ_CW_Engine.CWFinished (Radio);
 
         Phone:
             BEGIN
@@ -5281,10 +5287,14 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     IF Mode = Phone THEN
         TransmitCountDown := 2;
 
-    { New on 30-Sep-2022 }
+    { New on 30-Sep-2022 - hmm - should I do this if the message is only going
+      into the cue?  Am I doing this for SSB only? }
 
-    ActiveRadio := Radio;
-    ActiveMode := Mode;
+    IF Mode <> CW THEN
+        BEGIN
+        ActiveRadio := Radio;
+        ActiveMode := Mode;
+        END;
 
     Message := ExpandCrypticString (Message);
 

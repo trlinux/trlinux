@@ -52,6 +52,14 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+9-Oct-2022
+
+ - Improved Dualing CQs to work on CW as well.  Again, it does not automatically
+   send a blind CQ or pick up again after a QSO is logged like it does in classic
+   mode.  You have to manually restart it with the Control-Dash key on either
+   keyboard.  The first CQ will be sent on the radio/keyboard the control-dash
+   is pressed on.
+
 8-Oct-2022
 
  - Added immediate flag for transmit status on SSB.

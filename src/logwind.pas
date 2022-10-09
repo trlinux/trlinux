@@ -6558,6 +6558,7 @@ VAR Band: BandType;
     FirstDisplayedBandMapFrequency := 0; {KK1L: 6.64}
 
     FrequencyDisplayed     := False;
+
     Rig1FreqPollRate           := 250;
     Rig2FreqPollRate           := 250;
 
