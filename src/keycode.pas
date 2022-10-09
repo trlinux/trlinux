@@ -202,6 +202,8 @@ CONST
     ControlY = Chr (25);
     ControlZ = Chr (26);
 
+    { Not extended }
+
     ControlLeftBracket  = Chr (27);
     ControlBackSlash    = Chr (28);
     ControlRightBracket = Chr (29);

@@ -46,6 +46,9 @@ TODO LIST
    indeed put you in the exchange window with the initial exchange, except
    it is at the start of the window where the InitialExchangeCursorPos = AtEnd
 
+ - If you press F1 on the inactive rig while the other radio is transmitting on
+   SSB (and likely CW) - the headphones switch.
+
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 

@@ -209,6 +209,7 @@ TYPE
         END;
 
 VAR
+
     R1KeyboardID: CINT;
     R2KeyboardID: CINT;
 
@@ -228,6 +229,7 @@ VAR
 FUNCTION  InitializeKeyboards: BOOLEAN;
 FUNCTION  NewInitializeKeyboards: BOOLEAN;
 
+PROCEDURE TBSIQ_CheckDualingCQState;
 FUNCTION  TBSIQ_KeyPressed (Radio: RadioType): BOOLEAN;  { Radio = 1 or 2 }
 PROCEDURE TBSIQ_LogContact (VAR RXData: ContestExchange);
 
@@ -239,6 +241,7 @@ PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; My
 PROCEDURE TBSIQ_PutContactIntoLogFile (LogString: Str80);
 FUNCTION  TBSIQ_ReadKey (Radio: RadioType): CHAR;
 PROCEDURE TBSIQ_UpdateTimeAndRateDisplays;  { Not radio specific }
+
 PROCEDURE PaintVerticalLine;
 FUNCTION  ValidFunctionKey (Key: CHAR): BOOLEAN;
 
@@ -255,8 +258,45 @@ TYPE
         KB_Value: LONGINT;
         END;
 
+    DualingCQStates = (NoDualingCQs,
+                       DualingCQOnRadioOne,
+                       DualingCQOnRadioTwo);
+
 CONST
     InitialTransmitCountdown = 3;
+
+VAR
+    DualingCQState: DualingCQStates;
+
+
+
+PROCEDURE TBSIQ_CheckDualingCQState;
+
+{ Checks to see if something should be done with the dualing CQs }
+
+VAR Message: STRING;
+
+    BEGIN
+    IF DualingCQState = NoDualingCQs THEN Exit;
+
+    IF DualingCQState = DualingCQOnRadioOne THEN
+        BEGIN
+        IF Rig1.K3IsStillTalking THEN Exit;
+
+        { Don't with the CQ - now to to the other radio }
+
+        Radio1QSOMachine.SendFunctionKeyMessage (AltF1, Message);
+        DualingCQState := DualingCQOnRadioTwo;
+        END;
+
+    IF DualingCQState = DualingCQOnRadioTwo THEN
+        BEGIN
+        IF Rig2.K3IsStillTalking THEN Exit;
+
+        Radio2QSOMachine.SendFunctionKeyMessage (AltF1, Message);
+        DualingCQState := DualingCQOnRadioTwo;
+        END;
+    END;
 
 
 
@@ -2478,7 +2518,6 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     TimeString := GetFullTimeString;
 
-
     { Get the radio information - note that this will get the last read data
       from the radio - not ask for a fresh set of data.  That means it might
       be a few hundred miliiseconds old }
@@ -2600,7 +2639,13 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         QST_Idle: Write ('CQ Mode - Idle');
         QST_AutoStartSending: Write ('Auto start send started');
         QST_CallingCQ: Write ('CQing');
-        QST_CQCalled: Write ('CQ Called');
+
+        QST_CQCalled:
+            BEGIN
+            Write ('CQ Called');
+            IF DualingCQState <> NoDualingCQs THEN Write (' Dualing CQs');
+            END;
+
         QST_CQStationBeingAnswered: Write ('CQ Station Being Answered');
         QST_CQExchangeBeingSent: Write ('Exchange being sent');
         QST_CQExchangeBeingSentAndExchangeWindowUp: Write ('Exchange being sent + ExWindow');
@@ -3184,7 +3229,7 @@ PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
 
 VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     PreviousCursorChar: CHAR;
-    TempString: STRING;
+    Message, TempString: STRING;
     TempExchange: ContestExchange;
 
     BEGIN
@@ -3309,6 +3354,22 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
       CallCursorPosition or ExchangeCursorPosition. }
 
     CASE KeyChar OF
+
+        ControlDash:
+            IF GetCQMemoryString (Mode, AltF1) <> '' THEN
+                BEGIN
+                IF DualingCQState = NoDualingCQs THEN
+                    BEGIN
+                    SendFunctionKeyMessage (AltF1, Message);
+
+                    CASE Radio OF
+                        RadioOne: DualingCQState := DualingCQOnRadioOne;
+                        RadioTwo: DualingCQState := DualingCQOnRadioTwo;
+                        END;  { of CASE }
+                    END
+                ELSE
+                    DualingCQState := NoDualingCQs;
+                END;
 
         EscapeKey:
             BEGIN
@@ -4175,6 +4236,7 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
         12: BEGIN
             KeyStatus.KeyChar := '-';
             IF ShiftKey THEN KeyStatus.KeyChar := '_';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlDash;  { Not extended }
             IF AltKey THEN BEGIN KeyStatus.KeyChar := AltDash; KeyStatus.ExtendedKey := True; END;
             END;
 
@@ -5180,11 +5242,6 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     BEGIN
     IF NOT ValidFunctionKey (Key) THEN Exit;
 
-    { Assume we will be in TX on phone for at least a couple of seconds }
-
-    IF Mode = Phone THEN
-        TransmitCountDown := 2;
-
     { Well this seems to be okay for mode }
 
     IF (QSOState = QST_Idle) OR (QSOState = QST_CallingCQ) OR
@@ -5213,6 +5270,11 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     IF (Key >= F1) AND (Key <= F4) THEN
         IF DisableF1ThroughF4 THEN
             Exit;
+
+    { Assume we will be in TX on phone for at least a couple of seconds }
+
+    IF Mode = Phone THEN
+        TransmitCountDown := 2;
 
     { New on 30-Sep-2022 }
 
