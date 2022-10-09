@@ -281,20 +281,20 @@ VAR Message: STRING;
 
     IF DualingCQState = DualingCQOnRadioOne THEN
         BEGIN
-        IF Rig1.K3IsStillTalking THEN Exit;
+        IF Radio1QSOMachine.IAmTransmitting THEN Exit;
 
-        { Don't with the CQ - now to to the other radio }
+        { Done with the CQ - now to to the other radio }
 
-        Radio1QSOMachine.SendFunctionKeyMessage (AltF1, Message);
+        Radio2QSOMachine.SendFunctionKeyMessage (AltF1, Message);
         DualingCQState := DualingCQOnRadioTwo;
         END;
 
     IF DualingCQState = DualingCQOnRadioTwo THEN
         BEGIN
-        IF Rig2.K3IsStillTalking THEN Exit;
+        IF Radio2QSOMachine.IAmTransmitting THEN Exit;
 
-        Radio2QSOMachine.SendFunctionKeyMessage (AltF1, Message);
-        DualingCQState := DualingCQOnRadioTwo;
+        Radio1QSOMachine.SendFunctionKeyMessage (AltF1, Message);
+        DualingCQState := DualingCQOnRadioOne;
         END;
     END;
 
@@ -895,6 +895,8 @@ VAR TimeString, FullTimeString, HourString: Str20;
     RateMinute: INTEGER;
 
     BEGIN
+    TBSIQ_CheckDualingCQState;
+
     FullTimeString := GetFullTimeString;
 
     IF FullTimeString = LastFullTimeString THEN Exit;  { Nothing to do }
@@ -3265,6 +3267,9 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
         END;
 
     IF NOT TBSIQ_KeyPressed (Radio) THEN Exit;  { No reason to be here }
+
+    IF DualingCQState <> NoDualingCQs THEN
+        DualingCQState := NoDualingCQs;
 
     { Make sure proper window is active - also set up the window strings
       and cursor positions }
