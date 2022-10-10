@@ -2561,29 +2561,7 @@ VAR FrequencyChange, TempFreq: LONGINT;
     { We are now only executing this code once a second - per radio }
 
     IF TransmitCountDown > 0 THEN
-        BEGIN
-        IF TransmitCountDown = InitialTransmitCountdown THEN  { First time here }
-            BEGIN
-            CASE Radio OF
-                RadioOne:
-                    BEGIN
-                    rig1.SetK3TXPollMode (TRUE);
-                    rig1.SetPollTime (20);
-                    END;
-
-                RadioTwo:
-                    BEGIN
-                    rig2.SetK3TXPollMode (TRUE);
-                    rig2.SetPollTime (20);
-                    END;
-
-                END;  { of CASE }
-
-            K3RXPollActive := True;
-            END;
-
         Dec (TransmitCountDown);
-        END;
 
     IF LastFrequency = 0 THEN      { This is like the first time we are here }
         BEGIN
@@ -5158,37 +5136,9 @@ FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
             { We are going to rely on the radio status }
 
             CASE Radio OF
-                RadioOne:
-                    IF Rig1.K3IsStillTalking THEN
-                        IAmTransmitting := True
-                    ELSE
-                        BEGIN
-                        IAmTransmitting := False;
-
-                        IF K3RXPollActive THEN
-                            BEGIN
-                            rig1.SetK3TXPollMode (False);
-                            rig1.SetPollTime (Rig1FreqPollRate);
-                            K3RXPollActive := False;
-                            END;
-                        END;
-
-                RadioTwo:
-                    IF Rig2.K3IsStillTalking THEN
-                        IAmTransmitting := True
-                    ELSE
-                        BEGIN
-                        IAmTransmitting := False;
-
-                        IF K3RXPollActive THEN
-                            BEGIN
-                            rig2.SetK3TXPollMode (False);
-                            rig2.SetPollTime (Rig1FreqPollRate);
-                            K3RXPollActive := False;
-                            END;
-                        END;
-
-                END;  { of case Radio }
+                RadioOne: IAmTransmitting := Rig1.K3IsStillTalking;
+                RadioTwo: IAmTransmitting := Rig2.K3IsStillTalking;
+                END;  { of CASE }
             END;
 
         ELSE

@@ -60,6 +60,9 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
    keyboard.  The first CQ will be sent on the radio/keyboard the control-dash
    is pressed on.
 
+ - The faster poll rate didn't seem to really be working - and the response
+   seemed okay without it - so I removed it.
+
 8-Oct-2022
 
  - Added immediate flag for transmit status on SSB.
