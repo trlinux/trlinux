@@ -52,6 +52,10 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+10-Oct-2022
+
+  - Added explicit "listen to other rig" when calling dualing CQ.
+
 9-Oct-2022
 
  - Improved Dualing CQs to work on CW as well.  Again, it does not automatically

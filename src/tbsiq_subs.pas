@@ -286,7 +286,13 @@ VAR Message: STRING;
         { Done with the CQ - now to to the other radio }
 
         ActiveKeyer.SetActiveRadio (RadioTwo);
-        Radio2QSOMachine.SendFunctionKeyMessage (AltF1, Message);
+
+        WITH Radio2QSOMachine DO
+            BEGIN
+            SendFunctionKeyMessage (AltF1, Message);
+            ListenToOtherRadio;
+            END;
+
         DualingCQState := DualingCQOnRadioTwo;
         END;
 
@@ -295,7 +301,13 @@ VAR Message: STRING;
         IF Radio2QSOMachine.IAmTransmitting THEN Exit;
 
         ActiveKeyer.SetActiveRadio (RadioOne);
-        Radio1QSOMachine.SendFunctionKeyMessage (AltF1, Message);
+
+        WITH Radio1QSOMachine DO
+            BEGIN
+            SendFunctionKeyMessage (AltF1, Message);
+            ListenToOtherRadio;
+            END;
+
         DualingCQState := DualingCQOnRadioOne;
         END;
     END;
