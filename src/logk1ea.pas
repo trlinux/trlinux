@@ -651,6 +651,7 @@ PROCEDURE SetRelayForActiveRadio (Radio: RadioType);
 
     BEGIN
     if RelayControlPort = nil then exit;
+
     IF SwapRadioRelaySense THEN
         IF Radio = RadioOne THEN
             Radio := RadioTwo

@@ -1891,7 +1891,7 @@ VAR TimeOut: BYTE;
         IF NOT SendingOnRadioOne THEN
             BEGIN
             FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
-            ActiveKeyer.SetActiveRadio(RadioOne);
+            ActiveKeyer.SetActiveRadio (RadioOne);
             {CodeSpeed := RadioOneSpeed;}
             CodeSpeed := SpeedMemory[RadioOne]; {KK1L: 6.73}
             SetSpeed (CodeSpeed);

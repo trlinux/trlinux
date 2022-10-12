@@ -312,8 +312,6 @@ VAR TestTail: INTEGER;
             Inc (TestTail);
             IF TestTail = MaximumCuedMessages THEN TestTail := 0;
             END;
-
-    { This is also somewhat unexpected too - since I was sure a message was being sent }
     END;
 
 

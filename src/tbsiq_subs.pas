@@ -469,7 +469,7 @@ VAR RememberTime: TimeRecord;
 
         ShowCWMessage (CallWindowString + ' was a dupe.');
 
-        { Not sure exactly what this is buying me }
+        { Panic delete if I pressed F1 by mistake }
 
         IF KeyRecentlyPressed (F1, 200) THEN    { Withing two seconds }
             IF Mode = CW THEN
@@ -1279,8 +1279,6 @@ VAR CharacterCount: INTEGER;
 { This is a very scaled down version of what is in the main program }
 
     BEGIN
-    IF Mode = Phone THEN ActiveRadio := Radio;
-
     FoundCommand (Radio, SendString);
 
     IF SendString = '' THEN
@@ -5224,7 +5222,6 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
        ELSE
            BEGIN
            CASE Key OF
-
                F1: IF Mode = CW THEN Message := '\';
 
                F2: CASE Mode OF
@@ -5246,13 +5243,12 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
     { Assume we will be in TX on phone for at least a couple of seconds }
 
-    IF Mode = Phone THEN
-        TransmitCountDown := 2;
+    IF Mode = Phone THEN TransmitCountDown := 2;
 
     { New on 30-Sep-2022 - hmm - should I do this if the message is only going
       into the cue?  Am I doing this for SSB only? }
 
-    IF Mode <> CW THEN
+    IF ActiveMode = Phone THEN
         BEGIN
         ActiveRadio := Radio;
         ActiveMode := Mode;
