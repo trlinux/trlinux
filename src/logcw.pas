@@ -154,21 +154,21 @@ VAR KeyStatus: KeyStatusType;
 
 
 
-procedure writecontrol(s: string);
-var i: integer;
+procedure WriteLnControl (s: string);
 
-{ Displays control characters with a carrot in front of them }
+VAR i: integer;
 
-begin
-   for i := 1 to length (s) do
-   begin
-      if (ord(s[i]) < 32) then
-          write('^',char(ord(s[i])-1+ord('a')))
-      else
-          write(s[i])
-   end;
-   writeln('');
-end;
+{ Displays control characters with a carrot in front of them and a carriage return }
+
+    BEGIN
+    FOR i := 1 to length (s) DO
+        IF (Ord (s[i]) < 32) THEN
+            Write ('^', char(ord(s[i]) - 1 + ord('a')))
+        ELSE
+            Write (s [i]);
+
+    WriteLn;
+    END;
 
 PROCEDURE ClearPTTForceOn;
 
@@ -704,6 +704,8 @@ VAR Key: CHAR;
     modetmp: modetype;
 
     BEGIN
+    { We use CW CQ Function Keys for Digital }
+
     if ActiveMode = Digital THEN
         modetmp := CW
     else
@@ -721,21 +723,14 @@ VAR Key: CHAR;
                 Str (Ord (Key) - Ord (F1) + 1, TempString);
                 TempString := 'F' + TempString +  ' - ';
 
-                IF modetmp = CW THEN
-                    BEGIN
-                    IF GetCQMemoryString (CW, Key) <> '' THEN {KK1L: 6.73 Added Mode}
-                         TempString := TempString + GetCQMemoryString (CW, Key); {KK1L: 6.73 Added Mode}
-
-                    END
-                ELSE
-                    IF GetCQMemoryString (Phone, Key) <> '' THEN
-                        TempString := TempString + GetCQMemoryString (Phone, Key); {KK1L: 6.73 Added Mode}
+                IF GetCQMemoryString (modetmp, Key) <> '' THEN
+                    TempString := TempString + GetCQMemoryString (modetmp, Key);
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
                 ClrEol;
 
-                writecontrol(TempString);
+                WriteLnControl (TempString);
                 END;
             END;
 
@@ -755,7 +750,7 @@ VAR Key: CHAR;
                     TempString := Copy (TempString, 1, 78) + '+';
 
                 ClrEol;
-                writecontrol(TempString);
+                WriteLnControl(TempString);
                 END;
             END;
 
@@ -775,7 +770,7 @@ VAR Key: CHAR;
                     TempString := Copy (TempString, 1, 78) + '+';
 
                 ClrEol;
-                writecontrol(TempString);
+                WriteLnControl(TempString);
                 END;
             END;
         END;
@@ -787,22 +782,16 @@ PROCEDURE ShowExFunctionKeyStatus;
 
 VAR Key: CHAR;
     TempString: Str160;
-    modetmp: ModeType;
 
     BEGIN
-    if ActiveMode = Digital THEN
-        modetmp := CW
-    else
-        modetmp := ActiveMode;
-
     GoToXY (1, 1);
 
     CASE KeyStatus OF
         NormalKeys:
             BEGIN
-            WriteLnCenter ('EXCHANGE ' + ModeString [modetmp] + ' FUNCTION KEY MEMORY STATUS');
+            WriteLnCenter ('EXCHANGE ' + ModeString [ActiveMode] + ' FUNCTION KEY MEMORY STATUS');
 
-            IF modetmp = CW THEN
+            IF ActiveMode = CW THEN
                 BEGIN
                 WriteLn ('F1 - Set by the MY CALL statement in config file');
                 WriteLn ('F2 - Set by S&P EXCHANGE and REPEAT S&P EXCHANGE');
@@ -812,51 +801,50 @@ VAR Key: CHAR;
                     Str (Ord (Key) - Ord (F1) + 1, TempString);
                     TempString := 'F' + TempString +  ' - ';
 
-                    {KK1L: 6.73 Added mode to GetExMemoryString}
-                    IF GetEXMemoryString (ActiveMode, Key) <> '' THEN
+                    IF GetEXMemoryString (CW, Key) <> '' THEN
                         TempString := TempString + GetEXMemoryString (CW, Key);
 
                     IF Length (TempString) > 79 THEN
                         TempString := Copy (TempString, 1, 78) + '+';
 
                     ClrEol;
-                    writecontrol(TempString);
+                    WriteLnControl(TempString);
                     END;
                 END
-            ELSE
+            ELSE            { Phone or Digital }
                 FOR Key := F1 TO F10 DO
                     BEGIN
                     Str (Ord (Key) - Ord (F1) + 1, TempString);
                     TempString := 'F' + TempString +  ' - ';
 
-                    {KK1L: 6.73 Added mode to GetExMemoryString}
                     IF GetExMemoryString (ActiveMode, Key) <> '' THEN
-                        TempString := TempString + GetExMemoryString (Phone, Key);
+                        TempString := TempString + GetExMemoryString (ActiveMode, Key);
 
                     IF Length (TempString) > 79 THEN
-                    TempString := Copy (TempString, 1, 78) + '+';
+                        TempString := Copy (TempString, 1, 78) + '+';
+
                     ClrEol;
-                    writecontrol(TempString);
+                    WriteLnControl (TempString);
                     END;
             END;
 
         AltKeys:
             BEGIN
-            WriteLnCenter ('ALT-EXCHANGE ' + ModeString [modetmp] + ' FUNCTION KEY MEMORY STATUS');
+            WriteLnCenter ('ALT-EXCHANGE ' + ModeString [ActiveMode] + ' FUNCTION KEY MEMORY STATUS');
 
             FOR Key := AltF1 TO AltF10 DO
                 BEGIN
                 Str (Ord (Key) - Ord (AltF1) + 1, TempString);
                 TempString := 'Alt-F' + TempString +  ' - ';
 
-                {KK1L: 6.73 Added mode to GetExMemoryString}
                 IF GetExMemoryString (ActiveMode, Key) <> '' THEN
                     TempString := TempString + GetExMemoryString (ActiveMode, Key);
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
-                 ClrEol;
-                writecontrol(TempString);
+
+                ClrEol;
+                WriteLnControl (TempString);
                 END;
             END;
 
@@ -869,17 +857,17 @@ VAR Key: CHAR;
                 Str (Ord (Key) - Ord (ControlF1) + 1, TempString);
                 TempString := 'Ctrl-F' + TempString +  ' - ';
 
-                {KK1L: 6.73 Added mode to GetExMemoryString}
                 IF GetExMemoryString (ActiveMode, Key) <> '' THEN
                     TempString := TempString + GetExMemoryString (ActiveMode, Key);
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
-                 ClrEol;
-                writecontrol(TempString);
+
+                ClrEol;
+                WriteLnControl (TempString);
                 END;
             END;
-        END;
+        END;  { of CASE KeyStatus }
     END;
 
 
@@ -888,116 +876,135 @@ PROCEDURE ShowOtherMemoryStatus;
 
 VAR TempString: Str160;
 
-  BEGIN
-  IF (ActiveMode = CW) OR (ActiveMode = Digital) THEN
     BEGIN
-    GoToXY (1, 1);
-    WriteLnCenter ('OTHER CW MESSAGE MEMORY STATUS');
+    IF (ActiveMode = CW) OR (ActiveMode = Digital) THEN
+        BEGIN
+        GoToXY (1, 1);
+        WriteLnCenter ('OTHER CW/DIGITAL MESSAGE MEMORY STATUS');
 
-    ClrEol;
-    TempString := ' 1. Call Okay Now - ' + CorrectedCallMessage;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 1. Call Okay Now - ' + CorrectedCallMessage;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl (TempString);
 
-    ClrEol;
-    TempString := ' 2. CQ Exchange   - ' + CQExchange;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
 
-    ClrEol;
-    TempString := ' 3. CQ Ex Name    - ' + CQExchangeNameKnown;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        IF ActiveMode = CW THEN
+            BEGIN
+            TempString := ' 2. CQ Exchange   - ' + CQExchange;
+            IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+            WriteLnControl (TempString);
+            END
+        ELSE
+            WriteLn ('2. Use Exchange Memory F2 for Digital CQ Exchange');
 
-    ClrEol;
-    TempString := ' 4. QSL Message   - ' + QSLMessage;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 3. CQ Ex Name    - ' + CQExchangeNameKnown;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 5. QSO Before    - ' + QSOBeforeMessage;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 4. QSL Message   - ' + QSLMessage;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 6. Quick QSL     - ' + QuickQSLMessage1;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 5. QSO Before    - ' + QSOBeforeMessage;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPounceExchange;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 6. Quick QSL     - ' + QuickQSLMessage1;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 8. S&P Exchange  - ' + SearchAndPounceExchange;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    writecontrol(TempString);
+        IF ActiveMode = CW THEN
+            BEGIN
+            ClrEol;
+            TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPounceExchange;
+            IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+            WriteLnControl(TempString);
+            END
+        ELSE
+            Write ('7. Use Exchange Memory F3 for REPEAT S&P Exchange');
 
-    ClrEol;
-    TempString := ' 9. Tail end msg  - ' + TailEndMessage;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    writecontrol(TempString);
+        IF ActiveMode = CW THEN
+            BEGIN
+            ClrEol;
+            TempString := ' 8. S&P Exchange  - ' + SearchAndPounceExchange;
+            IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+            WriteLnControl (TempString);
+            END
+        ELSE
+            WriteLn ('8. Use Exchange Memory F2 for S&P Exchange');
 
-    ClrEol;
-    Write   ('A. Short 0 = ', Short0, '   ',
-             'B. Short 1 = ', Short1, '   ',
-             'C. Short 2 = ', Short2, '   ',
-             'D. Short 9 = ', Short9);
-    END
-  ELSE
-    BEGIN
-    GoToXY (1, 1);
-    WriteLnCenter ('OTHER SSB MESSAGE MEMORY STATUS');
+        ClrEol;
+        TempString := ' 9. Tail end msg  - ' + TailEndMessage;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 1. Call Okay Now - ' + CorrectedCallPhoneMessage;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        Write   ('A. Short 0 = ', Short0, '   ',
+                 'B. Short 1 = ', Short1, '   ',
+                 'C. Short 2 = ', Short2, '   ',
+                 'D. Short 9 = ', Short9);
+        END
 
-    ClrEol;
-    TempString := ' 2. CQ Exchange   - ' + CQPhoneExchange;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+    ELSE  { Phone mode }
+        BEGIN
+        GoToXY (1, 1);
+        WriteLnCenter ('OTHER SSB MESSAGE MEMORY STATUS');
 
-    ClrEol;
-    TempString := ' 3. CQ Ex Name    - ' + CQPhoneExchangeNameKnown;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 1. Call Okay Now - ' + CorrectedCallPhoneMessage;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 4. QSL Message   - ' + QSLPhoneMessage;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 2. CQ Exchange   - ' + CQPhoneExchange;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 5. QSO Before    - ' + QSOBeforePhoneMessage;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 3. CQ Ex Name    - ' + CQPhoneExchangeNameKnown;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 6. Quick QSL     - ' + QuickQSLPhoneMessage;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 4. QSL Message   - ' + QSLPhoneMessage;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPouncePhoneExchange;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 5. QSO Before    - ' + QSOBeforePhoneMessage;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 8. S&P Exchange  - ' + SearchAndPouncePhoneExchange;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 6. Quick QSL     - ' + QuickQSLPhoneMessage;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
-    TempString := ' 9. Tail end msg  - ' + TailEndPhoneMessage;
-    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-    Writecontrol(TempString);
+        ClrEol;
+        TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPouncePhoneExchange;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl(TempString);
 
-    ClrEol;
+        ClrEol;
+        TempString := ' 8. S&P Exchange  - ' + SearchAndPouncePhoneExchange;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl (TempString);
+
+        ClrEol;
+        TempString := ' 9. Tail end msg  - ' + TailEndPhoneMessage;
+        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+        WriteLnControl (TempString);
+
+        ClrEol;
+        END;
     END;
-  END;
+
+
 
 PROCEDURE AppendConfigFile (AddedLine: Str160);
 
@@ -1239,8 +1246,9 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                  Exit;
                                  END;
 
-millisleep;
+                         millisleep;
                      UNTIL NewKeyPressed;
+
                      FunctionKey := Upcase (NewReadKey);
                  UNTIL (FunctionKey = NullKey) OR (FunctionKey = EscapeKey);
 
@@ -1307,18 +1315,24 @@ millisleep;
                                          AltR: DVKListenMessage (GetEXMemoryString (ActiveMode, FunctionKey));
                                          END;
 
-millisleep;
+                         millisleep;
                      UNTIL (TempString [1] <> NullKey);
-
 
                      IF TempString <> EscapeKey THEN
                          BEGIN
                          SetExMemoryString (ActiveMode, FunctionKey, TempString);
 
-                         IF ActiveMode = Phone THEN
-                             AppendConfigFile ('EX SSB MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString)
-                         ELSE
-                             AppendConfigFile ('EX MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString)
+                         CASE ActiveMode OF
+                             Phone:
+                                 AppendConfigFile ('EX SSB MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
+
+                             CW:
+                                 AppendConfigFile ('EX MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
+
+                             Digital:
+                                 AppendConfigFile ('EX DIGIGAL MEMORY' + KeyId (FunctionKey) + ' = ' + TempString);
+
+                             END;  { of CASE ActiveMode }
                          END;
 
                      RemoveAndRestorePreviousWindow;
@@ -1343,8 +1357,9 @@ millisleep;
                                  Exit;
                                  END;
 
-millisleep;
+                         millisleep;
                      UNTIL NewKeyPressed;
+
                      FunctionKey := Upcase (ReadKey);
                  UNTIL ((FunctionKey >= '1') AND (FunctionKey <= '9')) OR
                        ((FunctionKey >= 'A') AND (FunctionKey <= 'D')) OR
@@ -1398,7 +1413,7 @@ millisleep;
                                                     END;
 
 
-millisleep;
+                                    millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN
@@ -1441,7 +1456,7 @@ millisleep;
                                                     AltW: DVKRecordMessage (CQPhoneExchange);
                                                     AltR: DVKListenMessage (CQPhoneExchange);
                                                     END;
-millisleep;
+                                    millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN
@@ -1484,7 +1499,7 @@ millisleep;
                                                     AltW: DVKRecordMessage (CQPhoneExchangeNameKnown);
                                                     AltR: DVKListenMessage (CQPhoneExchangeNameKnown);
                                                     END;
-millisleep;
+                                    millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN
@@ -1526,7 +1541,7 @@ millisleep;
                                                     AltW: DVKRecordMessage (QSLPhoneMessage);
                                                     AltR: DVKListenMessage (QSLPhoneMessage);
                                                     END;
-millisleep;
+                                    millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN
@@ -1568,7 +1583,7 @@ millisleep;
                                                     AltW: DVKRecordMessage (QSOBeforePhoneMessage);
                                                     AltR: DVKListenMessage (QSOBeforePhoneMessage);
                                                     END;
-millisleep;
+                                    millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN
@@ -1610,7 +1625,7 @@ millisleep;
                                                     AltW: DVKRecordMessage (QuickQSLPhoneMessage);
                                                     AltR: DVKListenMessage (QuickQSLPhoneMessage);
                                                     END;
-millisleep;
+                                    millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN
@@ -1652,7 +1667,7 @@ millisleep;
                                                     AltW: DVKRecordMessage (RepeatSearchAndPouncePhoneExchange);
                                                     AltR: DVKListenMessage (RepeatSearchAndPouncePhoneExchange);
                                                     END;
-millisleep;
+                                    millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN
@@ -1694,7 +1709,7 @@ millisleep;
                                                     AltW: DVKRecordMessage (SearchAndPouncePhoneExchange);
                                                     AltR: DVKListenMessage (SearchAndPouncePhoneExchange);
                                                     END;
-millisleep;
+                                    millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN
@@ -1736,7 +1751,7 @@ millisleep;
                                                     AltW: DVKRecordMessage (TailEndPhoneMessage);
                                                     AltR: DVKListenMessage (TailEndPhoneMessage);
                                                     END;
-millisleep;
+                                    millisleep;
                                 UNTIL (TempString [1] <> NullKey);
 
                                 IF TempString <> EscapeKey THEN
@@ -1750,6 +1765,7 @@ millisleep;
                        'A': IF ActiveMode <> Phone THEN
                                 BEGIN
                                 TempString := LineInput ('Enter character for short zeros : ', '', True, False);
+
                                 IF (TempString <> EscapeKey) AND (TempString <> '') THEN
                                     BEGIN
                                     Short0 := TempString [1];
@@ -1760,6 +1776,7 @@ millisleep;
                        'B': IF ActiveMode <> Phone THEN
                                 BEGIN
                                 TempString := LineInput ('Enter character for short ones : ', '', True, False);
+
                                 IF (TempString <> EscapeKey) AND (TempString <> '') THEN
                                     BEGIN
                                     Short1 := TempString [1];
@@ -1770,6 +1787,7 @@ millisleep;
                        'C': IF ActiveMode <> Phone THEN
                                 BEGIN
                                 TempString := LineInput ('Enter character for short twos : ', '', True, False);
+
                                 IF (TempString <> EscapeKey) AND (TempString <> '') THEN
                                     BEGIN
                                     Short2 := TempString [1];
@@ -1780,6 +1798,7 @@ millisleep;
                        'D': IF ActiveMode <> Phone THEN
                                 BEGIN
                                 TempString := LineInput ('Enter character for short nines : ', '', True, False);
+
                                 IF (TempString <> EscapeKey) AND (TempString <> '') THEN
                                     BEGIN
                                     Short9 := TempString [1];
@@ -1834,10 +1853,11 @@ FUNCTION GetEXMemoryString (Mode: ModeType; Key: CHAR): Str80; {KK1L: 6.73 Added
 PROCEDURE SetCQMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
 
     BEGIN
+    { All digital CQ strings go to the CW strings }
+
     IF Mode = Digital THEN Mode := CW;
 
     IF CQMemory [Mode, Key] = Nil THEN New (CQMemory [Mode, Key]);
-    {KK1L: 6.72 NOTE This is where I should interpret the string just as if it were being read from LOGCFG.DAT}
     SniffOutControlCharacters (MemoryString); {KK1L: 6.72}
     CQMemory [Mode, Key]^ := MemoryString;
     END;
@@ -1845,12 +1865,11 @@ PROCEDURE SetCQMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
 
 PROCEDURE SetEXMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
 
-    BEGIN
-    IF Mode = Digital THEN Mode := CW;
+{ Must use digital mode - not CW instead }
 
+    BEGIN
     IF EXMemory [Mode, Key] = Nil THEN New (EXMemory [Mode, Key]);
-    {KK1L: 6.72 NOTE This is where I should interpret the string just as if it were being read from LOGCFG.DAT}
-    SniffOutControlCharacters (MemoryString); {KK1L: 6.72}
+    SniffOutControlCharacters (MemoryString);
     EXMemory [Mode, Key]^ := MemoryString;
     END;
 
@@ -1900,13 +1919,8 @@ VAR TimeOut: BYTE;
             BEGIN
             FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
             ActiveKeyer.SetActiveRadio (RadioOne);
-            {CodeSpeed := RadioOneSpeed;}
             CodeSpeed := SpeedMemory[RadioOne]; {KK1L: 6.73}
             SetSpeed (CodeSpeed);
-            {KK1L: 6.71 Need to set mode to that of ModeMemory [RadioOne] for split mode SO2R}
-            {KK1L: 6.72 Moved this to SendCrypticMessage to only handle CTRL-A requests      }
-            {           SwapRadios is run prior to coming here for SO2R and that hoses things}
-            {ActiveMode := ModeMemory [RadioOne];} {KK1L: 6.71 for split mode SO2R}
             SendingOnRadioOne := True;
             SendingOnRadioTwo := False;
             SetRelayForActiveRadio (ActiveRadio);
@@ -1920,13 +1934,8 @@ VAR TimeOut: BYTE;
             FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
 
             ActiveKeyer.SetActiveRadio(RadioTwo);
-            {CodeSpeed := RadioTwoSpeed;}
             CodeSpeed := SpeedMemory[RadioTwo]; {KK1L: 6.73}
             SetSpeed (CodeSpeed);
-            {KK1L: 6.71 Need to set mode to that of ModeMemory [RadioTwo] for split mode SO2R}
-            {KK1L: 6.72 Moved this to SendCrypticMessage to only handle CTRL-A requests      }
-            {           SwapRadios is run prior to coming here for SO2R and that hoses things}
-            {ActiveMode := ModeMemory [RadioTwo];} {KK1L: 6.71 for split mode SO2R}
             SendingOnRadioOne := False;
             SendingOnRadioTwo := True;
             SetRelayForActiveRadio (ActiveRadio);
@@ -1964,12 +1973,9 @@ VAR TimeOut: BYTE;
             BEGIN
             FlushCWBufferAndClearPTT;          { Clear CW being sent on Active Radio}
             ActiveKeyer.SetActiveRadio(RadioTwo);
-            {CodeSpeed := RadioTwoSpeed;}
             CodeSpeed := SpeedMemory[RadioTwo]; {KK1L: 6.73}
             SetSpeed (CodeSpeed);
             SetRelayForActiveRadio (RadioTwo);
-            {KK1L: 6.71 Need to set mode to that of ModeMemory [RadioTwo] for split mode SO2R}
-            {ActiveMode := ModeMemory [RadioTwo];} {KK1L: 6.71 for split mode SO2R}
             SendingOnRadioOne := False;
             SendingOnRadioTwo := True;
             END;
@@ -1981,12 +1987,9 @@ VAR TimeOut: BYTE;
             BEGIN
             FlushCWBufferAndClearPTT;          { Clear CW being sent on Active Radio}
             ActiveKeyer.SetActiveRadio(RadioOne);
-            {CodeSpeed := RadioOneSpeed;}
             CodeSpeed := SpeedMemory[RadioOne]; {KK1L: 6.73}
             SetSpeed (CodeSpeed);
             SetRelayForActiveRadio (RadioOne);
-            {KK1L: 6.71 Need to set mode to that of ModeMemory [RadioOne] for split mode SO2R}
-            {ActiveMode := ModeMemory [RadioOne];} {KK1L: 6.71 for split mode SO2R}
             SendingOnRadioOne := True;
             SendingOnRadioTwo := False;
             END;
@@ -2037,10 +2040,11 @@ VAR TempKey: CHAR;
     BEGIN
     FOR TempKey := F1 TO AltF12 DO
         BEGIN
-        CQMemory [CW, TempKey]    := Nil;
-        EXMemory [CW, TempKey]    := Nil;
-        CQMemory [Phone, TempKey] := Nil;
-        EXMemory [Phone, TempKey] := Nil;
+        CQMemory [CW, TempKey]      := Nil;
+        EXMemory [CW, TempKey]      := Nil;
+        CQMemory [Phone, TempKey]   := Nil;
+        EXMemory [Phone, TempKey]   := Nil;
+        EXMemory [Digital, TempKey] := Nil;
         END;
 
     AutoCQMemory := NullCharacter;

@@ -49,8 +49,15 @@ TODO LIST
  - If you press F1 on the inactive rig while the other radio is transmitting on
    SSB (and likely CW) - the headphones switch.
 
+ - RepeatSearchAndPounceExchange not used in 2BSIQ yet.  Will also use the non
+   repeat one.
+
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+16-Oct-2022
+
+  - Cleaned up digital use of exchange function keys.  See notes in main program.
 
 15-Oct-2022
 

@@ -5288,8 +5288,6 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     BEGIN
     IF NOT ValidFunctionKey (Key) THEN Exit;
 
-    { Well this seems to be okay for mode }
-
     IF (QSOState = QST_Idle) OR (QSOState = QST_CallingCQ) OR
        (QSOState = QST_CQCalled) OR (QSOState = QST_AutoStartSending) OR
        (QSOState = QST_CQSending73Message) THEN
@@ -5297,21 +5295,20 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
        ELSE
            CASE Key OF
                F1: BEGIN
-                   IF Mode = CW THEN Message := '\';
-                   IF Mode = Digital THEN Message := GetExMemoryString (Digital, Key);
+                   IF Mode = CW THEN
+                       Message := '\'
+                   ELSE
+                       Message := GetExMemoryString (Mode, Key);
                    END;
 
                F2: CASE Mode OF
-                       CW, Digital:
-                           Message := SearchAndPounceExchange;
-
-                       Phone:
-                           Message := SearchAndPouncePhoneExchange;
-
+                       CW:      Message := SearchAndPounceExchange;
+                       Phone:   Message := SearchAndPouncePhoneExchange;
+                       Digital: Message := GetExMemoryString (Digital, Key);
                        END;  { of CASE Mode }
 
                ELSE
-                   GetEXMemoryString (Mode, Key);
+                   Message := GetEXMemoryString (Mode, Key);
 
                END;  { of CASE Key }
 

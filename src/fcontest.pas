@@ -1096,6 +1096,18 @@ VAR TempQTH: QTHRecord;
             FoundContest := True;
             END;
 
+        IF CMD = 'JARTS' THEN
+            BEGIN
+            ActiveExchange := RSTAgeExchange;
+            ActiveQSOPointMethod := AllAsianQSOPointMethod;
+            ContestName := 'JARTS WW RTTY';
+            MultByBand := True;
+            MultByMode := False;
+            QSOByBand  := True;
+            QSOByMode  := False;
+            FoundContest := True;
+            END;
+
         IF CMD = 'KCJ' THEN
             BEGIN
             ActiveDomesticMult := DomesticFile;
