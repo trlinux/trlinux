@@ -52,6 +52,11 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+15-Oct-2022
+
+  - Added support for RTTY (with K3/K4).  Did play a little bit with Phone stuff
+    too - trying to improve lockouts.
+
 10-Oct-2022
 
   - Added explicit "listen to other rig" when calling dualing CQ.

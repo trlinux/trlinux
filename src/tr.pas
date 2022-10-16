@@ -45,6 +45,12 @@ PROGRAM ContestLoggingProgram;
 26-Sep-2022
 
  - Added functionality for RTTY commands to go to K2/K3/K4 radio (not 2BSIQ yet)
+   Note - for most of the messages - we use the CW messages to create strings to
+   send to the K3/K4 radios.  However, there are some issues with using the EXCHANGE
+   CW memories since F1 gets hardwired to send the callsign - not an actual memory.
+   So - we support EX DIGITAL MEMORY are a prefix for the function key memories and
+   use these with in digigal mode.
+
  - Fixed Cabrillo output for CQ WW RTTY to show DX instead of country ID
 
 23-Sep-2022

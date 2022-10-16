@@ -45,7 +45,8 @@ VAR
 
     CorrectedCallMessage:      Str80;
     CorrectedCallPhoneMessage: Str80;
-    CQExchange: Str160;
+
+    CQExchange:               Str160;
     CQExchangeNameKnown:      Str160;
     CQPhoneExchange:          Str80;
     CQPhoneExchangeNameKnown: Str80;
@@ -269,6 +270,7 @@ VAR CharPointer: INTEGER;
             IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
                 BEGIN
                 rig1.directcommand ('TX;');
+
                 IF MSG <> '' THEN
                     rig1.directcommand ('KYW' + MSG + ';');
                 END;
@@ -277,6 +279,7 @@ VAR CharPointer: INTEGER;
             IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
                 BEGIN
                 rig2.directcommand ('TX;');
+
                 IF MSG <> '' THEN
                     rig2.directcommand ('KYW' + MSG + ';');
                 END;
@@ -319,6 +322,8 @@ PROCEDURE FinishRTTYTransmission (MSG: Str160);
 VAR CharPointer: INTEGER;
 
     BEGIN
+    { Legacy stuff }
+
     IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) THEN
         BEGIN
         WHILE NOT RTTYSendCharBuffer.FreeSpace >= Length (MSG) + 1 DO;
@@ -333,7 +338,7 @@ VAR CharPointer: INTEGER;
 
         END;
 
-    { K3/K4 stuff - not sure if the KY leaves me in TX mode or not... }
+    { K3/K4 stuff }
 
     IF ActiveMode = Digital THEN
         BEGIN
@@ -1793,11 +1798,7 @@ millisleep;
 
 FUNCTION GetCQMemoryString (Mode: ModeType; Key: CHAR): Str80; {KK1L: 6.73 Added Mode to do split mode}
 
-{VAR Mode: ModeType;} {KK1L: 6.73 Removed}
-
     BEGIN
-    {Mode := ActiveMode;} {KK1L: 6.73 Removed}
-
     IF Mode = Digital THEN Mode := CW;
 
     IF CQMemory [Mode, Key] <> nil THEN
@@ -1809,17 +1810,24 @@ FUNCTION GetCQMemoryString (Mode: ModeType; Key: CHAR): Str80; {KK1L: 6.73 Added
 
 FUNCTION GetEXMemoryString (Mode: ModeType; Key: CHAR): Str80; {KK1L: 6.73 Added Mode to do split mode}
 
-{VAR Mode: ModeType;} {KK1L: 6.73 Removed}
-
     BEGIN
-    {Mode := ActiveMode;} {KK1L: 6.73 Removed}
+    GetEXMemoryString := '';
 
-    IF Mode = Digital THEN Mode := CW;
+    CASE MODE OF
+        CW, Phone:
+            IF EXMemory [Mode, Key] <> Nil THEN
+                GetEXMemoryString := EXMemory [Mode, Key]^;
 
-    IF EXMemory [Mode, Key] <> Nil THEN
-        GetEXMemoryString := EXMemory [Mode, Key]^
-    ELSE
-        GetEXMemoryString := ''
+        { For Digital, use Digital EX memory if there - otherwise, use CW }
+
+        Digital:
+            IF ExMemory [Mode, Key] <> Nil then
+                GetEXMemoryString := EXMemory [Mode, Key]^
+            ELSE
+                IF ExMemory [CW, Key] <> Nil THEN
+                    GetExMemoryString := ExMemory [CW, Key]^;
+
+        END;  { of case }
     END;
 
 

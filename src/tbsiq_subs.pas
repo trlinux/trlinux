@@ -1533,7 +1533,6 @@ VAR Key, ExtendedKey: CHAR;
                             QSOState := QST_CQStationBeingAnsweredSilent;
                             Exit;
                             END;
-
                         END;  { of NullKey case }
 
 
@@ -1542,8 +1541,11 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             IF WindowString = '' THEN
                                 BEGIN
-                                SendFunctionKeyMessage (F1, Message);
-                                QSOState := QST_CallingCQ;
+                                IF NOT DisableF1ThroughF4 THEN
+                                    BEGIN
+                                    SendFunctionKeyMessage (F1, Message);
+                                    QSOState := QST_CallingCQ;
+                                    END;
                                 END
                             ELSE
                                 BEGIN  { We have a callsign to send }
@@ -1584,16 +1586,30 @@ VAR Key, ExtendedKey: CHAR;
                                     ClrScr;
                                     END
                                 ELSE
-                                    BEGIN
-                                    IF Mode = CW THEN
-                                        BEGIN
-                                        TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High);
-                                        CallsignICameBackTo := WindowString;
-                                        ShowCWMessage (WindowString);
-                                        END;
+                                    CASE Mode OF
+                                        CW:
+                                            BEGIN
+                                            TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High);
+                                            CallsignICameBackTo := WindowString;
+                                            ShowCWMessage (WindowString);
+                                            QSOState := QST_CQStationBeingAnswered;
+                                            END;
 
-                                    QSOState := QST_CQStationBeingAnswered;
-                                    END;
+                                        Digital:
+                                            IF (Mode = Digital) AND NOT DisableF1ThroughF4 THEN
+                                                BEGIN
+                                                ActiveRadio := Radio;
+                                                ActiveMode := Mode;
+                                                StartRTTYTransmission (WindowString);
+                                                CallsignICameBackTo := WindowString;
+                                                ShowCWMessage (WindowString);
+                                                QSOState := QST_CQStationBeingAnswered;
+                                                END;
+
+                                        Phone:
+                                            QSOState := QST_CQStationBeingAnswered;
+
+                                        END;  { of CASE Mode }
                                 END;
                             END;
 
@@ -1670,11 +1686,13 @@ VAR Key, ExtendedKey: CHAR;
                     IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                         BEGIN
                         CASE Mode OF
-                            CW:    ExpandedString := ExpandCrypticString (CQExchange);
+                            CW, Digital:
+                                ExpandedString := ExpandCrypticString (CQExchange);
 
                             { Note sure we ever could be here on Phone }
 
-                            Phone: ExpandedString := ExpandCrypticString (CQPhoneExchange);
+                            Phone:
+                                ExpandedString := ExpandCrypticString (CQPhoneExchange);
                             END;
 
                         IF Mode = CW THEN
@@ -1710,11 +1728,25 @@ VAR Key, ExtendedKey: CHAR;
                     IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                         BEGIN
                         CASE Mode OF
-                            CW: BEGIN
+                            CW, Digital:
+                                BEGIN
                                 ExpandedString := ExpandCrypticString (CQExchange);
-                                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+
                                 ShowCWMessage (ExpandedString);
+
+                                IF Mode = CW THEN
+                                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+
+                                IF Mode = Digital THEN
+                                    BEGIN
+                                    ActiveRadio := Radio;
+                                    ActiveMode := Mode;
+                                    FinishRTTYTransmission (ExpandedString);
+                                    END;
                                 END;
+
+                            { On phone - we expecte the ExpandCrypticString procedure to actually
+                              send commands to the radio to start a voice memory }
 
                             Phone:
                                 ExpandedString := ExpandCrypticString (CQPhoneExchange);
@@ -1733,8 +1765,16 @@ VAR Key, ExtendedKey: CHAR;
                             ShowCWMessage (ExpandedString);
                             END;
 
+                        IF Mode = Digital THEN
+                            BEGIN
+                            ActiveRadio := Radio;
+                            ActiveMode := Mode;
+                            FinishRTTYTransmission (ExpandedString);
+                            ShowCWMessage (ExpandedString);
+                            END;
+
                         QSOState := QST_Idle;
-                        END;
+                       END;
                     END;
 
                 BackSpace:  { See if we can delete an unsent character }
@@ -1786,17 +1826,30 @@ VAR Key, ExtendedKey: CHAR;
             { If we are on phone - let's assume we are going to be in transmit mode for at
               least a couple of seconds }
 
-            IF Mode = Phone THEN TransmitCountDown := InitialTransmitCountdown;
+            IF Mode <> CW THEN TransmitCountDown := InitialTransmitCountdown;
 
             { We used to not do this until CW was done }
 
             IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                 BEGIN
                 CASE Mode OF
-                    CW: BEGIN
+                    CW, Digital:
+                        BEGIN
                         ExpandedString := ExpandCrypticString (CQExchange);
-                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
-                        ShowCWMessage (ExpandedString);
+
+                        IF Mode = CW THEN
+                            BEGIN
+                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                            ShowCWMessage (ExpandedString);
+                            END;
+
+                        IF Mode = Digital THEN
+                            BEGIN
+                            ActiveMode := Mode;
+                            ActiveRadio := Radio;
+                            FinishRTTYTransmission (ExpandedString);
+                            ShowCWMessage (ExpandedString);
+                            END;
                         END;
 
                     Phone:
@@ -1814,6 +1867,14 @@ VAR Key, ExtendedKey: CHAR;
                 IF Mode = CW THEN
                     BEGIN
                     TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                    ShowCWMessage (ExpandedString);
+                    END;
+
+                IF Mode = Digital THEN
+                    BEGIN
+                    ActiveMode := Mode;
+                    ActiveRadio := Radio;
+                    FinishRTTYTransmission (ExpandedString);
                     ShowCWMessage (ExpandedString);
                     END;
 
@@ -1942,7 +2003,7 @@ VAR Key, ExtendedKey: CHAR;
 
                                 { Assume we will be in TX on phone for at least a couple of seconds }
 
-                                IF Mode = Phone THEN TransmitCountDown := InitialTransmitCountdown;
+                                IF Mode <> CW THEN TransmitCountDown := InitialTransmitCountdown;
 
                                 { Let's build the string we need to send to acknowledge the QSO }
 
@@ -1969,6 +2030,15 @@ VAR Key, ExtendedKey: CHAR;
                                     TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
                                     ShowCWMessage (ExpandedString);
                                     END;
+
+                                IF Mode = Digital THEN
+                                    BEGIN
+                                    ActiveMode := Mode;
+                                    ActiveRadio := Radio;
+                                    ShowCWMessage (ExpandedString);
+                                    FinishRTTYTransmission (ExpandedString);
+                                    END;
+
                                 END;
 
                             TBSIQ_LogContact (RData);
@@ -2222,10 +2292,15 @@ VAR Key, ExtendedKey: CHAR;
                             IF NOT SearchAndPounceExchangeSent THEN
                                 BEGIN
                                 CASE Mode OF
-                                    CW: BEGIN
+                                    CW, Digital:
+                                        BEGIN
                                         ExpandedString := ExpandCrypticString (SearchAndPounceExchange);
-                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
-                                        ShowCWMessage (ExpandedString);
+
+                                        IF Mode = CW THEN
+                                            BEGIN
+                                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                                            ShowCWMessage (ExpandedString);
+                                            END;
                                         END;
 
                                     Phone:
@@ -5131,7 +5206,7 @@ FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
     CASE Mode OF
         CW: IAmTransmitting := NOT TBSIQ_CW_Engine.CWFinished (Radio);
 
-        Phone:
+        Phone, Digital:
             BEGIN
             { We need to have an artifical result after a message is
               started since it takes a second or two for the txon flag
@@ -5220,17 +5295,25 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
        (QSOState = QST_CQSending73Message) THEN
            Message := GetCQMemoryString (Mode, Key)
        ELSE
-           BEGIN
            CASE Key OF
-               F1: IF Mode = CW THEN Message := '\';
+               F1: BEGIN
+                   IF Mode = CW THEN Message := '\';
+                   IF Mode = Digital THEN Message := GetExMemoryString (Digital, Key);
+                   END;
 
                F2: CASE Mode OF
-                       CW:    Message := SearchAndPounceExchange;
-                       Phone: Message := SearchAndPouncePhoneExchange;
-                       ELSE   GetEXMemoryString (Mode, Key);
-                       END;
-               END;
-           END;
+                       CW, Digital:
+                           Message := SearchAndPounceExchange;
+
+                       Phone:
+                           Message := SearchAndPouncePhoneExchange;
+
+                       END;  { of CASE Mode }
+
+               ELSE
+                   GetEXMemoryString (Mode, Key);
+
+               END;  { of CASE Key }
 
     { When doing ExpandCrypticString, a function key message could start a
       transmission on this radio while the other one is busy either sending
@@ -5241,24 +5324,31 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
         IF DisableF1ThroughF4 THEN
             Exit;
 
-    { Assume we will be in TX on phone for at least a couple of seconds }
+    { Assume we will be in TX on phone or Digital for at least a couple of seconds }
 
-    IF Mode = Phone THEN TransmitCountDown := 2;
+    IF Mode <> CW THEN TransmitCountDown := 2;
 
     { New on 30-Sep-2022 - hmm - should I do this if the message is only going
       into the cue?  Am I doing this for SSB only? }
 
-    IF ActiveMode = Phone THEN
-        BEGIN
-        ActiveRadio := Radio;
-        ActiveMode := Mode;
-        END;
+    IF Message <> '' THEN
+        IF (ActiveMode = Phone) OR (ActiveMode = Digital) THEN
+            BEGIN
+            ActiveRadio := Radio;
+            ActiveMode := Mode;
+            END;
 
     Message := ExpandCrypticString (Message);
 
     IF (Mode = CW) AND (Message <> '') THEN
         BEGIN
         TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High);
+        ShowCWMessage (Message);
+        END;
+
+    IF (Mode = Digital) AND (Message <> '') THEN
+        BEGIN
+        FinishRTTYTransmission (Message);
         ShowCWMessage (Message);
         END;
     END;

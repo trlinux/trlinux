@@ -4750,6 +4750,9 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                     ELSE
                         IF ActiveMode = Digital THEN
                             BEGIN
+
+                            { REALLY??? }
+
                             SendStringAndStop (MyCall + ' ' + MyCall + ' ' + MyCall);
                             END
                         ELSE
@@ -5373,6 +5376,9 @@ ControlEnterCommand1:
                                    ELSE
                                        IF ActiveMode = Digital THEN
                                            BEGIN
+
+                                           { REALLY??? }
+
                                            SendStringAndStop (MyCall + ' ' + MyCall);
                                            END
                                        ELSE
@@ -6238,6 +6244,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 END
                             ELSE
                                 IF ActiveMode = Digital THEN
+                                    { REALLY?  }
                                     SendStringAndStop (MyCall + ' ' + MyCALL)
                                 ELSE
                                     SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
