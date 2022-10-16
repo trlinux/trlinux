@@ -52,6 +52,11 @@ TODO LIST
  - RepeatSearchAndPounceExchange not used in 2BSIQ yet.  Will also use the non
    repeat one.
 
+ - When sending a callsign first in CQ mode - then a CQ exchange, the ShowCWMessage
+   does not show the callsign.
+
+ - When calling CQ in RTTY, the CQ message flashes and is quickly overwritten.
+
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
