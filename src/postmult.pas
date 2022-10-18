@@ -194,7 +194,7 @@ VAR FileRead: TEXT;
     FileString, MultString, ZoneString, TempString: Str80;
     Band: BandType;
     Mode: ModeType;
-    ZoneIndex, xResult: INTEGER;
+    ZoneIndex: INTEGER;
 
     BEGIN
     GenerateZoneMultiplierTotals := False;
@@ -238,7 +238,7 @@ VAR FileRead: TEXT;
 
                    IF StringIsAllNumbers (TempString) THEN
                        BEGIN
-                       Val (TempString, ZoneIndex, xResult);
+                       Val (TempString, ZoneIndex);
 
                        IF (ZoneIndex > 0) AND (ZoneIndex <= 100) THEN
                            IF CountryMultTotals^ [Band, ZoneIndex].TotalQSOs = 0 THEN
@@ -253,7 +253,7 @@ VAR FileRead: TEXT;
 
            IF StringIsAllNumbers (ZoneString) THEN
                BEGIN
-               Val (ZoneString, ZoneIndex, xResult);
+               Val (ZoneString, ZoneIndex);
 
                IF (ZoneIndex > 0) AND (ZoneIndex <= 100) THEN
                    Inc (CountryMultTotals^ [Band, ZoneIndex].TotalQSOs);
@@ -775,7 +775,7 @@ VAR Lines, ZoneIndex, MaxNumberOfZones: INTEGER;
 
 PROCEDURE WRTC2018MultiplierCheckOffSheet;
 VAR
-   Destination, Key: CHAR;
+   Destination: CHAR;
    FileName: Str20;
    CountryIndex, NumberReportEntries: INTEGER;
    RealAddress: INTEGER;
@@ -786,7 +786,6 @@ VAR
    Mode: ModeType;
    i,index: INTEGER;
    hqlist, hqbandlist: TStringList;
-   hqmults: array of array of boolean; 
 
    BEGIN
    writeln;
@@ -1522,7 +1521,7 @@ PROCEDURE FinishOutLastHour;
   than 10 minutes. }
 
 VAR LastMinuteString: Str20;
-    Minute, LastMinute, xResult: INTEGER;
+    Minute, LastMinute: INTEGER;
 
     BEGIN
     WITH PLeftOnBiState DO
@@ -1530,7 +1529,7 @@ VAR LastMinuteString: Str20;
 
         LastMinuteString := PostcedingString (LastTimeString, ':');
 
-        Val (LastMinuteString, LastMinute, xResult);
+        Val (LastMinuteString, LastMinute);
 
         IF (LastMinute >= 50) AND (LastMinute < 59) THEN
             FOR Minute := LastMinute + 1 TO 59 DO
@@ -1758,7 +1757,7 @@ VAR Destination: CHAR;
     FileWrite: TEXT;
     Band: BandType;
     FileName: Str80;
-    TotalMults, LastHourPrinted, HourIndex, ThisHour, xResult: INTEGER;
+    TotalMults, LastHourPrinted, HourIndex, ThisHour: INTEGER;
     TotalQSOPoints, TotalContacts: LONGINT;
     Score: REAL;
     Day1QSOTotals, Day1MultTotals, Day2QSOTotals, Day2MultTotals: ARRAY [Band160..Band10] OF LONGINT;
@@ -1826,7 +1825,7 @@ VAR Destination: CHAR;
             LastHourPrinted := 0;
             END;
 
-        Val (LogHourTotals^ [HourIndex].HourName, ThisHour, xResult);
+        Val (LogHourTotals^ [HourIndex].HourName, ThisHour);
 
         IF HourIndex = 0 THEN LastHourPrinted := ThisHour;
 
@@ -1934,7 +1933,7 @@ VAR Destination: CHAR;
             WriteLn (FileWrite, Score:6:2, 'M');
             END;
 
-        Val (LogHourTotals^ [HourIndex].HourName, LastHourPrinted, xResult);
+        Val (LogHourTotals^ [HourIndex].HourName, LastHourPrinted);
         Inc (HourIndex);
         END;
 
@@ -2029,7 +2028,7 @@ VAR Destination: CHAR;
     FileWrite: TEXT;
     Band: BandType;
     TempString, RateString, FileName: Str80;
-    Rate, TotalMinutes, LastHourPrinted, HourIndex, ThisHour, xResult: INTEGER;
+    Rate, TotalMinutes, LastHourPrinted, HourIndex, ThisHour: INTEGER;
     TotalQSOPoints, TotalContacts: LONGINT;
     Day1QSOTotals, Day1MinTotals, Day2QSOTotals, Day2MinTotals: ARRAY [Band160..Band10] OF LONGINT;
     DoingDay1: BOOLEAN;
@@ -2097,7 +2096,7 @@ VAR Destination: CHAR;
             LastHourPrinted := 0;
             END;
 
-        Val (LogHourTotals^ [HourIndex].HourName, ThisHour, xResult);
+        Val (LogHourTotals^ [HourIndex].HourName, ThisHour);
 
         IF HourIndex = 0 THEN LastHourPrinted := ThisHour;
 
@@ -2188,7 +2187,7 @@ VAR Destination: CHAR;
             WriteLn (FileWrite, TotalMinutes:4, '/', Round (TotalContacts * (60 / TotalMinutes)));
             END;
 
-        Val (LogHourTotals^ [HourIndex].HourName, LastHourPrinted, xResult);
+        Val (LogHourTotals^ [HourIndex].HourName, LastHourPrinted);
         Inc (HourIndex);
         END;
 

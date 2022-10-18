@@ -272,7 +272,7 @@ VAR CharPointer: INTEGER;
                 rig1.directcommand ('TX;');
 
                 IF MSG <> '' THEN
-                    rig1.directcommand ('KYW' + MSG + ';');
+                    rig1.directcommand ('KY ' + MSG + ';');
                 END;
 
         IF ActiveRadio = RadioTwo THEN
@@ -281,7 +281,7 @@ VAR CharPointer: INTEGER;
                 rig2.directcommand ('TX;');
 
                 IF MSG <> '' THEN
-                    rig2.directcommand ('KYW' + MSG + ';');
+                    rig2.directcommand ('KY ' + MSG + ';');
                 END;
         END;
 

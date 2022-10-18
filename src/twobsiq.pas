@@ -27,42 +27,64 @@ UNIT TwoBSIQ;
 
 TODO LIST
 
-- Bandmap blinking call / cursor not updating as you tune the radio.  CQs
-  not showing up.  Also not following radio on the move unless Auto S&P
-  enabled.
+ - Bandmap blinking call / cursor not updating as you tune the radio.  CQs
+   not showing up.  Also not following radio on the move unless Auto S&P
+   enabled.
 
-- "ActiveBand" cursor on the band totals display is not right.
+ - "ActiveBand" cursor on the band totals display is not right.
 
-- Occasionally, the auto start send doesn't start if I am busy on the other radio.
-  This might be fixed as of 4-Sep - waiting to see if it shows up again.
+ - Occasionally, the auto start send doesn't start if I am busy on the other radio.
+   This might be fixed as of 4-Sep - waiting to see if it shows up again.
 
-- Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
+ - Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
 
-- When starting AutoStartSend when the other radio is sending CW - the indicator is
-  yellow until the exchange starts.  This isn't a big deal and perhaps more trouble
-  than it is worth to fix it.
+ - When starting AutoStartSend when the other radio is sending CW - the indicator is
+   yellow until the exchange starts.  This isn't a big deal and perhaps more trouble
+   than it is worth to fix it.
 
  - In Classic mode - pressing F1 in S&P with a call in the call window does
    indeed put you in the exchange window with the initial exchange, except
    it is at the start of the window where the InitialExchangeCursorPos = AtEnd
 
- - If you press F1 on the inactive rig while the other radio is transmitting on
-   SSB (and likely CW) - the headphones switch.
-
- - RepeatSearchAndPounceExchange not used in 2BSIQ yet.  Will also use the non
+ - RepeatSearchAndPounceExchange not used in 2BSIQ yet.  Will always use the non
    repeat one.
 
- - When sending a callsign first in CQ mode - then a CQ exchange, the ShowCWMessage
-   does not show the callsign.
-
- - When calling CQ in RTTY, the CQ message flashes and is quickly overwritten.
-
-
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+17-Oct-2022
+
+  - Made S&P Exchange window conform to established colors (green).
+
+  - Made state of CQSending73Message last until message complete on both
+    SSB and RTTY.
+
+  - Made DualingCQs work on RTTY.
+
+  - Changed the scope of disabling keys from initiating action whlie the other
+    radio is transmitting.  This was done because I didn't have an effective
+    lockout for the QSL message.  Basically - anything that could possibly start
+    a transmission (when both rigs are not on CW) will be defeated until the
+    transmission is complete.  You can add characters to the window you are
+    in and perform operations like AltE - but some things like hitting TAB
+    to enter Search And Pounce mode are also disabled.  Just to be clear, keys
+    are disabled - not buffered.  You will have to hit the key again after
+    the transmission is complete.
+
+  - Kept Alt-E from messing up the call window for radio two.  It was trying to
+    display the INSERT mode status.  Note that Alt-E never allows INSERT status
+    anyway.
+
+  - RETURN in S&P mode if the station already called was not sending the S&P
+    exchange (at least on RTTY - but maybe SSB).  This is now fixed.
+
+  - Changed minimum time for the RED TX indicator for SSB and RTTY to 3 seconds
+    instead of two.  I was occasionally seeing it drop out before the rig status
+    updated to TX.
 
 16-Oct-2022
 
   - Cleaned up digital use of exchange function keys.  See notes in main program.
+  - Some work keeping "CW" messages up on RTTY and Phone
 
 15-Oct-2022
 
@@ -75,7 +97,7 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 9-Oct-2022
 
- - Improved Dualing CQs to work on CW as well.  Again, it does not automatically
+ - Improved Dualing CQs to work on SSB.  Again, it does not automatically
    send a blind CQ or pick up again after a QSO is logged like it does in classic
    mode.  You have to manually restart it with the Control-Dash key on either
    keyboard.  The first CQ will be sent on the radio/keyboard the control-dash
@@ -87,11 +109,12 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 8-Oct-2022
 
  - Added immediate flag for transmit status on SSB.
- - Put K3/K4 radio into faster poll rate for TX status when looking for the
-   end of a transmission.
- - Got DualingCQs kind of working - aborted by any keystroke.  Use Control-Dash
-   to start or restart it.
 
+- Put K3/K4 radio into faster poll rate for TX status when looking for the
+   end of a transmission.
+
+- Got DualingCQs kind of working on CW - aborted by any keystroke.  Use
+  Control-Dash to start or restart it.
 
 5-Oct-2022
 

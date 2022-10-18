@@ -27,6 +27,11 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+
+17-Oct-2022
+
+  - Added JARTS contest - Cabrillo too.  The muiltiplier stuff isn't working yet.
+
 05-Oct-2022
 
   - Implemented new QSO Number metodology.  The next QSO number to be used will

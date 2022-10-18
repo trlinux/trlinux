@@ -145,7 +145,9 @@ TYPE QTCEntryRecord = RECORD
     QTCEntryArrayPtr = ^QTCEntryArrayType;
 
 
-VAR CallSignLength:  INTEGER;
+VAR
+    Age:             Str20;
+    CallSignLength:  INTEGER;
     Contest:         ContestType;
     ContestName:     Str80;
     CountryID:       CallString;
@@ -1067,6 +1069,14 @@ VAR Key:             CHAR;
             ReceivedQSONumberLength := 4;
             END;
 
+        JARTS:
+            BEGIN
+            RSTIsPartOfTheExchange := True;
+            Age := GetResponse ('Enter the Age you sent : ');
+            SentInformation := '$ ' + Age;
+            END;
+
+
         NAQSO:       { Doesn't comply with field length for name }
             BEGIN
             CallsignLength := 10;
@@ -1197,7 +1207,10 @@ VAR Key:             CHAR;
 
     IF NOT OpenFileForWrite (FileWrite, CabrilloFileName) THEN Exit;
 
-    WriteLn (FileWrite, 'START-OF-LOG: ', CabrilloVersion,Chr(13));
+    { Since we are in linux land - we have to write explicit carriage returns for
+      newlines.  These are shown as Chr(13) it seems }
+
+    WriteLn (FileWrite, 'START-OF-LOG: ', CabrilloVersion, Chr(13));
     WriteLn (FileWrite, 'CREATED-BY: TR Log POST Version ', PostVersion,Chr(13));
     WriteLn (FileWrite, 'CALLSIGN: ', MyCall,Chr(13));
 
@@ -1237,6 +1250,7 @@ VAR Key:             CHAR;
             CQWWRTTY:    WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
             IARU:        WriteLn (FileWrite, 'CONTEST: IARU-HF',Chr(13));
             IntSprint:   WriteLn (FileWrite, 'CONTEST: INTERNET-SPRINT',Chr(13));
+            JARTS:       WriteLn (FileWrite, 'CONTEST: JARTS-WW-RTTY', Chr (13));
             NAQSO:       WriteLn (FileWrite, 'CONTEST: NAQP-', ModeString,Chr(13));
             NEQSO:       WriteLn (FileWrite, 'CONTEST: New England QSO Party',Chr(13));
             OceaniaVKZL: WriteLn (FileWrite, 'CONTEST: OCEANIA',Chr(13));
@@ -1258,7 +1272,6 @@ VAR Key:             CHAR;
 
     IF Section <> '' THEN
         WriteLn (FileWrite, 'ARRL-SECTION: ', Section,Chr(13));
-
 
     WriteLn (FileWrite, 'CATEGORY-ASSISTED: ',    CategoryAssistedType [AssistedCursor],Chr(13));
     WriteLn (FileWrite, 'CATEGORY-BAND: ',        CategoryBandType [BandCursor],Chr(13));
@@ -1887,7 +1900,7 @@ Call fields end here for length=12                                
             END;  { of WHILE Nof Eof }
 
         Close (FileRead);
-        GenerateLogPortionOfCabrilloForm := True;
+        GenerateLogPortionOfCabrilloFile := True;
         END { of WHILE NOT Eof }
 
     ELSE

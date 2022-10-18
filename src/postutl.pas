@@ -1364,7 +1364,7 @@ FUNCTION GetUnixTimeFromCabrilloEntry (CabrilloString: STRING): LONGINT;
 
 VAR DateString, TimeString, YearString, MonthString, DayString: Str20;
     HourString, MinuteString: Str20;
-    Index, Year, Month, Day, Hour, Minute, xResult: WORD;
+    Index, Year, Month, Day, Hour, Minute: WORD;
     UnixDate: LONGINT;
 
     BEGIN
@@ -1382,12 +1382,11 @@ VAR DateString, TimeString, YearString, MonthString, DayString: Str20;
     HourString   := Copy (TimeString, 1, 2);
     MinuteString := Copy (TimeString, 3, 2);
 
-    Val (YearString,   Year,   xResult);
-    Val (MonthString,  Month,  xResult);
-    Val (DayString,    Day,    xResult);
-    Val (HourString,   Hour,   xResult);
-    Val (MinuteString, Minute, xResult);
-    if xResult <> 0 then Minute := 0; //KS silence compiler
+    Val (YearString,   Year);
+    Val (MonthString,  Month);
+    Val (DayString,    Day);
+    Val (HourString,   Hour);
+    Val (MinuteString, Minute);
 
     UnixDate := 0; {initialize}
 
@@ -1709,7 +1708,7 @@ VAR TempString: STRING;
     MonthString, YearString, DayString: STRING [5];
     FreqMhz: Real;
     PossibleFreqString : String;
-    xResult: Integer;
+    xresult: INTEGER;
 
     BEGIN
     TempString := '';
@@ -2165,7 +2164,7 @@ VAR InputFileName, FieldCommand, OutputFileName: Str40;
             FieldID := UpperCase (PrecedingString (FieldCommand, ':'));
             LengthString := PostcedingString (FieldCommand, ':');
 
-            Val (LengthString, StringLength, xResult);
+            Val (LengthString, StringLength);
 
             IF FieldID = 'CALL' THEN
                 BEGIN

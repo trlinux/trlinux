@@ -7055,6 +7055,7 @@ VAR MTotals: MultTotalArrayType;
 
             IF CallsignICameBackTo = '2BSIQ' THEN
                 BEGIN
+                Doing2BSIQ := True;
                 TwoBandSIQ;
                 WriteLn ('You will need to restart the program now');
                 WaitForKeyPressed;

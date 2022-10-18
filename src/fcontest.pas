@@ -1100,7 +1100,7 @@ VAR TempQTH: QTHRecord;
             BEGIN
             ActiveExchange := RSTAgeExchange;
             ActiveQSOPointMethod := AllAsianQSOPointMethod;
-            ContestName := 'JARTS WW RTTY';
+            ContestName := 'Japanese Amateur Radio Teleprinter Society';
             MultByBand := True;
             MultByMode := False;
             QSOByBand  := True;

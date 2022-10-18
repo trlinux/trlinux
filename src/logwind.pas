@@ -723,6 +723,8 @@ VAR
     OkayToPutUpBandMapCall: BOOLEAN;
     OnDeckCall:             CallString;
     OpMode:                 OpModeType;
+    R1_OpMode:              OpModeType;
+    R2_OpMode:              OpModeType;
 
     PacketMessMode:         BOOLEAN;
     PacketReturnCount:      INTEGER;
@@ -1895,8 +1897,17 @@ PROCEDURE SetWindow (WindowName: WindowType);
       TBSIQ_R1_ExchangeWindow:
           BEGIN
           Window (TBSIQ_R1_ExchangeWindowLX, TBSIQ_R1_ExchangeWindowLY, TBSIQ_R1_ExchangeWindowRX, TBSIQ_R1_ExchangeWindowRY);
-          SetBackground (SelectedColors.TBSIQ_ExchangeWindowBackground);
-          SetColor (SelectedColors.TBSIQ_ExchangeWindowColor);
+
+          IF R1_OpMode = SearchAndPounceOpMode THEN
+              BEGIN
+              SetBackground (SelectedColors.ExchangeSAndPWindowBackground);
+              SetColor      (SelectedColors.ExchangeWindowColor);
+              END
+          ELSE
+              BEGIN
+              SetBackground (SelectedColors.ExchangeWindowBackground);
+              SetColor      (SelectedColors.ExchangeWindowColor);
+              END;
           END;
 
       TBSIQ_R1_FrequencyWindow:
@@ -2000,8 +2011,17 @@ PROCEDURE SetWindow (WindowName: WindowType);
       TBSIQ_R2_ExchangeWindow:
           BEGIN
           Window (TBSIQ_R2_ExchangeWindowLX, TBSIQ_R2_ExchangeWindowLY, TBSIQ_R2_ExchangeWindowRX, TBSIQ_R2_ExchangeWindowRY);
-          SetBackground (SelectedColors.TBSIQ_ExchangeWindowBackground);
-          SetColor (SelectedColors.TBSIQ_ExchangeWindowColor);
+
+          IF R2_OpMode = SearchAndPounceOpMode THEN
+              BEGIN
+              SetBackground (SelectedColors.ExchangeSAndPWindowBackground);
+              SetColor      (SelectedColors.ExchangeWindowColor);
+              END
+          ELSE
+              BEGIN
+              SetBackground (SelectedColors.ExchangeWindowBackground);
+              SetColor      (SelectedColors.ExchangeWindowColor);
+              END;
           END;
 
       TBSIQ_R2_FrequencyWindow:

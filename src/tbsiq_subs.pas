@@ -76,8 +76,6 @@ TYPE
 
         { Internal Variables }
 
-        TBSIQ_ActiveWindow: TBSIQ_WindowType;
-
         AutoStartSendStationCalled: BOOLEAN;
 
         Band: BandType;
@@ -130,12 +128,14 @@ TYPE
         StartSendingCursorPosition: INTEGER; { initially = AutoSendCharacterCount }
         StationInformationCall: CallString;
 
+        TBSIQ_ActiveWindow: TBSIQ_WindowType;
         TransmitCountDown: INTEGER;      { Set > 0 for # of seconds to fake "I am transmitting" }
 
+        PROCEDURE AppendCWMessageDisplay (Message: STRING);
         PROCEDURE CheckQSOStateMachine;
         PROCEDURE ClearAutoSendDisplay;  { for use during S&P }
 
-        FUNCTION  DisableF1ThroughF4: BOOLEAN;
+        FUNCTION  DisableTransmitting: BOOLEAN;
 
         PROCEDURE DisplayActiveRadio;              { Shows TX next to active radio }
         PROCEDURE DisplayAutoSendCharacterCount;
@@ -1493,6 +1493,13 @@ VAR Key, ExtendedKey: CHAR;
     IF QSOState <> QST_StartSendingKeyboardCW THEN
         WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
 
+    { This is a VERY POWERFUL command...  not totally sure of the consequences just
+      yet - but basically I am trying to lock out anything being done if both rigs
+      are not on CW - and there is ActionRequired while the other transmitter is
+      busy sending }
+
+    IF ActionRequired AND DisableTransmitting THEN Exit;
+
     CASE QSOState OF
 
         QST_Idle, QST_CQCalled:
@@ -1541,11 +1548,8 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             IF WindowString = '' THEN
                                 BEGIN
-                                IF NOT DisableF1ThroughF4 THEN
-                                    BEGIN
-                                    SendFunctionKeyMessage (F1, Message);
-                                    QSOState := QST_CallingCQ;
-                                    END;
+                                SendFunctionKeyMessage (F1, Message);
+                                QSOState := QST_CallingCQ;
                                 END
                             ELSE
                                 BEGIN  { We have a callsign to send }
@@ -1596,11 +1600,10 @@ VAR Key, ExtendedKey: CHAR;
                                             END;
 
                                         Digital:
-                                            IF (Mode = Digital) AND NOT DisableF1ThroughF4 THEN
+                                            IF Mode = Digital THEN
                                                 BEGIN
                                                 ActiveRadio := Radio;
                                                 ActiveMode := Mode;
-                                                StartRTTYTransmission (WindowString);
                                                 CallsignICameBackTo := WindowString;
                                                 ShowCWMessage (WindowString);
                                                 QSOState := QST_CQStationBeingAnswered;
@@ -1698,7 +1701,7 @@ VAR Key, ExtendedKey: CHAR;
                         IF Mode = CW THEN
                             BEGIN
                             TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
-                            ShowCWMessage (ExpandedString);
+                            AppendCWMessageDisplay (ExpandedString);
                             END;
 
                         QSOState := QST_CQExchangeBeingSent;
@@ -1732,7 +1735,7 @@ VAR Key, ExtendedKey: CHAR;
                                 BEGIN
                                 ExpandedString := ExpandCrypticString (CQExchange);
 
-                                ShowCWMessage (ExpandedString);
+                                AppendCWMessageDisplay (ExpandedString);
 
                                 IF Mode = CW THEN
                                     TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
@@ -1741,7 +1744,11 @@ VAR Key, ExtendedKey: CHAR;
                                     BEGIN
                                     ActiveRadio := Radio;
                                     ActiveMode := Mode;
-                                    FinishRTTYTransmission (ExpandedString);
+
+                                    { We have waited until now to send the callsign }
+
+                                    TransmitCountdown := 3;
+                                    FinishRTTYTransmission (CallsignICameBackTo + ExpandedString);
                                     END;
                                 END;
 
@@ -1769,6 +1776,7 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             ActiveRadio := Radio;
                             ActiveMode := Mode;
+                            TransmitCountdown := 3;
                             FinishRTTYTransmission (ExpandedString);
                             ShowCWMessage (ExpandedString);
                             END;
@@ -1811,12 +1819,22 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             ListenToOtherRadio;   { Is this okay if my message is in the cue? }
 
-            IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
+            IF Mode = CW THEN
                 BEGIN
-                ListenToBothRadios;
-                ShowCWMessage ('');
-                QSOState := QST_CQCalled;
-                END;
+                IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
+                    BEGIN
+                    ListenToBothRadios;
+                    ShowCWMessage ('');
+                    QSOState := QST_CQCalled;
+                    END;
+                END
+            ELSE
+                IF NOT IAmTransmitting THEN
+                    BEGIN
+                    ListenToBothRadios;
+                    ShowCWMessage ('');
+                    QSOState := QST_CQCalled;
+                    END;
             END;
 
         QST_CQStationBeingAnswered:
@@ -1840,15 +1858,19 @@ VAR Key, ExtendedKey: CHAR;
                         IF Mode = CW THEN
                             BEGIN
                             TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
-                            ShowCWMessage (ExpandedString);
+                            AppendCWMessageDisplay (ExpandedString);
                             END;
 
                         IF Mode = Digital THEN
                             BEGIN
                             ActiveMode := Mode;
                             ActiveRadio := Radio;
-                            FinishRTTYTransmission (ExpandedString);
-                            ShowCWMessage (ExpandedString);
+
+                            { We have waited until now to send the callsign }
+
+                            TransmitCountdown := 3;
+                            FinishRTTYTransmission (CallsignICameBackTo + ExpandedString);
+                            AppendCWMessageDisplay (ExpandedString);
                             END;
                         END;
 
@@ -1874,8 +1896,12 @@ VAR Key, ExtendedKey: CHAR;
                     BEGIN
                     ActiveMode := Mode;
                     ActiveRadio := Radio;
-                    FinishRTTYTransmission (ExpandedString);
-                    ShowCWMessage (ExpandedString);
+
+                    { We have waited until now to send the callsign }
+
+                    TransmitCountdown := 3;
+                    FinishRTTYTransmission (CallsignICameBackTo + ExpandedString);
+                    AppendCWMessageDisplay (ExpandedString);
                     END;
 
                 QSOState := QST_Idle;
@@ -2036,6 +2062,7 @@ VAR Key, ExtendedKey: CHAR;
                                     ActiveMode := Mode;
                                     ActiveRadio := Radio;
                                     ShowCWMessage (ExpandedString);
+                                    TransmitCountdown := 3;
                                     FinishRTTYTransmission (ExpandedString);
                                     END;
 
@@ -2110,12 +2137,22 @@ VAR Key, ExtendedKey: CHAR;
                 ClrScr;
                 END;
 
-            IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
+            IF Mode = CW THEN
                 BEGIN
-                ListenToBothRadios;
-                ShowCWMessage ('');
-                QSOState := QST_Idle;
-                END;
+                IF TBSIQ_CW_Engine.CWFinished (Radio) THEN
+                    BEGIN
+                    ListenToBothRadios;
+                    ShowCWMessage ('');
+                    QSOState := QST_Idle;
+                    END;
+                END
+            ELSE
+                IF NOT IAmTransmitting THEN
+                    BEGIN
+                    ListenToBothRadios;
+                    ShowCWMessage ('');
+                    QSOState := QST_Idle;
+                    END;
             END;
 
         QST_StartSendingKeyboardCW:  { Only called once }
@@ -2162,6 +2199,13 @@ VAR Key, ExtendedKey: CHAR;
         QST_SearchAndPounceInit:  { Executed once when entering S&P Mode }
             BEGIN
             IF NOT TBSIQ_CW_Engine.CWFinished (Radio) THEN Exit;
+
+            { Determines color of exchange window }
+
+            CASE Radio OF
+                RadioOne: R1_OpMode := SearchAndPounceOpMode;
+                RadioTwo: R2_OpMode := SearchandPounceOpMode;
+                END;  { of case }
 
             RemovePossibleCallWindow;
             BandMapBand := DisplayedBand;
@@ -2257,12 +2301,12 @@ VAR Key, ExtendedKey: CHAR;
                         IF NOT SearchAndPounceStationCalled THEN
                             BEGIN
                             SendFunctionKeyMessage (F1, Message);
+                            SearchAndPounceStationCalled := True;
 
                             { Now - do we go to the exchange window? }
 
                             IF GoodCallSyntax (CallWindowString) THEN
                                 BEGIN
-
                                 SetTBSIQWindow (TBSIQ_ExchangeWindow);
 
                                 IF ExchangeWindowString = '' THEN
@@ -2279,8 +2323,6 @@ VAR Key, ExtendedKey: CHAR;
 
                                 DoPossibleCalls (CallWindowString);
                                 END;
-
-                            SearchAndPounceStationCalled := True;
                             END
 
                         { Send the exchange if not sent already and try to log the QSO }
@@ -2292,22 +2334,26 @@ VAR Key, ExtendedKey: CHAR;
                             IF NOT SearchAndPounceExchangeSent THEN
                                 BEGIN
                                 CASE Mode OF
-                                    CW, Digital:
+                                    Digital:
                                         BEGIN
-                                        ExpandedString := ExpandCrypticString (SearchAndPounceExchange);
+                                        ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
+                                        ShowCWMessage (ExpandedString);
+                                        TransmitCountdown := 3;
+                                        FinishRTTYTransmission (ExpandedString);
+                                        END;
 
-                                        IF Mode = CW THEN
-                                            BEGIN
-                                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
-                                            ShowCWMessage (ExpandedString);
-                                            END;
+                                    CW: BEGIN
+                                        ExpandedString := ExpandCrypticString (SearchAndPounceExchange);
+                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                                        ShowCWMessage (ExpandedString);
                                         END;
 
                                     Phone:
                                         BEGIN
                                         ExpandedString := ExpandCrypticString (SearchAndPouncePhoneExchange);
-                                        Write ('%%%');
+                                        ShowCWMessage ('Sent SearchAndPouncePhoneExchange if there is one');
                                         END;
+
                                     END;
 
                                 SearchAndPounceExchangeSent := True;
@@ -2682,13 +2728,29 @@ VAR FrequencyChange, TempFreq: LONGINT;
 PROCEDURE QSOMachineObject.ShowCWMessage (Message: STRING);
 
     BEGIN
+    CWMessageDisplayed := Message;
+
     CASE Radio OF
         RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_CWMessageWindow);
         RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_CWMessageWindow);
         END;
 
-    Write (Message);
-    CWMessageDisplayed := Message;
+    Write (CWMessageDisplayed);
+    RestorePreviousWindow;
+    END;
+
+
+PROCEDURE QSOMachineObject.AppendCWMessageDisplay (Message: STRING);
+
+    BEGIN
+    CWMessageDisplayed := CWMessageDisplayed + Message;
+
+    CASE Radio OF
+        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_CWMessageWindow);
+        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_CWMessageWindow);
+        END;
+
+    Write (CWMessageDisplayed);
     RestorePreviousWindow;
     END;
 
@@ -3047,6 +3109,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     DisplayCodeSpeed;
     DisplayInsertMode;
     ShowStateMachineStatus;
+    R1_OpMode := CQOpMode;       { Determines color of exchange window }
 
     { Get the next QSO Number }
 
@@ -3435,6 +3498,9 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                     BEGIN
                     SendFunctionKeyMessage (AltF1, Message);
 
+                    IF Mode <> CW THEN
+                        TransmitCountDown := 3;
+
                     CASE Radio OF
                         RadioOne: DualingCQState := DualingCQOnRadioOne;
                         RadioTwo: DualingCQState := DualingCQOnRadioTwo;
@@ -3760,11 +3826,15 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                 AltE: BEGIN
                       RITEnable := False;
                       VisibleLog.EditLog;
+
+                      { We have things to clear up }
+
+                      PaintVerticalLine;
                       RITEnable := True;
                       UpdateTotals;
                       VisibleLog.ShowRemainingMultipliers;
                       VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
-{                     DisplayTotalScore (TotalScore); }
+                      DisplayTotalScore (TotalScore);
                       LastTwoLettersCrunchedOn := '';
 
                       IF VisibleDupeSheetEnable THEN
@@ -3774,7 +3844,6 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                           END;
 
                       VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
-
                       ClearKeyCache := True;
                       END;
 
@@ -4144,10 +4213,16 @@ PROCEDURE QSOMachineObject.RemoveExchangeWindow;
 
     CASE Radio OF
         RadioOne:
+            BEGIN
             RemoveWindow (TBSIQ_R1_ExchangeWindow);
+            R1_OpMode := CQOpMode;
+            END;
 
         RadioTwo:
+            BEGIN
             RemoveWindow (TBSIQ_R2_ExchangeWindow);
+            R2_OpMode := CQOpMode;
+            END;
 
         END;  { of case Radio }
     END;
@@ -5235,16 +5310,12 @@ FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
 
 
 
-FUNCTION QSOMachineObject.DisableF1ThroughF4: BOOLEAN;
+FUNCTION QSOMachineObject.DisableTransmitting: BOOLEAN;
 
-{ This is a tricky function.  It will return TRUE if we should not process
-  a function key press for F1 to F4.  The criteria is basically one of
-  these two conditions:
-
-  1. We are on SSB - and the other rig is either sending CW or is in SSB mode
-     and is transmitting.
-
-  2. We are on CW and the other radio is on SSB and is transmitting.  }
+{ This is used to determine if a transmission can be started NOW.  If both
+  radios are on CW - the CW sending engine will deal with any conflicts.
+  But if either rig is on something other than CW - then we need to be more
+  careful and not start a message when the other radio is transmitting. }
 
     BEGIN
     CASE Radio OF
@@ -5252,13 +5323,13 @@ FUNCTION QSOMachineObject.DisableF1ThroughF4: BOOLEAN;
             BEGIN
             IF (Mode = CW) and (Radio2QSOMachine.Mode = CW) THEN
                 BEGIN
-                DisableF1ThroughF4 := False;
+                DisableTransmitting := False;
                 Exit;
                 END;
 
             { One radio or the other is on phone }
 
-            DisableF1ThroughF4 := Radio2QSOMachine.IAmTransmitting;
+            DisableTransmitting := Radio2QSOMachine.IAmTransmitting;
             Exit;
             END;
 
@@ -5266,13 +5337,13 @@ FUNCTION QSOMachineObject.DisableF1ThroughF4: BOOLEAN;
             BEGIN
             IF (Mode = CW) and (Radio1QSOMachine.Mode = CW) THEN
                 BEGIN
-                DisableF1ThroughF4 := False;
+                DisableTransmitting := False;
                 Exit;
                 END;
 
             { One radio or the other is on phone }
 
-            DisableF1ThroughF4 := Radio1QSOMachine.IAmTransmitting;
+            DisableTransmitting := Radio1QSOMachine.IAmTransmitting;
             Exit;
             END;
 
@@ -5287,6 +5358,12 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
     BEGIN
     IF NOT ValidFunctionKey (Key) THEN Exit;
+
+    { When doing ExpandCrypticString, a function key is likely to start some
+      kind of transmission.  This is okay if both rigs are on CW - or if the
+      other radio is not busy transmitting. }
+
+    IF DisableTransmitting THEN Exit;
 
     IF (QSOState = QST_Idle) OR (QSOState = QST_CallingCQ) OR
        (QSOState = QST_CQCalled) OR (QSOState = QST_AutoStartSending) OR
@@ -5312,18 +5389,10 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
                END;  { of CASE Key }
 
-    { When doing ExpandCrypticString, a function key message could start a
-      transmission on this radio while the other one is busy either sending
-      CW or transmitting an SSB message.  We want to disable F1-F4 from being
-      processed if the other transmitter is engaged. }
-
-    IF (Key >= F1) AND (Key <= F4) THEN
-        IF DisableF1ThroughF4 THEN
-            Exit;
 
     { Assume we will be in TX on phone or Digital for at least a couple of seconds }
 
-    IF Mode <> CW THEN TransmitCountDown := 2;
+    IF Mode <> CW THEN TransmitCountDown := 3;
 
     { New on 30-Sep-2022 - hmm - should I do this if the message is only going
       into the cue?  Am I doing this for SSB only? }
