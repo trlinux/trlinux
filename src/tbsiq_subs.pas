@@ -480,12 +480,16 @@ VAR RememberTime: TimeRecord;
         IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
             BEGIN
             BandMapCursorFrequency := Frequency;
-            VisibleLog.DetermineIfNewMult (CallWindowString, ActiveBand, ActiveMode, MultString);
+            VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
             Mult := MultString <> '';
 
             { Send to Multi = TRUE }
 
-            NewBandMapEntry (CallWindowString, Frequency, 0, ActiveMode, True, Mult, BandMapDecayTime, True);
+            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, True, Mult, BandMapDecayTime, True);
+
+            BandMapMode := Mode;
+            BandMapBand := Band;
+            DisplayBandMap;
             END;
 
         DoPossibleCalls (CallWindowString);
@@ -525,7 +529,10 @@ VAR RememberTime: TimeRecord;
             BandMapCursorFrequency := Frequency;
             VisibleLog.DetermineIfNewMult (CallWindowString, ActiveBand, ActiveMode, MultString);
             Mult := MultString <> '';
-            NewBandMapEntry (CallWindowString, Frequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
+            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
+            BandMapMode := Mode;
+            BandMapBand := Band;
+            DisplayBandMap;
             END;
         END;
     END;
@@ -949,11 +956,11 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     Inc (MinutesSinceLastBMUpdate); {KK1L: 6.65}
 
-    IF MinutesSinceLastBMUpdate >= BandMapDecayMultiplier THEN
+    IF BandMapEnable AND (MinutesSinceLastBMUpdate >= BandMapDecayMultiplier) THEN
         BEGIN
         MinutesSinceLastBMUpdate := 0;
         DecrementBandMapTimes;
-        IF BandMapEnable THEN DisplayBandMap;
+        DisplayBandMap;
         END;
 
     { Fix up the rate array. First, shuffle the minutes }
@@ -2208,6 +2215,7 @@ VAR Key, ExtendedKey: CHAR;
                 END;  { of case }
 
             RemovePossibleCallWindow;
+
             BandMapBand := DisplayedBand;
             DisplayBandMap;
 
@@ -2713,8 +2721,13 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     { Let's try this and see if it magically works! }
 
-    BandMapBand := Band;
-    BandMapMode := Mode;
+    IF BandMapEnable AND (FrequencyChange > 0) THEN
+        BEGIN
+        BandMapCursorFrequency := LastFrequency;
+        BandMapBand := Band;
+        BandMapMode := Mode;
+        DisplayBandMap;
+        END;
 
     { See if we have moved far enough to trigger going into SearchAndPounce }
 
@@ -2887,6 +2900,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     CallWindowCursorPosition := 1;
     CodeSpeed := SpeedMemory [Radio];
     CWMessageDisplayed := '';
+
     DisplayedBand := NoBand;
     DisplayedFrequency := 0;
     DisplayedInsertIndicator := NoInsertIndicator;
@@ -2900,6 +2914,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     LastFrequency := 0;
     LastQSOState := QST_None;
     QSOState := QST_Idle;
+
     RadioOnTheMove := False;
     SearchAndPounceStationCalled := False;
     StartSendingCursorPosition := AutoSendCharacterCount;

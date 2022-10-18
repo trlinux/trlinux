@@ -53,6 +53,9 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 17-Oct-2022
 
+  - Much work done improving band map operation.  It seems to basically work but
+    might hae some rough edges.
+
   - Made S&P Exchange window conform to established colors (green).
 
   - Made state of CQSending73Message last until message complete on both
