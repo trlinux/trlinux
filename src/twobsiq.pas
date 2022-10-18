@@ -27,9 +27,7 @@ UNIT TwoBSIQ;
 
 TODO LIST
 
- - Bandmap blinking call / cursor not updating as you tune the radio.  CQs
-   not showing up.  Also not following radio on the move unless Auto S&P
-   enabled.
+ - Add CQ freqs to bandmap
 
  - "ActiveBand" cursor on the band totals display is not right.
 
@@ -50,6 +48,14 @@ TODO LIST
    repeat one.
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+18-Oct-2022
+
+ - More work with band map and radio on the move to make things as identical to
+   the classic mode as possible.  It appears to be working as intended.
+
+ - One of the two new kittens has discovered the radio room - so we might have some
+   new "features" added by paw prints on the keyboard.
 
 17-Oct-2022
 
@@ -451,6 +457,7 @@ PROCEDURE Initialize2BSIQOperatorInterface;
     ActiveRadio := RadioOne;
     SetUpToSendOnActiveRadio;
     TBSIQ_CW_Engine.ShowActiveRadio;
+    TBSIQ_BandMapFocus := RadioOne;
     END;
 
 

@@ -107,7 +107,7 @@ TYPE
         KeyboardCWMessage: STRING;
 
         LastFrequency: LONGINT;
-        LastFullTimeString: STRING;          { Used 1 second timer }
+        LastFullTimeString: STRING;          { Used for 1 second timer }
         LastQSOState: TBSIQ_QSOStateType;
         LastPossibleCall: CallString;
         LastSCPCall: CallString;
@@ -120,7 +120,8 @@ TYPE
 
         PreviousQSOState: TBSIQ_QSOStateType;
 
-        RadioOnTheMove: BOOLEAN;   { Replaces the classic RadioOntheMove [radio] }
+        RadioMovingInBandMode: BOOLEAN; { Replaces the classis RadioMovingInBandMode [radio] }
+        RadioOnTheMove: BOOLEAN;        { Replaces the classic RadioOntheMove [radio] }
 
         SCPScreenFull: BOOLEAN;
         SearchAndPounceStationCalled: BOOLEAN;
@@ -224,7 +225,7 @@ VAR
 
     RData: ContestExchange;  { Used to talk between TBSIQ_ParametersOkay and TBSIQ_LogContact }
 
-    TBSIQ_QSOState: TBSIQ_QSOStateType;
+    TBSIQ_BandMapFocus: RadioType;
 
 FUNCTION  InitializeKeyboards: BOOLEAN;
 FUNCTION  NewInitializeKeyboards: BOOLEAN;
@@ -476,23 +477,21 @@ VAR RememberTime: TimeRecord;
                 TBSIQ_CW_Engine.ClearMessages (Radio, True);
 
         ShowStationInformation (CallWindowString);
+        DoPossibleCalls (CallWindowString);
 
         IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
             BEGIN
-            BandMapCursorFrequency := Frequency;
             VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
             Mult := MultString <> '';
 
-            { Send to Multi = TRUE }
+            { First True is dupe - second one is SendToMulti }
 
             NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, True, Mult, BandMapDecayTime, True);
-
+            BandMapCursorFrequency := DisplayedFrequency;
             BandMapMode := Mode;
             BandMapBand := Band;
-            DisplayBandMap;
+            TBSIQ_BandMapFocus := Radio;
             END;
-
-        DoPossibleCalls (CallWindowString);
 
         IF QSOState <> QST_SearchAndPounce THEN
             BEGIN
@@ -523,16 +522,20 @@ VAR RememberTime: TimeRecord;
     ELSE
         BEGIN  { Not a dupe }
         ShowStationInformation (CallWindowString);
+        DoPossibleCalls (CallWindowString);
 
-        IF BandMapEnable THEN
+        IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
             BEGIN
-            BandMapCursorFrequency := Frequency;
             VisibleLog.DetermineIfNewMult (CallWindowString, ActiveBand, ActiveMode, MultString);
             Mult := MultString <> '';
+
+            { False = not a dupe  True = SendToMulti }
+
             NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
+            BandMapCursorFrequency := DisplayedFrequency;
             BandMapMode := Mode;
             BandMapBand := Band;
-            DisplayBandMap;
+            TBSIQ_BandMapFocus := Radio;
             END;
         END;
     END;
@@ -909,14 +912,57 @@ PROCEDURE TBSIQ_DeleteLastContact;
         END;
     END;
 
+PROCEDURE TBSIQ_CheckBandMap;
+
+{ Looks at the status of the two radios and determines which one should have the focus
+  of the bandmap.  The band map gets updated in the radio update portion - once a
+  second }
+
+VAR RadioThatShouldHaveFocus: RadioType;
+
+    BEGIN
+    { First - we look at the state of both radios and decide which one we think
+      shuld have the band map focus }
+
+    RadioThatShouldHaveFocus := TBSIQ_BandMapFocus;  { Default }
+
+    IF (Radio1QSOMachine.QSOState =  QST_SearchAndPounce) AND
+       (Radio2QSOMachine.QSOState <> QST_SearchAndPounce) THEN
+           RadioThatShouldHaveFocus := RadioOne;
+
+    IF (Radio2QSOMachine.QSOState =  QST_SearchAndPounce) AND
+       (Radio1QSOMachine.QSOState <> QST_SearchAndPounce) THEN
+           RadioThatShouldHaveFocus := RadioTwo;
+
+    { Update the bandmap }
+
+    TBSIQ_BandMapFocus := RadiothatShouldHaveFocus;
+    BandMapBand := BandMemory [TBSIQ_BandMapFocus];
+    BandMapMode := ModeMemory [TBSIQ_BandMapFocus];
+
+    CASE TBSIQ_BandMapFocus OF
+        RadioOne: BandMapCursorFrequency := Radio1QSOMachine.Frequency;
+        RadioTwo: BandMapCursorFrequency := Radio2QSOMachine.Frequency;
+        END;  { of CASE }
+    END;
+
+
 
 PROCEDURE TBSIQ_UpdateTimeAndRateDisplays;
+
+{ This is a global routine that gets called from the highest level of the program.
+  It is generic and not radio specific.  If you want to execute something that is
+  specific to a radio - please see the UpdateRadioDisplay procedure in the
+  QSOMachineObject. }
 
 VAR TimeString, FullTimeString, HourString: Str20;
     RateMinute: INTEGER;
 
     BEGIN
-    TBSIQ_CheckDualingCQState;
+    TBSIQ_CheckDualingCQState;  { The orchestral director of the dualing CQ process }
+    TBSIQ_CheckBandMap;         { Sees if the bandmap is on the right radio }
+
+    { See if the clock has ticked a second }
 
     FullTimeString := GetFullTimeString;
 
@@ -952,15 +998,12 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     { Code after here is only executed once a minute }
 
-    HourString := PrecedingString (TimeString, ':');
-
-    Inc (MinutesSinceLastBMUpdate); {KK1L: 6.65}
+    Inc (MinutesSinceLastBMUpdate);
 
     IF BandMapEnable AND (MinutesSinceLastBMUpdate >= BandMapDecayMultiplier) THEN
         BEGIN
         MinutesSinceLastBMUpdate := 0;
         DecrementBandMapTimes;
-        DisplayBandMap;
         END;
 
     { Fix up the rate array. First, shuffle the minutes }
@@ -1020,6 +1063,10 @@ VAR TimeString, FullTimeString, HourString: Str20;
         ELSE
             Rate := 0;
         END;
+
+    { See if we have moved into a new calendar hour }
+
+    HourString := PrecedingString (TimeString, ':');
 
     IF HourString <> LastDisplayedHour THEN
         BEGIN
@@ -2217,7 +2264,9 @@ VAR Key, ExtendedKey: CHAR;
             RemovePossibleCallWindow;
 
             BandMapBand := DisplayedBand;
-            DisplayBandMap;
+            BandMapMode := DisplayedMode;
+            BandMapCursorFrequency := DisplayedFrequency;
+            TBSIQ_BandMapFocus := Radio;
 
             ClearAutoSendDisplay;
 
@@ -2255,7 +2304,9 @@ VAR Key, ExtendedKey: CHAR;
             QSOState := QST_SearchAndPounce;
 
             BandMapBand := DisplayedBand;
-            DisplayBandMap;
+            BandMapMode := DisplayedMode;
+            BandMapCursorFrequency := Frequency;
+            TBSIQ_BandMapFocus := Radio;
             END;
 
         QST_SearchAndPounce:
@@ -2643,13 +2694,12 @@ PROCEDURE QSOMachineObject.UpdateRadioDisplay;
 { Checks the radio band/mode/frequency and updates as appropriate.  In the
   classic user interface in LogWind - this was part of the routine that
   also updated the time and rate displays.  Here - we just focus on the
-  radio stuff.
+  radio stuff.  The time and rate stuff is global and in the procedure
+  TBSIQ_UpdateTimeAndRateDisplays.
 
   A new feature is to check to see if the radio is transmitting, and if so,
-  put up the red box.  This is primarily used for SSB I think.
-
-  There is some cross over at the moment with BandMap stuff here and also
-  in the UpdateTimeAndRate displays.  Maybe we fix that? }
+  put up the red box.  This is primarily used for SSB and RTTY as the CW
+  arbritrator does this for CW. }
 
 VAR FrequencyChange, TempFreq: LONGINT;
     TempBand: BandType;
@@ -2674,23 +2724,50 @@ VAR FrequencyChange, TempFreq: LONGINT;
         END;
 
     Frequency := TempFreq;
-
     Band := TempBand;
     Mode := TempMode;
 
     DisplayFrequency;
     DisplayBandMode;
 
-    { Legacy stuff I think }
+    { Determine if the radio appears to be "on the move" }
 
+    IF (LastFrequency <> 0) AND (Frequency <> 0) THEN
+        BEGIN
+        FrequencyChange := Abs (LastFrequency - Frequency);
+
+        CASE Radio OF
+            RadioOne:
+                RadioOnTheMove := (FrequencyChange > Rig1FreqPollRate * AutoSAPEnableRate DIV 1000) OR
+                                  (ModeMemory [RadioOne] <> Mode);
+
+            RadioTwo:
+                RadioOnTheMove := (FrequencyChange > Rig2FreqPollRate * AutoSAPEnableRate DIV 1000) OR
+                                  (ModeMemory [RadioTwo] <> Mode);
+
+            END; { of CASE }
+
+        RadioMovingInBandMode := RadioOnTheMove AND (ModeMemory [Radio] = Mode) AND (BandMemory [Radio] = Band);
+        END;
+
+    LastFrequency := Frequency;
     BandMemory [Radio] := Band;
     ModeMemory [Radio] := Mode;
 
     IF FrequencyMemoryEnable THEN
         FreqMemory [Band, Mode] := Frequency;
 
+    { The one thing we use RadioOnTheMove for within the specific radio instance is to
+      put the radio into the S&P if not already }
+
+    IF RadioMovingInBandMode AND AutoSAPEnable AND (QSOState <> QST_SearchAndPounce) THEN
+        QSOState := QST_SearchAndPounceInit;
+
     DisplayTXColor;
     DisplayActiveRadio;
+
+    IF TBSIQ_BandMapFocus = Radio THEN
+        BandMapCursorFrequency := Frequency;
 
     { Check to see if the second clock has ticked }
 
@@ -2699,41 +2776,12 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     { We are now only executing this code once a second - per radio }
 
-    IF TransmitCountDown > 0 THEN
-        Dec (TransmitCountDown);
+    IF TransmitCountDown > 0 THEN Dec (TransmitCountDown);
 
-    IF LastFrequency = 0 THEN      { This is like the first time we are here }
-        BEGIN
-        LastFrequency := Frequency;
-        Exit;
-        END;
+    { This is the only place the band map gets displayed.  Hopefully, all of the
+      parameters for it are up to date }
 
-    IF LastFrequency = Frequency THEN     { Nothing has changed - you can leave now }
-        BEGIN
-        RadioOnTheMove := False;
-        Exit;
-        END;
-
-    FrequencyChange := Abs (LastFrequency - Frequency);
-    LastFrequency := Frequency;
-
-    { The radio has moved FrequencyChange Hertz in the past second }
-
-    { Let's try this and see if it magically works! }
-
-    IF BandMapEnable AND (FrequencyChange > 0) THEN
-        BEGIN
-        BandMapCursorFrequency := LastFrequency;
-        BandMapBand := Band;
-        BandMapMode := Mode;
-        DisplayBandMap;
-        END;
-
-    { See if we have moved far enough to trigger going into SearchAndPounce }
-
-    IF AutoSAPEnable AND (FrequencyChange >= AutoSAPEnableRate) THEN
-        QSOState := QST_SearchAndPounceInit;
-
+    IF BandMapEnable AND (TBSIQ_BandMapFocus = Radio) THEN DisplayBandMap;
     END;
 
 
