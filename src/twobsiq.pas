@@ -65,7 +65,7 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
   - Made S&P Exchange window conform to established colors (green).
 
   - Made state of CQSending73Message last until message complete on both
-    SSB and RTTY.
+    SSB and RTTY.  This helps keep the display of the message up for awhile.
 
   - Made DualingCQs work on RTTY.
 

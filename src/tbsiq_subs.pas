@@ -934,6 +934,13 @@ VAR RadioThatShouldHaveFocus: RadioType;
        (Radio1QSOMachine.QSOState <> QST_SearchAndPounce) THEN
            RadioThatShouldHaveFocus := RadioTwo;
 
+    IF (Radio1QSOMachine.QSOState = QST_SearchAndPounce) AND
+       (Radio2QSOMachine.QSOState = QST_SearchAndPounce) THEN
+           BEGIN
+           IF Radio1QSOMachine.RadioMovingInBandMode THEN RadioThatShouldHaveFocus := RadioOne;
+           IF Radio2QSOMachine.RadioMovingInBandMode THEN RadioThatShouldHaveFocus := RadioTwo;
+           END;
+
     { Update the bandmap }
 
     TBSIQ_BandMapFocus := RadiothatShouldHaveFocus;
