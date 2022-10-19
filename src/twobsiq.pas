@@ -27,8 +27,6 @@ UNIT TwoBSIQ;
 
 TODO LIST
 
- - Add CQ freqs to bandmap
-
  - "ActiveBand" cursor on the band totals display is not right.
 
  - Occasionally, the auto start send doesn't start if I am busy on the other radio.
