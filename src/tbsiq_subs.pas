@@ -276,6 +276,7 @@ PROCEDURE TBSIQ_CheckDualingCQState;
 { Checks to see if something should be done with the dualing CQs }
 
 VAR Message: STRING;
+    QSONumberString: Str20;
 
     BEGIN
     IF DualingCQState = NoDualingCQs THEN Exit;
@@ -292,6 +293,10 @@ VAR Message: STRING;
             BEGIN
             SendFunctionKeyMessage (AltF1, Message);
             ListenToOtherRadio;
+            Str (QSONumberForThisQSO, QSONumberString);
+            NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
+            LastCQFrequency := Frequency;
+            LastCQMode := Mode;
             END;
 
         DualingCQState := DualingCQOnRadioTwo;
@@ -307,6 +312,10 @@ VAR Message: STRING;
             BEGIN
             SendFunctionKeyMessage (AltF1, Message);
             ListenToOtherRadio;
+            Str (QSONumberForThisQSO, QSONumberString);
+            NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
+            LastCQFrequency := Frequency;
+            LastCQMode := Mode;
             END;
 
         DualingCQState := DualingCQOnRadioOne;
@@ -486,11 +495,11 @@ VAR RememberTime: TimeRecord;
 
             { First True is dupe - second one is SendToMulti }
 
-            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, True, Mult, BandMapDecayTime, True);
             BandMapCursorFrequency := DisplayedFrequency;
             BandMapMode := Mode;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
+            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, True, Mult, BandMapDecayTime, True);
             END;
 
         IF QSOState <> QST_SearchAndPounce THEN
@@ -531,11 +540,11 @@ VAR RememberTime: TimeRecord;
 
             { False = not a dupe  True = SendToMulti }
 
-            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
             BandMapCursorFrequency := DisplayedFrequency;
             BandMapMode := Mode;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
+            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
             END;
         END;
     END;
@@ -911,6 +920,8 @@ PROCEDURE TBSIQ_DeleteLastContact;
         VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
         END;
     END;
+
+
 
 PROCEDURE TBSIQ_CheckBandMap;
 
@@ -1515,6 +1526,7 @@ PROCEDURE QSOMachineObject.CheckQSOStateMachine;
 
 VAR Key, ExtendedKey: CHAR;
     ExpandedString, TempString, InitialExchange, Message, WindowString: STRING;
+    QSONumberString: STr20;
     ActionRequired: BOOLEAN;
     Freq: LONGINT;
     RealFreq: REAL;
@@ -1590,8 +1602,13 @@ VAR Key, ExtendedKey: CHAR;
                             { Maybe add F9 here? }
 
                             IF (ExtendedKey = F1) OR (ExtendedKey = F2) THEN
+                                BEGIN
                                 QSOState := QST_CallingCQ;
-
+                                Str (QSONumberForThisQSO, QSONumberString);
+                                NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
+                                LastCQFrequency := Frequency;
+                                LastCQMode := Mode;
+                                END;
                             Exit;
                             END;
 
@@ -1611,6 +1628,10 @@ VAR Key, ExtendedKey: CHAR;
                                 BEGIN
                                 SendFunctionKeyMessage (F1, Message);
                                 QSOState := QST_CallingCQ;
+                                Str (QSONumberForThisQSO, QSONumberString);
+                                NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
+                                LastCQFrequency := Frequency;
+                                LastCQMode := Mode;
                                 END
                             ELSE
                                 BEGIN  { We have a callsign to send }
@@ -2773,9 +2794,6 @@ VAR FrequencyChange, TempFreq: LONGINT;
     DisplayTXColor;
     DisplayActiveRadio;
 
-    IF TBSIQ_BandMapFocus = Radio THEN
-        BandMapCursorFrequency := Frequency;
-
     { Check to see if the second clock has ticked }
 
     IF TimeString = LastFullTimeString THEN Exit;
@@ -2785,10 +2803,12 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     IF TransmitCountDown > 0 THEN Dec (TransmitCountDown);
 
-    { This is the only place the band map gets displayed.  Hopefully, all of the
-      parameters for it are up to date }
+    IF TBSIQ_BandMapFocus = Radio THEN
+        BEGIN
+        BandMapCursorFrequency := Frequency;
+        IF BandMapEnable THEN DisplayBandMap;
+        END;
 
-    IF BandMapEnable AND (TBSIQ_BandMapFocus = Radio) THEN DisplayBandMap;
     END;
 
 
@@ -3469,8 +3489,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     { A keystroke will stop the DualingCQ activity.  Note that you are likely
       on the wrong radio with the CW }
 
-    IF DualingCQState <> NoDualingCQs THEN
-        DualingCQState := NoDualingCQs;
+    DualingCQState := NoDualingCQs;
 
     { Make sure proper window is active - also set up the window strings
       and cursor positions }
