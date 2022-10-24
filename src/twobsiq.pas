@@ -47,6 +47,8 @@ TODO LIST
 
  - Steal QSO number from other radio if no activity?
 
+ - Clear PossibleCall display sometimes.
+
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 24-Oct-2022
