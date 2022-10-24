@@ -51,6 +51,8 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 24-Oct-2022
 
+  - Improved listening time display with auto-CQ.
+
   - Think I got the band map blinking call stuff going into the call window
     working well.
 

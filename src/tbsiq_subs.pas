@@ -1944,8 +1944,14 @@ VAR Key, ExtendedKey: CHAR;
             ELSE
                 BEGIN   { Done with transmission }
                 ListenToBothRadios;
-                Str (AutoCQDelayTime, TempString);
-                ShowCWMessage ('Listen time = ' + TempString + ' * 10ms (PgUp/Dn)');
+                Str (AutoCQDelayTime DIV 100, TempString);
+
+                IF AutoCQDelayTime MOD 100 <> 0 THEN
+                    TempString := TempString + '.5'
+                ELSE
+                    TempString := TempString + '.0';
+
+                ShowCWMessage ('Listen time = ' + TempString + ' secs (PgUp/Dn)');
                 QSOState := QST_AutoCQListening;
                 MarkTime (AutoCQFinishTime);
                 END;
@@ -4268,8 +4274,14 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                     IF QSOState = QST_AutoCQListening THEN
                         BEGIN
                         AutoCQDelayTime := AutoCQDelayTime + 50;
-                        Str (AutoCQDelayTime, TempString);
-                        ShowCWMessage ('Listen time = ' + TempString + ' * 10ms (PgUp/Dn)');
+                        Str (AutoCQDelayTime DIV 100, TempString);
+
+                        IF AutoCQDelayTime MOD 100 <> 0 THEN
+                            TempString := TempString + '.5'
+                        ELSE
+                            TempString := TempString + '.0';
+
+                        ShowCWMessage ('Listen time = ' + TempString + ' secs (PgUp/Dn)');
                         END
                     ELSE
                         IF CodeSpeed < 99 - CodeSpeedIncrement THEN
@@ -4284,8 +4296,14 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                         IF AutoCQDelayTime > 100 THEN
                             BEGIN
                             AutoCQDelayTime := AutoCQDelayTime - 50;
-                            Str (AutoCQDelayTime, TempString);
-                            ShowCWMessage ('Listen time = ' + TempString + ' * 10ms (PgUp/Dn)');
+                            Str (AutoCQDelayTime DIV 100, TempString);
+
+                            IF AutoCQDelayTime MOD 100 <> 0 THEN
+                                TempString := TempString + '.5'
+                            ELSE
+                                TempString := TempString + '.0';
+
+                            ShowCWMessage ('Listen time = ' + TempString + ' secs (PgUp/Dn)');
                             END;
                         END
                     ELSE
