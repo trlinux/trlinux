@@ -1717,6 +1717,7 @@ VAR Key, ExtendedKey: CHAR;
 
                     EscapeKey:
                         BEGIN
+                        DisplayEditableLog (VisibleLog.LogEntries);
                         QSOState := QST_Idle;
                         ShowTransmitStatus;
 
@@ -3297,6 +3298,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     DisplayAutoSendCharacterCount;   { This doesn't seem to work }
     DisplayCodeSpeed;
+    DisplayEditableLog (VisibleLog.LogEntries);
     DisplayInsertMode;
     ShowStateMachineStatus;
     R1_OpMode := CQOpMode;       { Determines color of exchange window }

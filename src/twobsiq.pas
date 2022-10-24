@@ -47,14 +47,18 @@ TODO LIST
 
  - Steal QSO number from other radio if no activity?
 
- - Clear PossibleCall display sometimes.
-
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 24-Oct-2022
 
   - Think I got the band map blinking call stuff going into the call window
     working well.
+
+  - First escape will clear call window - second one will clear possible call diplay.
+    the possible call display also disappears when a QSO is made.
+
+  - Made editable log appear after initialization of keyboards.  Before, you had to make
+    a QSO first.
 
 23-Oct-2022
 
