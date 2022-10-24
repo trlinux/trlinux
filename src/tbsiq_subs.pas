@@ -50,6 +50,8 @@ TYPE
     TBSIQ_QSOStateType = (QST_None,
                           QST_Idle,
                           QST_CallingCQ,
+                          QST_AutoCQCalling,
+                          QST_AutoCQListening,
                           QST_CQCalled,
                           QST_AutoStartSending,
                           QST_CQStationBeingAnswered,
@@ -75,6 +77,10 @@ TYPE
         WindowLocationY: INTEGER;
 
         { Internal Variables }
+
+        AutoCQDelayTime: INTEGER;      { In 100's of milliseconds }
+        AutoCQFinishTime: TimeRecord;  { Marks time when Auto-CQ finished }
+        AutoCQMemory: CHAR;            { Function Key memory to send for AutoCQ }
 
         AutoStartSendStationCalled: BOOLEAN;
 
@@ -114,6 +120,8 @@ TYPE
 
         Mode: ModeType;
 
+        OkaytoPutUpBandMapCall: BOOLEAN;
+
         QSONumberForThisQSO: INTEGER;
         QSONumberForPreviousQSO: INTEGER;
         QSOState: TBSIQ_QSOStateType;
@@ -133,6 +141,7 @@ TYPE
         TransmitCountDown: INTEGER;      { Set > 0 for # of seconds to fake "I am transmitting" }
 
         PROCEDURE AppendCWMessageDisplay (Message: STRING);
+
         PROCEDURE CheckQSOStateMachine;
         PROCEDURE ClearAutoSendDisplay;  { for use during S&P }
 
@@ -263,11 +272,9 @@ TYPE
                        DualingCQOnRadioOne,
                        DualingCQOnRadioTwo);
 
-CONST
-    InitialTransmitCountdown = 3;
+CONST InitialTransmitCountdown = 3;
 
-VAR
-    DualingCQState: DualingCQStates;
+VAR DualingCQState: DualingCQStates;
 
 
 
@@ -509,11 +516,13 @@ VAR RememberTime: TimeRecord;
             END
         ELSE
             BEGIN
+            NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, False, BandMapDecayTime, True);
             SwapWindows;
             ClrScr;
             ExchangeWindowString := '';
             ExchangeWindowCursorPosition := 1;
             SwapWindows;
+            OkayToPutUpBandMapCall := False;
             END;
 
         DisplayInsertMode;
@@ -1919,6 +1928,35 @@ VAR Key, ExtendedKey: CHAR;
                     END;
             END;
 
+        QST_AutoCQCalling:
+            BEGIN
+            IF IAmTransmitting THEN
+                ListenToOtherRadio
+            ELSE
+                BEGIN   { Done with transmission }
+                ListenToBothRadios;
+                Str (AutoCQDelayTime, TempString);
+                ShowCWMessage ('Listen time = ' + TempString + ' * 10ms (PgUp/Dn)');
+                QSOState := QST_AutoCQListening;
+                MarkTime (AutoCQFinishTime);
+                END;
+            END;
+
+        QST_AutoCQListening:
+            BEGIN
+            { If a key was pressed - WindowEditor will put us into CQIdle state }
+
+            { Check timer }
+
+            IF ElaspedSec100 (AutoCQFinishTime) >= AutoCQDelayTime THEN
+                BEGIN
+                SendFunctionKeyMessage (AutoCQMemory, Message);
+                ShowCWMessage ('AutoCQ: ' + Message);
+                QSOState := QST_AutoCQCalling;
+                ListenToOtherRadio;
+                END;
+            END;
+
         QST_CQStationBeingAnswered:
             BEGIN
             ListenToOtherRadio;
@@ -2303,7 +2341,9 @@ VAR Key, ExtendedKey: CHAR;
 
             SetTBSIQWindow (TBSIQ_ExchangeWindow);
             ClrScr;
+
             SetTBSIQWindow (TBSIQ_CallWindow);
+            IF CallWindowString = '' THEN ClrScr;  { In case someone wanted it cleared }
 
             SearchAndPounceStationCalled := False;
             SearchAndPounceExchangeSent := False;
@@ -2509,6 +2549,8 @@ VAR Key, ExtendedKey: CHAR;
                                 BEGIN
                                 IF GoodCallSyntax (CallWindowString) THEN
                                     BEGIN
+                                    NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, False, BandMapDecayTime, True);
+
                                     SetTBSIQWindow (TBSIQ_ExchangeWindow);
 
                                     IF ExchangeWindowString = '' THEN
@@ -2595,6 +2637,8 @@ VAR Key, ExtendedKey: CHAR;
                                                                  ExchangeWindowString,
                                                                  Band, Mode, Frequency, RData) THEN
                                             BEGIN
+                                            EscapeDeletedCallEntry := CallWindowString;
+                                            ShowCWMessage ('DeletedCall = ' + CallwindowString);
                                             TBSIQ_LogContact (RData);
 
                                             ExchangeWindowString := '';
@@ -2655,7 +2699,23 @@ VAR Key, ExtendedKey: CHAR;
                         END;
 
                     END; { of case Key }
-                END; { of ActionRequired }
+                END;
+
+            { We are in S&P mode - and possibly we need to do something if we are
+              tuning to a new frequency }
+
+            IF BandMapEnable AND (CallWindowString = '') THEN
+                IF (BandMapBlinkingCall <> '') AND OkayToPutUpBandMapCall THEN
+                    IF BandMapBlinkingCall <> EscapeDeletedCallEntry THEN
+                        IF CallWindowString <> BandMapBlinkingCall THEN
+                            BEGIN
+                            CallWindowString := BandMapBlinkingCall;
+                            ClrScr;
+                            Write (CallWindowString);
+                            CallWindowCursorPosition := Length (CallWindowString) + 1;
+                            END;
+
+
             END; { of QST_SearchAndPounce }
 
         END;  { of case QSOState }
@@ -2791,6 +2851,17 @@ VAR FrequencyChange, TempFreq: LONGINT;
     IF RadioMovingInBandMode AND AutoSAPEnable AND (QSOState <> QST_SearchAndPounce) THEN
         QSOState := QST_SearchAndPounceInit;
 
+    { Kind of a hack here - if we moved away from a freqeuency while in S&P, make
+      sure to clear the call window }
+
+    IF RadioMovingInBandMode AND (QSOState = QST_SearchAndPounce) THEN
+        BEGIN
+        QSOState := QST_SearchAndPounceinit;
+        CallWindowString := '';
+        CallWindowCursorPosition := 1;
+        OkayToPutUpBandMapCall := True;
+        END;
+
     DisplayTXColor;
     DisplayActiveRadio;
 
@@ -2863,6 +2934,8 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
             IF DualingCQState <> NoDualingCQs THEN Write (' Dualing CQs');
             END;
 
+        QST_AutoCQCalling: Write ('Calling Auto-CQ');
+        QST_AutoCQListening: Write ('Auto-CQ listening');
         QST_CQStationBeingAnswered: Write ('CQ Station Being Answered');
         QST_CQExchangeBeingSent: Write ('Exchange being sent');
         QST_CQExchangeBeingSentAndExchangeWindowUp: Write ('Exchange being sent + ExWindow');
@@ -2970,12 +3043,13 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     { Initialize parameters }
 
+    AutoCQDelayTime := 400;     { Four seconds }
+    AutoCQMemory := Chr (0);
     AutoStartSendStationCalled := False;
     CallWindowString := '';
     CallWindowCursorPosition := 1;
     CodeSpeed := SpeedMemory [Radio];
     CWMessageDisplayed := '';
-
     DisplayedBand := NoBand;
     DisplayedFrequency := 0;
     DisplayedInsertIndicator := NoInsertIndicator;
@@ -2988,6 +3062,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     InsertMode := InsertMode;
     LastFrequency := 0;
     LastQSOState := QST_None;
+    OkayToPutUpBandMapCall := False;
     QSOState := QST_Idle;
 
     RadioOnTheMove := False;
@@ -3445,10 +3520,13 @@ PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
   TBSIQ_ActiveWindow is actually your active window when writing chars
   to the screen.  If it possible the other instance of the QSOMachine
   changed it to a different window...  so you should check ActiveWindow
-  first and change it to the right window before doing anything. }
+  first and change it to the right window before doing anything.
+
+  Something new - this needs to deal with the OkayToPutUpBandMapCall by
+  turning it off if any key is pressed }
 
 VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
-    PreviousCursorChar: CHAR;
+    Key, PreviousCursorChar: CHAR;
     Message, TempString: STRING;
     TempExchange: ContestExchange;
 
@@ -3491,6 +3569,11 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
     DualingCQState := NoDualingCQs;
 
+
+    { A keystroke will clear the OkayToPutUpBandMappCall flag }
+
+    OkayToPutUpBandMapCall := False;
+
     { Make sure proper window is active - also set up the window strings
       and cursor positions }
 
@@ -3519,8 +3602,17 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     ActionRequired := True;
     ExtendedKeyChar := Chr (0);
 
+    { Special keystrokes }
+
     IF (QSOState = QST_StartSendingKeyboardCW) OR (QSOState = QST_SendingKeyboardCW) THEN
         Exit;  { All keystrokes handled there }
+
+    IF KeyChar <> NullKey THEN
+        IF (QSOState = QST_AutoCQListening) OR (QSOState = QST_AutoCQCalling) THEN
+            BEGIN
+            QSOState := QST_CQCalled;
+            ShowCWMessage ('AutoCQ aborted');
+            END;
 
     { Check for keys that are variables and require action by caller }
 
@@ -3912,6 +4004,19 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
             CASE ExtendedKeyChar OF
 
+                  AltC:
+                      BEGIN
+                      ActionRequired := False;
+
+                      IF ValidFunctionKey (AutoCQMemory) THEN
+                          BEGIN
+                          SendFunctionKeyMessage (AutoCQMemory, Message);
+                          ShowCWMessage ('AutoCQ: ' + Message);
+                          QSOState := QST_AutoCQCalling;
+                          ListenToOtherRadio;
+                          END;
+                      END;
+
                 AltE: BEGIN
                       RITEnable := False;
                       VisibleLog.EditLog;
@@ -3966,6 +4071,34 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                       RITEnable := True;
                       VisibleLog.SetUpEditableLog;
                       ClearKeyCache := True;
+                      ActionRequired := False;
+                      END;
+
+                  AltQ:
+                      BEGIN
+                      ActionRequired := False;
+
+                      ShowCWMessage ('Press function key memory to repeat');
+
+                      REPEAT
+                      UNTIL TBSIQ_KeyPressed (Radio);
+                      Key := TBSIQ_ReadKey (Radio);
+
+                      IF Key = NullKey THEN
+                          BEGIN
+                          { Get function key }
+
+                          Key := TBSIQ_ReadKey (Radio);
+
+                          IF ValidFunctionKey (Key) THEN
+                              BEGIN
+                              AutoCQMemory := Key;
+                              SendFunctionKeyMessage (AutoCQMemory, Message);
+                              ShowCWMessage ('AutoCQ: ' + Message);
+                              QSOState := QST_AutoCQCalling;
+                              ListenToOtherRadio;
+                              END;
+                          END;
                       END;
 
                   AltR:
@@ -4104,18 +4237,35 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                         END;
 
                 PageUpKey:
-                    IF CodeSpeed < 99 - CodeSpeedIncrement THEN
+                    IF QSOState = QST_AutoCQListening THEN
                         BEGIN
-                        CodeSpeed := CodeSpeed + CodeSpeedIncrement;
-                        SetCodeSpeed (CodeSpeed);
-                        END;
+                        AutoCQDelayTime := AutoCQDelayTime + 50;
+                        Str (AutoCQDelayTime, TempString);
+                        ShowCWMessage ('Listen time = ' + TempString + ' * 10ms (PgUp/Dn)');
+                        END
+                    ELSE
+                        IF CodeSpeed < 99 - CodeSpeedIncrement THEN
+                            BEGIN
+                            CodeSpeed := CodeSpeed + CodeSpeedIncrement;
+                            SetCodeSpeed (CodeSpeed);
+                            END;
 
                 PageDownKey:
-                    IF CodeSpeed > 1 + CodeSpeedIncrement THEN
+                    IF QSOState = QST_AutoCQListening THEN
                         BEGIN
-                        CodeSpeed := CodeSpeed - CodeSpeedIncrement;
-                        SetCodeSpeed (CodeSpeed);
-                        END;
+                        IF AutoCQDelayTime > 100 THEN
+                            BEGIN
+                            AutoCQDelayTime := AutoCQDelayTime - 50;
+                            Str (AutoCQDelayTime, TempString);
+                            ShowCWMessage ('Listen time = ' + TempString + ' * 10ms (PgUp/Dn)');
+                            END;
+                        END
+                    ELSE
+                        IF CodeSpeed > 1 + CodeSpeedIncrement THEN
+                            BEGIN
+                            CodeSpeed := CodeSpeed - CodeSpeedIncrement;
+                            SetCodeSpeed (CodeSpeed);
+                            END;
 
                 { It appears we used ControlUpArrow to MoveGridMap }
 
@@ -5455,6 +5605,7 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     IF DisableTransmitting THEN Exit;
 
     IF (QSOState = QST_Idle) OR (QSOState = QST_CallingCQ) OR
+       (QSOState = QST_AutoCQListening) OR
        (QSOState = QST_CQCalled) OR (QSOState = QST_AutoStartSending) OR
        (QSOState = QST_CQSending73Message) THEN
            Message := GetCQMemoryString (Mode, Key)
