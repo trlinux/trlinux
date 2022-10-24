@@ -97,6 +97,7 @@ TYPE
         CodeSpeed: INTEGER;
         CWMessageDisplayed: STRING;
 
+        DisablePutUpBandMapCall: BOOLEAN;
         DisplayedBand: BandType;
         DisplayedFrequency: LONGINT;
         DisplayedInsertIndicator: InsertIndicatorType;
@@ -511,6 +512,7 @@ VAR RememberTime: TimeRecord;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
             NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, True, Mult, BandMapDecayTime, True);
+            DisablePutUpBandMapCall := False;
             END;
 
         IF QSOState <> QST_SearchAndPounce THEN
@@ -527,6 +529,7 @@ VAR RememberTime: TimeRecord;
             ExchangeWindowCursorPosition := 1;
             SwapWindows;
             OkayToPutUpBandMapCall := False;
+            DisablePutUpBandMapCall := False;
             END;
 
         DisplayInsertMode;
@@ -558,6 +561,7 @@ VAR RememberTime: TimeRecord;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
             NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
+            DisablePutUpBandMapCall := False;
             END;
         END;
     END;
@@ -2554,6 +2558,7 @@ VAR Key, ExtendedKey: CHAR;
                                 IF GoodCallSyntax (CallWindowString) THEN
                                     BEGIN
                                     NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, False, BandMapDecayTime, True);
+                                    DisablePutUpBandMapCall := False;
 
                                     SetTBSIQWindow (TBSIQ_ExchangeWindow);
 
@@ -2708,7 +2713,7 @@ VAR Key, ExtendedKey: CHAR;
             { We are in S&P mode - and possibly we need to do something if we are
               tuning to a new frequency }
 
-            IF BandMapEnable AND (TBSIQ_ActiveWindow = TBSIQ_CallWindow) THEN
+            IF BandMapEnable AND (TBSIQ_ActiveWindow = TBSIQ_CallWindow) AND NOT DisablePutUpBandMapCall THEN
                 BEGIN
                 IF (CallWindowString = '') AND (BandMapBlinkingCall <> '') AND OkayToPutUpBandMapCall THEN
                     IF CallWindowString <> BandMapBlinkingCall THEN
@@ -2850,6 +2855,7 @@ VAR FrequencyChange, TempFreq: LONGINT;
             END; { of CASE }
 
         RadioMovingInBandMode := RadioOnTheMove AND (ModeMemory [Radio] = Mode) AND (BandMemory [Radio] = Band);
+        IF FrequencyChange > 0 THEN DisablePutUpBandMapCall := False;
         END;
 
     LastFrequency := Frequency;
@@ -3068,6 +3074,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     CallWindowCursorPosition := 1;
     CodeSpeed := SpeedMemory [Radio];
     CWMessageDisplayed := '';
+    DisablePutUpBandMapCall := False;
     DisplayedBand := NoBand;
     DisplayedFrequency := 0;
     DisplayedInsertIndicator := NoInsertIndicator;
@@ -3587,10 +3594,11 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
     DualingCQState := NoDualingCQs;
 
-
-    { A keystroke will clear the OkayToPutUpBandMappCall flag }
+    { A keystroke will clear the OkayToPutUpBandMappCall flag  and also disable
+      the feature until we tune to a new frequency }
 
     OkayToPutUpBandMapCall := False;
+    DisablePutUpBandMapCall := True;
 
     { Make sure proper window is active - also set up the window strings
       and cursor positions }
