@@ -45,17 +45,21 @@ TODO LIST
  - RepeatSearchAndPounceExchange not used in 2BSIQ yet.  Will always use the non
    repeat one.
 
- = Clean up band map tuning
-
  - Steal QSO number from other radio if no activity?
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+24-Oct-2022
+
+  - Think I got the band map blinking call stuff going into the call window
+    working well.
 
 23-Oct-2022
 
   - AutoCQ supported.  Works basically the same as classic - exccept the default
     listen time is four seconds.  You can adjust it during listening time in
-    half second increments using PageUp/Dn.
+    half second increments using PageUp/Dn.  PageUp/Dn during transmit will
+    change the CW speed.
 
 22-Oct-2022
 

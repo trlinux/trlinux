@@ -47,6 +47,8 @@ TYPE
                         TBSIQ_StartSendingWindow,
                         TBSIQ_StateMachineStatusWindow);
 
+    { High level state machine states }
+
     TBSIQ_QSOStateType = (QST_None,
                           QST_Idle,
                           QST_CallingCQ,
@@ -85,6 +87,7 @@ TYPE
         AutoStartSendStationCalled: BOOLEAN;
 
         Band: BandType;
+        BandMapCallPutUp: CallString;
         BeSilent: BOOLEAN;   { Used to indicate we should not send CW for command }
 
         CallsignICameBackTo: STRING;
@@ -128,6 +131,7 @@ TYPE
 
         PreviousQSOState: TBSIQ_QSOStateType;
 
+        RadioFrequencySettledCount: INTEGER;
         RadioMovingInBandMode: BOOLEAN; { Replaces the classis RadioMovingInBandMode [radio] }
         RadioOnTheMove: BOOLEAN;        { Replaces the classic RadioOntheMove [radio] }
 
@@ -2704,17 +2708,27 @@ VAR Key, ExtendedKey: CHAR;
             { We are in S&P mode - and possibly we need to do something if we are
               tuning to a new frequency }
 
-            IF BandMapEnable AND (CallWindowString = '') THEN
-                IF (BandMapBlinkingCall <> '') AND OkayToPutUpBandMapCall THEN
-                    IF BandMapBlinkingCall <> EscapeDeletedCallEntry THEN
-                        IF CallWindowString <> BandMapBlinkingCall THEN
-                            BEGIN
-                            CallWindowString := BandMapBlinkingCall;
-                            ClrScr;
-                            Write (CallWindowString);
-                            CallWindowCursorPosition := Length (CallWindowString) + 1;
-                            END;
+            IF BandMapEnable AND (TBSIQ_ActiveWindow = TBSIQ_CallWindow) THEN
+                BEGIN
+                IF (CallWindowString = '') AND (BandMapBlinkingCall <> '') AND OkayToPutUpBandMapCall THEN
+                    IF CallWindowString <> BandMapBlinkingCall THEN
+                        BEGIN
+                        CallWindowString := BandMapBlinkingCall;
+                        BandMapCallPutUp := BandMapBlinkingCall;
+                        ClrScr;
+                        Write (CallWindowString);
+                        CallWindowCursorPosition := Length (CallWindowString) + 1;
+                        END;
 
+                IF BandMapCallPutUp <> BandMapBlinkingCall THEN
+                    IF BandMapCallPutUp = CallWindowString THEN
+                        BEGIN
+                        ClrScr;
+                        CallWindowString := '';
+                        CallWindowCursorPosition := 1;
+                        BandMapCallPutUp := '';
+                        END;
+                END;
 
             END; { of QST_SearchAndPounce }
 
@@ -2859,7 +2873,7 @@ VAR FrequencyChange, TempFreq: LONGINT;
         QSOState := QST_SearchAndPounceinit;
         CallWindowString := '';
         CallWindowCursorPosition := 1;
-        OkayToPutUpBandMapCall := True;
+        RadioFrequencySettledCount := 1;
         END;
 
     DisplayTXColor;
@@ -2880,6 +2894,10 @@ VAR FrequencyChange, TempFreq: LONGINT;
         IF BandMapEnable THEN DisplayBandMap;
         END;
 
+    IF (RadioFrequencySettledCount > 0) AND (QSOState = QST_SearchAndPounce) THEN
+        Dec (RadioFrequencySettledCount)
+    ELSE
+        OkayToPutUpBandMapCall := True;
     END;
 
 
