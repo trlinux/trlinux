@@ -128,6 +128,8 @@ TYPE
 
         QSONumberForThisQSO: INTEGER;
         QSONumberForPreviousQSO: INTEGER;
+        QSONumberUnused: BOOLEAN;
+
         QSOState: TBSIQ_QSOStateType;
 
         PreviousQSOState: TBSIQ_QSOStateType;
@@ -166,6 +168,8 @@ TYPE
         PROCEDURE DoPossibleCalls (Callsign: CallString);
 
         FUNCTION  ExpandCrypticString (SendString: STRING): STRING;
+
+        PROCEDURE SetUpNextQSONumber;
 
         FUNCTION  IAmTransmitting: BOOLEAN;
         PROCEDURE InitializeQSOMachine (KBFile: CINT;
@@ -280,6 +284,47 @@ TYPE
 CONST InitialTransmitCountdown = 3;
 
 VAR DualingCQState: DualingCQStates;
+
+
+
+PROCEDURE QSOMachineObject.SetUpNextQSONumber;
+
+{ Normally, this would come from GetNextQSONumber in LOGWIND, however, if the QSO
+  number on the other radio hasn't been used - we can steal it.  Note that we will
+  never steal a QSO number that is less than the one we just sent. }
+
+    BEGIN
+    CASE Radio OF
+        RadioOne:
+            IF Radio2QSOMachine.QSONumberUnused THEN   { Steal QSO number from Radio 2 }
+                IF Radio2QSOMachine.QSONumberForThisQSO > QSONumberForThisQSO THEN
+                    BEGIN
+                    QSONumberForThisQSO := Radio2QSOMachine.QSONumberForThisQSO;
+                    DisplayQSONumber;
+                    Radio2QSOMachine.QSONumberForThisQSO := GetNextQSONumber;
+                    Radio2QSOMachine.DisplayQSONumber;
+                    Exit;
+                    END;
+
+        RadioTwo:
+            IF Radio1QSOMachine.QSONumberUnused THEN
+                IF Radio1QSOMachine.QSONumberForThisQSO > QSONumberForthisQSO THEN
+                    BEGIN
+                    QSONumberForThisQSO := Radio1QSOMachine.QSONumberForThisQSO;
+                    DisplayQSONumber;
+                    Radio1QSOMachine.QSONumberForThisQSO := GetNextQSONumber;
+                    Radio1QSOMachine.DisplayQSONumber;
+                    Exit;
+                    END;
+
+        END;  { of CASE Radio }
+
+    { We can't steal the QSO number from the other radio - so get our own new number }
+
+    QSONumberForThisQSO := GetNextQSONumber;   { from LOGWIND }
+    QSONumberUnused := True;
+    DisplayQSONumber;
+    END;
 
 
 
@@ -1564,6 +1609,8 @@ VAR Key, ExtendedKey: CHAR;
 
         IF (QSOState <> QST_SearchAndPounce) AND (QSOState <> QST_SearchAndPounceInit) THEN
             DisplayAutoSendCharacterCount;
+
+        DisplayCodeSpeed;  { Added here to make sure WPM goes away on SSB at some point }
         END;
 
     { Do not process any keystrokes while auto start send active on the
@@ -1776,6 +1823,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_AutoStartSending:  { We have started sending a callsign }
             BEGIN
+            QSONumberUnused := False;
+
             { There are a number of possible things that can happen here:
 
               1. Someone typed another letter to add to the callsign.
@@ -1974,6 +2023,7 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQStationBeingAnswered:
             BEGIN
+            QSONumberUnused := False;
             ListenToOtherRadio;
 
             { If we are on phone - let's assume we are going to be in transmit mode for at
@@ -2208,8 +2258,7 @@ VAR Key, ExtendedKey: CHAR;
                             AutoStartSendStationCalled := False;
 
                             QSONumberForPreviousQSO := QSONumberForThisQSO;
-                            QSONumberForThisQSO := GetNextQSONumber;
-                            DisplayQSONumber;
+                            SetUpNextQSONumber;
                             END;
 
                     NullKey:
@@ -2237,8 +2286,7 @@ VAR Key, ExtendedKey: CHAR;
                                     AutoStartSendStationCalled := False;
 
                                     QSONumberForPreviousQSO := QSONumberForThisQSO;
-                                    QSONumberForThisQSO := GetNextQSONumber;
-                                    DisplayQSONumber;
+                                    SetUpNextQSONumber;
                                     END;
 
                             UpArrow:
@@ -2333,6 +2381,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_SearchAndPounceInit:  { Executed once when entering S&P Mode }
             BEGIN
+            QSONumberUnused := False;
+
             IF NOT TBSIQ_CW_Engine.CWFinished (Radio) THEN Exit;
 
             { Determines color of exchange window }
@@ -2493,7 +2543,7 @@ VAR Key, ExtendedKey: CHAR;
                                     Phone:
                                         BEGIN
                                         ExpandedString := ExpandCrypticString (SearchAndPouncePhoneExchange);
-                                        ShowCWMessage ('Sent SearchAndPouncePhoneExchange if there is one');
+                                        ShowCWMessage ('Sent S&P PhoneExchange if there is one');
                                         END;
 
                                     END;
@@ -2538,8 +2588,7 @@ VAR Key, ExtendedKey: CHAR;
                                 ClrScr;
 
                                 QSONumberForPreviousQSO := QSONumberForThisQSO;
-                                QSONumberForThisQSO := GetNextQSONumber;
-                                DisplayQSONumber;
+                                SetUpNextQSONumber;
 
                                 IF SprintQSYRule THEN
                                     BEGIN
@@ -2668,8 +2717,7 @@ VAR Key, ExtendedKey: CHAR;
                                             ClrScr;
 
                                             QSONumberForPreviousQSO := QSONumberForThisQSO;
-                                            QSONumberForThisQSO := GetNextQSONumber;
-                                            DisplayQSONumber;
+                                            SetUpNextQSONumber;
 
                                             IF SprintQSYRule THEN
                                                 BEGIN
@@ -3311,8 +3359,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     { Get the next QSO Number }
 
-    QSONumberForThisQSO := GetNextQSONumber;
+    QSONumberForThisQSO := GetNextQSONumber;   { Comes from LOGWIND }
     DisplayQSONumber;
+    QSONumberUnused := True;
 
     { Put up a blank call window }
 
@@ -3518,7 +3567,10 @@ PROCEDURE QSOMachineObject.DisplayCodeSpeed;
         RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_CodeSpeedWindow);
         END;
 
-    Write (' ', CodeSpeed:2, ' WPM');
+    IF Mode = CW THEN
+        Write (' ', CodeSpeed:2, ' WPM')
+    ELSE
+        Write ('       ');
 
     IF ActiveRadio = Radio THEN
         Write (' TX');
@@ -5967,6 +6019,7 @@ VAR LogString: Str80;
 
     UpdateTotals;
     DisplayTotalScore (TotalScore);
+    ShowStationInformation (RXData.Callsign);
 
     IF BandMapEnable THEN
         BEGIN
