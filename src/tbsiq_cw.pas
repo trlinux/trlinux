@@ -324,6 +324,8 @@ FUNCTION TBSIQ_CWEngineObject.ClearMessages (Radio: RadioType; InProcess: BOOLEA
 VAR Index: INTEGER;
 
     BEGIN
+    ClearMessages := False;
+
     IF CueHead <> CueTail THEN      { Something in the cue }
         BEGIN
         Index := CueTail;    { Start at the next message to be popped off }
@@ -343,8 +345,6 @@ VAR Index: INTEGER;
             FlushCWBufferAndClearPTT;
             ClearMessages := True;
             END;
-
-    ClearMessages := False;
     END;
 
 

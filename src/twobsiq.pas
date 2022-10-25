@@ -47,9 +47,16 @@ TODO LIST
 
  - Steal QSO number from other radio if no activity?
 
+ - Intiial exchange has a space?
+
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 24-Oct-2022
+
+  - Fixed obscure bug where the routine to clear the CW messages was never coming
+    back true indicating that a message was deleted.  This caused a small issue where
+    hitting ESCAPE would both stop the CW message and also do the next thing the escape
+    key would have done with a 2nd press.
 
   - Fixed bug introduced by adding station information after logging a QSO having the
     data come out in the call window of the 2nd radio.

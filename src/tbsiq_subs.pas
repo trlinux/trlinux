@@ -1609,8 +1609,6 @@ VAR Key, ExtendedKey: CHAR;
 
         IF (QSOState <> QST_SearchAndPounce) AND (QSOState <> QST_SearchAndPounceInit) THEN
             DisplayAutoSendCharacterCount;
-
-        DisplayCodeSpeed;  { Added here to make sure WPM goes away on SSB at some point }
         END;
 
     { Do not process any keystrokes while auto start send active on the
@@ -3785,6 +3783,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
         EscapeKey:
             BEGIN
+
             { The ESCAPE KEY is a panic key that will step things back one step for every
               press.  The first thing that needs to be checked is to see if there is a CW
               message being sent - or one in the cue - that needs to be aborted/deleted.  }
@@ -3796,7 +3795,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                     Exit;
                     END;
 
-            { If there is no CW to be stopped / deleted, then the next thing the ESCAPE key will
+           { If there is no CW to be stopped / deleted, then the next thing the ESCAPE key will
               do is erase whatever data is in the current window }
 
             IF WindowString <> '' THEN
