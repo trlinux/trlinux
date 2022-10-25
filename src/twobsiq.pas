@@ -47,9 +47,14 @@ TODO LIST
 
  - Intiial exchange has a space?
 
+ - Show country and beam headings?
+
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 25-Oct-2022
+
+ - Added AltH function (Help Menu)
+ - Added AltG function (swap mult display)
 
  - Made it so blank SSB messages do not trigger the ariticial TX timer.
 

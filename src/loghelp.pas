@@ -67,7 +67,7 @@ VAR
     PROCEDURE PacketSimulate;
     PROCEDURE PassThrough;
     PROCEDURE PortToFile;
-    PROCEDURE PutUpHelpMenu;
+    PROCEDURE PutUpHelpMenu (UpdateTimeAndRate: BOOLEAN);
     PROCEDURE SaveQTCDataFile;
     PROCEDURE SetAlarm;
     PROCEDURE ShowIOPorts;
@@ -2270,7 +2270,7 @@ PROCEDURE ProcessAltHelp;
 
 
 
-PROCEDURE PutUpHelpMenu;
+PROCEDURE PutUpHelpMenu (UpdateTimeAndRate: BOOLEAN);
 
 VAR Key: CHAR;
 
@@ -2302,7 +2302,8 @@ VAR Key: CHAR;
 
     REPEAT
         begin
-        UpdateTimeAndRateDisplays (False, False);
+        IF UpdateTimeAndRate THEN
+            UpdateTimeAndRateDisplays (False, False);
         millisleep;
         end;
     UNTIL KeyPressed;
@@ -2495,7 +2496,9 @@ VAR Key: CHAR;
     RestorePreviousWindow;
 
     REPEAT
-        UpdateTimeAndRateDisplays (False, False)
+        IF UpdateTimeAndRate THEN
+            UpdateTimeAndRateDisplays (False, False);
+        millisleep;
     UNTIL KeyPressed;
 
     IF ReadKey = NullKey THEN ReadKey;

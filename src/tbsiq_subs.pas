@@ -4179,6 +4179,15 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                       ClearKeyCache := True;
                       END;
 
+                AltG: SwapMultDisplay;
+
+                AltH: BEGIN
+                      PutUpHelpMenu (False);   { No update of classic time/rate }
+                      RestorePreviousWindow;
+                      VisibleDupeSheetRemoved := True;
+                      ClearKeyCache := True;
+                      END;
+
                 AltI:
                     IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                         BEGIN
@@ -5790,6 +5799,8 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
             ActiveMode := Mode;
             TransmitCountDown := InitialTransmitCountdown;
             END;
+
+    { This sends the message if you are on SSB }
 
     Message := ExpandCrypticString (Message);
 

@@ -1073,46 +1073,6 @@ VAR TempString: Str40;
     END;
 
 
-
-PROCEDURE SwapMultDisplay;
-
-    BEGIN
-    IF NumberDifferentMults > 1 THEN
-        BEGIN
-
-        CASE RemainingMultDisplay OF
-            Domestic:
-                IF DoingDXMults THEN
-                    RemainingMultDisplay := DX
-                ELSE
-                    IF DoingZoneMults THEN
-                        RemainingMultDisplay := Zone;
-
-            DX: IF DoingZoneMults THEN
-                    RemainingMultDisplay := Zone
-                ELSE
-                    {IF DoingDomesticMults AND (ActiveDomesticMult <> WYSIWYGDomestic) THEN}
-                    IF (DoingDomesticMults AND (DomesticQTHDataFileName <> '')) THEN
-                       {KK1L: 6.68 changed above to allow domestic mults to be displayed if there is a dom file}
-                        RemainingMultDisplay := Domestic;
-
-            Zone:
-                {IF DoingDomesticMults AND (ActiveDomesticMult = DomesticFile)}
-                IF (DoingDomesticMults AND (DomesticQTHDataFileName <> '')) THEN
-                    {KK1L: 6.68 changed above to allow domestic mults to be displayed if there is a dom file}
-                    RemainingMultDisplay := Domestic
-                ELSE
-                    IF DoingDXMults THEN
-                        RemainingMultDisplay := DX;
-
-            END;
-
-        VisibleLog.ShowRemainingMultipliers;
-        END;
-    END;
-
-
-
 PROCEDURE DeleteLastContact;
 
     BEGIN
@@ -1567,7 +1527,7 @@ VAR Key: CHAR;
                     AltG: SwapMultDisplay;
 
                     AltH: BEGIN
-                          PutUpHelpMenu;
+                          PutUpHelpMenu (True);  { True indicates updating of time and rate displays }
                           RestorePreviousWindow;
                           VisibleDupeSheetRemoved := True;
                           END;
@@ -4082,7 +4042,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   AltG: SwapMultDisplay;
 
                   AltH: BEGIN
-                        PutUpHelpMenu;
+                        PutUpHelpMenu (True);
                         RestorePreviousWindow;
                         VisibleDupeSheetRemoved := True;
                         END;
