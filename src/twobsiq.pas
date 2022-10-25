@@ -53,6 +53,7 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 25-Oct-2022
 
+ - Added display of countryID, sunrise/sunset times and beam heading.
  - Added AltH function (Help Menu)
  - Added AltG function (swap mult display)
 

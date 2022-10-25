@@ -445,16 +445,10 @@ VAR Name: STRING;
         VisibleLog.ShowQSOStatus        (Call);
         END;
 
-{   IF ActiveDomesticMult <> GridSquares THEN
-        BEGIN
+    IF ActiveDomesticMult <> GridSquares THEN
         DisplayBeamHeading (Call);
-        DisplayCountryName (Call);
-        END; }
 
     DisplayUserInfo (Call);
-
-{   IF CountryInformationFile <> '' THEN
-        DisplayCountryInformation (CountryInformationFile, Call); }
     END;
 
 
