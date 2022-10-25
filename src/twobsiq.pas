@@ -51,6 +51,12 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 24-Oct-2022
 
+  - Shortened message about sending S&PExchange message if there is one.
+
+  - Show station updated station information after logging a QSO.
+
+  - Remove WPM display if on SSB (you do have to do something to make the change happen)
+
   - Improved listening time display with auto-CQ.
 
   - Think I got the band map blinking call stuff going into the call window

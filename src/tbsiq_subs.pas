@@ -2396,6 +2396,7 @@ VAR Key, ExtendedKey: CHAR;
 
             BandMapBand := DisplayedBand;
             BandMapMode := DisplayedMode;
+
             BandMapCursorFrequency := DisplayedFrequency;
             TBSIQ_BandMapFocus := Radio;
 
@@ -2846,6 +2847,7 @@ PROCEDURE QSOMachineObject.DisplayBandMode;
 
         DisplayedBand := Band;
         DisplayedMode := Mode;
+        DisplayCodeSpeed;
         END;
     END;
 
