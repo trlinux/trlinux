@@ -51,11 +51,14 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 24-Oct-2022
 
+  - Fixed bug introduced by adding station information after logging a QSO having the
+    data come out in the call window of the 2nd radio.
+
   - Shortened message about sending S&PExchange message if there is one.
 
   - Show station updated station information after logging a QSO.
 
-  - Remove WPM display if on SSB (you do have to do something to make the change happen)
+  - Remove WPM display if on SSB (okay - you don't have to do anything now).
 
   - Improved listening time display with auto-CQ.
 
