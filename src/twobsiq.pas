@@ -49,6 +49,10 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+25-Oct-2022
+
+ - Made it so blank SSB messages do not trigger the ariticial TX timer.
+
  - Added new call window command UPDATEQSONR.  This will burn the current QSO number
    and get a new one.  This is intended to be used when the QSO number is old and
    you would rather send a more current number (instead of #2 on Sunday morning of
