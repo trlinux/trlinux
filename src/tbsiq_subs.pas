@@ -2254,6 +2254,7 @@ VAR Key, ExtendedKey: CHAR;
                                 END;
 
                             TBSIQ_LogContact (RData);
+                            ShowStationInformation (CallWindowString);
                             QSOState := QST_CQSending73Message;
                             AutoStartSendStationCalled := False;
 
@@ -2282,6 +2283,7 @@ VAR Key, ExtendedKey: CHAR;
                                                          Band, Mode, Frequency, RData) THEN
                                     BEGIN
                                     TBSIQ_LogContact (RData);
+                                    ShowStationInformation (CallWindowString);
                                     QSOState := QST_CQSending73Message;
                                     AutoStartSendStationCalled := False;
 
@@ -2577,6 +2579,7 @@ VAR Key, ExtendedKey: CHAR;
                                                      Band, Mode, Frequency, RData) THEN
                                 BEGIN
                                 TBSIQ_LogContact (RData);
+                                ShowStationInformation (CallWindowString);
 
                                 ExchangeWindowString := '';
                                 ExchangeWindowCursorPosition := 1;
@@ -2706,6 +2709,7 @@ VAR Key, ExtendedKey: CHAR;
                                             EscapeDeletedCallEntry := CallWindowString;
                                             ShowCWMessage ('DeletedCall = ' + CallwindowString);
                                             TBSIQ_LogContact (RData);
+                                            ShowStationInformation (CallWindowString);
 
                                             ExchangeWindowString := '';
                                             ExchangeWindowCursorPosition := 1;
@@ -6021,7 +6025,6 @@ VAR LogString: Str80;
 
     UpdateTotals;
     DisplayTotalScore (TotalScore);
-    ShowStationInformation (RXData.Callsign);
 
     IF BandMapEnable THEN
         BEGIN
