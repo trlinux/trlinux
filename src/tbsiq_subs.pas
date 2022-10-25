@@ -3789,11 +3789,12 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
               press.  The first thing that needs to be checked is to see if there is a CW
               message being sent - or one in the cue - that needs to be aborted/deleted.  }
 
-            IF TBSIQ_CW_Engine.ClearMessages (Radio, True) THEN   { was something to stop }
-                BEGIN
-                ActionRequired := False;
-                Exit;
-                END;
+            IF Mode = CW THEN
+                IF TBSIQ_CW_Engine.ClearMessages (Radio, True) THEN   { was something to stop }
+                    BEGIN
+                    ActionRequired := False;
+                    Exit;
+                    END;
 
             { If there is no CW to be stopped / deleted, then the next thing the ESCAPE key will
               do is erase whatever data is in the current window }
