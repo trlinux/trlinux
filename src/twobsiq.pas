@@ -45,27 +45,36 @@ TODO LIST
  - RepeatSearchAndPounceExchange not used in 2BSIQ yet.  Will always use the non
    repeat one.
 
- - Steal QSO number from other radio if no activity?
-
  - Intiial exchange has a space?
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+ - Added new call window command UPDATEQSONR.  This will burn the current QSO number
+   and get a new one.  This is intended to be used when the QSO number is old and
+   you would rather send a more current number (instead of #2 on Sunday morning of
+   the SS).
+
 24-Oct-2022
+
+  - I added a way for the QSO number to be stolen from the other radio if it hasn't
+    been used.  This only works if the QSO number is greater than the one you just
+    gave out - and no keys have been typed in the other radio's window.
 
   - Fixed obscure bug where the routine to clear the CW messages was never coming
     back true indicating that a message was deleted.  This caused a small issue where
     hitting ESCAPE would both stop the CW message and also do the next thing the escape
-    key would have done with a 2nd press.
+    key would have done with a 2nd press.  Typically that meant clearing whatever was
+    in the active window.
 
   - Fixed bug introduced by adding station information after logging a QSO having the
     data come out in the call window of the 2nd radio.
 
-  - Shortened message about sending S&PExchange message if there is one.
+  - Shortened message about sending S&PExchange message if there is one - so that it
+    fits into the window.
 
   - Show station updated station information after logging a QSO.
 
-  - Remove WPM display if on SSB (okay - you don't have to do anything now).
+  - Remove WPM display if on SSB.
 
   - Improved listening time display with auto-CQ.
 

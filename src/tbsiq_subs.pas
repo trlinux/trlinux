@@ -1686,6 +1686,17 @@ VAR Key, ExtendedKey: CHAR;
                     CarriageReturn:
                         IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                             BEGIN
+                            IF WindowString = 'UPDATEQSONR' THEN
+                                BEGIN
+                                QSONumberForThisQSO := GetNextQSONumber;   { from LOGWIND }
+                                QSONumberUnused := True;
+                                DisplayQSONumber;
+                                CallwindowString := '';
+                                CallWindowCursorPosition := 1;
+                                ClrScr;
+                                Exit;
+                                END;
+
                             IF WindowString = '' THEN
                                 BEGIN
                                 SendFunctionKeyMessage (F1, Message);
@@ -1697,6 +1708,8 @@ VAR Key, ExtendedKey: CHAR;
                                 END
                             ELSE
                                 BEGIN  { We have a callsign to send }
+                                QSONumberUnused := False;
+
                                 IF StringIsAllNumbersOrDecimal (WindowString) THEN
                                     BEGIN
                                     IF Length (WindowString) = 3 THEN
