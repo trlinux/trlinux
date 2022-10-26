@@ -5773,7 +5773,13 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
                F2: CASE Mode OF
                        CW:      Message := SearchAndPounceExchange;
-                       Phone:   Message := SearchAndPouncePhoneExchange;
+
+                       Phone:   BEGIN
+                                Message := SearchAndPouncePhoneExchange;
+                                IF Message = '' THEN
+                                    Message := GetExMemoryString (Phone, Key);
+                                END;
+
                        Digital: Message := GetExMemoryString (Digital, Key);
                        END;  { of CASE Mode }
 

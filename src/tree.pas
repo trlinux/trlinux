@@ -2949,7 +2949,8 @@ VAR Key: CHAR;
 
 
             ELSE
-                IF Key >= Char ($20) THEN
+{               IF Key >= Char ($20) THEN    Changed 25-Oct-2022 to allow control chars and ^ }
+                IF Key <> CarriageReturn THEN
                     BEGIN
                     IF VirginEntry THEN
                         BEGIN

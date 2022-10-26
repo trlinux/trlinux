@@ -51,7 +51,12 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+
 25-Oct-2022
+
+ - If there is no SearchAndPouncePhoneExchange, then the program will try to use
+   the Exchange SSB Memory F2 when pressing F2.  If you want the S&P exchange sent
+   automatically when you press ENTER to log a QSO - use S&P SSB EXCHANGE.
 
  - Added display of countryID, sunrise/sunset times and beam heading.
  - Added AltH function (Help Menu)
