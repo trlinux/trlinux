@@ -271,6 +271,7 @@ PROCEDURE SetConfigurationDefaultValues;
     PacketSpotKey         := '`';
     PacketSpotPrefixOnly  := False; {KK1L: 6.72}
 
+    Packet.AutoSpotEnable    := False;  { Any S&P dupe check makes spot }
     Packet.FT8SpotEnable     := True;
     Packet.PacketBandSpots   := False;
     Packet.PacketBaudRate    := 2400;

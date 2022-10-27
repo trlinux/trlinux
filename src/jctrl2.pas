@@ -563,6 +563,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       NPP: NoPollDuringPTT        := NOT NoPollDuringPTT;
       PAL: PacketAddLF            := NOT PacketAddLF;
       PAR: PacketAutoCR           := NOT PacketAutoCR;
+      PAS: Packet.AutoSpotEnable  := NOT Packet.AutoSpotEnable;
 
       PBS: Packet.PacketBandSpots       := NOT Packet.PacketBandSpots;
       PBP: Packet.PacketBeep            := NOT Packet.PacketBeep;
@@ -1154,6 +1155,7 @@ VAR FileWrite: TEXT;
       NPP: WriteLn (FileWrite, NoPollDuringPTT);
       PAL: WriteLn (FileWrite, PacketAddLF);
       PAR: WriteLn (FileWRite, PacketAutoCR);
+      PAS: WriteLn (FileWrite, Packet.AutoSpotEnable);
       PBS: WriteLn (FileWrite, Packet.PacketBandSpots);
       PBP: WriteLn (FileWrite, Packet.PacketBeep);
       PF8: WriteLn (FileWrite, Packet.FT8SpotEnable);
@@ -1520,6 +1522,7 @@ VAR TempString: Str40;
 
       PAL: IF PacketAddLF THEN TempString := 'TRUE';
       PAR: IF PacketAutoCR THEN TempString := 'TRUE';
+      PAs: IF Packet.AutoSpotEnable THEN TempString := 'TRUE';
       PBS: IF Packet.PacketBandSpots THEN TempString := 'TRUE';
       PBP: IF Packet.PacketBeep THEN TempString := 'TRUE';
       PF8: IF Packet.FT8SpotEnable THEN TempString := 'TRUE';

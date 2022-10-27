@@ -2236,6 +2236,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'PACKET AUTO SPOT ENABLE' THEN
+        BEGIN
+        Packet.AutoSpotEnable := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'PACKET BAND SPOTS' THEN
         BEGIN
         Packet.PacketBandSpots := UpCase (CMD [1]) = 'T';
@@ -2249,7 +2256,6 @@ VAR xResult,tempint: INTEGER;
         ProcessConfigInstructions2 := (xResult = 0) AND (Packet.PacketBaudRate <= 9600);
         Exit;
         END;
-
 
     IF ID = 'PACKET BEEP' THEN
         BEGIN

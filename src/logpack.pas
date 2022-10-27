@@ -59,6 +59,7 @@ TYPE
         END;
 
     PacketObject = OBJECT
+        AutoSpotEnable:           BOOLEAN;    { If TRUE - any dupecheck in S&P makes spot }
         BroadcastAllPacketData:   BOOLEAN;
 
         EightBitPacketPort:       BOOLEAN;

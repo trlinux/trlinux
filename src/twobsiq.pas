@@ -51,6 +51,15 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+26-Oct-2022
+
+ - Added check for packet spots.
+
+ - Added support for Control-B to access packet window.
+
+ - Added new command - PACKET AUTO SPOT (jctrl) which when true will automatically
+   send spots to packet when doing a dupe check in SearchAndPounce
+
 
 25-Oct-2022
 

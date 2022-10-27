@@ -502,6 +502,31 @@ PROCEDURE QSOMachineOBject.DoPossibleCalls (Callsign: CallString);
 
 
 
+PROCEDURE CreateAndSendPacketSpot (PacketSpotCall: CallString;
+                                   PacketSpotFreq: LONGINT);
+
+VAR TempStr1, TempStr2, TempString: Str80;
+
+    BEGIN
+    { Make sure this isn't a CQ Entry in the bandmap }
+
+    TempStr1 := PrecedingString  (PacketSpotCall, '/');
+    TempStr2 := PostcedingString (PacketSpotCall, '/');
+
+    IF (TempStr1 = 'CQ') AND StringIsAllNumbers (TempStr2) THEN
+        EXIT;
+
+    Str (PacketSpotFreq, TempString);
+
+    Delete (TempString, Length (TempString) - 1, 2);
+    Insert ('.', TempString, Length (TempString));
+
+    TempString := 'DX ' + TempString + ' ' + PacketSpotCall;
+    SendPacketMessage (TempString + CarriageReturn);
+    END;
+
+
+
 FUNCTION QSOMachineObject.WindowDupeCheck: BOOLEAN;
 
 { Taken from LOGSUBS2.  Returns TRUE if the CallWindow is a dupe.
@@ -518,6 +543,14 @@ VAR RememberTime: TimeRecord;
 
     BandMapBand := Band;
     BandMapMode := Mode;
+
+    { Might we want to send a spot to packet? }
+
+    IF QSOState = QST_SearchAndPounce THEN
+        IF Packet.AutoSpotEnable THEN
+            IF ActivePacketPort <> nil THEN
+                IF NOT PacketSpotDisable THEN
+                    CreateAndSendPacketSpot (CallWindowString, Frequency);
 
     IF VisibleLog.CallIsADupe (CallWindowString, Band, Mode) THEN
         BEGIN
@@ -603,6 +636,7 @@ VAR RememberTime: TimeRecord;
             DisablePutUpBandMapCall := False;
             END;
         END;
+
     END;
 
 
@@ -1035,6 +1069,8 @@ VAR TimeString, FullTimeString, HourString: Str20;
     BEGIN
     TBSIQ_CheckDualingCQState;  { The orchestral director of the dualing CQ process }
     TBSIQ_CheckBandMap;         { Sees if the bandmap is on the right radio }
+
+    Packet.CheckPacket;         { See if any spots have come in for the bandmap }
 
     { See if the clock has ticked a second }
 
@@ -3624,6 +3660,122 @@ PROCEDURE QSOMachineObject.DisplayCodeSpeed;
 
 
 
+PROCEDURE PacketWindow;
+
+VAR Key: CHAR;
+    TimeMark: TimeRecord;
+
+    BEGIN
+    PacketWindowUp := True;
+    RITEnable := False;
+    QuickDisplay ('You are now talking to your packet port.  Use Control-B to exit.');
+
+    SaveSetAndClearActiveWindow (DupeSheetWindow);
+    ClrScr;
+    Packet.DisplayPacketDisplayBuffer;
+
+    { Show chars from incomplete line that isn't in the PacketDisplayBuffer }
+
+    Write (Packet.PacketDisplayLine);
+
+    MarkTime (TimeMark);
+
+    REPEAT
+        IF NewKeyPressed THEN
+            BEGIN
+            MarkTime (TimeMark);
+
+            Key := NewReadKey;
+
+            IF Key = ControlB THEN
+                BEGIN
+                RestorePreviousWindow;
+                RemoveWindow (BigWindow);
+                VisibleLog.SetUpEditableLog;
+                UpdateTotals;
+                VisibleLog.ShowRemainingMultipliers;
+                VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
+
+                IF VisibleDupeSheetEnable THEN
+                    BEGIN
+                    VisibleDupeSheetChanged := True;
+                    VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
+                    END;
+
+                RemoveWindow (QuickCommandWindow);
+                PacketWindowUp := False;
+                RITEnable := True;
+                Exit;
+                END;
+
+            { I am not going to support any commands like we do in the classic version }
+
+            IF Key = NullKey THEN
+                BEGIN
+                Key := NewReadKey;
+
+                CASE Key OF
+
+//These send the arrow key combinations that
+//should give the command history for a linux shell
+
+                  UpArrow:  BEGIN
+                    SendChar (ActivePacketPort,chr($1b));
+                    SendChar (ActivePacketPort,chr($5b));
+                    SendChar (ActivePacketPort,chr($41));
+                    END;
+
+                  DownArrow: BEGIN
+                    SendChar (ActivePacketPort,chr($1b));
+                    SendChar (ActivePacketPort,chr($5b));
+                    SendChar (ActivePacketPort,chr($42));
+                    END;
+
+                  LeftArrow: BEGIN
+                    SendChar (ActivePacketPort,chr($1b));
+                    SendChar (ActivePacketPort,chr($5b));
+                    SendChar (ActivePacketPort,chr($44));
+                    END;
+
+                  RightArrow: BEGIN
+                    SendChar (ActivePacketPort,chr($1b));
+                    SendChar (ActivePacketPort,chr($5b));
+                    SendChar (ActivePacketPort,chr($43));
+                    END;
+                  END;  { of CASE ExtendedKey }
+                END
+
+            ELSE       { not Control-B }
+                SendChar (ActivePacketPort, Key)
+            END;
+
+        Packet.CheckPacketBuffer (True);
+        Packet.CheckPacketMessage;
+
+        Wait (4);
+    UNTIL ElaspedSec100 (TimeMark) > 2000;   { Timeout }
+
+    RestorePreviousWindow;
+
+    RemoveWindow (BigWindow);
+    VisibleLog.SetUpEditableLog;
+    UpdateTotals;
+    VisibleLog.ShowRemainingMultipliers;
+    VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
+
+    IF VisibleDupeSheetEnable THEN
+        BEGIN
+        VisibleDupeSheetChanged := True;
+        VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
+        END;
+
+    RemoveWindow (QuickCommandWindow);
+    PacketWindowUp := False;
+    RITEnable := True;
+    END;
+
+
+
 PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
                                          VAR KeyChar: CHAR;
                                          VAR ExtendedKeyChar: CHAR;
@@ -3658,6 +3810,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     Key, PreviousCursorChar: CHAR;
     Message, TempString: STRING;
     TempExchange: ContestExchange;
+    PacketSpotCall: CallString;
 
     BEGIN
     BeSilent := False;   { Set this TRUE when exiting if you don't want CW sent }
@@ -3749,6 +3902,26 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     IF KeyChar = QuickQSLKey1 THEN Exit;
     IF KeyChar = QuickQSLKey2 THEN Exit;
     IF KeyChar = TailEndKey THEN Exit;
+
+    { Deal with packet spot key }
+
+    IF KeyChar = PacketSpotKey THEN
+        BEGIN
+        IF ActivePacketPort <> nil THEN
+            IF NOT PacketSpotDisable THEN
+                BEGIN
+                IF ActiveWindow = CallWindow THEN
+                    PacketSpotCall := WindowString
+                ELSE
+                    PacketSpotCall := CallWindowString;
+
+                IF PacketSpotCall <> '' THEN
+                    CreateAndSendPacketSpot (PacketSpotCall, Frequency);
+                END;
+
+        ActionRequired := False;
+        Exit;
+        END;
 
     IF KeyChar = PossibleCallRightKey THEN
         BEGIN
@@ -3870,6 +4043,14 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                        (PreviousCursorChar = ' ')) OR (CursorPosition = 1);
 
                 GoToXY (CursorPosition, WhereY);
+                END;
+
+
+        ControlB:
+            IF ActivePacketPort <> nil THEN
+                BEGIN
+                PacketWindow;
+                ClearKeyCache := True;
                 END;
 
         ControlC: Exit;   { Vertical move takes us out of this window }
@@ -4961,9 +5142,9 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
                 KeyStatus.KeyChar := '''';
 
         41: IF ShiftKey THEN                    { ` key }
-                KeyStatus.KeyChar := '`'
+                KeyStatus.KeyChar := '~'
             ELSE
-                KeyStatus.KeyChar := '~';
+                KeyStatus.KeyChar := '`';
 
         43: BEGIN
             KeyStatus.KeyChar := '\';
