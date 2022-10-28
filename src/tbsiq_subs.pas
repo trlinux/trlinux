@@ -6151,14 +6151,16 @@ VAR I: INTEGER;
 
         RData.Frequency  := Freq;
 
-        IF Mode = PHONE THEN
+        IF RData.Mode = PHONE THEN
             DefaultRST := '59'
         ELSE
             DefaultRST := '599';
 
         IF RData.RSTSent = '' THEN
-            IF ActiveMode = Phone THEN RData.RSTSent := LogRSSent
-            ELSE RData.RSTSent := LogRSTSent;
+            IF RData.Mode = Phone THEN
+                RData.RSTSent := LogRSSent
+            ELSE
+                RData.RSTSent := LogRSTSent;
 
         LocateCall (RData.Callsign, Rdata.QTH, True);
 
@@ -6211,8 +6213,10 @@ VAR I: INTEGER;
     RData.Frequency  := Freq;
 
     IF RData.RSTSent = '' THEN
-        IF ActiveMode = Phone THEN RData.RSTSent := LogRSSent
-        ELSE RData.RSTSent := LogRSTSent;
+        IF RData.Mode = Phone THEN
+            RData.RSTSent := LogRSSent
+        ELSE
+            RData.RSTSent := LogRSTSent;
 
     IF ActiveMode = PHONE THEN
         DefaultRST := '59'
