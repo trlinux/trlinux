@@ -55,6 +55,7 @@ TYPE
                           QST_AutoCQCalling,
                           QST_AutoCQListening,
                           QST_CQCalled,
+                          QST_AltDInput,
                           QST_AutoStartSending,
                           QST_CQStationBeingAnswered,
                           QST_CQStationBeingAnsweredSilent,
@@ -93,6 +94,7 @@ TYPE
         CallsignICameBackTo: STRING;
         CallWindowString: STRING;
         CallWindowCursorPosition: INTEGER;
+        CharacterInput: CHAR;                  { Used to send letters to the other radio }
         ClearKeyCache: BOOLEAN;
         CodeSpeed: INTEGER;
         CWMessageDisplayed: STRING;
@@ -132,11 +134,10 @@ TYPE
 
         QSOState: TBSIQ_QSOStateType;
 
-        PreviousQSOState: TBSIQ_QSOStateType;
-
         RadioFrequencySettledCount: INTEGER;
         RadioMovingInBandMode: BOOLEAN; { Replaces the classis RadioMovingInBandMode [radio] }
         RadioOnTheMove: BOOLEAN;        { Replaces the classic RadioOntheMove [radio] }
+        RememberQSOState: TBSIQ_QSOStateType;
 
         SCPScreenFull: BOOLEAN;
         SearchAndPounceStationCalled: BOOLEAN;
@@ -612,6 +613,7 @@ VAR RememberTime: TimeRecord;
             CallWindowString := '';
             END;
 
+        ShowCWMessage (CallWindowString + ' is a DUPE!');
         ClrScr;
         CallWindowString := '';
         CallWindowCursorPosition := 1;
@@ -1483,7 +1485,7 @@ VAR CharacterCount: INTEGER;
 
             ':': BEGIN   { Forget everything and setup to send CW from keyboard }
                  ExpandCrypticString := '';  { Make sure we don't try to send something }
-                 PreviousQSOState := QSOState;
+                 RememberQSOState := QSOState;
                  QSOState := QST_StartSendingKeyboardCW;
                  Exit;
                  END;
@@ -1666,6 +1668,18 @@ VAR Key, ExtendedKey: CHAR;
     IF ActionRequired AND DisableTransmitting THEN Exit;
 
     CASE QSOState OF
+
+        QST_AltDInput:    { Send characters to the other radio's call window }
+            BEGIN
+            IF ActionRequired THEN
+                CASE Radio OF
+                    RadioOne: Radio2QSOMachine.CharacterInput := Key;
+                    RadioTwo: Radio1QSOMachine.CharacterInput := Key;
+                    END;
+
+            IF Key = CarriageReturn THEN
+                QSOState := RememberQSOState;
+            END;
 
         QST_Idle, QST_CQCalled:
             BEGIN
@@ -2435,7 +2449,7 @@ VAR Key, ExtendedKey: CHAR;
                 CASE Key OF
                     CarriageReturn, EscapeKey:
                         BEGIN
-                        QSOState := PreviousQSOState;
+                        QSOState := RememberQSOState;
                         Exit;
                         END;
 
@@ -3083,6 +3097,7 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         END;
 
     CASE QSOState OF
+        QST_AltDInput: Write ('Sending inpput to other radio');
         QST_Idle: Write ('CQ Mode - Idle');
         QST_AutoStartSending: Write ('Auto start send started');
         QST_CallingCQ: Write ('CQing');
@@ -3207,6 +3222,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     AutoStartSendStationCalled := False;
     CallWindowString := '';
     CallWindowCursorPosition := 1;
+    Characterinput := Chr(0) ;
     CodeSpeed := SpeedMemory [Radio];
     CWMessageDisplayed := '';
     DisablePutUpBandMapCall := False;
@@ -3844,7 +3860,8 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
         Exit;
         END;
 
-    IF NOT TBSIQ_KeyPressed (Radio) THEN Exit;  { No reason to be here }
+    IF NOT ((TBSIQ_KeyPressed (Radio)) OR (CharacterInput <> Chr (0))) THEN
+        Exit;  { No reason to be here }
 
     { A keystroke will stop the DualingCQ activity.  Note that you are likely
       on the wrong radio with the CW }
@@ -3861,6 +3878,34 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
       and cursor positions }
 
     SetTBSIQWindow (TBSIQ_ActiveWindow);  { Sets cursor }
+
+    { Deal with the case where someone is sending us a character }
+
+    IF CharacterInput <> Chr (0) THEN   { Someone is talking to us }
+        BEGIN
+        IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+            BEGIN
+            IF CharacterInput <> CarriageReturn THEN
+                BEGIN
+                CallWindowString := CallWindowString + CharacterInput;
+                ClrScr;
+                Write (CallWindowString);
+                CallWindowCursorPosition := Length (CallWindowString) + 1;
+                ActionRequired := False;
+                END;
+
+            IF CharacterInput = CarriageReturn THEN   { end of input - do dupe check }
+                IF WindowDupecheck THEN
+                    BEGIN
+                    CallWindowString := '';
+                    CallWindowCursorPosition := 1;
+                    ClrScr;
+                    END;
+            END;
+
+        CharacterInput := Chr (0);
+        Exit;
+        END;
 
     CASE TBSIQ_ActiveWindow OF
         TBSIQ_CallWindow:
@@ -3879,6 +3924,12 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     { See what key was pressed }
 
     KeyChar := UpCase (TBSIQ_ReadKey (Radio));
+
+    IF QSOState = QST_AltDInput THEN   { send this to the other radio }
+        BEGIN
+        ActionRequired := True;
+        Exit;
+        END;
 
     { Default conditions if we exit soon }
 
@@ -4330,7 +4381,14 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                           END;
                       END;
 
-                AltE: BEGIN
+                  AltD:
+                      BEGIN
+                      RememberQSOState := QSOState;
+                      QSOState := QST_AltDInput;
+                      ActionRequired := False;
+                      END;
+
+                  AltE: BEGIN
                       RITEnable := False;
                       VisibleLog.EditLog;
 

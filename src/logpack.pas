@@ -29,7 +29,7 @@ INTERFACE
 
 
 USES LogDupe, LogEdit, LogStuff, LogK1EA, Country9, Tree, LogWind, trCrt,
-     LogGrid;
+     LogGrid,LogHelp;
 
 CONST PacketSpotListLength = 10;
 TYPE
@@ -715,7 +715,7 @@ VAR DXSpot: DXSpotType;
 
     { Might this be a talk or an announce message that I need to display? }
 
-    IF TalkOrAnnounceMessage (Message) THEN
+    IF (TalkOrAnnounceMessage (Message)) AND NOT Doing2BSIQ THEN
         BEGIN
         IF PacketBeep THEN Tone.DoABeep (Single);
 

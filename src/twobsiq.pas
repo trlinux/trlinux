@@ -60,6 +60,12 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
  - Added new command - PACKET AUTO SPOT (jctrl) which when true will automatically
    send spots to packet when doing a dupe check in SearchAndPounce
 
+27-Oct-2022
+
+  - Added Alt-D command which will send input to the call window of the other radio
+    and then do a dupecheck when hitting RETURN.
+
+  - Eliminated packet messages from showing up using QuickDisplay
 
 25-Oct-2022
 
