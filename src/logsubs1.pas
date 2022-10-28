@@ -110,13 +110,179 @@ VAR FileName: Str80;
     END;
 
 
+PROCEDURE SendCrypticDigitalStringToK3 (SendString: Str160);
+
+{ Doesn't send the characters one by one.  }
+
+VAR StringPointer, QSONumber: INTEGER;
+    Result, Entry, Offset: INTEGER;
+    SendChar, TempChar: CHAR;
+    TempCall: CallString;
+    TempString: Str80;
+    OutputString: STRING;
+
+    BEGIN
+    OutputString := '';
+
+    StringPointer := 1;   { Point to first character }
+
+    WHILE StringPointer <= Length (SendString) DO
+        BEGIN
+        SendChar := SendString [StringPointer];
+
+        CASE SendChar OF
+            '#': BEGIN
+                 QSONumber := QSONumberForThisQSO;
+
+                 IF TailEnding THEN Inc (QSONumber);
+
+                 { We automatically decrement the QSO number if repeating w/o new call }
+
+                 IF AutoQSONumberDecrement THEN
+                     IF (ActiveWindow = CallWindow) AND
+                        (CallWindowString = '') AND (ExchangeWindowString = '') THEN
+                            Dec (QSONumber);
+
+                 { Peek ahead and see if we have a + or - character }
+
+                 IF Length (SendString) >= StringPointer + 1THEN
+                     BEGIN
+                     TempChar := SendString [StringPointer + 1];
+
+                     IF TempChar = '+' THEN
+                         BEGIN
+                         TempChar := SendString [StringPointer + 2];
+                         Val (TempChar, Offset, Result);
+
+                         IF Result = 0 THEN
+                             BEGIN
+                             QSONumber := QSONumber + Offset;
+                             StringPointer := StringPointer + 2;   { Skip over two additonal chars }
+                             END;
+                         END;
+
+                     IF TempChar = '-' THEN
+                         BEGIN
+                         TempChar := SendString [StringPointer + 2];
+                         Val (TempChar, Offset, Result);
+
+                         IF Result = 0 THEN
+                             BEGIN
+                             QSONumber := QSONumber - Offset;
+                             StringPointer := StringPointer + 2;   { Skip over two additional chars }
+                             END;
+                         END;
+                     END;
+
+                 TempString := QSONumberString (QSONumber);
+
+                 OutputString := OutputString + TempString;
+
+                 WHILE LeadingZeros > Length (TempString) DO
+                     TempString := LeadingZeroCharacter + TempString;
+
+                 OutputString := OutputString + TempString;
+                 END;
+
+            '@': BEGIN
+                 IF CallsignUpdateEnable THEN
+                     BEGIN
+                     TempString := GetCorrectedCallFromExchangeString (ExchangeWindowString);
+
+                     IF TempString <> '' THEN
+                         BEGIN
+                         CallWindowString := TempString;
+                         CallsignICameBackTo := TempString;
+                         END;
+                     END;
+
+                IF CallWindowString <> '' THEN
+                     OutputString := OutputString + CallWindowString;
+                END;
+
+            ':': SendKeysToRTTY;
+
+            '\': OutputString := OutputString + MyCall;
+
+            '|': IF ReceivedData.Name <> '' THEN
+                     ContinueRTTYTransmission (ReceivedData.Name + ' ');
+
+            '{': OutputString := OutputString + ReceivedData.Callsign;
+
+            '>': ClearRIT;
+
+            ')': OutputString := OutputString + VisibleLog.LastCallsign;
+
+            '(': IF TotalContacts = 0 THEN
+                     BEGIN
+                     IF MyName <> '' THEN
+                         OutputString := OutputString + MyName
+                     ELSE
+                         OutputString := OutputString + MyPostalCode;
+                     END
+                 ELSE
+                     BEGIN
+                     TempString := '';
+                     Entry := 5;
+
+                     WHILE (TempString= '') AND (Entry > 0) DO
+                         BEGIN
+                         TempString := VisibleLog.LastName (Entry);
+                         Dec (Entry);
+                         END;
+
+                     OutputString := OutputString + TempString;
+                     END;
+
+
+            ControlW: OutputString := OutputString + VisibleLog.LastName (4);
+
+            ControlR: BEGIN
+                      ReceivedData.RandomCharsSent := '';
+
+                      REPEAT
+                          ReceivedData.RandomCharsSent :=
+                            ReceivedData.RandomCharsSent +
+                            Chr (Random (25) + Ord ('A'));
+                      UNTIL Length (ReceivedData.RandomCharsSent) = 5;
+
+                      OutputString := OutputString + ReceivedData.RandomCharsSent;
+
+                      SaveSetAndClearActiveWindow (DupeInfoWindow);
+                      Write ('Sent = ', ReceivedData.RandomCharsSent);
+                      RestorePreviousWindow;
+                      END;
+
+            ControlT: OutputString := OutputString + ReceivedData.RandomCharsSent;
+
+            ControlU: BEGIN
+                      TempCall := GetCorrectedCallFromExchangeString (ExchangeWindowString);
+
+                      IF TempCall <> '' THEN
+                          CallSignICameBackTo := TempString
+                      ELSE
+                          CallsignICameBackTo := CallWindowString;
+
+                      ShowStationInformation (CallsignICameBackTo);
+                      END;
+
+            ELSE OutputString := OutputString + SendChar;
+            END;  { of case SendChar }
+
+        Inc (StringPointer);
+        END;
+
+    FinishRTTYTransmission (OutputString);
+    END;
+
+
 
 PROCEDURE SendCrypticDigitalString (SendString: Str160);
 
 { Control-A will put the message out on the InactiveRadio and set the flag
   InactiveRadioSendingCW.  It does not change the ActiveRadio any more.
 
-  If you decide to answer someone who responds to CW on the inactive radio,
+  If you decide to answer someone who responds to the inactive radio,
   you will want to call SwapRadios.  This will now make Control-A messages
   be sent on the new inactive radio (which is probably what you want).   }
 
@@ -132,10 +298,30 @@ VAR CharacterCount, QSONumber: INTEGER;
     BEGIN
     IF Length (SendString) = 0 THEN Exit;
 
+    CASE ActiveRadio OF
+        RadioOne:
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                BEGIN
+                SendCrypticDigitalStringToK3 (SendString);
+                Exit;
+                END;
+
+        RadioTwo:
+            IF (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4) THEN
+                BEGIN
+                SendCrypticDigitalStringToK3 (SendString);
+                Exit;
+                END;
+
+        END;  { of case }
+
+    { Legacy stuff }
+
     IF NOT RTTYTransmissionStarted THEN
         StartRTTYTransmission ('');
 
     cc := 0;
+
     FOR CharacterCount := 1 TO Length (SendString) DO
         BEGIN
         cc := cc + 1;
@@ -144,7 +330,7 @@ VAR CharacterCount, QSONumber: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 QSONumber := TotalContacts + 1;
+                 QSONumber := QSONumberForThisQSO;  { Get the # that was reserved }
 
                  IF TailEnding THEN Inc (QSONumber);
 
@@ -499,7 +685,6 @@ VAR FileName, QSONumberString: Str20;
        ((Key >= AltF11)     AND (Key <= AltF12)) THEN
            BEGIN
            MessageKey := Key;
-           {QuickDisplay2('SendFunctionKeyMessage');}
 
            IF (ActiveMode = Phone) AND (DVPEnable OR DVKEnable) THEN
                IF (Key >= ControlF1) AND (Key <= ControlF10)
@@ -511,7 +696,6 @@ VAR FileName, QSONumberString: Str20;
            ELSE
                Message := GetEXMemoryString (ActiveMode, MessageKey); {KK1L: 6.73 Added mode}
 
-           {QuickDisplay2('SendFunctionKeyMessage..1');}
            FoundCommand (Message);
 
            IF Message = '' THEN Exit;    { Nothing left }
@@ -528,7 +712,6 @@ VAR FileName, QSONumberString: Str20;
                UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 30);
                END;
 
-           {QuickDisplay2('SendFunctionKeyMessage..1..2');}
            InactiveRigCallingCQ := False;
            SetUpToSendOnActiveRadio;
 
@@ -546,7 +729,6 @@ VAR FileName, QSONumberString: Str20;
                    IF Pos (ControlD, Message) = 0 THEN FlushCWBufferAndClearPTT;
                END;
 
-           {QuickDisplay2('SendFunctionKeyMessage..1..2..3');}
            { Special short cut way to program DVP }
 
            IF (ActiveMode = Phone) AND DVPEnable AND (Key >= ControlF1) AND (Key <= ControlF10) THEN
@@ -599,6 +781,7 @@ VAR FileName, QSONumberString: Str20;
                END;
 
            { Finally we are ready to send the message }
+
            IF ((Key >= F1) AND (Key <= AltF10)) OR ((Key >= F11) AND (Key <= AltF11)) THEN
                 BEGIN
                 SendCrypticMessage (Message);
@@ -611,7 +794,7 @@ VAR FileName, QSONumberString: Str20;
                             BEGIN
                             IF LastDisplayedFreq [RadioOne] <> 0 THEN
                                 BEGIN
-                                Str (TotalContacts + 1, QSONumberString);
+                                Str (QSONumberForThisQSO, QSONumberString);
 
                                 {BandMapCursorFrequency := LastDisplayedFreq [RadioOne];}
 
@@ -628,7 +811,7 @@ VAR FileName, QSONumberString: Str20;
 
                             IF LastDisplayedFreq [RadioTwo] <> 0 THEN
                                 BEGIN
-                                Str (TotalContacts + 1, QSONumberString);
+                                Str (QSONumberForThisQSO, QSONumberString);
                                 { BandMapCursorFrequency := Frequency;}
 
                                 NewBandMapEntry ('CQ/' + QSONumberString,
@@ -689,6 +872,7 @@ VAR Name: Str20;
         IF (CQExchangeNameKnown <> '') AND SayHiEnable THEN
             BEGIN
             Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
+
             IF (Name = '') OR (Name = 'CLUB') THEN
                 SendCrypticMessage (CQExchange)
             ELSE
@@ -858,7 +1042,7 @@ VAR TimeOut: INTEGER;
     UpdateTotals;
 
     IF QSONumberByBand THEN
-        DisplayNextQSONumber (TotalContacts + 1);
+        DisplayNextQSONumber (QSONumberForThisQSO);
 
     IF MultByBand THEN
         BEGIN
@@ -975,7 +1159,7 @@ VAR TimeOut: INTEGER;
     UpdateTotals;
 
     IF QSONumberByBand THEN
-        DisplayNextQSONumber (TotalContacts + 1);
+        DisplayNextQSONumber (QSONumberForThisQSO);
 
     IF MultByBand THEN
         BEGIN

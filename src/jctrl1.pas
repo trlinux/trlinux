@@ -135,10 +135,12 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MIO,
                       MZN,
                       NFE,
+                      NEQ,
                       NLQ,
                       NPP,
                       PAL,
                       PAR,
+                      PAS,
                       PBS,
                       PBP,
                       PF8,
@@ -367,11 +369,13 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MZN: Description := 'MY ZONE';
 
       NFE: Description := 'NAME FLAG ENABLE';
+      NEQ: Description := 'NEXT QSO NUMBER';
       NLQ: Description := 'NO LOG';
       NPP: Description := 'NO POLL DURING PTT';
 
       PAL: Description := 'PACKET ADD LF';
       PAR: Description := 'PACKET AUTO CR';
+      PAS: Description := 'PACKET AUTO SPOT ENABLE';
       PBS: Description := 'PACKET BAND SPOTS';
       PBP: Description := 'PACKET BEEP';
       PF8: Description := 'PACKET FT8 SPOTS';
@@ -683,11 +687,13 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MIO: Write (MyIOTA);
       MZN: Write (MyZone);
       NFE: Write (NameFlagEnable);
+      NEQ: Write (NextQSONumberToGiveOut);
       NLQ: Write (NoLog);
       NPP: Write (NoPollDuringPTT);
 
       PAL: Write (PacketAddLF);
       PAR: Write (PacketAutoCR);
+      PAS: Write (Packet.AutoSpotEnable);
       PBS: Write (Packet.PacketBandSpots);
       PBP: Write (Packet.PacketBeep);
       PF8: Write (Packet.FT8SpotEnable);
@@ -1347,6 +1353,8 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('No asterisk to flag known names');
 
+      NEQ: Write ('Next QSO number to be given out');
+
       NLQ: IF NoLog THEN
                Write ('No QSOs can be logged on this computer')
            ELSE
@@ -1366,6 +1374,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Return sent when exiting Control-B')
            ELSE
                Write ('No return sent when exiting Control-B');
+
+      PAS: IF Packet.AutoSpotEnable THEN
+               Write ('S&P dupecheck sends packet spot')
+           ELSE
+               Write ('S&P dupecheck does not send spot');
 
       PBS: IF Packet.PacketBandSpots THEN
                Write ('Packet spots shown only for active band')

@@ -214,7 +214,6 @@ VAR AccumulateQSOPoints:   BOOLEAN;
 
     ReNumberQSONumbers: BOOLEAN;
     ReportEntries:      ReportEntryArrayPointer;
-    xResult:             INTEGER;
 
     SeparateBandLogs:    BOOLEAN;
     SeparateModeLogs:    BOOLEAN;
@@ -1272,7 +1271,7 @@ VAR FileNumber: INTEGER;
 
 FUNCTION GetDayOfYear (DateString: Str20; VAR Year: INTEGER): INTEGER;
 
-VAR Day, xResult, Month, MonthAdder: INTEGER;
+VAR Day, Month, MonthAdder: INTEGER;
     DayString, MonthString, YearString: Str20;
 
     BEGIN
@@ -1280,9 +1279,8 @@ VAR Day, xResult, Month, MonthAdder: INTEGER;
     MonthString := Copy (DateString, 4, 3);
     YearString  := Copy (DateString, 8, 2);
 
-    Val (DayString, Day, xResult);
-
-    Val (YearString, Year, xResult);
+    Val (DayString, Day);
+    Val (YearString, Year);
 
     MonthString := UpperCase (MonthString);
 
@@ -1472,14 +1470,14 @@ VAR FebDays: INTEGER;
 
 PROCEDURE ChangeTime (VAR DateString: Str20; VAR TimeString: Str20; Offset: INTEGER);
 
-VAR Minute, Hour, TimeMinutes, xResult: INTEGER;
+VAR Minute, Hour, TimeMinutes: INTEGER;
     DayOffset: INTEGER;
     DayofYear, Year: INTEGER;
     MinuteString, HourString: Str20;
 
     BEGIN
-    Val (PostcedingString (TimeString, ':'), Minute, xResult);
-    Val (PrecedingString  (TimeString, ':'), Hour,   xResult);
+    Val (PostcedingString (TimeString, ':'), Minute);
+    Val (PrecedingString  (TimeString, ':'), Hour);
 
     TimeMinutes := (Hour * 60) + Minute;
 

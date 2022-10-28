@@ -63,14 +63,12 @@ TYPE
                 Band24G, BandLight, All, NoBand);
 
 
-     ModeType = (CW, Digital, Phone, Both, NoMode, FM);  { Use for TR }
-{    ModeType = (CW, Phone, Both, NoMode, FM, Digital);   }{ Use for calltest }
+    ModeType = (CW, Digital, Phone, Both, NoMode, FM);  { Use for TR }
 
     MultiBandAddressArrayType = ARRAY [BandType] OF BYTE;
 
 
 CONST
-
     HexChars: ARRAY [0..$F] of Char = '0123456789ABCDEF';
 
     BandString: ARRAY [BandType] OF STRING [3] = ('160',
@@ -321,6 +319,7 @@ VAR CodeSpeed:  BYTE;
 
     PROCEDURE IncrementASCIIInteger (VAR ASCIIString: Str80);
     PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
+
     FUNCTION  WordValueFromCharacter (Character: CHAR): WORD;
 
 
@@ -701,6 +700,7 @@ FUNCTION  NUMBYTES (Call1: Pointer; Call2: Pointer): INTEGER;CDECL;EXTERNAL;
     procedure lsound(Hz: Integer);CDECL;external;
     procedure lnosound;CDECL;external;
 
+
 
 FUNCTION AddBand (Band: BandType): CHAR;
 
@@ -2949,7 +2949,8 @@ VAR Key: CHAR;
 
 
             ELSE
-                IF Key >= Char ($20) THEN
+{               IF Key >= Char ($20) THEN    Changed 25-Oct-2022 to allow control chars and ^ }
+                IF Key <> CarriageReturn THEN
                     BEGIN
                     IF VirginEntry THEN
                         BEGIN

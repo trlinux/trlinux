@@ -29,7 +29,7 @@ INTERFACE
 
 
 USES LogDupe, LogEdit, LogStuff, LogK1EA, Country9, Tree, LogWind, trCrt,
-     LogGrid;
+     LogGrid,LogHelp;
 
 CONST PacketSpotListLength = 10;
 TYPE
@@ -59,6 +59,7 @@ TYPE
         END;
 
     PacketObject = OBJECT
+        AutoSpotEnable:           BOOLEAN;    { If TRUE - any dupecheck in S&P makes spot }
         BroadcastAllPacketData:   BOOLEAN;
 
         EightBitPacketPort:       BOOLEAN;
@@ -714,7 +715,7 @@ VAR DXSpot: DXSpotType;
 
     { Might this be a talk or an announce message that I need to display? }
 
-    IF TalkOrAnnounceMessage (Message) THEN
+    IF (TalkOrAnnounceMessage (Message)) AND NOT Doing2BSIQ THEN
         BEGIN
         IF PacketBeep THEN Tone.DoABeep (Single);
 
@@ -1000,7 +1001,7 @@ PROCEDURE PacketObject.PushPacketSpot (DXSpot: DXSpotType);
 
     BEGIN
     WITH DXSpot DO
-        IF SpotMode = NormalSpot THEN
+        IF (SpotMode = NormalSpot) AND NOT Doing2BSIQ THEN
             BEGIN
             IF PacketBeep THEN Tone.DoABeep (Single);
 

@@ -876,6 +876,7 @@ VAR xResult, Speed, TempValue: INTEGER;
            END;
 
         DVKEnable := ActiveDVKPort <> nil;
+
         IF ActiveDVKPort <> nil THEN
             BEGIN
             SetCQMemoryString (Phone,  F1, 'DVK1');
@@ -1213,6 +1214,77 @@ VAR xResult, Speed, TempValue: INTEGER;
         IF ID = '10' THEN BEGIN SetExMemoryString (Phone, ControlF10, CMD); Exit; END;
         IF ID = '11' THEN BEGIN SetExMemoryString (Phone, ControlF11, CMD); Exit; END;
         IF ID = '12' THEN BEGIN SetExMemoryString (Phone, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX DIGITAL MEMORY F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'MEMORY F');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryString (Digital, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryString (Digital, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryString (Digital, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryString (Digital, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryString (Digital, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryString (Digital, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryString (Digital, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryString (Digital, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryString (Digital, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryString (Digital, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryString (Digital, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryString (Digital, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+
+
+    IF StringHas (ID, 'EX DIGITAL MEMORY ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryString (Digital, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryString (Digital, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryString (Digital, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryString (Digital, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryString (Digital, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryString (Digital, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryString (Digital, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryString (Digital, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryString (Digital, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryString (Digital, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryString (Digital, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryString (Digital, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX DIGITAL MEMORY CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryString (Digital, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryString (Digital, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryString (Digital, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryString (Digital, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryString (Digital, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryString (Digital, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryString (Digital, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryString (Digital, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryString (Digital, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryString (Digital, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryString (Digital, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryString (Digital, ControlF12, CMD); Exit; END;
 
         ProcessConfigInstructions1 := False;
         Exit;
@@ -2164,6 +2236,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'PACKET AUTO SPOT ENABLE' THEN
+        BEGIN
+        Packet.AutoSpotEnable := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'PACKET BAND SPOTS' THEN
         BEGIN
         Packet.PacketBandSpots := UpCase (CMD [1]) = 'T';
@@ -2177,7 +2256,6 @@ VAR xResult,tempint: INTEGER;
         ProcessConfigInstructions2 := (xResult = 0) AND (Packet.PacketBaudRate <= 9600);
         Exit;
         END;
-
 
     IF ID = 'PACKET BEEP' THEN
         BEGIN
@@ -2822,8 +2900,20 @@ VAR xResult,tempint: INTEGER;
 
         IF Copy (CMD, 1, 2) = 'K2' THEN
             BEGIN
-            {Radio1Type := K2;}
-            Radio1Type := TS850; {KK1L:6.73 missing "OR K2"s in TS850 statements in LOGSUBS2. Easier fix!}
+            Radio1Type := K2;
+            Radio1ControlDelay := 1;
+            END;
+
+        IF Copy (CMD, 1, 2) = 'K3' THEN
+            BEGIN
+            Radio1Type := K3;
+            Radio1ControlDelay := 1;
+            END;
+
+        IF Copy (CMD, 1, 2) = 'K4' THEN
+            BEGIN
+            WriteLn ('K4 found');
+            Radio1Type := K4;
             Radio1ControlDelay := 1;
             END;
 
@@ -2990,8 +3080,19 @@ VAR xResult,tempint: INTEGER;
 
         IF Copy (CMD, 1, 2) = 'K2' THEN
             BEGIN
-            {Radio2Type := K2;}
-            Radio2Type := TS850; {KK1L:6.73 missing "OR K2"s in TS850 statements in LOGSUBS2. Easier fix!}
+            Radio2Type := K2;
+            Radio2ControlDelay := 1;
+            END;
+
+        IF Copy (CMD, 1, 2) = 'K3' THEN
+            BEGIN
+            Radio2Type := K3;
+            Radio2ControlDelay := 1;
+            END;
+
+        IF Copy (CMD, 1, 2) = 'K4' THEN
+            BEGIN
+            Radio2Type := K4;
             Radio2ControlDelay := 1;
             END;
 

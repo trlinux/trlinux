@@ -39,6 +39,7 @@ TYPE
 
 VAR
     ConfirmEditChanges: BOOLEAN;
+    Doing2BSIQ:         BOOLEAN;
     TabMode:            TabModeType;
     UserNameString:     Str40;
     VideoGameLength:    INTEGER;
@@ -66,7 +67,7 @@ VAR
     PROCEDURE PacketSimulate;
     PROCEDURE PassThrough;
     PROCEDURE PortToFile;
-    PROCEDURE PutUpHelpMenu;
+    PROCEDURE PutUpHelpMenu (UpdateTimeAndRate: BOOLEAN);
     PROCEDURE SaveQTCDataFile;
     PROCEDURE SetAlarm;
     PROCEDURE ShowIOPorts;
@@ -1109,7 +1110,10 @@ VAR CursorPosition, NewCursor, Line: INTEGER;
     DataChanged := False;
     OriginalEditLines := EditLines;
     InsertMode := False;
-    DisplayInsertMode (InsertMode);
+
+    IF NOT Doing2BSIQ THEN
+        DisplayInsertMode (InsertMode);
+
     SaveAndSetActiveWindow (EditableLogWindow);
     GoToXY (CursorX, CursorY);
 
@@ -1120,7 +1124,8 @@ VAR CursorPosition, NewCursor, Line: INTEGER;
         MarkTime (TimeMark);
 
         REPEAT
-            UpdateTimeAndRateDisplays (True, False);
+            IF NOT Doing2BSIQ THEN
+                UpdateTimeAndRateDisplays (True, False);
 
             IF ElaspedSec100 (TimeMark) > 2000 THEN
                 BEGIN
@@ -1134,6 +1139,7 @@ VAR CursorPosition, NewCursor, Line: INTEGER;
                     GoToXY (1, Line);
                     DisplayEditableLogString (EditLines [Line], 80);
                     END;
+
                 DataChanged := False;
                 RestorePreviousWindow;
                 Exit;
@@ -2264,7 +2270,7 @@ PROCEDURE ProcessAltHelp;
 
 
 
-PROCEDURE PutUpHelpMenu;
+PROCEDURE PutUpHelpMenu (UpdateTimeAndRate: BOOLEAN);
 
 VAR Key: CHAR;
 
@@ -2296,7 +2302,8 @@ VAR Key: CHAR;
 
     REPEAT
         begin
-        UpdateTimeAndRateDisplays (False, False);
+        IF UpdateTimeAndRate THEN
+            UpdateTimeAndRateDisplays (False, False);
         millisleep;
         end;
     UNTIL KeyPressed;
@@ -2489,7 +2496,9 @@ VAR Key: CHAR;
     RestorePreviousWindow;
 
     REPEAT
-        UpdateTimeAndRateDisplays (False, False)
+        IF UpdateTimeAndRate THEN
+            UpdateTimeAndRateDisplays (False, False);
+        millisleep;
     UNTIL KeyPressed;
 
     IF ReadKey = NullKey THEN ReadKey;
@@ -3228,4 +3237,5 @@ VAR Password: Str40;
 
 
     BEGIN
+    Doing2BSIQ := False;    { Global used for some hacking to change behavior }
     END.

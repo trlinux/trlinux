@@ -76,6 +76,7 @@ TYPE ContestType = (UnknownContest,
                     IOTA,
                     JADX,
                     JALP, {KK1L: 6.72}
+                    JARTS,
                     KCJ,
                     KidsDay,
                     KVP,
@@ -455,18 +456,19 @@ FUNCTION DetermineContest (Name: Str80): ContestType;
     DetermineContest := UnknownContest;
     Name := UpperCase (Name);
 
-    IF Name = '7QP'           THEN DetermineContest := SevenQP;
-    IF Name = 'ALL ASIAN'     THEN DetermineContest := AllAsian;
-    IF Name = 'ALL JA'        THEN DetermineContest := AllJA;
-    IF Name = 'AP SPRINT'     THEN DetermineContest := APSprint;
-    IF Name = 'ARCI'          THEN DetermineContest := ARCI;
-    IF Name = 'ARI'           THEN DetermineContest := ARI;
-    IF Name = 'ARRL 10'       THEN DetermineContest := ARRL10;
-    IF Name = 'ARRL 160'      THEN DetermineContest := ARRL160;
-    IF Name = 'ARRL DX'       THEN DetermineContest := ARRLDX;
+    IF Name = '7QP' THEN DetermineContest := SevenQP;
+
+    IF Name = 'ALL ASIAN'         THEN DetermineContest := AllAsian;
+    IF Name = 'ALL JA'            THEN DetermineContest := AllJA;
+    IF Name = 'AP SPRINT'         THEN DetermineContest := APSprint;
+    IF Name = 'ARCI'              THEN DetermineContest := ARCI;
+    IF Name = 'ARI'               THEN DetermineContest := ARI;
+    IF Name = 'ARRL 10'           THEN DetermineContest := ARRL10;
+    IF Name = 'ARRL 160'          THEN DetermineContest := ARRL160;
+    IF Name = 'ARRL DX'           THEN DetermineContest := ARRLDX;
     IF Name = 'ARRL RTTY ROUNDUP' THEN DetermineContest := ARRLRTTY;
-    IF Name = 'ARRL VHF QSO'  THEN DetermineContest := ARRLVHFQSO;
-    IF Name = 'ARRL VHF SS'   THEN DetermineContest := ARRLVHFSS;
+    IF Name = 'ARRL VHF QSO'      THEN DetermineContest := ARRLVHFQSO;
+    IF Name = 'ARRL VHF SS'       THEN DetermineContest := ARRLVHFSS;
 
     IF StringHas (Name, 'BALTIC') THEN DetermineContest := Baltic;
 
@@ -482,19 +484,33 @@ FUNCTION DetermineContest (Name: Str80): ContestType;
     IF Name = 'CQ WW'         THEN DetermineContest := CQWW;
     IF Name = 'CQ WW RTTY'    THEN DetermineContest := CQWWRTTY;
     IF Name = 'CROATIAN'      THEN DetermineContest := Croatian;
-    IF Name = 'EUROPEAN VHF'  THEN DetermineContest := EuropeanVHF;
-    IF Name = 'EUROPEAN HFC'  THEN DetermineContest := EuropeanHFC;
-    IF Name = 'FIELD DAY'     THEN DetermineContest := FieldDay;
+
+    IF (Name = 'EU SPRINT') OR (Name = 'EUROPEAN SPRINT') THEN
+        DetermineContest := EuropeanSprint;
+
+    IF Name = 'EUROPEAN VHF' THEN DetermineContest := EuropeanVHF;
+    IF Name = 'EUROPEAN HFC' THEN DetermineContest := EuropeanHFC;
+
+    IF Name = 'FIELD DAY' THEN DetermineContest := FieldDay;
 
     IF (Name = 'FQP') OR (Name = 'FLORIDA QSO PARTY') THEN
         DetermineContest := FQP;
 
-    IF Name = 'GENERAL QSO'   THEN DetermineContest := General;
-    IF Name = 'GRID LOC'      THEN DetermineContest := GridLoc;
-    IF Name = 'HA DX'         THEN DetermineContest := HADX;
-    IF Name = 'HELVETIA'      THEN DetermineContest := Helvetia;
-    IF Name = 'IARU'          THEN DetermineContest := IARU;
-    IF Name = 'IOTA'          THEN DetermineContest := IOTA;
+    IF Name = 'GENERAL QSO' THEN DetermineContest := General;
+    IF Name = 'GRID LOC'    THEN DetermineContest := GridLoc;
+
+    IF Name = 'HA DX'    THEN DetermineContest := HADX;
+    IF Name = 'HELVETIA' THEN DetermineContest := Helvetia;
+
+    IF Name = 'IARU'            THEN DetermineContest := IARU;
+    IF Name = 'INTERNET SPRINT' THEN DetermineContest := IntSprint;
+    IF Name = 'IOTA'            THEN DetermineContest := IOTA;
+
+    IF Name = 'JA INTERNATIONAL DX' THEN DetermineContest := JADX;
+    IF Name = 'JA LONG PREFECT'     THEN DetermineContest := JALP; {KK1L: 6.72}
+    IF Name = 'JARTS'               THEN DetermineContest := JARTS;
+    IF Name = 'JIDX'                THEN DetermineContest := JADX;
+
     IF Name = 'KCJ'           THEN DetermineContest := KCJ;
     IF Name = 'KIDS DAY'      THEN DetermineContest := KidsDay;
     IF Name = 'KVP'           THEN DetermineContest := KVP;
@@ -508,7 +524,7 @@ FUNCTION DetermineContest (Name: Str80): ContestType;
     IF (Name = 'MINNESOTA QSO PARTY') OR (Name = 'MINN QSO PARTY') OR (Name = 'MQP') THEN
         DetermineContest := MQP;
 
-    IF Name = 'NA QSO'        THEN DetermineContest := NAQSO;
+    IF Name = 'NA QSO' THEN DetermineContest := NAQSO;
 
     IF (Name = 'NEW ENGLAND QSO') OR (Name = 'NEQSO') OR (Name = 'NEW ENGLAND QSO PARTY') THEN
         DetermineContest := NEQSO;
@@ -516,21 +532,34 @@ FUNCTION DetermineContest (Name: Str80): ContestType;
     IF StringHas (Name, 'NRAU') THEN DetermineContest := NRAUBaltic;
 
     IF Name = 'NZ FIELD DAY'  THEN DetermineContest := NZFieldDay;
-    IF Name = 'OCEANIA'       THEN DetermineContest := OceaniaVKZL;
+
+    IF Name = 'OCEANIA'        THEN DetermineContest := OceaniaVKZL;
     IF Name = 'OHIO QSO PARTY' THEN DetermineContest := OhioQP;
-    IF Name = 'OK DX'         THEN DetermineContest := OKDX;
-    IF Name = 'PACC'          THEN DetermineContest := PACC;
-    IF Name = 'QCWA'          THEN DetermineContest := QCWA;
-    IF Name = 'RAC'           THEN DetermineContest := Rac;
+    IF Name = 'OK DX'          THEN DetermineContest := OKDX;
+    IF Name = 'PACC'           THEN DetermineContest := PACC;
+    IF Name = 'QCWA'           THEN DetermineContest := QCWA;
+    IF Name = 'RAC'            THEN DetermineContest := Rac;
+
+    IF (Name = 'REGION ONE FIELD DAY') OR (Name = 'REGION 1 FIELD DAY') THEN
+        DetermineContest := Region1FD;
+
     IF Name = 'ROPOCO'        THEN DetermineContest := Ropoco;
     IF Name = 'RUSSIAN DX'    THEN DetermineContest := Russian;
     IF Name = 'SALMON RUN'    THEN DetermineContest := SalmonRun; {KK1L: 6.71}
-    IF Name = 'SP DX'         THEN DetermineContest := SPDX;
-    IF Name = 'SPRINT'        THEN DetermineContest := Sprint;
-    IF Name = 'STEW PERRY'    THEN DetermineContest := StewPerry;
-    IF Name = 'SWEEPSTAKES'   THEN DetermineContest := SS;
-    IF Name = 'TEN TEN'       THEN DetermineContest := TenTen;
-    IF Name = 'TOEC'          THEN DetermineContest := Toec;
+
+    IF (Name = 'SCANDINAVIAN') OR (Name = 'SAC') THEN DetermineContest := SAC;
+
+    IF Name = 'SOUTH AMERICA WW' THEN DetermineContest := SAWW;
+    IF Name = 'SOUTH AMERICAN'   THEN DetermineContest := SA;
+    IF Name = 'SP DX'            THEN DetermineContest := SPDX;
+    IF Name = 'SPRINT'           THEN DetermineContest := Sprint;
+    IF Name = 'STEW PERRY'       THEN DetermineContest := StewPerry;
+    IF Name = 'SWEEPSTAKES'      THEN DetermineContest := SS;
+
+    IF Name = 'TEN TEN'         THEN DetermineContest := TenTen;
+    IF Name = 'TEXAS QSO PARTY' THEN DetermineContest := TexQSO;
+    IF Name = 'TOEC'            THEN DetermineContest := Toec;
+
     IF Name = 'UBA'           THEN DetermineContest := UBA;
     IF Name = 'UKRAINIAN'     THEN DetermineContest := Ukrainian;
     IF Name = 'WAE'           THEN DetermineContest := WAE;
@@ -542,20 +571,6 @@ FUNCTION DetermineContest (Name: Str80): ContestType;
     IF Name = 'XMAS'          THEN DetermineContest := XMAS;
     IF Name = 'YO DX'         THEN DetermineContest := YODX;
 
-    IF (Name = 'REGION ONE FIELD DAY') OR (Name = 'REGION 1 FIELD DAY') THEN
-        DetermineContest := Region1FD;
-
-    IF (Name = 'EU SPRINT') OR (Name = 'EUROPEAN SPRINT') THEN
-        DetermineContest := EuropeanSprint;
-
-    IF Name = 'INTERNET SPRINT'                  THEN DetermineContest := IntSprint;
-    IF Name = 'JA INTERNATIONAL DX'              THEN DetermineContest := JADX;
-    IF Name = 'JIDX'                             THEN DetermineContest := JADX;
-    IF Name = 'JA LONG PREFECT'                  THEN DetermineContest := JALP; {KK1L: 6.72}
-    IF (Name = 'SCANDINAVIAN') OR (Name = 'SAC') THEN DetermineContest := SAC;
-    IF Name = 'SOUTH AMERICA WW'                 THEN DetermineContest := SAWW;
-    IF Name = 'SOUTH AMERICAN'                   THEN DetermineContest := SA;
-    IF Name = 'TEXAS QSO PARTY'                  THEN DetermineContest := TexQSO;
     IF Name = 'WISCONSIN QSO PARTY'              THEN DetermineContest := WQP;
     END;
 
@@ -638,7 +653,11 @@ PROCEDURE CalculateAppropriateTotalsForThisContest (Contest: ContestType;
                ELSE
                    IF NOT CalculateTotals (True, False, False,  False) THEN Exit;
 
-        JALP:      IF NOT CalculateTotals (True, False, False,  False) THEN Exit; {KK1L: 6.72}
+        JALP:      IF NOT CalculateTotals (True, False, False,  False) THEN Exit;
+
+        { For now - I am ignoring any mult processing for JARTS }
+
+        JARTS:     IF NOT CalCulateTotals (False, False, False, False) THEN Exit;
 
         KCJ:       IF NOT CalculateTotals ( True, False, False, False) THEN Exit;
         KidsDay:   IF NOT CalculateTotals (False, False, False, False) THEN Exit;
@@ -3190,7 +3209,7 @@ VAR FileRead, FileWrite: TEXT;
     Band: BandType;
     Location: QTHRecord;
     CQZones: BOOLEAN;
-    QSONumber, NumberBadZones, Zone, Result: INTEGER;
+    QSONumber, NumberBadZones, Zone: INTEGER;
     Destination: CHAR;
 
     BEGIN
@@ -3280,7 +3299,7 @@ VAR FileRead, FileWrite: TEXT;
             ZoneString := GetLogEntryExchangeString (FileString);
             Delete (ZoneString, 1, 11);
             GetRidOfPostcedingSpaces (ZoneString);
-            Val (ZoneString, Zone, Result);
+            Val (ZoneString, Zone);
 
             IF Zone <> Location.Zone THEN
                 BEGIN

@@ -16,7 +16,7 @@
 #    Public License along with TR log for linux.  If not, see
 #<http://www.gnu.org/licenses/>.
 
-RELEASE=0.54
+RELEASE=0.55
 
 all:
 	test 2 -eq `grep -c "Linux $(RELEASE)" src/versions.inc`
@@ -24,7 +24,7 @@ all:
 	(cd src; make clean; make; make install; make clean;\
             make -f Makefile.post; make clean)
 	(cd log; strip trlog; strip post)
-	
+
 trlinux-r$(RELEASE).txz:
 	( cd .. ; \
           mkdir trlinux-r$(RELEASE); \

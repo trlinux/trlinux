@@ -134,6 +134,10 @@ PROCEDURE TimeAndDateSet;
 
 PROCEDURE DisplayBandTotals (Band: BandType);
 
+PROCEDURE FlagDupesInPossibleCallList (Band: Bandtype;
+                                       Mode: ModeType;
+                                       VAR PossCallList: PossibleCallRecord);
+
 PROCEDURE GoToLastCQFrequency;
 PROCEDURE GoToNextBandMapFrequency;
 PROCEDURE GoToNextDisplayedBandMapFrequency;
@@ -151,10 +155,10 @@ PROCEDURE RememberFrequency;
 PROCEDURE SendCrypticCWString (SendString: Str160);
 PROCEDURE Send88Message;
 PROCEDURE ShowStationInformation (Call: CallString);
+PROCEDURE SwapMultDisplay;
 
 PROCEDURE ToggleModes;
 PROCEDURE ToggleStereoPin; {KK1L: 6.71}
-
 FUNCTION  TotalContacts: INTEGER;
 FUNCTION  TotalCWContacts: INTEGER;
 FUNCTION  TotalPhoneContacts: INTEGER;
@@ -171,6 +175,45 @@ Uses memlinux,LogMenu,keycode,beep,timer;
 {KK1L: 6.71 attempt to get POST to compile. Moved here from INTERFACE section. Was not there in original}
 
 VAR SCPScreenFull: BOOLEAN;
+
+
+PROCEDURE SwapMultDisplay;
+
+    BEGIN
+    IF NumberDifferentMults > 1 THEN
+        BEGIN
+
+        CASE RemainingMultDisplay OF
+            Domestic:
+                IF DoingDXMults THEN
+                    RemainingMultDisplay := DX
+                ELSE
+                    IF DoingZoneMults THEN
+                        RemainingMultDisplay := Zone;
+
+            DX: IF DoingZoneMults THEN
+                    RemainingMultDisplay := Zone
+                ELSE
+                    {IF DoingDomesticMults AND (ActiveDomesticMult <> WYSIWYGDomestic) THEN}
+                    IF (DoingDomesticMults AND (DomesticQTHDataFileName <> '')) THEN
+                       {KK1L: 6.68 changed above to allow domestic mults to be displayed if there is a dom file}
+                        RemainingMultDisplay := Domestic;
+
+            Zone:
+                {IF DoingDomesticMults AND (ActiveDomesticMult = DomesticFile)}
+                IF (DoingDomesticMults AND (DomesticQTHDataFileName <> '')) THEN
+                    {KK1L: 6.68 changed above to allow domestic mults to be displayed if there is a dom file}
+                    RemainingMultDisplay := Domestic
+                ELSE
+                    IF DoingDXMults THEN
+                        RemainingMultDisplay := DX;
+
+            END;
+
+        VisibleLog.ShowRemainingMultipliers;
+        END;
+    END;
+
 
 
 
@@ -234,7 +277,8 @@ PROCEDURE CleanUpDisplay;
     RemoveWindow (NameSentWindow);
     RemoveWindow (PossibleCallWindow);
 
-    DisplayNextQSONumber (TotalContacts + 1);
+    DisplayNextQSONumber (QSONumberForThisQSO);
+
     DisplayBandMode      (ActiveBand, ActiveMode, False);
     DisplayFreeMemory;
 
@@ -665,7 +709,7 @@ PROCEDURE BandUp;
             DisplayBandMap;
 
             IF QSONumberByBand THEN
-                DisplayNextQSONumber (TotalContacts + 1);
+                DisplayNextQSONumber (QSONumberForThisQSO);
             END;
         END;
     END;
@@ -713,7 +757,7 @@ PROCEDURE BandDown;
             DisplayBandMap;
 
             IF QSONumberByBand THEN
-                DisplayNextQSONumber (TotalContacts + 1);
+                DisplayNextQSONumber (QSONumberForThisQSO);
 
             END;
         END;
@@ -4016,7 +4060,11 @@ PROCEDURE DeleteLastContact;
     VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
     DisplayTotalScore (TotalScore);
     DisplayInsertMode (InsertMode);
-    DisplayNextQSONumber (TotalContacts + 1);
+
+
+    { Not sure yet about dealing with getting the QSO Number back }
+
+    DisplayNextQSONumber (QSONumberForThisQSO);
 
     IF VisibleDupeSheetEnable THEN
         BEGIN

@@ -145,7 +145,9 @@ TYPE QTCEntryRecord = RECORD
     QTCEntryArrayPtr = ^QTCEntryArrayType;
 
 
-VAR CallSignLength:  INTEGER;
+VAR
+    Age:             Str20;
+    CallSignLength:  INTEGER;
     Contest:         ContestType;
     ContestName:     Str80;
     CountryID:       CallString;
@@ -869,8 +871,8 @@ VAR Key:             CHAR;
 
     SniffForTransmitter := False;
 
-    CallSignLength := 13;              { Default maximum callsign length }
-    ReceivedCallCursorPosition := 56;  { Default location of received call }
+    CallSignLength := 13;                 { Default maximum callsign length }
+    ReceivedCallCursorPosition := 56;     { Default location of received call }
 
     RSTIsPartOfTheExchange := False;
     NumberExchangeElementsToRecord := 0;  { 0 is disable counting }
@@ -1027,13 +1029,14 @@ VAR Key:             CHAR;
 
             QTH := GetResponse ('Enter the zone you were sending : ');
             IF QTH = '' THEN Exit;
+
             IF (MyQTH.CountryId = 'K')   OR (MyQTH.CountryID = 'VE') then
-               Section := GetResponse ('Enter your state: ')
-            else
+               Section := GetResponse ('Enter your state or province : ')
+            ELSE
                Section := 'DX';
 
             SentInformation := '$ ' + QTH + ' ' + Section;
-            end;
+            END;
 
         IARU:        { Okay }
             BEGIN
@@ -1065,6 +1068,14 @@ VAR Key:             CHAR;
             SentInformation := '# ' + ControlN + ' ' + QTH;
             ReceivedQSONumberLength := 4;
             END;
+
+        JARTS:
+            BEGIN
+            RSTIsPartOfTheExchange := True;
+            Age := GetResponse ('Enter the Age you sent : ');
+            SentInformation := '$ ' + Age;
+            END;
+
 
         NAQSO:       { Doesn't comply with field length for name }
             BEGIN
@@ -1196,7 +1207,10 @@ VAR Key:             CHAR;
 
     IF NOT OpenFileForWrite (FileWrite, CabrilloFileName) THEN Exit;
 
-    WriteLn (FileWrite, 'START-OF-LOG: ', CabrilloVersion,Chr(13));
+    { Since we are in linux land - we have to write explicit carriage returns for
+      newlines.  These are shown as Chr(13) it seems }
+
+    WriteLn (FileWrite, 'START-OF-LOG: ', CabrilloVersion, Chr(13));
     WriteLn (FileWrite, 'CREATED-BY: TR Log POST Version ', PostVersion,Chr(13));
     WriteLn (FileWrite, 'CALLSIGN: ', MyCall,Chr(13));
 
@@ -1231,11 +1245,12 @@ VAR Key:             CHAR;
             CQ160:       WriteLn (FileWrite, 'CONTEST: CQ-160-', ModeString,Chr(13));
             CQVHF:       WriteLn (FileWrite, 'CONTEST: CQ-VHF',Chr(13));
             CQWPX:       WriteLn (FileWrite, 'CONTEST: CQ-WPX-', ModeString,Chr(13));
-            CQWPXRTTY:       WriteLn (FileWrite, 'CONTEST: CQ-WPX-RTTY',Chr(13));
+            CQWPXRTTY:   WriteLn (FileWrite, 'CONTEST: CQ-WPX-RTTY',Chr(13));
             CQWW:        WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
-            CQWWRTTY:        WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
+            CQWWRTTY:    WriteLn (FileWrite, 'CONTEST: CQ-WW-', ModeString,Chr(13));
             IARU:        WriteLn (FileWrite, 'CONTEST: IARU-HF',Chr(13));
             IntSprint:   WriteLn (FileWrite, 'CONTEST: INTERNET-SPRINT',Chr(13));
+            JARTS:       WriteLn (FileWrite, 'CONTEST: JARTS-WW-RTTY', Chr (13));
             NAQSO:       WriteLn (FileWrite, 'CONTEST: NAQP-', ModeString,Chr(13));
             NEQSO:       WriteLn (FileWrite, 'CONTEST: New England QSO Party',Chr(13));
             OceaniaVKZL: WriteLn (FileWrite, 'CONTEST: OCEANIA',Chr(13));
@@ -1257,7 +1272,6 @@ VAR Key:             CHAR;
 
     IF Section <> '' THEN
         WriteLn (FileWrite, 'ARRL-SECTION: ', Section,Chr(13));
-
 
     WriteLn (FileWrite, 'CATEGORY-ASSISTED: ',    CategoryAssistedType [AssistedCursor],Chr(13));
     WriteLn (FileWrite, 'CATEGORY-BAND: ',        CategoryBandType [BandCursor],Chr(13));
@@ -1708,7 +1722,6 @@ Call fields end here for length=12                                
                         ELSE
                             RSTReceived := '59';
 
-
                 IF ReceivedQSONumberLength > 0 THEN
                     BEGIN
                     NumberReceived := RemoveFirstLongInteger (ExchangeString);
@@ -1738,6 +1751,21 @@ Call fields end here for length=12                                
 
                 WHILE Pos ('$', FileString) > 0 DO
                     FileString [Pos ('$', FileString)] := ' ';
+
+                { Hack to change DX country indicator to DX for the CQ WW RTTY contest }
+
+                IF Contest = CQWWRTTY THEN
+                    BEGIN
+                    TempString := GetLastString (ExchangeString);
+
+                    { Domestic QTH will have lower case character at the end }
+
+                    IF TempString [Length (TempString)] < 'a' THEN
+                        BEGIN
+                        RemoveLastString (ExchangeString);
+                        ExchangeString := ExchangeString + ' DX';
+                        END
+                    END;
 
                 Mode := GetLogEntryMode (FileString);
 
@@ -1831,6 +1859,8 @@ Call fields end here for length=12                                
 
                 CabrilloString := CabrilloString + CallReceivedString + ' ';
 
+                { Construct the received exchange data }
+
                 IF RSTIsPartOfTheExchange THEN
                     CabrilloString := CabrilloString + RSTReceived + ' ' + ExchangeString
                 ELSE
@@ -1862,16 +1892,16 @@ Call fields end here for length=12                                
 
                 WriteLn (FileWrite, CabrilloString,Chr(13));
 
-
                 Inc (NumberQSOs);
                 GoToXY (1, WhereY);
                 Write (NumberQSOs);
                 END;
-            END;
-        Close (FileRead);
 
+            END;  { of WHILE Nof Eof }
+
+        Close (FileRead);
         GenerateLogPortionOfCabrilloFile := True;
-        END
+        END { of WHILE NOT Eof }
 
     ELSE
         BEGIN

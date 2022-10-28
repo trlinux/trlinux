@@ -2098,7 +2098,8 @@ VAR Space, CenterSpaces: INTEGER;
 PROCEDURE WriteHexByte (HexByte: Byte);
 
     BEGIN
-    Write (HexChars [Lo (HexByte) shr 4], HexChars [Lo (HexByte) and $F]);
+    Write (HexChars [Lo (HexByte) DIV 16], HexChars [Lo (HexByte) and $F]);
+{    Write (HexChars [Lo (HexByte) shr 4], HexChars [Lo (HexByte) and $F]);}
     END;
 
 

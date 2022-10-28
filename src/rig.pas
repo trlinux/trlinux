@@ -47,8 +47,10 @@ type
       procedure bumpvfoup;virtual;
       procedure bumpvfodown;virtual;
       procedure setpollradio(polling: boolean);virtual;
+
       function getradioparameters(var f: longint; var b: bandtype;
          var m: modetype): boolean;virtual;
+
       procedure responsetimeout(ms: integer);virtual;
       function getresponsetimeout():longint;virtual;
       procedure directcommand(s: string);virtual;
@@ -58,9 +60,13 @@ type
       procedure setcwreverse(on: boolean);virtual;
       procedure closedebug();
 
+      FUNCTION K3IsStillTalking: BOOLEAN;virtual;
+      PROCEDURE SetK3TXPollMode (enable: boolean);virtual;
+
       protected
       freq: longint;
       mode: modetype;
+      txon: BOOLEAN;
       debug: boolean;
       debugopen: boolean;
       polltime: integer;
@@ -75,6 +81,7 @@ type
       debugfile: text;
       lastcommand: string;
       cwreverse: boolean;
+      k3txpollmode: boolean;
       procedure sendstring(s: string);
       function getband(f: longint):bandtype;
 
@@ -121,6 +128,19 @@ begin
    debug := debugin;
    debugopen := false;
    cwreverse := false;
+   k3txpollmode := false;
+end;
+
+
+function radioctl.k3isstilltalking: boolean;
+    begin
+    k3isstilltalking := false;
+    end;
+
+procedure radioctl.setk3txpollmode (enable: boolean);
+
+begin
+   k3txpollmode := enable;
 end;
 
 procedure radioctl.setpolltime(ms: integer);

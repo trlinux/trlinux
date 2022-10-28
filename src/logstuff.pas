@@ -228,7 +228,6 @@ TYPE
 
 
 VAR
-    SSEx: SSExchangeType;
 
     AddedNoteString:        STRING [100];
     AllCWMessagesChainable: BOOLEAN;
@@ -356,6 +355,8 @@ VAR
     ProcessedMultiMessagesStart: INTEGER;
     ProcessedMultiMessagesEnd:   INTEGER;
 
+    QSONumberForThisQSO: INTEGER;   { Used for classic mode QSOs }
+
     QSONumberByBand: BOOLEAN;
     QSXEnable:       BOOLEAN;
 
@@ -406,6 +407,7 @@ VAR
     SingleRadioMode:            BOOLEAN;
     SkipActiveBand:             BOOLEAN;
     SpaceBarDupeCheckEnable:    BOOLEAN;
+    SSEx:                       SSExchangeType;
     StartSendingNowKey:         CHAR;
     StationInformationCall:     CallString;
     SwitchRadioKey:             CHAR;
@@ -451,6 +453,7 @@ VAR
 
     PROCEDURE IncrementQTCCount (Call: CallString);
 
+    FUNCTION  K3IsStillTalking: BOOLEAN;
     FUNCTION  KeyRecentlyPressed (Key: CHAR; MaxElaspedSec100: LONGINT): BOOLEAN;
     PROCEDURE KeyStamp (Key: CHAR);
 
@@ -557,6 +560,34 @@ VAR
 IMPLEMENTATION
 uses keycode,beep;
 
+
+
+
+FUNCTION K3IsStillTalking: BOOLEAN;
+
+    BEGIN
+    IF ActiveRadio = RadioOne THEN
+        BEGIN
+        IF (Radio1Type = K3) OR (Radio1Type = K4) THEN
+            K3IsStillTalking := Rig1.K3IsSTillTalking
+        ELSE
+            K3IsStillTalking := False;
+
+        Exit;
+        END;
+
+    IF ActiveRadio = RadioTwo THEN
+        BEGIN
+        IF (Radio2Type = K3) OR (Radio2Type = K4) THEN
+            K3IsStillTalking := Rig2.K3IsSTillTalking
+        ELSE
+            K3IsStillTalking := False;
+
+        Exit;
+        END;
+
+    K3ISStillTalking := False;
+    END;
 
 
 
@@ -6487,6 +6518,13 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
         TwoPointsPerQSO:      RXData.QSOPoints := 2;
         ThreePointsPerQSO:    RXData.QSOPoints := 3;
         TenPointsPerQSO:      RXData.QSOPoints := 10;
+
+        OnePhoneTwoCWThreeDigital:
+            CASE RXData.Mode OF
+                Phone:   RXData.QSOPoints := 1;
+                CW:      RXData.QSOPoints := 2;
+                Digital: RXData.QSOPoints := 3;
+                END;
 
         TwoPhoneFourCW:
           IF RXData.Mode = CW THEN RXData.QSOPoints := 4

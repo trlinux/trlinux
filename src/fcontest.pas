@@ -595,7 +595,6 @@ VAR TempQTH: QTHRecord;
                 DomesticQTHDataFileName := 'CALQSOW6.DOM';
                 ActiveDXMult := NoCountDXMults;
                 ActiveExchange := QSONumberDomesticOrDXQTHExchange;
-                CQP := True;
                 END
             ELSE
                 BEGIN
@@ -880,7 +879,6 @@ VAR TempQTH: QTHRecord;
                 ActiveDomesticMult := DomesticFile;
                 DomesticQTHDataFileName := 'FQP_FLA.DOM';
                 ActiveExchange := RSTDomesticOrDXQTHExchange;
-                CQP := True;
                 END
             ELSE
                 BEGIN
@@ -1098,6 +1096,18 @@ VAR TempQTH: QTHRecord;
             FoundContest := True;
             END;
 
+        IF CMD = 'JARTS' THEN
+            BEGIN
+            ActiveExchange := RSTAgeExchange;
+            ActiveQSOPointMethod := AllAsianQSOPointMethod;
+            ContestName := 'Japanese Amateur Radio Teleprinter Society';
+            MultByBand := True;
+            MultByMode := False;
+            QSOByBand  := True;
+            QSOByMode  := False;
+            FoundContest := True;
+            END;
+
         IF CMD = 'KCJ' THEN
             BEGIN
             ActiveDomesticMult := DomesticFile;
@@ -1235,7 +1245,6 @@ VAR TempQTH: QTHRecord;
                 ActiveDomesticMult := DomesticFile;
                 DomesticQTHDataFileName := 'MQP.DOM';
                 ActiveExchange := NameAndDomesticOrDXQTHExchange;
-                CQP := True;
                 END
             ELSE
                 BEGIN
@@ -1349,6 +1358,38 @@ VAR TempQTH: QTHRecord;
             AddDomesticCountry ('KH6');
             AddDomesticCountry ('KL');
             END;
+
+        IF (CMD = 'NEW YORK QSO PARTY') OR (CMD = 'NY QSO') OR (CMD = 'NYQP') THEN
+            BEGIN
+            IF UpperCase (Copy (MyState, 1, 2)) = 'NY' THEN
+                BEGIN
+                ActiveDomesticMult := DomesticFile;
+                DomesticQTHDataFileName := 'NYQPNY.DOM';
+                ActiveDXMult := NoCountDXMults;
+                ActiveExchange := RSTDomesticOrDXQTHExchange;
+                END
+            ELSE
+                BEGIN
+                ActiveDomesticMult := DomesticFile;
+                DomesticQTHDataFileName := 'NYQP.DOM';
+                ActiveExchange := RSTDomesticQTHExchange;
+                END;
+
+            ActiveQSOPointMethod := OnePhoneTwoCWThreeDigital;
+            ContestName := 'New York QSO Party';
+            MultByBand := False;
+            MultByMode := False;
+            QSOByBand  := True;
+            QSOByMode  := True;
+            FoundContest := True;
+
+            AddDomesticCountry ('K');
+            AddDomesticCountry ('VE');
+            AddDomesticCountry ('KH6');
+            AddDomesticCountry ('KL');
+            END;
+
+
 
         IF CMD = 'NRAU BALTIC' THEN
             BEGIN
@@ -1751,7 +1792,6 @@ VAR TempQTH: QTHRecord;
                 ActiveDXMult       := ARRLDXCCWithNoUSACanadaKH6OrKL7;
                 DomesticQTHDataFileName := 'TEXASTX.DOM';
                 ActiveExchange := RSTDomesticOrDXQTHExchange;
-                CQP := True;
                 END
             ELSE
                 BEGIN

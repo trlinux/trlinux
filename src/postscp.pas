@@ -182,8 +182,6 @@ VAR FileRead: TEXT;
 
 PROCEDURE MoveDataIntoField (DataString: Str20; FieldKey: CHAR; VAR Data: DataBaseEntryRecord);
 
-VAR Result: INTEGER;
-
     BEGIN
     CASE FieldKey OF
         '1': BEGIN
@@ -223,7 +221,7 @@ VAR Result: INTEGER;
 
         '8': BEGIN
              IF StringIsAllNumbers (DataString) THEN
-             Val (DataString, Data.Speed, Result);
+             Val (DataString, Data.Speed);
              END;
 
         '9': BEGIN

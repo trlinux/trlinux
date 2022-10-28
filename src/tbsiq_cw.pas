@@ -42,6 +42,10 @@ TYPE
                              CWP_High,
                              CWP_Urgent);
 
+    TXColorType = (NoTXColor, TX_Red, TX_Yellow, TX_Blue);
+
+    InsertIndicatorType = (NoInsertIndicator, InsertOffIndicator, InsertOnIndicator);
+
     CuedMessageType = RECORD
         Message: STRING;
         Radio: RadioType;
@@ -68,6 +72,7 @@ TYPE
         CueHead: INTEGER;
         CueTail: INTEGER;
 
+        LastActiveRadioShown: RadioType;
         MessageCue: ARRAY [0..MaximumCuedMessages - 1] OF CuedMessageType;
         MessageStarted: BOOLEAN;
 
@@ -78,6 +83,7 @@ TYPE
         FUNCTION  CWFinished (Radio: RadioType): BOOLEAN;
         FUNCTION  CWBeingSent (Radio: RadioType): BOOLEAN;
         FUNCTION  DeleteLastCharacter (Radio: RadioType): BOOLEAN;
+        FUNCTION  GetTransmitColor (Radio: RadioType): TXColorType;
         FUNCTION  MessageInCue (Radio: RadioType): BOOLEAN;
         PROCEDURE SendNextMessage (PriorityLevel: TBSIQ_CW_PriorityType);
         PROCEDURE ShowActiveRadio;  { Shows which radio has focus for CW sending }
@@ -173,9 +179,34 @@ VAR FileRead: TEXT;
 
 
 
-PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
+FUNCTION TBSIQ_CWEngineObject.GetTransmitColor (Radio: RadioType): TXColorType;
 
     BEGIN
+    IF (ActiveMode = CW) AND (ActiveRadio = Radio) AND CWStillBeingSent THEN
+        BEGIN
+        GetTransmitColor := TX_Red;
+        Exit;
+        END;
+
+   IF MessageInCue (Radio) THEN
+       BEGIN
+       GetTransmitColor := TX_Yellow;
+       Exit;
+       END;
+
+   GetTransmitColor := TX_Blue;
+   END;
+
+
+PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
+
+{ Perhaps this is okay here.  Removes any ambiguity about which radio
+  is active }
+
+    BEGIN
+    IF ActiveRadio = LastActiveRadioShown THEN Exit;
+    LastActiveRadioShown := ActiveRadio;
+
     CASE ActiveRadio OF
         NoRadio:
             BEGIN
@@ -216,32 +247,6 @@ PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
             RestorePreviousWindow;
             END;
         END;
-
-    SaveSetAndClearActiveWindow (TBSIQ_R1_TransmitIndicatorWindow);
-
-    IF (ActiveRadio = RadioOne) AND CWStillBeingSent THEN
-        SetBackground (Red)
-    ELSE
-        IF MessageInCue (RadioOne) THEN
-            SetBackground (Yellow)
-        ELSE
-            SetBackground (Blue);
-
-    ClrScr;
-    RestorePreviousWindow;
-
-    SaveSetAndClearActiveWindow (TBSIQ_R2_TransmitIndicatorWindow);
-
-    IF (ActiveRadio = RadioTwo) AND CWStillBeingSent THEN
-        SetBackground (Red)
-    ELSE
-        IF MessageInCue (RadioTwo) THEN
-            SetBackground (Yellow)
-        ELSE
-            SetBackground (Blue);
-
-    ClrScr;
-    RestorePreviousWindow;
     END;
 
 
@@ -307,8 +312,6 @@ VAR TestTail: INTEGER;
             Inc (TestTail);
             IF TestTail = MaximumCuedMessages THEN TestTail := 0;
             END;
-
-    { This is also somewhat unexpected too - since I was sure a message was being sent }
     END;
 
 
@@ -321,6 +324,8 @@ FUNCTION TBSIQ_CWEngineObject.ClearMessages (Radio: RadioType; InProcess: BOOLEA
 VAR Index: INTEGER;
 
     BEGIN
+    ClearMessages := False;
+
     IF CueHead <> CueTail THEN      { Something in the cue }
         BEGIN
         Index := CueTail;    { Start at the next message to be popped off }
@@ -340,8 +345,6 @@ VAR Index: INTEGER;
             FlushCWBufferAndClearPTT;
             ClearMessages := True;
             END;
-
-    ClearMessages := False;
     END;
 
 
@@ -491,7 +494,7 @@ PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
   is complete }
 
     BEGIN
-    IF CWStillBeingSent THEN Exit;   { Still sending some CW }
+    IF CWStillBeingSent  THEN Exit;   { Still sending some CW }
     IF CueHead = CueTail THEN Exit;  { Nothing to tend to }
 
     { Find the next message to send in the cue }
@@ -514,6 +517,7 @@ PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
     TBSIQ_CW_Engine := TBSIQ_CWEngineObject.Create;
     TBSIQ_CW_Engine.CueHead := 0;
     TBSIQ_CW_Engine.CueTail := 0;
+    TBSIQ_CW_Engine.LastActiveRadioShown := NoRadio;
 
     SeriaLNumberEngine := SerialNumberObject.Create;
     SerialNumberEngine.InitializeSerialNumbers;

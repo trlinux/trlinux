@@ -105,7 +105,6 @@ PROCEDURE SetConfigurationDefaultValues;
     CQExchange          := '';
     CQExchangeNameKnown := '';
     CQMenu := 'F1/2-CQ F3-Ex F4-73 F5-Call F6-DECall F7-WkdB4 F8-Agn F9-? F10-Keyboard CW';
-    CQP := False;
     CQPhoneExchange := 'CQECXHNG.DVP';
     CQPhoneExchangeNameKnown := 'CQEXNAME.DVP';
     CustomInitialExchangeString := '';
@@ -126,7 +125,7 @@ PROCEDURE SetConfigurationDefaultValues;
     DupeCheckSound          := DupeCheckBeepIfDupe;
     DVPEnable               := False;
 
-    Packet.EightBitPacketPort := False;
+
     DVKEnable               := False;
     DVKRadioEnable          := False;
     DVKRadio1StopCmd        := '';
@@ -243,8 +242,6 @@ PROCEDURE SetConfigurationDefaultValues;
     MultiUpdateMultDisplay := True;
     MultReportMinimumBands := 4;
 
-
-
     MyCall       := '';
     MyCheck      := '';
     MyContinent  := UnknownContinent;
@@ -262,6 +259,8 @@ PROCEDURE SetConfigurationDefaultValues;
     NoLog           := False;
     NoPollDuringPTT := False;
 
+    Packet.EightBitPacketPort := False;
+
     PacketAddLF           := False;
     PacketAutoCR          := False;
     PacketMessMode        := False;
@@ -272,6 +271,7 @@ PROCEDURE SetConfigurationDefaultValues;
     PacketSpotKey         := '`';
     PacketSpotPrefixOnly  := False; {KK1L: 6.72}
 
+    Packet.AutoSpotEnable    := False;  { Any S&P dupe check makes spot }
     Packet.FT8SpotEnable     := True;
     Packet.PacketBandSpots   := False;
     Packet.PacketBaudRate    := 2400;
@@ -287,6 +287,7 @@ PROCEDURE SetConfigurationDefaultValues;
     CPUKeyer.SetPaddleSpeed(0);
     Winkey.SetPaddleSpeed(0);
     Yccckey.SetPaddleSpeed(0);
+
     ParameterOkayMode        := Standard;
     PartialCallEnable        := True;
     PartialCallLoadLogEnable := False;

@@ -28,6 +28,61 @@ PROGRAM ContestLoggingProgram;
 {  CHANGE LOG
 
 
+17-Oct-2022
+
+  - Added JARTS contest - Cabrillo too.  The muiltiplier stuff isn't working yet.
+
+05-Oct-2022
+
+  - Implemented new QSO Number metodology.  The next QSO number to be used will
+    be determined when looking at the .DAT and .TMP files.  They will be scanned
+    for the largest QSO number that was given out and the next QSO number will
+    be one more.  Note that it appears QSONumberByBand might be broken.
+
+04-Oct-2022
+
+ - Fixed bug of Cabrillo file not having END-OF-FILE
+
+29-Sep-2022
+
+ - Winkey fix from W9CF
+
+26-Sep-2022
+
+ - Added functionality for RTTY commands to go to K2/K3/K4 radio (not 2BSIQ yet)
+   Note - for most of the messages - we use the CW messages to create strings to
+   send to the K3/K4 radios.  However, there are some issues with using the EXCHANGE
+   CW memories since F1 gets hardwired to send the callsign - not an actual memory.
+   So - we support EX DIGITAL MEMORY are a prefix for the function key memories and
+   use these with in digigal mode.
+
+ - Fixed Cabrillo output for CQ WW RTTY to show DX instead of country ID
+
+23-Sep-2022
+
+ - Improved 2BSIQ with SSB.  F1-F4 are locked out if either rig is on SSB
+   and the other rig is transmitting.
+
+22-Sep-2022
+
+ - Made Control-Dash Alternating CQs work with K3/K4 radios.  Not sure how
+   elegantly we are exiting it.
+
+20-Sep-2022
+
+ - Added ControlB for message commands to force subsequent commands to go to the
+   active radio (opposite of Control-A command which steers subsequent commands
+   to the inactive radio).
+
+08-Sep-2022
+
+ - Added New York QSO party.  Two new DOM files - NYQP.DOM and NYQPNY.DOM.  New QSO
+   point method OnePhoneTwoCWThreeDigital.  Put MY STATE = NY in your logcfg before
+   the CONTEST = NYQP statement.
+
+????-2022
+
+
  - Made UA and EU QSOs not count for WPX
  - Fixed Paddle CW Speed so that zero will track the Computer Speed (keyerard + Ardunio)
  - Fixed the PTT Hold time for Paddle Sent CW (most in Ardunio)
@@ -41,7 +96,6 @@ PROGRAM ContestLoggingProgram;
  - Added CWT contest - might need some cleanup on headers of printable log page
  - Removed unused xResults and got to zero "notes" during compile
  - Added a lengthy explaining of how a QSO gets logged to the start of LOGSUBS2.PAS
-
 
    To make TRTTY, change TREE.PAS so that RTY shows up between CW and SSB.
    Change the mode change command.

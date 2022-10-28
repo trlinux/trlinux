@@ -27,26 +27,282 @@ UNIT TwoBSIQ;
 
 TODO LIST
 
-- "ActiveBand" cursor on the band totals display is not right.
+ - "ActiveBand" cursor on the band totals display is not right.
 
-- Occasionally, the auto start send doesn't start if I am busy on the other radio.
-  Maybe fixed - see 31-Aug.
+ - Occasionally, the auto start send doesn't start if I am busy on the other radio.
+   This might be fixed as of 4-Sep - waiting to see if it shows up again.
 
-- Insert mode display.
+ - Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
 
-- Implement ShowStationInformation
+ - When starting AutoStartSend when the other radio is sending CW - the indicator is
+   yellow until the exchange starts.  This isn't a big deal and perhaps more trouble
+   than it is worth to fix it.
 
-- Implement PossibleCalls
+ - In Classic mode - pressing F1 in S&P with a call in the call window does
+   indeed put you in the exchange window with the initial exchange, except
+   it is at the start of the window where the InitialExchangeCursorPos = AtEnd
 
-- Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
+ - RepeatSearchAndPounceExchange not used in 2BSIQ yet.  Will always use the non
+   repeat one.
 
-- When starting AutoStartSend when the other radio is sending CW - the indicator is
-  yellow until the exchange starts.  This isn't a big deal and perhaps more trouble
-  than it is worth to fix it.
+ - Intiial exchange has a space?
 
- - Add some kind of display of next QSO number which can be used for SSB.
+ - Show country and beam headings?
 
-CHANGE LOG
+CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+28-Oct-2022
+
+  - Attempted to fix occasional wrong use of 59/599 based upon mode.
+
+27-Oct-2022
+
+  - Added Alt-D command which will send input to the call window of the other radio
+    and then do a dupecheck when hitting RETURN.
+
+  - Eliminated packet messages from showing up using QuickDisplay
+
+26-Oct-2022
+
+ - Added check for packet spots.
+
+ - Added support for Control-B to access packet window.
+
+ - Added new command - PACKET AUTO SPOT (jctrl) which when true will automatically
+   send spots to packet when doing a dupe check in SearchAndPounce
+
+25-Oct-2022
+
+ - If there is no SearchAndPouncePhoneExchange, then the program will try to use
+   the Exchange SSB Memory F2 when pressing F2.  If you want the S&P exchange sent
+   automatically when you press ENTER to log a QSO - use S&P SSB EXCHANGE.
+
+ - Added display of countryID, sunrise/sunset times and beam heading.
+ - Added AltH function (Help Menu)
+ - Added AltG function (swap mult display)
+
+ - Made it so blank SSB messages do not trigger the ariticial TX timer.
+
+ - Added new call window command UPDATEQSONR.  This will burn the current QSO number
+   and get a new one.  This is intended to be used when the QSO number is old and
+   you would rather send a more current number (instead of #2 on Sunday morning of
+   the SS).
+
+24-Oct-2022
+
+  - I added a way for the QSO number to be stolen from the other radio if it hasn't
+    been used.  This only works if the QSO number is greater than the one you just
+    gave out - and no keys have been typed in the other radio's window.
+
+  - Fixed obscure bug where the routine to clear the CW messages was never coming
+    back true indicating that a message was deleted.  This caused a small issue where
+    hitting ESCAPE would both stop the CW message and also do the next thing the escape
+    key would have done with a 2nd press.  Typically that meant clearing whatever was
+    in the active window.
+
+  - Fixed bug introduced by adding station information after logging a QSO having the
+    data come out in the call window of the 2nd radio.
+
+  - Shortened message about sending S&PExchange message if there is one - so that it
+    fits into the window.
+
+  - Show station updated station information after logging a QSO.
+
+  - Remove WPM display if on SSB.
+
+  - Improved listening time display with auto-CQ.
+
+  - Think I got the band map blinking call stuff going into the call window
+    working well.
+
+  - First escape will clear call window - second one will clear possible call diplay.
+    the possible call display also disappears when a QSO is made.
+
+  - Made editable log appear after initialization of keyboards.  Before, you had to make
+    a QSO first.
+
+23-Oct-2022
+
+  - AutoCQ supported.  Works basically the same as classic - exccept the default
+    listen time is four seconds.  You can adjust it during listening time in
+    half second increments using PageUp/Dn.  PageUp/Dn during transmit will
+    change the CW speed.
+
+22-Oct-2022
+
+ - In S&P - made new band map entry when calling station.
+
+18-Oct-2022
+
+ - More work with band map and radio on the move to make things as identical to
+   the classic mode as possible.  It appears to be working as intended.
+
+ - One of the two new kittens has discovered the radio room - so we might have some
+   new "features" added by paw prints on the keyboard.
+
+17-Oct-2022
+
+  - Much work done improving band map operation.  It seems to basically work but
+    might hae some rough edges.
+
+  - Made S&P Exchange window conform to established colors (green).
+
+  - Made state of CQSending73Message last until message complete on both
+    SSB and RTTY.  This helps keep the display of the message up for awhile.
+
+  - Made DualingCQs work on RTTY.
+
+  - Changed the scope of disabling keys from initiating action whlie the other
+    radio is transmitting.  This was done because I didn't have an effective
+    lockout for the QSL message.  Basically - anything that could possibly start
+    a transmission (when both rigs are not on CW) will be defeated until the
+    transmission is complete.  You can add characters to the window you are
+    in and perform operations like AltE - but some things like hitting TAB
+    to enter Search And Pounce mode are also disabled.  Just to be clear, keys
+    are disabled - not buffered.  You will have to hit the key again after
+    the transmission is complete.
+
+  - Kept Alt-E from messing up the call window for radio two.  It was trying to
+    display the INSERT mode status.  Note that Alt-E never allows INSERT status
+    anyway.
+
+  - RETURN in S&P mode if the station already called was not sending the S&P
+    exchange (at least on RTTY - but maybe SSB).  This is now fixed.
+
+  - Changed minimum time for the RED TX indicator for SSB and RTTY to 3 seconds
+    instead of two.  I was occasionally seeing it drop out before the rig status
+    updated to TX.
+
+16-Oct-2022
+
+  - Cleaned up digital use of exchange function keys.  See notes in main program.
+  - Some work keeping "CW" messages up on RTTY and Phone
+
+15-Oct-2022
+
+  - Added support for RTTY (with K3/K4).  Did play a little bit with Phone stuff
+    too - trying to improve lockouts.
+
+10-Oct-2022
+
+  - Added explicit "listen to other rig" when calling dualing CQ.
+
+9-Oct-2022
+
+ - Improved Dualing CQs to work on SSB.  Again, it does not automatically
+   send a blind CQ or pick up again after a QSO is logged like it does in classic
+   mode.  You have to manually restart it with the Control-Dash key on either
+   keyboard.  The first CQ will be sent on the radio/keyboard the control-dash
+   is pressed on.
+
+ - The faster poll rate didn't seem to really be working - and the response
+   seemed okay without it - so I removed it.
+
+8-Oct-2022
+
+ - Added immediate flag for transmit status on SSB.
+
+- Put K3/K4 radio into faster poll rate for TX status when looking for the
+   end of a transmission.
+
+- Got DualingCQs kind of working on CW - aborted by any keystroke.  Use
+  Control-Dash to start or restart it.
+
+5-Oct-2022
+
+ - Rate windows moved to just above the QSONeeds window.
+
+ - New QSO number methodology.  Next QSO number comes from looking at the log
+   files.  Also implemented consistently with classic mode.
+
+2-Oct-2022
+
+ - Change how the TX ID and TX Color and Insert get displayed - I remember what
+   was last displayed and if someone is asking to display the same thing, I do
+   not do anything.  This eliminated some scenarios where rapid flashing would
+   occur.
+
+- Momentarily removed the lockout from the transmitter being busy.
+
+30-Sep-2022
+
+ - Fixed cursor being in wrong place after initializing the second radio.
+
+29-Sep-2022
+
+ - Enabled frequency input in call window for VFO A
+ - Fixed control/shift function key memories not working.
+ - Added support for F13, F14 and F15 on an apple keyboard > Control-F3, F4 and F5.
+
+28-Sep-2022
+
+ - Found a case where AutoStartSend didn't want to work.  Changed ActiveMode to Mode
+   as a qualifier and that seemed to fix it.
+
+ - Improved how the Alt-P memories are shown with regard to mode.
+
+27-Sep-2022
+
+ - Fixed CW messages getting sent when not in CW mode
+
+ - Support for QSO number on SSB.  You need to put # in the apporpirate memory.
+   Note that if you put the # in the S&P SSB EXCHANGE message - you have to
+   press F2 for that message to be "executed" and thus generate a QSO Number.
+
+9-Sep-2022
+
+ - Made ControlEnter work for moving forward in a QSO without sending CW.
+
+8-Sep-2022
+
+ - ShowStationInfo mostly working.  QSO and Mult status uses classic windows
+ - Added vertical line between the two QSO machines.
+ - TotalScore now getting updated after each QSO.
+
+7-Sep-2022
+
+ - Added Alt-U command
+
+ - PossibleCall window getting removed after logging QSO - or enough ESCAPE
+   presses.
+
+4-Sep-2022
+
+ - Possible Calls added.  Moved the CW message display up to make room.
+ - Noticed rig two windows were starting at column 40, not 41.
+ - Made two keyboards with same mfg id work.  Can also use laptop keyboard.
+ - Insert mode display added
+ - Eliminated *** debug message when unknown key pressed
+
+3-Sep-2022
+
+  - Implmeneted SPRINT QSY RULE
+  - Tried again to fix the AutoStartSend being brain dead occasionally.  Need to test in CWT.
+  - Much improvement with BandMap
+  - Added support for \ key send QuickQSLMessage1.  Currently hardwired.
+  - Fixed speed changes during CW message aborting message.
+
+  - Made hitting F1 or RETURN when calling a station in S&P put you in the
+    exchange window with the initial exchange if the call appears valid.
+    Note that the cursor is always at the end - irregardless of the setting
+    for initial exchange cursor pos.
+
+2-Sep-2022
+
+ - Fixed S/N not going past 1 in S&P.
+ - Fixed AltZ operation so the exchange window always comes up and is correct
+ - Made # with no callwindow and no exchange window contents in 2BSIQ send previous QSO #
+
+ - Did a little code cleanup in LogWind in the UpdateTimeAndRate displays with the
+   radio display code.
+
+ - Fixed ESCAPE key with blank exchange window in S&P not resetting the flag indicating
+   that the callsign has been sent.  Note that in normal mode - if you press ESCAPE with
+   and empty exchange window - the call window clears too.  In 2BSIQ - you first end up
+   going to the call window - and then clearing it with a second escape.  Not sure this
+   inconsistency is a problem.
+
+**** 0.54 release
 
 1-Sep-2022
 
@@ -87,12 +343,6 @@ CHANGE LOG
 
     Using the # in the exchange memories during the QSO before it is logged will repeat
     the same number that was originally sent.
-
-
-  - Made AutoStartSend start even if the call window string is > than the send
-    count.  Not sure it matters - but perhaps addresses the bug where occasionally
-    auto start send doesn't start when busy with the other radio.  I could not
-    reproduce this failure in the lab - so not really sure it fixed anything.
 
   - Fixed flashing cursor between call windows when both rigs sending 73 message.
 
@@ -239,6 +489,13 @@ USES TBSIQ_Subs;
 PROCEDURE Initialize2BSIQOperatorInterface;
 
     BEGIN
+    { We need to trick the QSONumber generator into giving us the last QSO
+      Number given out again.  NextQSONumberToGiveOut should be at least
+      equal to 2, but we check just in case }
+
+    IF NextQSONumberToGiveOut > 1 THEN
+        Dec (NextQSONumberToGiveOut);
+
     { Remove windows below the editable log window so we have room }
 
     RemoveWindow (CallWindow);
@@ -276,11 +533,14 @@ PROCEDURE Initialize2BSIQOperatorInterface;
       numbers are the X Y reference points for the radio specific display }
 
     Radio1QSOMachine.InitializeQSOMachine (R1KeyboardID, RadioOne, 1, 19);
-    Radio2QSOMachine.InitializeQSOMachine (R2KeyboardID, RadioTwo, 40, 19);
+    Radio2QSOMachine.InitializeQSOMachine (R2KeyboardID, RadioTwo, 41, 19);
+
+    PaintVerticalLine;
 
     ActiveRadio := RadioOne;
     SetUpToSendOnActiveRadio;
     TBSIQ_CW_Engine.ShowActiveRadio;
+    TBSIQ_BandMapFocus := RadioOne;
     END;
 
 
@@ -309,7 +569,7 @@ PROCEDURE TwoBandSIQ;
     ClrScr;
     WriteLn ('Welcome to the TR Log 2BSIQ Program - Enter at your own peril.');
 
-    IF NOT InitializeKeyboards THEN
+    IF NOT NewInitializeKeyboards THEN
         BEGIN
         Writeln ('Keyboards not properly initialized.');
         WHILE KeyPressed DO ReadKey;
