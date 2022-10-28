@@ -1001,7 +1001,7 @@ PROCEDURE PacketObject.PushPacketSpot (DXSpot: DXSpotType);
 
     BEGIN
     WITH DXSpot DO
-        IF SpotMode = NormalSpot THEN
+        IF (SpotMode = NormalSpot) AND NOT Doing2BSIQ THEN
             BEGIN
             IF PacketBeep THEN Tone.DoABeep (Single);
 
