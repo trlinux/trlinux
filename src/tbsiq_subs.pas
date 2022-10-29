@@ -105,6 +105,9 @@ TYPE
         DisplayedInsertIndicator: InsertIndicatorType;
         DisplayedMode: ModeType;
         DisplayedTXColor: TXColorType;
+        DupeShown: BOOLEAN;
+        DupeShownCallsign: CallString;
+        DupeShownTime: TimeRecord;
 
         ExchangeWindowIsUp: BOOLEAN;
         ExchangeWindowString: STRING;
@@ -192,6 +195,7 @@ TYPE
         PROCEDURE SetCodeSpeed (Speed: INTEGER);
         PROCEDURE SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
         PROCEDURE ShowCWMessage (Message: STRING);
+        PROCEDURE ShowDupeMessage (Message: STRING);
         PROCEDURE ShowStateMachineStatus;
         PROCEDURE ShowStationInformation (Call: CallString);
         PROCEDURE ShowTransmitStatus;
@@ -506,16 +510,27 @@ PROCEDURE QSOMachineOBject.DoPossibleCalls (Callsign: CallString);
 PROCEDURE CreateAndSendPacketSpot (PacketSpotCall: CallString;
                                    PacketSpotFreq: LONGINT);
 
-VAR TempStr1, TempStr2, TempString: Str80;
+VAR TempString: Str80;
 
     BEGIN
     { Make sure this isn't a CQ Entry in the bandmap }
 
-    TempStr1 := PrecedingString  (PacketSpotCall, '/');
-    TempStr2 := PostcedingString (PacketSpotCall, '/');
+    IF NOT LooksLikeACallsign (PacketSpotCall) THEN Exit;
 
-    IF (TempStr1 = 'CQ') AND StringIsAllNumbers (TempStr2) THEN
-        EXIT;
+    IF PrecedingString  (PacketSpotCall, '/') = 'CQ' THEN
+        Exit;
+
+    IF Length (PacketSpotCall) = 8 THEN
+        IF Copy (PacketSpotCall, 1, 4) = Copy (PacketSpotCall, 5, 4) THEN
+            Exit;
+
+    IF Length (PacketSpotCall) = 10 THEN
+        IF Copy (PacketSpotCall, 1, 5) = Copy (PacketSpotCall, 6, 5) THEN
+            Exit;
+
+    IF Length (PacketSpotCall) = 12 THEN
+        IF Copy (PacketSpotCall, 1, 6) = Copy (PacketSpotCall, 7, 5) THEN
+            Exit;
 
     Str (PacketSpotFreq, TempString);
 
@@ -533,8 +548,7 @@ FUNCTION QSOMachineObject.WindowDupeCheck: BOOLEAN;
 { Taken from LOGSUBS2.  Returns TRUE if the CallWindow is a dupe.
   It is assumed you are in the CallWindow }
 
-VAR RememberTime: TimeRecord;
-    MultString: Str40;
+VAR MultString: Str40;
     Mult: BOOLEAN;
 
     BEGIN
@@ -560,9 +574,11 @@ VAR RememberTime: TimeRecord;
         GoToXY (Length (CallWindowString) + 1, WhereY);
         Write (' DUPE');
 
-        MarkTime (RememberTime);  { Not sure this does anything for me in 2BSIQ? }
-
-        ShowCWMessage (CallWindowString + ' was a dupe.');
+        ShowDupeMessage (CallWindowString + ' is a DUPE!');
+        DupeShown := True;
+        DupeShownCallsign := CallWindowString;
+        MarkTime (DupeShownTime);
+        DisplayEditableLog (VisibleLog.LogEntries);
 
         { Panic delete if I pressed F1 by mistake }
 
@@ -613,7 +629,6 @@ VAR RememberTime: TimeRecord;
             CallWindowString := '';
             END;
 
-        ShowCWMessage (CallWindowString + ' is a DUPE!');
         ClrScr;
         CallWindowString := '';
         CallWindowCursorPosition := 1;
@@ -2566,6 +2581,43 @@ VAR Key, ExtendedKey: CHAR;
 
                     CarriageReturn:
                         BEGIN
+                        IF StringIsAllNumbersOrDecimal (CallWindowString) THEN
+                            BEGIN
+                            IF Length (WindowString) = 3 THEN
+                                BEGIN
+                                CASE BandMemory[Radio] OF
+                                    Band160: TempString := '1'   + WindowString;
+                                    Band80:  TempString := '3'   + WindowString;
+                                    Band40:  TempString := '7'   + WindowString;
+                                    Band30:  TempString := '10'  + WindowString;
+                                    Band20:  TempString := '14'  + WindowString;
+                                    Band17:  TempString := '18'  + WindowString;
+                                    Band15:  TempString := '21'  + WindowString;
+                                    Band12:  TempString := '24'  + WindowString;
+                                    Band10:  TempString := '28'  + WindowString;
+                                    Band6:   TempString := '50'  + WindowString;
+                                    ELSE     TempString := '144' + WindowString;
+                                    END;
+                                END
+                            ELSE
+                                TempString := WindowString;
+
+                            IF StringHas (TempString, '.') THEN
+                                BEGIN
+                                Val (TempString, RealFreq, xResult);
+                                Freq := Round (RealFreq * 1000.0);
+                                END
+                            ELSE
+                                Val (TempString + '000', Freq, xResult);
+
+                            IF xResult = 0 THEN
+                                SetRadioFreq (Radio, Freq, Mode, 'A');
+
+                            CallWindowString := '';
+                            CallWindowCursorPosition := 1;
+                            ClrScr;
+                            Exit;
+                            END;
 
                         { This is a thing I don't normally do when programming - but it is very
                           important that WindowDupeCheck be last in the next IF statement!  You
@@ -2864,7 +2916,7 @@ VAR Key, ExtendedKey: CHAR;
             IF BandMapEnable AND (TBSIQ_ActiveWindow = TBSIQ_CallWindow) AND NOT DisablePutUpBandMapCall THEN
                 BEGIN
                 IF (CallWindowString = '') AND (BandMapBlinkingCall <> '') AND OkayToPutUpBandMapCall THEN
-                    IF CallWindowString <> BandMapBlinkingCall THEN
+                    IF BandMapBlinkingCall <> DupeShownCallsign THEN
                         BEGIN
                         CallWindowString := BandMapBlinkingCall;
                         BandMapCallPutUp := BandMapBlinkingCall;
@@ -2963,6 +3015,18 @@ VAR FrequencyChange, TempFreq: LONGINT;
     TimeString: STRING;
 
     BEGIN
+    IF DupeShown THEN
+        IF ElaspedSec100 (DupeShownTime) > 300 THEN
+            BEGIN
+            CASE Radio OF
+                RadioOne: RemoveWindow (TBSIQ_R1_CWMessageWindow);
+                RadioTwo: RemoveWindow (TBSIQ_R2_CWMessageWindow);
+                END;
+
+            DupeShown := False;
+            DupeShownCallsign := '';
+            END;
+
     { Get a new reading from the clock }
 
     TimeString := GetFullTimeString;
@@ -3067,6 +3131,24 @@ PROCEDURE QSOMachineObject.ShowCWMessage (Message: STRING);
         RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_CWMessageWindow);
         END;
 
+    Write (CWMessageDisplayed);
+    RestorePreviousWindow;
+    END;
+
+
+PROCEDURE QSOMachineObject.ShowDupeMessage (Message: STRING);
+
+    BEGIN
+    CWMessageDisplayed := Message;
+
+    CASE Radio OF
+        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_CWMessageWindow);
+        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_CWMessageWindow);
+        END;
+
+    SetBackground (Red);
+    SetColor (Blue);
+    ClrScr;
     Write (CWMessageDisplayed);
     RestorePreviousWindow;
     END;

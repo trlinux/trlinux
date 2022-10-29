@@ -51,6 +51,14 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+  - Moved the "is a dupe" message up in S&P so the call gets shown.  Changed
+    colors for it.  Made message go away after 3 seconds.  Made editable log
+    come up right away.  Made it impossible for that dupe call to get back in
+    the call window for 3 seconds.
+
+  - MAde it harder to spot garbage - like something that does not look like a
+    call or a double callsign
+
 28-Oct-2022
 
   - Attempted to fix occasional wrong use of 59/599 based upon mode.

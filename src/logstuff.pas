@@ -460,6 +460,7 @@ VAR
     PROCEDURE LoadSpecialHelloFile;
     FUNCTION  LogFileLooksOkay: BOOLEAN;
     PROCEDURE LogStringToRXData (LogString: Str80; VAR RXData: ContestExchange);
+    FUNCTION  LooksLikeACallSign (Call: Str40): BOOLEAN;
 
     FUNCTION  MakeLogString (RXData: ContestExchange): Str80;
     FUNCTION  MarineOrAirMobileStation (Call: CallString): Boolean; {KK1L: 6.68 Used in WRTC 2002}
