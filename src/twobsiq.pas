@@ -51,6 +51,9 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+  - Added a time window where function key memories are blocked out for about 200
+    ms after pressing one.  Eliminates double messages on SSB.
+
   - Moved the "is a dupe" message up in S&P so the call gets shown.  Changed
     colors for it.  Made message go away after 3 seconds.  Made editable log
     come up right away.  Made it impossible for that dupe call to get back in
@@ -58,6 +61,21 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
   - MAde it harder to spot garbage - like something that does not look like a
     call or a double callsign
+
+  - If in S&P on both rigs - weird stuff happening.
+
+02-Nov-2022
+
+  - The weight display in the ControlJ menu was being divided by 128 instead
+    of 100 - and thus was displaying wrong.  If you entered a new weight, it
+    was being processed correctly - but still displayed wrong.
+
+30-Oct-2022
+
+  - Found case where I had some letters in the call window and could not
+    clear them even though the call window string was empty.  Added a
+    ClrScr.  This happened when I was doing something with the bandmap
+    or a dupe check on the other radio.
 
 28-Oct-2022
 

@@ -28,6 +28,12 @@ PROGRAM ContestLoggingProgram;
 {  CHANGE LOG
 
 
+02-Nov-2022
+
+  - With the SO2R mini, the weight display in the ControlJ menu was being divided
+    by 128 instead of 100 - and thus was displaying wrong.  If you entered a new
+    weight, it was being processed correctly - but still displayed wrong.
+
 17-Oct-2022
 
   - Added JARTS contest - Cabrillo too.  The muiltiplier stuff isn't working yet.

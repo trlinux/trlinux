@@ -454,7 +454,7 @@ CONSTRUCTOR ArduinoKeyer.Create;
 
    Tuning := False;
    TuningWithDits := False;
-   Weight := 128;
+   Weight := 100;
    END;
 
 
@@ -565,7 +565,7 @@ FUNCTION ArduinoKeyer.GetWeight: REAL;
 { We just report back what we sent last to the keyer }
 
     BEGIN
-    GetWeight := Weight * (1 / $80);
+    GetWeight := Weight * (1 / 100);
     END;
 
 PROCEDURE ArduinoKeyer.SetPTTTurnOnDelay (delay: integer);

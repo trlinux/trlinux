@@ -45,6 +45,8 @@ type
       procedure timer(caughtup: boolean);override;
       procedure directcommand(s: string);override;
 
+      FUNCTION CalmDownEveryone: BOOLEAN;override;
+      FUNCTION DirectCommandAndResponse (RadioCommand: STRING): STRING;override;
       FUNCTION K3IsStillTalking: BOOLEAN;override;
 
       private
@@ -52,12 +54,17 @@ type
          commandcount: longint;
          commandretrycount: longint;
          commandmaxretry: longint;
+
+         DirectCommandSent: BOOLEAN;
          ignorefreq: boolean;
          ignorefreqcount: longint;
          intosplit: string;
          outofsplit: string;
          tovfob: string;
          tovfoa: string;
+
+         RadioResponse: STRING;
+
          ritup: string;
          ritdn: string;
          ritclr: string;
@@ -97,6 +104,9 @@ begin
    commandcount := 0;
    commandmaxretry := 2;
    commandretrycount := 0;
+
+   DirectCommandSent := FALSE;
+
    ignorefreq := false;
    ignorefreqcount := 0;
    intosplit := 'FR0;FA;FT1;';
@@ -187,6 +197,7 @@ begin
 end;
 
 procedure kenwoodctl.putradiointosplit;
+
 begin
    sendstring(intosplit);
 end;
@@ -292,6 +303,101 @@ FUNCTION kenwoodctl.K3IsStillTalking: BOOLEAN;
 
 
 
+FUNCTION kenwoodctl.CalmDownEveryone: BOOLEAN;
+
+{ This can be used to quiet the communication between the host and radio
+  so that we can do a direct command without stomping on any communication.
+
+  It will initially set a flag to stop any further initiation of polling
+  commands.
+
+  It will finally return TRUE after the "frequency is clear".  It is assumed
+  that whatever procedure that does the direction communication will do
+  what it takes to resume normal polling after completed. }
+
+    BEGIN
+    { First - disable polling if not already done }
+
+    IF PollRadio THEN
+        BEGIN
+        SetPollRadio (False);
+        CalmDownEveryone := False;
+        Exit;
+        END;
+
+    { If we are waiting for a response to a previously sent request - we
+      have not established a clear channel yet }
+
+    CalmDownEveryone := NOT Waiting;
+    END;
+
+
+
+FUNCTION kenwoodctl.DirectCommandAndResponse (RadioCommand: STRING): STRING;
+
+{ Will disable normal polling and send a command to the radio and return the
+  response string.  Normal polling will resume once complete.  If no response
+  is generated within a certain amount of time - the function will return with
+  a null string.
+
+  Make sure you call this after CalmDownEveryone went TRUE }
+
+VAR i, j, k: INTEGER;
+    Command: STRING;
+
+    BEGIN
+    DirectCommandAndResponse := '';   { Default upon exit }
+
+    IF NOT DirectCommandSent THEN
+        BEGIN
+
+        { We are going to take over communication to send the command right away }
+
+        SendString (RadioCommand);  { puts it into the send string buffer }
+
+        i := 0;
+        j := torigstart;
+
+        WHILE j <> torigend do
+            BEGIN
+            inc(i);
+            command [i] := torig[j];
+            j := (j+1) mod rigbuffersize;
+
+            if command [i] = ';' then
+                BEGIN
+                setlength (command,i);
+                torigstart := j;
+                if debugopen then writeln(debugfile,'sending ' + command);
+                for k := 1 to length(command) do radioport.putchar(command[k]);
+                lastcommand := command;
+                waiting := true;
+                commandcount := 0;
+                break;
+                END;
+            END;
+
+        DirectCommandSent := True;
+        RadioResponse := '';
+        Exit;
+        END;
+
+    { We will now look to see if a response has come in for this commmand.  We use
+      the normal buffer for receiving the response - but it is looking to see if
+      DirectCommandSet is true.  If so, it will wait until there is a complete response
+      and put into the variable RadioRespone.  Once we see this - we can return that
+      string - clear DirectCommandSet and re-enable polling }
+
+    IF RadioResponse <> '' THEN
+        BEGIN
+        DirectCommandAndResponse := RadioResponse;
+        DirectCommandSent := False;
+        SetPollRadio (True);
+        END;
+    END;
+
+
+
 procedure kenwoodctl.timer (caughtup: boolean);
 
 var c: char;
@@ -308,165 +414,176 @@ var c: char;
 
     { Read in any characters that have arrived }
 
-    while radioport.charready do
-      BEGIN
-      c := radioport.readchar();
-      if debugopen then write(debugfile,c);
+    WHILE radioport.charready do
+        BEGIN
+        c := radioport.readchar();
+        if debugopen then write(debugfile,c);
 
-      IF c <> ';' THEN { Not ; = add to response buffer }
-          BEGIN
-          fromrig[fromrigend] := c;
-          fromrigend := (fromrigend + 1) mod rigbuffersize;
-          END
-      ELSE
-
-         { We found the semi-colon indicating we have the whole response }
-
-         BEGIN
-         if debugopen then writeln(debugfile,c);
-
-         waiting := false;
-         i := 0;
-
-         { Generate response string from buffer }
-
-         WHILE fromrigstart <> fromrigend do
+        IF c <> ';' THEN { Not ; = add to response buffer }
             BEGIN
-            inc(i);
-            response[i] := fromrig[fromrigstart];
-            fromrigstart := (fromrigstart + 1) mod rigbuffersize;
-            END;
-
-         inc(i);
-         response[i] := c;
-         setlength(response,i);
-
-         IF response[1] = '?' then
-            BEGIN
-            if debugopen then writeln(debugfile,'received ? resending');
-
-            inc(commandretrycount);
-
-            if commandretrycount <= commandmaxretry then
-               BEGIN
-               for k := 1 to length(lastcommand) do
-                  begin
-                  if debugopen then write(debugfile,lastcommand[k]);
-                  radioport.putchar(lastcommand[k]);
-                  end;
-               waiting := true;
-               if debugopen then writeln(debugfile);
-               END
-            else
-               BEGIN
-               waiting := false;
-               commandretrycount := 0;
-               commandcount := 0;
-               if debugopen then writeln(debugfile,'giving up on retries');
-               END;
+            fromrig[fromrigend] := c;
+            fromrigend := (fromrigend + 1) mod rigbuffersize;
             END
+        ELSE
 
-         ELSE  { Not a ? }
+            { We found the semi-colon indicating we have the whole response }
 
-            { Special response when polling TX status }
+            BEGIN
+            if debugopen then writeln(debugfile,c);
 
-            IF (response[1] = 'T') and (response[2] = 'Q') and (length(response) = 3) then
+            waiting := false;     { No longer waiting for a response }
+            i := 0;
+
+            { Generate response string from buffer }
+
+            WHILE fromrigstart <> fromrigend do
                 BEGIN
-                txon := response [3] = '1';
+                inc(i);
+                response[i] := fromrig[fromrigstart];
+                fromrigstart := (fromrigstart + 1) mod rigbuffersize;
                 END;
 
-            IF (response[1] = 'I') and (response[2] = 'F') and (length(response) = responselength) then
-               BEGIN
-               if debugopen then writeln (debugfile, 'polled information message');
+            inc(i);
+            response[i] := c;
+            setlength(response,i);
 
-               val(copy(response,freqpos,freqdigits),freqnow,code);
+            IF response [1] = '?' then
+                 BEGIN
+                 if debugopen then writeln(debugfile,'received ? resending');
 
-               if ignorefreq then
-                  BEGIN
-                  freqnow := freq;
-                  inc(ignorefreqcount);
-                  ignorefreq := (ignorefreqcount <= 2);
-                  if debugopen then writeln(debugfile,'ignoring frequency');
-                  END;
+                 inc(commandretrycount);
 
-               if code = 0 then freq := freqnow;
+                 if commandretrycount <= commandmaxretry then
+                    BEGIN
+                    for k := 1 to length(lastcommand) do
+                       begin
+                       if debugopen then write(debugfile,lastcommand[k]);
+                       radioport.putchar(lastcommand[k]);
+                       end;
+                    waiting := true;
+                    if debugopen then writeln(debugfile);
+                    END
+                 else
+                    BEGIN
+                    waiting := false;
+                    commandretrycount := 0;
+                    commandcount := 0;
+                    if debugopen then writeln(debugfile,'giving up on retries');
+                    END;
+                 END
 
-               case response[modepos] of
-                  '1', '2', '4', '5': mode := Phone;
-                  '6', '9': mode := Digital;
-                  else mode := cw;
-                  END;  { of case mode }
+            ELSE        { Not a ? }
+                BEGIN
+                { If we have issued a direct command - we will put the response
+                  into RadioResponse }
 
-               { Parse if the transmitter is on - one character before the modpos }
+                IF DirectCommandSent THEN
+                    RadioResponse := Response;
 
-               txon := response[modepos - 1] = '1';
-               END;
-         END;
-      END;
+                { We expect to either see a TQ or IF response }
+                { The TQ response simply tells us if the radio is in TX or not }
 
-   if bumpignore then
-      BEGIN
-      inc(bumpcount);
-      bumpignore := (bumpcount <= bumptime);
-      END;
+                IF (response[1] = 'T') and (response[2] = 'Q') and (length(response) = 3) then
+                    txon := response [3] = '1';
 
-   IF waiting then
-      BEGIN
-      inc(commandcount);
+                { IF response gives us frequency, mode and TX info }
 
-      IF commandcount >= commandtime then
-         BEGIN
-         if debugopen then writeln(debugfile,'time out flushing read buffer');
+                IF (response[1] = 'I') and (response[2] = 'F') and (length(response) = responselength) then
+                    BEGIN
+                    if debugopen then writeln (debugfile, 'polled information message');
 
-         { Dump any characters coming from the radio }
+                    val(copy(response,freqpos,freqdigits),freqnow,code);
 
-         while radioport.charready do radioport.readchar();
+                    if ignorefreq then
+                        BEGIN
+                        freqnow := freq;
+                        inc(ignorefreqcount);
+                        ignorefreq := (ignorefreqcount <= 2);
+                        if debugopen then writeln(debugfile,'ignoring frequency');
+                        END;
 
-         { Reinitialize everything }
+                    if code = 0 then freq := freqnow;
 
-         fromrigstart := 0;
-         fromrigend := 0;
-         commandcount := 0;
-         commandretrycount := 0;
-         waiting := false;
-         END;
-      END;
+                    CASE Response [modepos] OF
+                           '1', '2', '4', '5': mode := Phone;
+                           '6', '9': mode := Digital;
+                           else mode := cw;
+                           END;  { of case mode }
 
-  { If we are still waiting - then we aren't going to send any commands }
+                    { Parse if the transmitter is on - one character before the modpos }
 
-  if waiting then exit;
+                    txon := response[modepos - 1] = '1';
+                    END; { of IF; response }
+                END;     { end of processing valid (non ?) responses }
+            END;  { end of semi-colon terminated response }
+        END;  { of loop reading in any available characters }
 
-  { We are adding another type of request instead of the IF; here.  In order to
-    see when a transmission is completed more quickly, we have the ability to
-    set the k3tightloop parameter to TRUE and send the TQ; command instead. }
+    { We have read any characters that were coming in }
 
-  if ((not waiting) and (pollcounter >= polltime)) and pollradio then
-      BEGIN
-      IF K3TXPollMode THEN      { Ask for TX state only }
-          SendString ('TQ;')
-      ELSE
-          sendstring ('IF;');   { Ask for everything }
+    if bumpignore then
+        BEGIN
+        inc(bumpcount);
+        bumpignore := (bumpcount <= bumptime);
+        END;
 
-      pollcounter := 0;
-      END;
+   { Check waiting time to see if we are timed out }
 
-   inc (pollcounter);
+    IF Waiting THEN
+        BEGIN
+        inc(commandcount);
 
-   { if we aren't waiting for a response, we are going to send the command
-     to the radio }
+        IF commandcount >= commandtime then
+           BEGIN
+           if debugopen then writeln(debugfile,'time out flushing read buffer');
 
-   if not waiting then
-      BEGIN
-      i := 0;
-      j := torigstart;
+           { Dump any characters coming from the radio }
 
-      while j <> torigend do
-         BEGIN
-         inc(i);
-         command[i] := torig[j];
-         j := (j+1) mod rigbuffersize;
+           while radioport.charready do radioport.readchar();
 
-         if command[i] = ';' then
+           { Reinitialize everything }
+
+           fromrigstart := 0;
+           fromrigend := 0;
+           commandcount := 0;
+           commandretrycount := 0;
+           Waiting := false;
+           END;
+        END;
+
+    { If we are still waiting - then we aren't going to send any commands }
+
+    IF Waiting THEN Exit;
+
+    { We are adding another type of request instead of the IF; here.  In order to
+      see when a transmission is completed more quickly, we have the ability to
+      set the k3tightloop parameter to TRUE and send the TQ; command instead. }
+
+    IF PollRadio AND (PollCounter >= PollTime) THEN
+        BEGIN
+        IF K3TXPollMode THEN      { Ask for TX state only }
+            SendString ('TQ;')
+        ELSE
+            SendString ('IF;');   { Ask for everything }
+
+        PollCounter := 0;
+        END;
+
+    Inc (pollcounter);
+
+    { If we have any bytes in the torig buffer, then send it to the radio.
+      Note that this gets done regardless who put the command in there.  This
+      is necessary so other commands like FA ones get sent }
+
+    i := 0;
+    j := torigstart;
+
+    WHILE j <> torigend do
+        BEGIN
+        inc(i);
+        command[i] := torig[j];
+        j := (j+1) mod rigbuffersize;
+
+        if command[i] = ';' then
             BEGIN
             setlength(command,i);
             torigstart := j;
@@ -477,9 +594,10 @@ var c: char;
             commandcount := 0;
             break;
             END;
-         END;
-      END;
-end;
+        END;
+    END;
+
+
 
 procedure kenwoodctl.directcommand(s: string);
 begin
