@@ -16,6 +16,45 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+0.55
+
+- Many enhancements and bug fixes with the 2BSIQ user interface.  
+
+- In 2BSIQ, you can now use the Alt-D command to enter a
+  callsign similar to what you would do in the classic interface.
+  If the other radio has the call window active, the call will
+  be entered and when you press RETURN it will perform a dupe
+  check.
+  
+- Dualing CQ is now supported (using Control-Dash) in 2BSIQ.  
+  Will, work on RTTY and SSB with a K3/K4 radio.
+  
+- Better integration of the band map with 2BSIQ interface.
+
+- Packet cluster support in 2BSIQ interface.
+
+- RTTY supported with K3/K4 radios.  
+
+- New QSO number metodology implemented for 2BSIQ.  When you
+  first start, you will have QSO #1 on the left radio and
+  QSO #2 on the right radio.  Once you do something with
+  a radio like starting to enter a call, that number will
+  be locked until you log a QSO on that radio.  
+  
+  If you start running on the radio that has the lower 
+  number and don't do anything on the other radio, the 
+  QSO number will get "stoeln" from the inactive radio .
+  
+  If an old QSO number gets left behind on a radio, you 
+  can update it to a new number using the call window
+  command UPDATEQSONR.  Also, any unused QSO numebers
+  will be skipped if you restart the program.  Currently,
+  you must not use the option to log frequencies if you
+  are using QSO numbers.  
+  
+  AutoCQ using AltQ and AltC now supported.  
+ 
+
 0.54
 
 - Implementation of new user interface enabling 2BSIQ opeation.
