@@ -2432,6 +2432,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQExchangeBeingSent:
             BEGIN
+            DisplayEditableLog (VisibleLog.LogEntries);
+
             DoPossibleCalls (CallWindowString);
             ListenToOtherRadio;
 

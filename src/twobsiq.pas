@@ -49,22 +49,17 @@ TODO LIST
 
  - Show country and beam headings?
 
-CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
-
-  - Added a time window where function key memories are blocked out for about 200
-    ms after pressing one.  Eliminates double messages on SSB.
-
-  - Moved the "is a dupe" message up in S&P so the call gets shown.  Changed
-    colors for it.  Made message go away after 3 seconds.  Made editable log
-    come up right away.  Made it impossible for that dupe call to get back in
-    the call window for 3 seconds.
-
-  - MAde it harder to spot garbage - like something that does not look like a
-    call or a double callsign
 
   - If in S&P on both rigs - weird stuff happening.
 
   - Not entering dupe into band map.
+
+CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+04-Nov-2022
+
+  - Put editable log back up when sending CQ exchange (clearing out the partial
+    call window).
 
 03-Nov-2022
 
@@ -161,6 +156,19 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
     listen time is four seconds.  You can adjust it during listening time in
     half second increments using PageUp/Dn.  PageUp/Dn during transmit will
     change the CW speed.
+
+  - Added a time window where function key memories are blocked out for about 200
+    ms after pressing one.  Eliminates double messages on SSB.
+
+  - Moved the "is a dupe" message up in S&P so the call gets shown.  Changed
+    colors for it.  Made message go away after 3 seconds.  Made editable log
+    come up right away.  Made it impossible for that dupe call to get back in
+    the call window for 3 seconds.
+
+  - MAde it harder to spot garbage - like something that does not look like a
+    call or a double callsign
+
+
 
 22-Oct-2022
 
