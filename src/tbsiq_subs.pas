@@ -2963,6 +2963,7 @@ VAR Key, ExtendedKey: CHAR;
                                 LoggedSAndPCall := CallWindowString;
                                 MarkTime (LoggedSAndPCallTime);
 
+                                RData.SearchAndPounce := True;
                                 TBSIQ_LogContact (RData);
                                 ShowStationInformation (CallWindowString);
 
@@ -3108,6 +3109,7 @@ VAR Key, ExtendedKey: CHAR;
                                             BEGIN
                                             EscapeDeletedCallEntry := CallWindowString;
                                             ShowCWMessage ('DeletedCall = ' + CallwindowString);
+                                            RData.SearchAndPounce := True;
                                             TBSIQ_LogContact (RData);
                                             ShowStationInformation (CallWindowString);
 
