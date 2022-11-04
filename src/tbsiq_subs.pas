@@ -3160,6 +3160,8 @@ VAR Key, ExtendedKey: CHAR;
                                         Write (ExchangeWindowString);
                                         ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
                                         END;
+
+                                    ShowStationInformation (CallWindowString);
                                     END;
 
                                 END;  { of CASE ExtendedKey }
@@ -4916,6 +4918,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                     ClrScr;
                     Write (WindowString);
                     CursorPosition := Length (WindowString) + 1;
+                    ShowStationInformation (CallWindowString);
                     END;  { of AltZ }
 
                 AltDash:   { Uses the global AutoSendEnable }

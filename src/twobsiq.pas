@@ -75,6 +75,9 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
     you need to put the TRMASTER.BIN file in the working directory for
     the contest.
 
+  - In S&P - made AltZ (used to go from CallWindow to ExchangeWindow and
+    get initial exchange) show station info.
+
 30-Oct-2022
 
   - Found case where I had some letters in the call window and could not
