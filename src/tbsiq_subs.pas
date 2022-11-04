@@ -6711,6 +6711,7 @@ VAR LogString: Str80;
 
     UpdateTotals;
     DisplayTotalScore (TotalScore);
+    VisibleLog.ShowRemainingMultipliers;
 
     IF BandMapEnable THEN
         BEGIN

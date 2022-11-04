@@ -58,6 +58,8 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 04-Nov-2022
 
+  - Made sure remaining mults get updated when logging a QSO.
+
   - Put editable log back up when sending CQ exchange (clearing out the partial
     call window).
 
