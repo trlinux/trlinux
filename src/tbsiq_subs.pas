@@ -1,4 +1,4 @@
-//
+//
 //Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015,2022
 //
 //This file is part of TR log for linux.
@@ -3708,9 +3708,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             { Between CallWindow and ExchangeWindow }
 
-            TBSIQ_R1_UserInfoWindowLX := WindowLocationX + 14;
+            TBSIQ_R1_UserInfoWindowLX := WindowLocationX + 29;
             TBSIQ_R1_UserInfoWindowLY := WindowLocationY + 0;
-            TBSIQ_R1_UserInfoWindowRX := WindowLocationX + 25;
+            TBSIQ_R1_UserInfoWindowRX := WindowLocationX + 38;
             TBSIQ_R1_UserInfoWindowRY := WindowLocationY + 0;
             END;
 
@@ -3804,9 +3804,9 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             { Between CallWindow and ExchangeWindow }
 
-            TBSIQ_R2_UserInfoWindowLX := WindowLocationX + 14;
+            TBSIQ_R2_UserInfoWindowLX := WindowLocationX + 29;
             TBSIQ_R2_UserInfoWindowLY := WindowLocationY + 0;
-            TBSIQ_R2_UserInfoWindowRX := WindowLocationX + 25;
+            TBSIQ_R2_UserInfoWindowRX := WindowLocationX + 38;
             TBSIQ_R2_UserInfoWindowRY := WindowLocationY + 0;
             END;
 

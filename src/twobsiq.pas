@@ -64,11 +64,16 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
   - If in S&P on both rigs - weird stuff happening.
 
-02-Nov-2022
+  - Not entering dupe into band map.
 
-  - The weight display in the ControlJ menu was being divided by 128 instead
-    of 100 - and thus was displaying wrong.  If you entered a new weight, it
-    was being processed correctly - but still displayed wrong.
+03-Nov-2022
+
+  - Fixed ^ character in Arduino (see main program notes)
+
+  - Moved User Info Window above the INSERT window so it no longer gets
+    overwritten by the Auto Start Send indicator.  Note that it appears
+    you need to put the TRMASTER.BIN file in the working directory for
+    the contest.
 
 30-Oct-2022
 

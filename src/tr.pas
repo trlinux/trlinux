@@ -27,6 +27,25 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+03-Nov-200
+
+  - There is an issue with using the SO2R Mini with the ^ character in CW messages.
+    Previously, using a ^ in a CW message would produce a half space.  For the SO2R
+    Mini, this is a prefix for a command - which will be the next character in the
+    message.  Here are the valid SO2R mini commands:
+
+    ^D - Long Dash
+    ^F - Speed up CW by 2 WPM
+    ^H - Half dit space
+    ^I - Switch headphones to inactive radio
+    ^J - Switch headphones to active radio
+    ^S - Slow down CW by 2 WPM
+    ^X - Switch headphones to Radio 1
+    ^Y - Switch headphones to Radio 2
+    ^Z - Switch headphones to Stereo
+
+    Also - I found a bug with the implmentation of the ^H command in the SO2R Mini
+    firmware that has been fixed with release dated Nov 3, 2022.
 
 02-Nov-2022
 

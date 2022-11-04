@@ -258,6 +258,11 @@ PROCEDURE TBSIQ_CWEngineObject.CueCWMessage (Message: STRING;
 { Just like SendCWMessage - however it inserts the message into the cue instead of sending it immediately.
   This is first in first out for now.  A message number gives a way to check the status of the mssage }
 
+{ This is a big bandaide here.  I didn't think though using the ^ for the SO2RMini as a prefix for
+  commands.  This historically had been a character reserved for a half space.  So - for my own
+  personal purposes - if the SO2R mini is the interfaced device for sending CW, I will change any
+  ^ character to ^H which will perform the half space option.  }
+
     BEGIN
     MessageCue [CueHead].Message  := Message;
     MessageCue [CueHead].Radio    := Radio;
