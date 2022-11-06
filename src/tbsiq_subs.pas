@@ -2468,6 +2468,8 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             ListenToOtherRadio;
 
+            DisplayUserInfo (CallWindowString);
+
             IF ActionRequired THEN
                 CASE Key OF
                     NullKey:
@@ -2513,6 +2515,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQWaitingForExchange:
             BEGIN
+            DisplayUserInfo (CallWindowString);
+
             IF ActionRequired THEN
                 CASE Key OF
                     EscapeKey:

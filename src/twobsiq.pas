@@ -49,10 +49,11 @@ TODO LIST
 
  - Show country and beam headings?
 
-
-  - If in S&P on both rigs - weird stuff happening.
+  - If in S&P on both rigs - weird stuff happening (seen in CQ WW CW - not SS)
 
   - Not entering dupe into band map.
+
+  - AltK is not well behaved.
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
