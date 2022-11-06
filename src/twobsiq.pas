@@ -57,6 +57,10 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+05-Nov-2022
+
+  - Fixed UserInfo not coming up with CQ QSOs
+
 04-Nov-2022
 
   - Fixed S&P indicator if enabled.
