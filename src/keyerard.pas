@@ -1209,6 +1209,9 @@ FUNCTION ArduinoKeyer.DeleteLastCharacter: BOOLEAN;
 
 PROCEDURE ArduinoKeyer.FlushCWBuffer;
 
+{ Was sending $13 to finish current character but that resulted in PTT errors
+  so amd trying $12 }
+
     BEGIN
     IF KeyerInitialized THEN
         ArduinoKeyerPort.PutChar (Char($13));  { Stop CW after current character - clear buffer }

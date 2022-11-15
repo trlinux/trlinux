@@ -47,15 +47,53 @@ TODO LIST
 
  - Intiial exchange has a space?
 
- - Show country and beam headings?
+ - Show country and beam headings? (Fixed?)
 
   - If in S&P on both rigs - weird stuff happening (seen in CQ WW CW - not SS)
-
-  - Not entering dupe into band map.
+    This is likely the bandmap blinking call issue noted in the SS CW notes.
 
   - AltK is not well behaved.
 
+  - If in SSB - remove AutoStartSend arrows
+
+  NOTES FROM SSCW:
+
+    > character in CW messages clears RIT on wrong radio
+
+    Bandmap blinking call appears to mess up other radio
+
+    As I got more contacts, the QSO before message was chopped some
+
+    Also, with more QSOs, saw a flash of yellow before CQ EXCHANGE
+
+    Improve indication of dualing CQ statu
+
+    I think Alt-Enter should log a QSO even if it was a dupe - not
+    sure if that is always true in S&P
+
+    Would be nice to get capital letters when editing log.  Same for
+    Memory program (like shift keys for characters).
+
+
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+14-Nov-2022
+
+  - Fixed nasty bandmap issue where calls were bleeding over to the wrong
+    radio.  This turned out to be a case of assuming that the "real" active
+    window was already setup if the radio specific active window seemed to
+    be correct.  There might be other places lurking where you need to put
+    a SetTBSIQWindow (TBSIQ_ActiveWindow) command to make sure the correct
+    window is up.  This normally happens when a key is pressed - but if
+    something automatic like switching between band map focus without a
+    keystroke, then you might be in the wrong place.
+
+09-Nov-2022
+
+  - Fixed bug where PTT was being deasserted before completing the character
+    being sent by the Arduino when the operator is pressing ESCAPE. This was
+    fixed by removing the PTT unassert command in LOGCW in the FlushBuffer
+    prodcedure.
 
 05-Nov-2022
 

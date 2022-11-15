@@ -1,4 +1,4 @@
-//
+//
 //Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015,2022
 //
 //This file is part of TR log for linux.
@@ -146,8 +146,8 @@ TYPE
         QSOState: TBSIQ_QSOStateType;
 
         RadioFrequencySettledCount: INTEGER;
-        RadioMovingInBandMode: BOOLEAN; { Replaces the classis RadioMovingInBandMode [radio] }
-        RadioOnTheMove: BOOLEAN;        { Replaces the classic RadioOntheMove [radio] }
+        RadioMovingInBandMode: BOOLEAN;      { Replaces the classis RadioMovingInBandMode [radio] }
+        RadioOnTheMove: BOOLEAN;             { Replaces the classic RadioOntheMove [radio] }
         RememberQSOState: TBSIQ_QSOStateType;
 
         SCPScreenFull: BOOLEAN;
@@ -285,7 +285,7 @@ FUNCTION  ValidFunctionKey (Key: CHAR): BOOLEAN;
 
 IMPLEMENTATION
 
-USES KeyCode, BaseUnix;
+USES KeyCode, blcksock, Sockets, BaseUnix;  { last three are for TCP support }
 
 TYPE
     FileRecord = RECORD  { This is the data record that we read off of the keyboard "files"  }
@@ -709,12 +709,13 @@ VAR MultString: Str40;
             VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
             Mult := MultString <> '';
 
-            { First True is dupe - second one is SendToMulti }
-
             BandMapCursorFrequency := DisplayedFrequency;
             BandMapMode := Mode;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
+            BandMapCallPutUp := CallWindowString;
+
+            { First True is dupe - second one is SendToMulti }
 
             NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, True, Mult, BandMapDecayTime, True);
             DisablePutUpBandMapCall := False;
@@ -730,7 +731,16 @@ VAR MultString: Str40;
             VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
             Mult := MultString <> '';
 
+            BandMapCursorFrequency := DisplayedFrequency;
+            BandMapMode := Mode;
+            BandMapBand := Band;
+            TBSIQ_BandMapFocus := Radio;
+            BandMapCallPutUp := CallWindowString;
+
+            { First True is dupe - second one is SendToMulti }
+
             NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, Mult, BandMapDecayTime, True);
+
             SwapWindows;
             ClrScr;
             ExchangeWindowString := '';
@@ -768,6 +778,10 @@ VAR MultString: Str40;
             BandMapMode := Mode;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
+            BandMapCallPutUp := CallWindowString;
+
+            { First True is dupe - second one is SendToMulti }
+
             NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
             DisablePutUpBandMapCall := False;
             END;
@@ -1152,8 +1166,7 @@ PROCEDURE TBSIQ_DeleteLastContact;
 PROCEDURE TBSIQ_CheckBandMap;
 
 { Looks at the status of the two radios and determines which one should have the focus
-  of the bandmap.  The band map gets updated in the radio update portion - once a
-  second }
+  of the bandmap.  If it changes, the new bandmap will be displayed }
 
 VAR RadioThatShouldHaveFocus: RadioType;
 
@@ -1174,20 +1187,29 @@ VAR RadioThatShouldHaveFocus: RadioType;
     IF (Radio1QSOMachine.QSOState = QST_SearchAndPounce) AND
        (Radio2QSOMachine.QSOState = QST_SearchAndPounce) THEN
            BEGIN
-           IF Radio1QSOMachine.RadioMovingInBandMode THEN RadioThatShouldHaveFocus := RadioOne;
-           IF Radio2QSOMachine.RadioMovingInBandMode THEN RadioThatShouldHaveFocus := RadioTwo;
+           IF Radio1QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioOne;
+           IF Radio2QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioTwo;
            END;
 
-    { Update the bandmap }
+    IF RadioThatShouldHaveFocus <> TBSIQ_BandMapFocus THEN  { We need to change }
+        BEGIN
+        TBSIQ_BandMapFocus := RadiothatShouldHaveFocus;
 
-    TBSIQ_BandMapFocus := RadiothatShouldHaveFocus;
-    BandMapBand := BandMemory [TBSIQ_BandMapFocus];
-    BandMapMode := ModeMemory [TBSIQ_BandMapFocus];
+        { Not sure if this is better than just sending the Radio's band/mode }
 
-    CASE TBSIQ_BandMapFocus OF
-        RadioOne: BandMapCursorFrequency := Radio1QSOMachine.Frequency;
-        RadioTwo: BandMapCursorFrequency := Radio2QSOMachine.Frequency;
-        END;  { of CASE }
+        BandMapBand := BandMemory [TBSIQ_BandMapFocus];
+        BandMapMode := ModeMemory [TBSIQ_BandMapFocus];
+
+        CASE TBSIQ_BandMapFocus OF
+            RadioOne: BandMapCursorFrequency := Radio1QSOMachine.Frequency;
+            RadioTwo: BandMapCursorFrequency := Radio2QSOMachine.Frequency;
+            END;  { of CASE }
+
+        { New and improved? }
+
+        BandMapBLinkingCall := '';
+        DisplayBandMap;
+        END;
     END;
 
 
@@ -1255,6 +1277,7 @@ VAR TimeString, FullTimeString, HourString: Str20;
         BEGIN
         MinutesSinceLastBMUpdate := 0;
         DecrementBandMapTimes;
+        DisplayBandMap;
         END;
 
     { Fix up the rate array. First, shuffle the minutes }
@@ -2072,6 +2095,7 @@ VAR Key, ExtendedKey: CHAR;
 
                     EscapeKey:  { We got here with an empty window }
                         BEGIN
+                        ShowCWMessage ('ESCAPE in Idle');
                         ClrScr;  { Just to make sure }
                         DisplayEditableLog (VisibleLog.LogEntries);
                         QSOState := QST_Idle;
@@ -2742,10 +2766,6 @@ VAR Key, ExtendedKey: CHAR;
 
             RemovePossibleCallWindow;
 
-            BandMapBand := DisplayedBand;
-            BandMapMode := DisplayedMode;
-
-            BandMapCursorFrequency := DisplayedFrequency;
             TBSIQ_BandMapFocus := Radio;
 
             ClearAutoSendDisplay;
@@ -3022,6 +3042,14 @@ VAR Key, ExtendedKey: CHAR;
                                             Mult := False;
                                         END;
 
+                                    BandMapCursorFrequency := DisplayedFrequency;
+                                    BandMapMode := Mode;
+                                    BandMapBand := Band;
+                                    TBSIQ_BandMapFocus := Radio;
+                                    BandMapCallPutUp := CallWindowString;
+
+                                    { First True is dupe - second one is SendToMulti }
+
                                     NewBandMapEntry (CallWindowString, Frequency, 0, Mode, ThisIsADupe, Mult, BandMapDecayTime, True);
                                     DisablePutUpBandMapCall := False;
 
@@ -3178,29 +3206,51 @@ VAR Key, ExtendedKey: CHAR;
                     END; { of case Key }
                 END;
 
-            { We are in S&P mode - and possibly we need to do something if we are
-              tuning to a new frequency }
+            { Hand around if the band map is enabled }
 
-            IF BandMapEnable AND (TBSIQ_ActiveWindow = TBSIQ_CallWindow) AND NOT DisablePutUpBandMapCall THEN
-                BEGIN
-                IF (CallWindowString = '') AND (BandMapBlinkingCall <> '') AND OkayToPutUpBandMapCall THEN
-                    IF (BandMapBlinkingCall <> DupeShownCallsign) AND (BandMapBlinkingCall <> LoggedSAndPCall) THEN
-                        BEGIN
-                        CallWindowString := BandMapBlinkingCall;
-                        BandMapCallPutUp := BandMapBlinkingCall;
-                        ClrScr;
-                        Write (CallWindowString);
-                        CallWindowCursorPosition := Length (CallWindowString) + 1;
-                        END;
+            IF NOT BandMapEnable THEN Exit;                        { Go away }
 
-                IF BandMapCallPutUp <> BandMapBlinkingCall THEN
-                    IF BandMapCallPutUp = CallWindowString THEN
+            { and the bandmap focus is this radio }
+
+            IF TBSIQ_BandMapFocus <> Radio THEN Exit;
+
+            { If we have tuned away from an entry that was put up from the band map
+              we need to clear the call window }
+
+            IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                IF BandMapCallPutUp = CallWindowString THEN
+                    IF (BandMapBlinkingCall <> CallWindowString) THEN
                         BEGIN
+                        SetTBSIQWindow (TBSIQ_ActiveWindow);  { Makes sure we are active }
                         ClrScr;
                         CallWindowString := '';
                         CallWindowCursorPosition := 1;
                         BandMapCallPutUp := '';
                         END;
+
+            { Now we see if there is a new blinking call to put up }
+
+            IF CallWindowString <> '' THEN Exit;                   { Only do it to an empty window }
+            IF BandMapBlinkingCall = '' THEN Exit;                 { No blinking call }
+            IF DisablePutUpBandMapCall THEN Exit;                  { Someone pressed a key }
+            IF TBSIQ_ActiveWindow <> TBSIQ_CallWindow THEN Exit;   { Not in call window }
+            IF NOT OkayToPutUpBandMapCall THEN Exit;               { Call is a dupe }
+
+            { Not sure I need to redo this frequency check }
+
+            { This is sometimes putting the band map call up on the wrong radio }
+
+            IF (ABS (BandMapBlinkingCallRecord^.Frequency - Frequency) <= BandMapGuardBand) THEN
+                BEGIN
+                SetTBSIQWindow (TBSIQ_ActiveWindow);  { Makes sure we are active }
+                CallWindowString := BandMapBlinkingCall;
+                ClrScr;
+                Write (CallWindowString);
+                CallWindowCursorPosition := Length (CallWindowString) + 1;
+
+                { Remember that this is the callsign we have put up }
+
+                BandMapCallPutUp := BandMapBlinkingCall;
                 END;
 
             END; { of QST_SearchAndPounce }
@@ -3340,7 +3390,10 @@ VAR FrequencyChange, TempFreq: LONGINT;
             END; { of CASE }
 
         RadioMovingInBandMode := RadioOnTheMove AND (ModeMemory [Radio] = Mode) AND (BandMemory [Radio] = Band);
-        IF FrequencyChange > 0 THEN DisablePutUpBandMapCall := False;
+
+        { Was > 0.  This clears the flag set when a key is pressed }
+
+        IF FrequencyChange > BandMapGuardBand THEN DisablePutUpBandMapCall := False;
         END;
 
     LastFrequency := Frequency;
@@ -3356,16 +3409,10 @@ VAR FrequencyChange, TempFreq: LONGINT;
     IF RadioMovingInBandMode AND AutoSAPEnable AND (QSOState <> QST_SearchAndPounce) THEN
         QSOState := QST_SearchAndPounceInit;
 
-    { Kind of a hack here - if we moved away from a freqeuency while in S&P, make
-      sure to clear the call window }
+    { We use RadioFrequencySettledCount to see if we have landed on a frequency }
 
     IF RadioMovingInBandMode AND (QSOState = QST_SearchAndPounce) THEN
-        BEGIN
-        QSOState := QST_SearchAndPounceinit;
-        CallWindowString := '';
-        CallWindowCursorPosition := 1;
         RadioFrequencySettledCount := 1;
-        END;
 
     DisplayTXColor;
     DisplayActiveRadio;
@@ -3376,6 +3423,8 @@ VAR FrequencyChange, TempFreq: LONGINT;
     LastFullTimeString := TimeString;
 
     { We are now only executing this code once a second - per radio }
+
+    { PTTTest is used for testing purposes only }
 
     IF DoingPTTTest THEN
         BEGIN
@@ -3401,10 +3450,12 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     IF TransmitCountDown > 0 THEN Dec (TransmitCountDown);
 
-    IF TBSIQ_BandMapFocus = Radio THEN
+    { Update the cursor frequency of the band map and display the band map }
+
+    IF (TBSIQ_BandMapFocus = Radio) AND (BandMapCursorFrequency <> Frequency) THEN
         BEGIN
         BandMapCursorFrequency := Frequency;
-        IF BandMapEnable THEN DisplayBandMap;
+        DisplayBandMap;
         END;
 
     IF (RadioFrequencySettledCount > 0) AND (QSOState = QST_SearchAndPounce) THEN
@@ -4246,7 +4297,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
     DualingCQState := NoDualingCQs;
 
-    { A keystroke will clear the OkayToPutUpBandMappCall flag  and also disable
+    { A keystroke will clear the OkayToPutUpBandMapCall flag  and also disable
       the feature until we tune to a new frequency }
 
     OkayToPutUpBandMapCall := False;

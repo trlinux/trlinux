@@ -213,8 +213,13 @@ FUNCTION DeleteLastCharacter: BOOLEAN;
 PROCEDURE FlushCWBufferAndClearPTT;
 
     BEGIN
-    ActiveKeyer.PTTUnForce;
     ActiveKeyer.FlushCWBuffer;
+
+    { Removed the PTTUnForce so the Arduino keyer could finish the letter
+      it was sending before PTT went away.  There might be some ramifications
+      here for other keyers - 09-Nov-2022
+
+    ActiveKeyer.PTTUnForce; }
 
     { Legacy stuff }
 

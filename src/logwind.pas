@@ -3160,12 +3160,12 @@ VAR TempString: Str80;
     RestorePreviousWindow;
     END;
 
-
-
+
 
 PROCEDURE DecrementBandMapTimes;
 
-{ Decrements all times by one.  Any that were at zero get deleted. }
+{ Call this once a minute.  Decrements all times by one.  Any that were at
+  zero get deleted.  This does not actually display the updated band map }
 
 VAR BandMapEntryRecord, PreviousBandMapEntryRecord: BandMapEntryPointer;
     MinutesLeft: BYTE;
@@ -5050,15 +5050,20 @@ VAR StartBand, StopBand: BandType;
                    {      BandMapEntryRecord := BandMapEntryRecord^.NextEntry;    }
                    {      Continue;                                               }
                    {      END;                                                    }
+
                    {KK1L: 6.64 Set FirstDisplayedBandMapFrequency for use on next call to DisplayBandMap}
                    {KK1L: 6.65 Changed to = NumberBandMapRows from 0 to mimic display movement of EditBM}
                    {KK1L: 6.65 Changed it back because I like it better}
                    {KK1L: 6.69 Changed to = NumberBandMapRows from 0 to mimic display movement of EditBM}
+
                    IF NumberEntriesDisplayed = NumberBandMapRows THEN
                      FirstDisplayedBandMapFrequency := BandMapEntryRecord^.Frequency;
+
                    {KK1L: 6.64 Set FirstDisplayableBandMapFrequency for use on next call to DisplayBandMap}
+
                    IF CurrentCursor = 0 THEN
                      FirstDisplayableBandMapFrequency := BandMapEntryRecord^.Frequency;
+
                    { Position write position in proper place }
                    {KK1L: 6.64 but only if in the range we want to display}
                    {KK1L: 6.65 Moved further down within existing IF...THEN. It's quicker}
@@ -5070,19 +5075,20 @@ VAR StartBand, StopBand: BandType;
                        BEGIN
                        WindowCall := BandMapExpandedString (Call);
                        BandMapCall := WindowCall;
+
                        {KK1L: 6.64 Sometimes calls wrap into the next field. Truncate to 7 chars for display}
                        {      CallString is 12 chars long. No IF needed since Delete handles strings}
                        {      shorter than index requested. This handles the display. There is a}
                        {      similar change in ShowBandMapCursor to allow the call to show }
                        {      as full size when the cursor passes over it.}
+
                        Delete(BandMapCall, 8, 12);
                        WHILE (Length(BandMapCall) < 7) DO BandMapCall := BandMapCall + ' '; {KK1L: 6.69 neatens display}
-                       {KK1L: 6.64 the dupechecking stuff needed so as not to blink dupes if not displayed}
+
+                       { Determine if this entry should be blinking (for non-CQ entries) }
+
                        IF (Abs (Frequency - BandMapCursorFrequency) <= BandMapGuardBand) AND
-                          (Copy (BandMapCall, 1, 3) <> 'CQ/') THEN  {KK1L: 6.68 changed to below to show CQ} {KK1L: 6.72}
-                       {KK1L: 6.72 Removed. Many folks                              }
-                       { ended up logging "CQ/xxxx" calls which show up as Portugal.}
-                       {IF (Abs (Frequency - BandMapCursorFrequency) <= BandMapGuardBand) THEN}
+                          (Copy (BandMapCall, 1, 3) <> 'CQ/') THEN
                               BEGIN
                               IF CallWindowShowAllSpots THEN {KK1L: 6.65}
                                  BEGIN
@@ -5413,6 +5419,9 @@ VAR FreqString: Str10;
 
 
 PROCEDURE UpdateBlinkingBandMapCall;
+
+{ Resets the decay time of the blinking band map call record to the
+  BandMapDecayTime value }
 
     BEGIN
     IF NOT BandMapEnable THEN Exit;
