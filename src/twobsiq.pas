@@ -45,12 +45,9 @@ TODO LIST
  - RepeatSearchAndPounceExchange not used in 2BSIQ yet.  Will always use the non
    repeat one.
 
- - Intiial exchange has a space?
+  - Intiial exchange has a space?
 
- - Show country and beam headings? (Fixed?)
-
-  - If in S&P on both rigs - weird stuff happening (seen in CQ WW CW - not SS)
-    This is likely the bandmap blinking call issue noted in the SS CW notes.
+  - Show country and beam headings? (Fixed?)
 
   - AltK is not well behaved.
 
@@ -60,13 +57,11 @@ TODO LIST
 
     > character in CW messages clears RIT on wrong radio
 
-    Bandmap blinking call appears to mess up other radio
-
     As I got more contacts, the QSO before message was chopped some
 
     Also, with more QSOs, saw a flash of yellow before CQ EXCHANGE
 
-    Improve indication of dualing CQ statu
+    Improve indication of dualing CQ status
 
     I think Alt-Enter should log a QSO even if it was a dupe - not
     sure if that is always true in S&P
@@ -76,6 +71,10 @@ TODO LIST
 
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+15-Nov-2022
+
+  - Removed Deleted Call message.
 
 14-Nov-2022
 
