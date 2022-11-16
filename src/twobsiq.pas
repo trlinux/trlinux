@@ -80,6 +80,11 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
   - Removed Deleted Call message.
 
+  - Improved operation with dualing CQs on SSB.  A message in progress will
+    be stopped once a key is entered on the opposite radio in response to
+    a CQ.  This is different from CW where the CQ will finish out before
+    the call is answered.
+
 14-Nov-2022
 
   - Fixed nasty bandmap issue where calls were bleeding over to the wrong
