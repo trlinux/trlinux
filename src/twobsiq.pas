@@ -53,6 +53,10 @@ TODO LIST
 
   - If in SSB - remove AutoStartSend arrows
 
+  - Need to use new TQ command for dualing CQs on SSB
+
+  - In Classic mode - start of CW of dualing CQs sounds funny.
+
   NOTES FROM SSCW:
 
     > character in CW messages clears RIT on wrong radio

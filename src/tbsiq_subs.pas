@@ -94,7 +94,7 @@ TYPE
         CallsignICameBackTo: STRING;
         CallWindowString: STRING;
         CallWindowCursorPosition: INTEGER;
-        CharacterInput: CHAR;                  { Used to send letters to the other radio }
+        CharacterInput: CHAR;             { Used to send letters to the other radio using AltD }
         ClearKeyCache: BOOLEAN;
         CodeSpeed: INTEGER;
         CWMessageDisplayed: STRING;
@@ -376,6 +376,7 @@ VAR Message: STRING;
         { Done with the CQ - now to to the other radio }
 
         ActiveKeyer.SetActiveRadio (RadioTwo);
+        SetUpToSendOnActiveRadio;
 
         WITH Radio2QSOMachine DO
             BEGIN
@@ -395,6 +396,7 @@ VAR Message: STRING;
         IF Radio2QSOMachine.IAmTransmitting THEN Exit;
 
         ActiveKeyer.SetActiveRadio (RadioOne);
+        SetUpToSendOnActiveRadio;
 
         WITH Radio1QSOMachine DO
             BEGIN
@@ -2095,7 +2097,6 @@ VAR Key, ExtendedKey: CHAR;
 
                     EscapeKey:  { We got here with an empty window }
                         BEGIN
-                        ShowCWMessage ('ESCAPE in Idle');
                         ClrScr;  { Just to make sure }
                         DisplayEditableLog (VisibleLog.LogEntries);
                         QSOState := QST_Idle;
@@ -2898,7 +2899,6 @@ VAR Key, ExtendedKey: CHAR;
 
                         IF NOT SearchAndPounceStationCalled THEN
                             BEGIN
-                            ShowCWMessage ('Calling');
                             SendFunctionKeyMessage (F1, Message);
                             SearchAndPounceStationCalled := True;
 
@@ -3140,7 +3140,6 @@ VAR Key, ExtendedKey: CHAR;
                                                                  Band, Mode, Frequency, RData) THEN
                                             BEGIN
                                             EscapeDeletedCallEntry := CallWindowString;
-                                            ShowCWMessage ('DeletedCall = ' + CallwindowString);
                                             RData.SearchAndPounce := True;
                                             TBSIQ_LogContact (RData);
                                             ShowStationInformation (CallWindowString);
@@ -3649,7 +3648,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     AutoStartSendStationCalled := False;
     CallWindowString := '';
     CallWindowCursorPosition := 1;
-    Characterinput := Chr(0) ;
+    Characterinput := Chr(0) ;                       { AltD path to other radio }
     CodeSpeed := SpeedMemory [Radio];
     CWMessageDisplayed := '';
     DisablePutUpBandMapCall := False;
@@ -4293,7 +4292,21 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
         Exit;  { No reason to be here }
 
     { A keystroke will stop the DualingCQ activity.  Note that you are likely
-      on the wrong radio with the CW }
+      on the wrong radio with the CW or for sure SSB }
+
+     IF (DualingCQState <> NoDualingCQs) AND (Mode = Phone) THEN  { Make me the TX radio }
+         BEGIN
+         { Try and stop the message on the other radio? }
+
+         CASE Radio OF
+             RadioOne: rig2.directcommand ('RX;');
+             RadioTwo: rig1.directcommand ('RX;');
+             END;
+
+         ActiveRadio := Radio;
+         ActiveKeyer.SetActiveRadio (Radio);   { This seems necessary }
+         TBSIQ_CW_Engine.ShowActiveRadio;
+         END;
 
     DualingCQState := NoDualingCQs;
 
@@ -4308,7 +4321,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
     SetTBSIQWindow (TBSIQ_ActiveWindow);  { Sets cursor }
 
-    { Deal with the case where someone is sending us a character }
+    { Deal with the case where someone is sending us a character using AltD on the other radio }
 
     IF CharacterInput <> Chr (0) THEN   { Someone is talking to us }
         BEGIN
