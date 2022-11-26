@@ -76,6 +76,16 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+26-Nov-2022
+  - In effort to make PTT work again in classic mode while sending CW,
+    I restored the old SendCrypticCW procedure in logsubs1.pas.  It had
+    been moved to logedit.pas in an attempt to let the TBSIQ stuff
+    leverage it - but that didn't work out.  Turns out that I needed
+    to delete a ClearPttForceOn command at the end of SendCrypticCWString
+    in LOGSUBS1.PAS.
+
+  - Insert status now comes up the same as what you had in classic UI.
+
 15-Nov-2022
 
   - Removed Deleted Call message.

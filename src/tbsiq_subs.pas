@@ -117,7 +117,6 @@ TYPE
         Frequency: LONGINT;   { The most current frequency for the radio }
 
         InitialExchangePutUp: BOOLEAN;
-        InsertMode: BOOLEAN;
 
         K3RXPollActive: BOOLEAN;
         KeyboardCWMessage: STRING;
@@ -129,6 +128,7 @@ TYPE
         LastPossibleCall: CallString;
         LastSCPCall: CallString;
 
+        LocalInsertMode: BOOLEAN;
         LoggedSAndPCall: CallString;
         LoggedSAndPCallTime: TimeRecord;
 
@@ -148,6 +148,7 @@ TYPE
         RadioFrequencySettledCount: INTEGER;
         RadioMovingInBandMode: BOOLEAN;      { Replaces the classis RadioMovingInBandMode [radio] }
         RadioOnTheMove: BOOLEAN;             { Replaces the classic RadioOntheMove [radio] }
+        RadioInterfaced: InterfacedRadioType;
         RememberQSOState: TBSIQ_QSOStateType;
 
         SCPScreenFull: BOOLEAN;
@@ -159,6 +160,7 @@ TYPE
         TBSIQ_ActiveWindow: TBSIQ_WindowType;
 
         TransmitCountDown: INTEGER;      { Set > 0 for # of seconds to fake "I am transmitting" }
+        TurnOffK3TXPollModeCount: INTEGER;
 
         PROCEDURE AppendCWMessageDisplay (Message: STRING);
 
@@ -3423,6 +3425,11 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     { We are now only executing this code once a second - per radio }
 
+    { Check turning off TX polling for K4 }
+
+    IF TurnOffK3TXPollModeCount > 0 THEN
+        Dec (TurnOffK3TXPollModeCount);
+
     { PTTTest is used for testing purposes only }
 
     IF DoingPTTTest THEN
@@ -3662,7 +3669,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
     K3RXPollActive := False;
-    InsertMode := InsertMode;
+    LocalInsertMode := InsertMode;      { Need to get the global Insert Mode here }
     LastFrequency := 0;
     MarkTime (LastFunctionKeyTime);
     LastQSOState := QST_None;
@@ -3772,6 +3779,8 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R1_UserInfoWindowLY := WindowLocationY + 0;
             TBSIQ_R1_UserInfoWindowRX := WindowLocationX + 38;
             TBSIQ_R1_UserInfoWindowRY := WindowLocationY + 0;
+
+            RadioInterfaced := Radio1Type;
             END;
 
         RadioTwo:
@@ -3868,6 +3877,8 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
             TBSIQ_R2_UserInfoWindowLY := WindowLocationY + 0;
             TBSIQ_R2_UserInfoWindowRX := WindowLocationX + 38;
             TBSIQ_R2_UserInfoWindowRY := WindowLocationY + 0;
+
+            RadioInterfaced := Radio2Type;
             END;
 
         END;
@@ -4059,15 +4070,15 @@ PROCEDURE QSOMachineObject.DisplayInsertMode;
 
     BEGIN
     IF (DisplayedInsertIndicator = NoInsertIndicator) OR
-       ((DisplayedInsertIndicator = InsertOffIndicator) AND InsertMode) OR
-       ((DisplayedInsertIndicator = InsertOnIndicator) AND NOT InsertMode) THEN
+       ((DisplayedInsertIndicator = InsertOffIndicator) AND LocalInsertMode) OR
+       ((DisplayedInsertIndicator = InsertOnIndicator) AND NOT LocalInsertMode) THEN
            BEGIN
            CASE Radio OF
                RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_InsertWindow);
                RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_InsertWindow);
                END;
 
-           IF InsertMode THEN
+           IF LocalInsertMode THEN
                BEGIN
                Write (' INSERT');
                RestorePreviousWindow;
@@ -4758,7 +4769,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
         SpaceBar:
             IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                 BEGIN
-                IF InsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
+                IF LocalInsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
                     BEGIN
                     IF CursorPosition > 1 THEN
                         BEGIN
@@ -5015,7 +5026,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                 DeleteKey:
                     BEGIN
-                    IF InsertMode THEN
+                    IF LocalInsertMode THEN
                         BEGIN
                         IF CursorPosition <= Length (WindowString) THEN
                             BEGIN
@@ -5128,7 +5139,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                 InsertKey:
                     BEGIN
-                    InsertMode := NOT InsertMode;
+                    LocalInsertMode := NOT LocalInsertMode;
                     DisplayInsertMode;
                     END;
 
@@ -5154,7 +5165,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                         BandMapCallPutUp := '';
                         END;
 
-                IF InsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
+                IF LocalInsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
                     BEGIN
                     IF CursorPosition > 1 THEN
                         BEGIN
@@ -6363,6 +6374,8 @@ FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
   Mostly likely used to disable some function keys when in SSB mode or for
   dualing CQs }
 
+VAR TransmitStatus: BOOLEAN;
+
     BEGIN
     CASE Mode OF
         CW: IAmTransmitting := NOT TBSIQ_CW_Engine.CWFinished (Radio);
@@ -6376,15 +6389,52 @@ FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
             IF TransmitCountDown > 0 THEN
                 BEGIN
                 IAmTransmitting := True;
+
+                { We are going to enable faster polling of the K3 so
+                  we don't have to wait for the 300 ms delay that
+                  the IF; command has on the TX status }
+
+                IF RadioInterfaced = K4 THEN
+                    BEGIN
+                    CASE Radio OF
+                        RadioOne: Rig1.SetK3TXPollMode (True);  { Kind of a misname here }
+                        RadioTwo: Rig2.SetK3TXPollMode (True);  { Kind of a misname here }
+                        END;
+
+                    K3RXPollActive := True;
+                    END;
+
                 Exit;
                 END;
 
-            { We are going to rely on the radio status }
+            { We are now going to rely on the radio status }
 
             CASE Radio OF
-                RadioOne: IAmTransmitting := Rig1.K3IsStillTalking;
-                RadioTwo: IAmTransmitting := Rig2.K3IsStillTalking;
+                RadioOne: TransmitStatus := Rig1.K3IsStillTalking;
+                RadioTwo: TransmitStatus := Rig2.K3IsStillTalking;
                 END;  { of CASE }
+
+            { At some point we will go back to the normal method of monitoring
+              the TX state (using the IF command), but we need to wait a little
+              while before doing that as that TX state will stay true for about
+              a half second }
+
+            IF K3RXPollActive THEN
+                BEGIN
+                IF TransmitStatus THEN TurnOffK3TXPollModeCount := 2;
+
+                IF TurnOffK3TXPollModeCount = 0 THEN
+                    BEGIN
+                    CASE Radio OF
+                        RadioOne: Rig1.SetK3TXPollMode (False);  { Kind of a misname here }
+                        RadioTwo: Rig2.SetK3TXPollMode (False);  { Kind of a misname here }
+                        END;
+
+                    K3RXPollActive := False;
+                    END;
+                END;
+
+            IAmTransmitting := TransmitStatus;
             END;
 
         ELSE

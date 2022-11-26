@@ -483,8 +483,8 @@ var c: char;
                 { We expect to either see a TQ or IF response }
                 { The TQ response simply tells us if the radio is in TX or not }
 
-                IF (response[1] = 'T') and (response[2] = 'Q') and (length(response) = 3) then
-                    txon := response [3] = '1';
+                IF (response[1] = 'T') and (response[2] = 'Q') then
+                    txon := response [3] <> '0';
 
                 { IF response gives us frequency, mode and TX info }
 
@@ -514,6 +514,7 @@ var c: char;
 
                     txon := response[modepos - 1] = '1';
                     END; { of IF; response }
+
                 END;     { end of processing valid (non ?) responses }
             END;  { end of semi-colon terminated response }
         END;  { of loop reading in any available characters }
@@ -558,10 +559,12 @@ var c: char;
       see when a transmission is completed more quickly, we have the ability to
       set the k3tightloop parameter to TRUE and send the TQ; command instead. }
 
-    IF PollRadio AND (PollCounter >= PollTime) THEN
+    IF PollRadio AND ((PollCounter >= PollTime) OR K3TXPollMode) THEN
         BEGIN
         IF K3TXPollMode THEN      { Ask for TX state only }
-            SendString ('TQ;')
+            BEGIN
+            SendString ('TQX;');
+            END
         ELSE
             SendString ('IF;');   { Ask for everything }
 
