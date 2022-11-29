@@ -487,9 +487,14 @@ VAR DelayLoops: INTEGER;
 
             IF Length (Version) = 7 THEN  { We have enough characters }
                 BEGIN
-                EchoTest := Copy (Version, 1, 4) = 'TRCW';
-                GoToXY (1, WhereY);
-                ClrEol;
+                IF Copy (Version, 1, 7) <> 'TRCW V4' THEN
+                    BEGIN
+                    WriteLn ('Expected TRCW V4 response from SO2R Mini.  Received ', Version);
+                    WaitForKeyPressed;
+                    Halt;
+                    END;
+
+                EchoTest := True;
                 Exit;
                 END;
             END
@@ -533,7 +538,6 @@ Procedure ArduinoKeyer.InitializeKeyer;
 
    IF NOT EchoTest THEN
        BEGIN
-       ClrScr;
        WriteLn ('Arduino Keyer not responding -- check connection');
        WaitForKeyPressed;
        Halt;
@@ -668,13 +672,15 @@ PROCEDURE ArduinoKeyer.PTTForceOn;
 
 Procedure ArduinoKeyer.PTTUnForce;
 
-{ Turns off PTT signal - no if ands or buts }
+{ Turns off PTT signal - no if ands or buts.  Well - okay, if there are
+  CW characters to be sent - the PTT will stay asserted }
 
     BEGIN
     IF KeyerInitialized THEN
         BEGIN
         ArduinoKeyerPort.PutChar (Char ($0A)); { PTT command }
         ArduinoKeyerPort.PutChar (Char ($00)); { PTT off }
+        Write ('P');
         END;
     END;
 

@@ -57,6 +57,8 @@ TODO LIST
 
   - In Classic mode - start of CW of dualing CQs sounds funny.
 
+  - Serial number needs better way to start off if recording freqs
+
   NOTES FROM SSCW:
 
     > character in CW messages clears RIT on wrong radio
@@ -73,8 +75,35 @@ TODO LIST
     Would be nice to get capital letters when editing log.  Same for
     Memory program (like shift keys for characters).
 
-
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+28-Nov-2022
+  - Realized that these removal of PttUnforce was kind of a bad idea as
+    the SO2R mini should keep PTT asserted if it has characters in the
+    buffer when seeing this command.  This is resulting in the brief
+    letup of PTT with the CW messages after a callsign is sent and before
+    the CQ exchange shows up after we have enough QSOs.
+
+    So - the SO2R mini firmware needs to be changed so it emulates how
+    things worked before - and the PTTUnassert commands put back into
+    the high level program (both classic and 2BSIQ).  Also, we need
+    to force PTT on while sending a callsign in CQ mode so that the
+    gap until we sent the CQ EXCHANGE is covered.
+
+    Finally, since we are updating the SO2R mini firmware, we are going
+    to fix the ^ character being a command prefix - and make it work
+    as a half space like it is supposed to.
+
+    Along with that will be checking the SO2R mini version now and giving
+    a warning message if it isn't up to date.
+
+    The new SO2R Mini firmare version is TRCW4 V4.
+
+    The new SO2R Mini command prefix is now semi-colon.
+
+    Added PTTHold to CW message buffer and attempted to remove yellow flash between
+    the callsign being sent in a CQ QSOs and the exchange.
+
 
 26-Nov-2022
   - In effort to make PTT work again in classic mode while sending CW,

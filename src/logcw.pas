@@ -214,12 +214,7 @@ PROCEDURE FlushCWBufferAndClearPTT;
 
     BEGIN
     ActiveKeyer.FlushCWBuffer;
-
-    { Removed the PTTUnForce so the Arduino keyer could finish the letter
-      it was sending before PTT went away.  There might be some ramifications
-      here for other keyers - 09-Nov-2022
-
-    ActiveKeyer.PTTUnForce; }
+    ActiveKeyer.PTTUnForce;      { Just in case it was forced on }
 
     { Legacy stuff }
 
@@ -555,6 +550,8 @@ VAR Key: CHAR;
 
         UpdateTimeAndRateDisplays (True, False);
 
+        { Send a character if the buffer is empty in the keyer }
+
         IF ActiveKeyer.BufferEmpty THEN
             IF BufferStart <> BufferEnd THEN
                 BEGIN
@@ -579,6 +576,8 @@ millisleep;
             CASE Key OF
                 CarriageReturn:
                     BEGIN
+                    { Send the rest of the characters in the buffer to the keyer }
+
                     WHILE BufferStart <> BufferEnd DO
                         BEGIN
                         ActiveKeyer.AddCharacterToBuffer (Buffer [BufferStart]);
@@ -586,8 +585,13 @@ millisleep;
                         IF BufferStart = 256 THEN BufferStart := 0;
                         END;
 
+                    { Remove PTT forced on }
+
                     ActiveKeyer.PTTUnForce;
                     RemoveAndRestorePreviousWindow;
+
+                    { For debug purposes only }
+
                     if so2r_l then so2r_i.setlatch(latchsave);
                     Exit;
                     END;

@@ -28,7 +28,19 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
-03-Nov-200
+29-Nov-2022
+   - Fixed new bug where exiting F10 (sending keyboard CW) left PTT hanging that
+     was introduced with the SO2R mini on 28-Nov-2022.
+
+28-Nov-2022
+
+  - Changed SO2R Mini CW character command from ^ to ; (semi-colon)
+  - Changed SO2R Mini version to TRCW V4
+  - Changed SO2R Mini to not drop PTT when seeing PTT unforce command when more chars to be sent.
+  - Had a few places where I had removed PTT unforce from classic interface that could be put back.
+  - Added support for ^ half space to SO2R Mini
+
+03-Nov-2022
 
   - There is an issue with using the SO2R Mini with the ^ character in CW messages.
     Previously, using a ^ in a CW message would produce a half space.  For the SO2R

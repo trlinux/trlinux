@@ -416,40 +416,9 @@ VAR Freq: LONGINT;
 
         SendMultiMessage ('G' + K1EAStationId + ' ' + TempString);
         END;
-
-{   Disabled in 6.46
-
-    IF TakingABreak AND ((Command = 'TIMEON') OR (Command = 'ON')) THEN
-        BEGIN
-        ThisBreak := ElaspedMinutes (OffTimeStart);
-
-        TotalOffTime := TotalOffTime + ThisBreak;
-        TakingABreak := False;
-
-        SaveSetAndClearActiveWindow (QuickCommandWindow);
-        Write ('Total off time is now = ', MinutesToTimeString (TotalOffTime), ' minutes');
-        ReminderPostedCount := 60;
-        RestorePreviousWindow;
-
-        TempString := '; Break finished at ' + GetFullTimeString +
-                      '  This break = ' + MinutesToTimeString (ThisBreak) +
-                      '  Total off time = ' + MinutesToTimeString (TotalOffTime);
-
-        PushLogStringIntoEditableLogAndLogPopedQSO (TempString, True);
-        END;
-
-    IF (NOT TakingABreak) AND ((Command = 'TIMEOFF') OR (Command = 'OFF')) THEN
-        BEGIN
-        MarkTime (OffTimeStart);
-        TakingABreak := True;
-        LastDisplayedBreakTime := -1;
-        TempString := '; Break started at ' + GetFullTimeString;
-        PushLogStringIntoEditableLogAndLogPopedQSO (TempString, True);
-        END;
-}
     END;
 
-
+
 
 PROCEDURE MoveEditableLogIntoLogFile;
 
@@ -4666,7 +4635,6 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
 
     BEGIN
     SetUpToSendOnActiveRadio;
-
     SetSpeed (DisplayedCodeSpeed);
 
     IF ActiveMode <> CW THEN
@@ -4786,8 +4754,6 @@ VAR LogString: Str80;
     Address: INTEGER;
 
     BEGIN
-    IF Trace THEN Write ('!');
-
     VisibleDupeSheetChanged := True;
 
     IF ActivePacketPort <> nil THEN
@@ -4817,8 +4783,6 @@ VAR LogString: Str80;
     IF NOT DDX (VerifyContact) THEN RXData.QSOPoints := 0;
 
     IF NOT TailEnding THEN RemoveWindow (PossibleCallWindow);
-
-    IF Trace THEN Write ('@');
 
     IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) OR
        ((ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) AND (NumberGridSquaresInList > 0)) THEN

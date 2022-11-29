@@ -50,6 +50,7 @@ TYPE
         Message: STRING;
         Radio: RadioType;
         Priority: TBSIQ_CW_PriorityType;
+        LeavePTTOn: BOOLEAN;
         END;
 
     SeriaLNumberObject = CLASS
@@ -79,7 +80,7 @@ TYPE
         PROCEDURE AddcharacterToBuffer (AddChar: CHAR; AddRadio: RadioType);
         PROCEDURE CheckMessages;    { Call often to make the message cue work }
         FUNCTION  ClearMessages (Radio: RadioType; InProcess: BOOLEAN): BOOLEAN;
-        PROCEDURE CueCWMessage (Message: STRING; Radio: RadioType; Priority: TBSIQ_CW_PriorityType);
+        PROCEDURE CueCWMessage (Message: STRING; Radio: RadioType; Priority: TBSIQ_CW_PriorityType; LeavePTTOn: BOOLEAN);
         FUNCTION  CWFinished (Radio: RadioType): BOOLEAN;
         FUNCTION  CWBeingSent (Radio: RadioType): BOOLEAN;
         FUNCTION  DeleteLastCharacter (Radio: RadioType): BOOLEAN;
@@ -253,7 +254,8 @@ PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
 
 PROCEDURE TBSIQ_CWEngineObject.CueCWMessage (Message: STRING;
                                              Radio: RadioType; Priority:
-                                             TBSIQ_CW_PriorityType);
+                                             TBSIQ_CW_PriorityType;
+                                             LeavePTTOn: BOOLEAN);
 
 { Just like SendCWMessage - however it inserts the message into the cue instead of sending it immediately.
   This is first in first out for now.  A message number gives a way to check the status of the mssage }
@@ -267,6 +269,7 @@ PROCEDURE TBSIQ_CWEngineObject.CueCWMessage (Message: STRING;
     MessageCue [CueHead].Message  := Message;
     MessageCue [CueHead].Radio    := Radio;
     MessageCue [CueHead].Priority := Priority;
+    MessageCue [CueHead].LeavePTTOn := LeavePTTOn;
 
     { Point head to next entry to be filled in }
 
@@ -431,8 +434,14 @@ VAR LowerPriorityMessageFound: BOOLEAN;
                         SetUpToSendOnActiveRadio;
                         END;
 
+
                     AddStringToBuffer (Message, CWTone);
                     MessageStarted := True;
+
+                    IF LeavePTTOn THEN
+                        PTTForceOn
+                    ELSE
+                        ClearPTTForceOn;
 
                     Message := '';    { This essentially deletes the message }
 

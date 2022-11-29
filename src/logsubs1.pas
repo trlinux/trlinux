@@ -896,7 +896,6 @@ VAR TimeOut: BYTE;
     BEGIN
     IF FoundCommand (Message) AND (Message = '') THEN Exit;
 
-    {QuickDisplay2('SendCrypticMessage...ready to stop playback');}
     IF (ActiveMode = Phone) AND DVPEnable AND DVPMessagePlaying THEN
         BEGIN
         TimeOut := 0;
@@ -1012,6 +1011,7 @@ VAR FileName, QSONumberString: Str20;
                END;
 
            InactiveRigCallingCQ := False;
+
            SetUpToSendOnActiveRadio;
 
            IF ActiveMode = CW THEN
@@ -1025,6 +1025,12 @@ VAR FileName, QSONumberString: Str20;
                        AddStringToBuffer (' ', CWTone);
                    END
                ELSE
+
+                   { I am not sure exactly why this is here.  I notice when I press
+                     a function key memoery, I end up flushing the buffer and
+                     unasserting PTT.  I am not really sure this is necessary, but
+                     I will leave it here as it doesn't seem to do any harm.  }
+
                    IF Pos (ControlD, Message) = 0 THEN FlushCWBufferAndClearPTT;
                END;
 
@@ -1058,6 +1064,7 @@ VAR FileName, QSONumberString: Str20;
                END;
 
            {QuickDisplay2('SendFunctionKeyMessage..1..2..3..4');}
+
            IF (ActiveMode = Phone) AND DVKEnable AND (Key >= ControlF1) AND (Key <= ControlF10) AND DVKControlKeyRecord THEN
                BEGIN
                {KK1L: 6.73 Added mode}
@@ -1182,7 +1189,7 @@ VAR Name: Str20;
             SendCrypticMessage (CQExchange);
             END;
 
-        ClearPTTForceOn;
+        { ClearPTTForceOn;   Taking this out in Mov 22 }
         END;
 
     ExchangeHasBeenSent := True;

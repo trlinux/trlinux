@@ -2074,7 +2074,7 @@ VAR Key, ExtendedKey: CHAR;
                                     CASE Mode OF
                                         CW:
                                             BEGIN
-                                            TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High);
+                                            TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High, True);
                                             CallsignICameBackTo := WindowString;
                                             ShowCWMessage (WindowString);
                                             QSOState := QST_CQStationBeingAnswered;
@@ -2138,7 +2138,7 @@ VAR Key, ExtendedKey: CHAR;
 
                                     IF Mode = CW THEN
                                         BEGIN
-                                        TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High);
+                                        TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High, True);
                                         CallsignICameBackTo := CallWindowString;
                                         ShowCWMessage (CallWindowString);
                                         END;
@@ -2185,7 +2185,7 @@ VAR Key, ExtendedKey: CHAR;
 
                         IF Mode = CW THEN
                             BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                             AppendCWMessageDisplay (ExpandedString);
                             END;
 
@@ -2198,7 +2198,7 @@ VAR Key, ExtendedKey: CHAR;
 
                         IF Mode = CW THEN
                             BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                             ShowCWMessage (ExpandedString);
                             END;
 
@@ -2223,7 +2223,7 @@ VAR Key, ExtendedKey: CHAR;
                                 AppendCWMessageDisplay (ExpandedString);
 
                                 IF Mode = CW THEN
-                                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
 
                                 IF Mode = Digital THEN
                                     BEGIN
@@ -2258,7 +2258,7 @@ VAR Key, ExtendedKey: CHAR;
 
                         IF Mode = CW THEN
                             BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                             ShowCWMessage (ExpandedString);
                             END;
 
@@ -2292,6 +2292,8 @@ VAR Key, ExtendedKey: CHAR;
                     IF ((Key >= '0') AND (Key <= 'Z')) OR (Key = '/') THEN
                         BEGIN
                         CallsignICameBackTo := CallSignICameBackTo + Key;
+
+                        { Note that this bypasses the CW message cues }
 
                         IF Mode = CW THEN
                             BEGIN
@@ -2381,7 +2383,7 @@ VAR Key, ExtendedKey: CHAR;
 
                         IF Mode = CW THEN
                             BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                             AppendCWMessageDisplay (ExpandedString);
                             END;
 
@@ -2416,7 +2418,7 @@ VAR Key, ExtendedKey: CHAR;
                     CW:
                         BEGIN
                         ExpandedString := ExpandCrypticString (QSOBeforeMessage);
-                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                         ShowCWMessage (ExpandedString);
                         END;
 
@@ -2602,7 +2604,7 @@ VAR Key, ExtendedKey: CHAR;
                                     CW:
                                         BEGIN
                                         ExpandedString := ExpandCrypticString (TempString);
-                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                                         ShowCWMessage (ExpandedString);
                                         END;
 
@@ -2745,7 +2747,7 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             IF Mode = CW THEN
                                 BEGIN
-                                TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High);
+                                TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High, False);
                                 KeyboardCWMessage := KeyboardCWMessage + Key;
                                 ShowCWMessage (KeyboardCWMessage);
                                 END;
@@ -2945,7 +2947,7 @@ VAR Key, ExtendedKey: CHAR;
 
                                     CW: BEGIN
                                         ExpandedString := ExpandCrypticString (SearchAndPounceExchange);
-                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                                         ShowCWMessage (ExpandedString);
                                         END;
 
@@ -6554,7 +6556,7 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
     IF (Mode = CW) AND (Message <> '') THEN
         BEGIN
-        TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High);
+        TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High, False);
         ShowCWMessage (Message);
         END;
 
