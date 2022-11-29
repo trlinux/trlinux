@@ -680,7 +680,6 @@ Procedure ArduinoKeyer.PTTUnForce;
         BEGIN
         ArduinoKeyerPort.PutChar (Char ($0A)); { PTT command }
         ArduinoKeyerPort.PutChar (Char ($00)); { PTT off }
-        Write ('P');
         END;
     END;
 
