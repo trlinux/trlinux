@@ -285,6 +285,7 @@ VAR
     FirstMultiMessage:          INTEGER;
     FloppyFileSaveFrequency:    INTEGER;
     FloppyFileSaveName:         Str40;
+    FootSwitchPressedBefore:    BOOLEAN;
     ForcedEntry:                BOOLEAN; {KK1L: 6.70 switch used in JCTRL2 to add comments to LOGCFG}
 
     GridMapCenter: Str20;
@@ -5147,6 +5148,7 @@ PROCEDURE StuffInit;
 
     FirstHelloRecord             := Nil;
     FirstMultiMessage            := 0;
+    FootSwitchPressedBefore      := False;
     LastMultiMessage             := 0;
 
     InactiveRigCallingCQ       := False;

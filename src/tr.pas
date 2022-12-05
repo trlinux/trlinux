@@ -28,7 +28,17 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+05-Dec-2022
+
+   - Added support for N4OGW so2r-bandmap.  Use N4OGW BAND MAP IP and N4OGW BAND MAP PORT
+     in your config file to enable.
+
+03-Dec-2022
+
+   - Fixed CQ with footswitch restarting message as footswitch still pressed
+
 29-Nov-2022
+
    - Fixed new bug where exiting F10 (sending keyboard CW) left PTT hanging that
      was introduced with the SO2R mini on 28-Nov-2022.
 

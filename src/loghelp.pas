@@ -74,6 +74,7 @@ VAR
     PROCEDURE ShowKeyCodes;
     PROCEDURE StartUpHelp;
     PROCEDURE SunriseSunset;
+    PROCEDURE TcpTest;
     PROCEDURE TellMeMyGrid;
     PROCEDURE UUDecode;
     PROCEDURE ViewLogFile;
@@ -81,7 +82,7 @@ VAR
 
 IMPLEMENTATION
 
-Uses LogCfg,memlinux,communication,keycode,beep,radio,portname,timer;
+Uses LogCfg,memlinux,communication,keycode,beep,radio,portname,timer, Sockets;
 
 CONST
     PageBufferSize = BigWIndowRX * (BigWindowRY - BigWindowLY + 2);
@@ -104,6 +105,219 @@ VAR
 
 function serialaddress(i: integer):integer;cdecl;external;
 function paralleladdress(i: integer):integer;cdecl;external;
+
+
+
+FUNCTION SendN4OGWBandMapCall (VAR Socket: LONGINT; Call: CallString; FrequencyString: STRING): BOOLEAN;
+
+VAR BytesSent: INTEGER;
+    SendString: STRING;
+
+    BEGIN
+
+    { Build command string }
+
+    SendString := 'a ';  { a = add call to bandmap - we leave the length blank for now }
+
+    SendString := SendString + Call + ',' + FrequencyString + ',' + Chr ($FF) + Chr (0) + Chr ($FF) +
+                                                                    Chr (1) + Chr (0) + Chr (1) + Chr (1);
+
+    SendString [2] := Chr (Length (SendString) - 2);
+
+    BytesSent := fpsend (Socket, @SendString [1], Length (SendString), 0);
+
+    IF BytesSent <> Length (SendString) THEN
+        BEGIN
+        WriteLn ('Send error!!');
+        WaitForKeyPressed;
+        SendN4OGWBandMapCall := False;
+        Exit;
+        END;
+
+    SendN4OGWBandMapCall := True;
+    END;
+
+
+
+FUNCTION SendRTLTCPData (VAR Socket: LONGINT; SendData: STRING): BOOLEAN;
+
+{ Much like SendTCPData - but will interpret the first character as the command,
+  insert a length byte and if SendData has data - send that }
+
+VAR BytesSent: INTEGER;
+    SendString: STRING;
+
+    BEGIN
+    IF SendData = '' THEN Exit;
+
+    SendString := SendData [1];
+
+    Delete (SendData, 1, 1);
+
+    SendString := SendString + Chr (Length (SendData)) + SendData;
+
+    BytesSent := fpsend (Socket, @SendString [1], Length (SendString), 0);
+
+    IF BytesSent <> Length (SendString) THEN
+        BEGIN
+        WriteLn ('Send error!!  Unable to send ', SendData);
+        WaitForKeyPressed;
+        SendRTLTCPData := False;
+        Exit;
+        END;
+
+    SendRTLTCPData := True;
+    END;
+
+
+FUNCTION SendTCPData (VAR Socket: LONGINT; SendData: STRING): BOOLEAN;
+
+VAR BytesSent: INTEGER;
+
+    BEGIN
+    BytesSent := fpsend (Socket, @SendData [1], Length (SendData), 0);
+
+    IF BytesSent <> Length (SendData) THEN
+        BEGIN
+        WriteLn ('Send error!!  Unable to send ', SendData);
+        WaitForKeyPressed;
+        SendTCPData := False;
+        Exit;
+        END;
+
+    SendTCPData := BytesSent = Length (SendData);
+    END;
+
+
+FUNCTION OpenTCPPort (VAR Socket: LONGINT; IPAddress: STRING; PortNumber: LONGINT): BOOLEAN;
+
+VAR SocketAddr: TINetSockAddr;
+    ConnectResult: INTEGER;
+
+    BEGIN
+    Socket := fpSocket (AF_INET, SOCK_STREAM, 0);  { TCP port }
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (PortNumber);
+    SocketAddr.sin_addr := StrToNetAddr (IPAddress);
+
+    ConnectResult := fpConnect (Socket, @SocketAddr, SizeOf (SocketAddr));
+
+    IF ConnectResult <> 0 THEN
+        BEGIN
+        WriteLn ('Unable to connect to port ', PortNumber);
+        WaitForKeyPressed;
+        OpenTCPPort := False;
+        Exit;
+        END;
+
+    OpenTCPPort := ConnectResult = 0;
+    END;
+
+
+
+
+PROCEDURE SendStringToN4OGW (SocketAddress: LONGINT; SendString: STRING);
+
+    BEGIN
+    fpsend (SocketAddress, @SendString [1], Length (SendString), 0);
+    END;
+
+
+PROCEDURE SetCenterFrequency (SocketAddress: LONGINT; FrequencyString: STRING);
+
+{ Sets the displayed center frequency of the N4OGW bandmap }
+
+VAR SendString: STRING;
+
+    BEGIN
+    SendString := 'f' + Chr (Length (FrequencyString)) + FrequencyString;
+    SendStringToN4OGW (SocketAddress, SendString);
+    END;
+
+
+
+PROCEDURE ListenToUDP;
+
+VAR SocketAddr: TINetSockAddr;
+    ReceiveFlags, Socket: LONGINT;
+    ReadChar: CHAR;
+    ConnectResult: INTEGER;
+    Broadcast: INTEGER;
+    len: Tsocklen;
+
+    BEGIN
+    Socket := fpSocket (AF_INET, SOCK_DGRAM, 0);
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (45454);
+    SocketAddr.sin_addr := StrToNetAddr ('192.168.1.255');
+
+    Broadcast := 1;
+
+    len := sizeof (SocketAddr);
+
+    REPEAT
+        WriteLn ('going to listen');
+        fprecvfrom (Socket, @ReadChar, 1, 0, @SocketAddr, @len);
+        Write (ReadChar);
+    UNTIL KeyPressed;
+    ReadKey;
+    END;
+
+
+
+PROCEDURE TcpTest;
+
+VAR IPAddress: Str20;
+    Port: LONGINT;
+    FrequencyString, Callsign, Message: STRING;
+    SocketAddress: LONGINT;
+    Key: CHAR;
+
+    BEGIN
+    ClearScreenAndTitle ('RTL TCP TESTING');
+    WriteLn;
+
+    IPAddress := GetResponse ('Enter IP address : ');
+    Port := GetValue ('Enter Port : ');
+
+    IF NOT OpenTCPPort (SocketAddress, IPAddress, Port) THEN
+        BEGIN
+        WriteLn ('Unable to open port ', Port);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    REPEAT
+       WriteLn ('a - mark callsign on bandmap');
+       WriteLn ('f - set center frequency of bandmap');
+       WriteLn ('l - listen to UDP');
+       WriteLn ('x - Exit');
+
+       Key := UpCase (GetKey ('Enter command : '));
+       IF (Key = EscapeKey) OR (Key = 'X') THEN Exit;
+
+       CASE Key OF
+           'A': BEGIN
+                CallSign := GetResponse ('Enter callsign : ');
+                FrequencyString := GetResponse ('Enter Frequency : ');
+                SendN4OGWBandMapCall (SocketAddress, Callsign, FrequencyString);
+                END;
+
+           'F': BEGIN
+                FrequencyString := GetResponse ('Enter center frequency : ');
+                SetCenterFrequency (SocketAddress, FrequencyString);
+                END;
+
+           'L': BEGIN
+                ListenToUDP;
+                END;
+
+           END;  { of case Key }
+
+    UNTIL False;
+    END;
 
 
 

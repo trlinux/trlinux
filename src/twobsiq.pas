@@ -75,6 +75,10 @@ TODO LIST
     Would be nice to get capital letters when editing log.  Same for
     Memory program (like shift keys for characters).
 
+    CQ with footswitch not working?
+
+    Put hooks for N4OGW init and bandmap enter in - and center freq
+
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 28-Nov-2022

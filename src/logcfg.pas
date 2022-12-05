@@ -750,6 +750,12 @@ VAR ParameterCount: INTEGER;
             Halt;
             END;
 
+        IF UpperCase (ParamStr (ParameterCount)) = 'TCPTEST' THEN
+            BEGIN
+            TcpTest;
+            Halt;
+            END;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'HP' THEN
             BEGIN
             HP;

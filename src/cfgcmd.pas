@@ -29,7 +29,7 @@ INTERFACE
 USES SlowTree, Tree, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
      LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt, K1EANet,
-     communication,linuxsound;
+     communication,linuxsound,N4OGW;
 
 
     FUNCTION  ProcessConfigInstruction (FileString: STRING; VAR FirstCommand: BOOLEAN): BOOLEAN;
@@ -2179,6 +2179,18 @@ VAR xResult,tempint: INTEGER;
         MyIOTA := UpperCase (CMD);
         ProcessConfigInstructions2 := True;
         Exit;
+        END;
+
+    IF ID = 'N4OGW BAND MAP IP' THEN
+        BEGIN
+        N4OGWBandMapIP := CMD;
+        ProcessConfigInstructions2 := True;
+        END;
+
+    IF ID = 'N4OGW BAND MAP PORT' THEN
+        BEGIN
+        Val (Cmd, N4OGWBandMapPort, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         END;
 
     IF ID = 'NAME FLAG ENABLE' THEN

@@ -3011,7 +3011,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
             { Okay - this is a bit of a hack - but I am not smart enough to figure
               out how Footsw worked }
 
-            IF ActiveKeyer = ArdKeyer THEN
+          IF ActiveKeyer = ArdKeyer THEN
                 BEGIN
                 FootSwitchPressed := ArdKeyer.FootSwitchPressed;
                 END
@@ -3022,6 +3022,21 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                 else
                     FootSwitchPressed := Footsw.getDebouncedState;
                 END;
+
+          { I was having issues with the F1 CQ message always sending two C's at the
+            start - and decided I needed to put a "one shot" on the leading edge of
+            the PTT signal, so I would only execute whatever the function was once
+            when the footswitch was pressed.  }
+
+            IF FootSwitchPressed THEN
+                BEGIN
+                IF FootSwitchPressedBefore THEN
+                    FootSwitchPressed := False
+                ELSE
+                    FootSwitchPressedBefore := True;
+                END
+            ELSE
+                FootSwitchPressedBefore := False;
 
             IF FootSwitchPressed THEN
                 BEGIN

@@ -26,7 +26,7 @@ UNIT LogWind;
 INTERFACE
 
 Uses LogGrid, LogDom, LogK1EA, SlowTree, Tree, trCrt, Dos, LogSCP,
-     ZoneCont, Country9, datetimec, radio;
+     ZoneCont, Country9, datetimec, radio, N4OGW;
 
 CONST
     PendingQTCArraySize = 600;
@@ -3502,6 +3502,12 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
         LastFullTimeString := FullTimeString;
 
+        { If we are working with the N4OGW bandmap - let's send the current BandMapCursor
+          frequency }
+
+        IF (N4OGWBandMapPort <> 0) AND (N4OGWBandMapIP <> '') THEN
+            N4OGWBandMap.SetCenterFrequency (BandMapCursorFrequency);
+
         IF ReminderPostedCount > 0 THEN Dec (ReminderPostedCount);
 
         SaveAndSetActiveWindow (TotalWindow);
@@ -4379,6 +4385,11 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
 
     IF Frequency > 150000000 THEN Exit;
     IF Frequency < 10 THEN Exit;
+
+    { Send bandmap entry to N4OGW if enabled }
+
+    IF (N4OGWBandMapPort <> 0) AND (N4OGWBandMapIP <> '') THEN
+        N4OGWBandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
 
     BigCompressFormat (Call, CompressedCall);
 
