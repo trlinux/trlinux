@@ -27,7 +27,7 @@ UNIT N4OGW;
 
   To use this - you need to create the instance for the bandmap you want using
 
-  N4OGWBandMap1 := N4OGWBandMapObject.Create;
+  N4OGWBandMap := N4OGWBandMapObject.Create;
 
   Then N4OGWBandMap1.Init (IPAddress: String; Port: LONGINT): BOOLEAN;  }
 
@@ -103,7 +103,7 @@ VAR FrequencyString, SendString: STRING;
     IF Dupe THEN  { Blue call and signal }
         BEGIN
         SendString := 'a ' + Call + ',' + FrequencyString + ',' +
-                      Chr (0) + Chr (0) + Chr (255) + Chr (0) + Chr (0) + Chr (1);
+                      Chr (0) + Chr (0) + Chr (255) + Chr (0) + Chr (0) + Chr (1) + Chr (1);
 
         SendString [2] := Chr (Length (SendString) - 2);
         FpSend (Socket, @SendString [1], Length (SendString), 0);
@@ -113,7 +113,7 @@ VAR FrequencyString, SendString: STRING;
     IF Mult THEN  { Red call and signal }
         BEGIN
         SendString := 'a ' + Call + ',' + FrequencyString + ',' +
-                      Chr (255) + Chr (0) + Chr (0) + Chr (1) + Chr (0) + Chr (0);
+                      Chr (255) + Chr (0) + Chr (0) + Chr (1) + Chr (0) + Chr (0) + Chr (1);
 
         SendString [2] := Chr (Length (SendString) - 2);
         FpSend (Socket, @SendString [1], Length (SendString), 0);
@@ -123,7 +123,7 @@ VAR FrequencyString, SendString: STRING;
     { Regular entry - Green call and signal }
 
     SendString := 'a ' + Call + ',' + FrequencyString + ',' +
-                  Chr (0) + Chr (255) + Chr (255) + Chr (0) + Chr (1) + Chr (1);
+                  Chr (0) + Chr (255) + Chr (255) + Chr (0) + Chr (1) + Chr (1) + Chr (1);
 
     SendString [2] := Chr (Length (SendString) - 2);
     FpSend (Socket, @SendString [1], Length (SendString), 0);

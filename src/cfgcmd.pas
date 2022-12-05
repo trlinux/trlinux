@@ -2185,12 +2185,14 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         N4OGWBandMapIP := CMD;
         ProcessConfigInstructions2 := True;
+        Exit;
         END;
 
     IF ID = 'N4OGW BAND MAP PORT' THEN
         BEGIN
         Val (Cmd, N4OGWBandMapPort, xResult);
         ProcessConfigInstructions2 := xResult = 0;
+        Exit;
         END;
 
     IF ID = 'NAME FLAG ENABLE' THEN

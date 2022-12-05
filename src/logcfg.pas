@@ -27,7 +27,7 @@ INTERFACE
 USES trcrt, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
      LogWAE, LogHP, LogPack, LogK1EA, DOS, LogHelp, LogProm, CfgCmd,
-     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound;
+     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound,N4OGW;
 
 
     FUNCTION  LoadInSeparateConfigFile (FileName: STRING;
@@ -129,6 +129,12 @@ VAR FileWrite: TEXT;
 
     BEGIN
     WriteLn ('Initializing program..');
+
+    IF (N4OGWBandMapIP <> '') AND (N4OGWBandMapPort <> 0) THEN
+        BEGIN
+        N4OGWBandMap := N4OGWBandMapObject.Create;
+        N4OGWBandMap.Init (N4OGWBandMapIP, N4OGWBandMapPort);
+        END;
 
     IF QTCsEnabled THEN LoadQTCDataFile;
 
