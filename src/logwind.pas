@@ -3492,21 +3492,22 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                 { Nothing from Radio Two }
                 DisplayFrequency (0, RadioTwo); {KK1L: 6.73 Added Radio}
 
+        IF (N4OGWBandMapPort <> 0) AND (N4OGWBandMapIP <> '') THEN
+            N4OGWBandMap.SetCenterFrequency (BandMapCursorFrequency);
+
     IgnoreRadioTwoFreq:
 
             END;
 
         IF FullTimeString = LastFullTimeString THEN Exit;
 
-        { We are only here once a second now }
+        { We are only here once a second ??minute?? now }
 
         LastFullTimeString := FullTimeString;
 
         { If we are working with the N4OGW bandmap - let's send the current BandMapCursor
           frequency }
 
-        IF (N4OGWBandMapPort <> 0) AND (N4OGWBandMapIP <> '') THEN
-            N4OGWBandMap.SetCenterFrequency (BandMapCursorFrequency);
 
         IF ReminderPostedCount > 0 THEN Dec (ReminderPostedCount);
 
@@ -4389,11 +4390,7 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
     { Send bandmap entry to N4OGW if enabled }
 
     IF (N4OGWBandMapPort <> 0) AND (N4OGWBandMapIP <> '') THEN
-        BEGIN
         N4OGWBandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
-        ClrScr;
-        Write (Frequency);
-        END;
 
     BigCompressFormat (Call, CompressedCall);
 

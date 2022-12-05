@@ -40,6 +40,7 @@ USES SlowTree, Tree, Sockets, keycode;
 
 TYPE
     N4OGWBandMapObject = CLASS
+        BandMapCenterFrequency: LONGINT;
         IPAddress: STRING;
         PortNumber: LONGINT;
         Socket: LONGINT;
@@ -68,6 +69,7 @@ VAR SocketAddr: TINetSockAddr;
     ConnectResult: INTEGER;
 
     BEGIN
+    BandMapCenterFrequency := 0;
     IPAddress := IP;
     PortNumber := Port;
 
@@ -138,9 +140,13 @@ PROCEDURE N4OGWBandMapObject.SetCenterFrequency (Frequency: INTEGER);
 VAR FrequencyString, SendString: STRING;
 
     BEGIN
-    Str (Frequency, FrequencyString);
-    SendString := 'f' + Chr (Length (FrequencyString)) + FrequencyString;
-    FpSend (Socket, @SendString [1], Length (SendString), 0);
+    IF Frequency <> BandMapCenterFrequency THEN
+        BEGIN
+        Str (Frequency, FrequencyString);
+        SendString := 'f' + Chr (Length (FrequencyString)) + FrequencyString;
+        FpSend (Socket, @SendString [1], Length (SendString), 0);
+        BandMapCenterFrequency := Frequency;
+        END;
     END;
 
 
