@@ -3492,14 +3492,13 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                 { Nothing from Radio Two }
                 DisplayFrequency (0, RadioTwo); {KK1L: 6.73 Added Radio}
 
+    IgnoreRadioTwoFreq:
+            END;
+
         IF (N4OGWBandMapPort <> 0) AND (N4OGWBandMapIP <> '') THEN
             N4OGWBandMap.SetCenterFrequency (BandMapCursorFrequency);
 
-    IgnoreRadioTwoFreq:
-
-            END;
-
-        IF FullTimeString = LastFullTimeString THEN Exit;
+            IF FullTimeString = LastFullTimeString THEN Exit;
 
         { We are only here once a second ??minute?? now }
 
