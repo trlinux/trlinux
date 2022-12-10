@@ -28,6 +28,11 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+10-Dec-2022
+
+   - N4OGW bandmap interface is now feature complete.  Will need some adjustement of the
+     color coding to make it look better.  Some features not yet supported in 2BSIQ.
+
 05-Dec-2022
 
    - Added support for N4OGW so2r-bandmap.  Use N4OGW BAND MAP IP and N4OGW BAND MAP PORT
