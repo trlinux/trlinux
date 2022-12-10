@@ -82,7 +82,7 @@ VAR
 
 IMPLEMENTATION
 
-Uses LogCfg,memlinux,communication,keycode,beep,radio,portname,timer, Sockets;
+Uses LogCfg,memlinux,communication,keycode,beep,radio,portname,timer, Sockets, UnixType, BaseUnix;
 
 CONST
     PageBufferSize = BigWIndowRX * (BigWindowRY - BigWindowLY + 2);
@@ -239,30 +239,68 @@ VAR SendString: STRING;
 
 PROCEDURE ListenToUDP;
 
-VAR SocketAddr: TINetSockAddr;
-    ReceiveFlags, Socket: LONGINT;
-    ReadChar: CHAR;
-    ConnectResult: INTEGER;
-    Broadcast: INTEGER;
-    len: Tsocklen;
+VAR
+   SocketAddr	     : TINetSockAddr;
+   ReceiveFlags, Socket : LONGINT;
+   ReadChar	     : CHAR;
+   ConnectResult     : INTEGER;
+   Broadcast	     : INTEGER;
+   rc		     : INTEGER;
+   FDS		     : Tfdset;
+   msg		     : string[255];
+   i		     : INTEGER;
 
-    BEGIN
-    Socket := fpSocket (AF_INET, SOCK_DGRAM, 0);
+BEGIN
+   Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    SocketAddr.sin_family := AF_INET;
-    SocketAddr.sin_port := htons (45454);
-    SocketAddr.sin_addr := StrToNetAddr ('192.168.1.255');
+   if (Socket = -1) then
+      WriteLn('Error from socket');
 
-    Broadcast := 1;
+   SocketAddr.sin_family := AF_INET;
+   SocketAddr.sin_port := htons (45454);
+   SocketAddr.sin_addr.s_addr :=  INADDR_ANY;
 
-    len := sizeof (SocketAddr);
+   rc := fpBind (Socket, @SocketAddr, sizeof(SocketAddr));
 
-    REPEAT
-        WriteLn ('going to listen');
-        fprecvfrom (Socket, @ReadChar, 1, 0, @SocketAddr, @len);
-        Write (ReadChar);
-    UNTIL KeyPressed;
-    ReadKey;
+   if rc <> 0 then
+      WriteLn('Error from fpBind');
+
+   WriteLn ('going to listen');
+
+   for i := 1 to 10 do
+      begin
+         Write (i, ' ');
+         REPEAT
+             Fpfd_zero (FDS);
+             FpFd_set(Socket,FDS);
+             rc := fpSelect(Socket+1,@FDS,nil,nil,0);
+
+             if (rc = -1) then
+                WriteLn('Error from fpSelect');
+         UNTIL Fpfd_isset (Socket,FDS) > 0;
+
+      	 rc := fprecv(Socket, @msg[1], 255, 0);
+         if rc = -1 then
+	    begin
+	    WriteLn('Error from fpRecv');
+	       break;
+	    end;
+	 WriteLn('Msg length=',rc);
+	 SetLength(msg, rc);
+	 WriteLn(msg);
+
+         if KeyPressed THEN
+             BEGIN
+             ReadKey;
+
+             WriteLn ('paused');
+
+             REPEAT UNTIL KeyPRessed;
+             ReadKey;
+             END;
+
+      end;
+
     END;
 
 

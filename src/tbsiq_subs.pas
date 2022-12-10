@@ -30,7 +30,8 @@ INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
      slowtree, so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
-     jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW;
+     jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW,
+     N4OGW;
 
 TYPE
 
@@ -1234,6 +1235,10 @@ VAR TimeString, FullTimeString, HourString: Str20;
     TBSIQ_CheckBandMap;         { Sees if the bandmap is on the right radio }
 
     Packet.CheckPacket;         { See if any spots have come in for the bandmap }
+
+    { Send some oxygen to the N4OGW bandmap if it is there }
+
+    IF N4OGW_BandMap_IP <> '' THEN N4OGW_BandMap.Heartbeat;
 
     { See if the clock has ticked a second }
 

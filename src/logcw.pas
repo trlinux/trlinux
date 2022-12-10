@@ -25,7 +25,7 @@ UNIT LogCW;
 
 INTERFACE
 
-USES LogDVP, SlowTree, Tree, LogWind, Dos, LogK1EA, trCrt,communication,keycode;
+USES N4OGW, LogDVP, SlowTree, Tree, LogWind, Dos, LogK1EA, trCrt,communication,keycode;
 
 TYPE
      SendBufferType = ARRAY [0..255] OF Char;
@@ -188,6 +188,9 @@ PROCEDURE PTTForceOn;
 PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
 
     BEGIN
+    IF N4OGW_BandMap_IP <> '' THEN
+        N4OGW_BandMap.SetTXMode;
+
     IF CWEnable AND CWEnabled THEN
         BEGIN
         ActiveKeyer.AddStringToBuffer (Msg, Tone);
@@ -199,7 +202,15 @@ PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
 FUNCTION CWStillBeingSent: BOOLEAN;
 
     BEGIN
-    CWStillBeingSent := ActiveKeyer.CWStillBeingSent;
+    IF ActiveKeyer.CWStillBeingSent THEN
+        CWStillBeingSent := True
+    ELSE
+        BEGIN
+        CWStillBeingSent := False;
+
+        IF N4OGW_BandMap_IP <> '' THEN
+            N4OGW_BandMap.SetRXMode;
+        END;
     END;
 
 FUNCTION DeleteLastCharacter: BOOLEAN;
@@ -378,6 +389,9 @@ VAR CharPointer: INTEGER;
     BEGIN
     IF ActiveMode = CW THEN
         BEGIN
+        IF N4OGW_BandMap_IP <> '' THEN
+            N4OGW_BandMap.SetTXMode;
+
         IF CWEnable AND CWEnabled THEN
             BEGIN
             ActiveKeyer.AddStringToBuffer (MSG, CWTone);

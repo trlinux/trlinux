@@ -130,10 +130,10 @@ VAR FileWrite: TEXT;
     BEGIN
     WriteLn ('Initializing program..');
 
-    IF (N4OGWBandMapIP <> '') AND (N4OGWBandMapPort <> 0) THEN
+    IF (N4OGW_BandMap_IP <> '') AND (N4OGW_BandMap_Port <> 0) THEN
         BEGIN
-        N4OGWBandMap := N4OGWBandMapObject.Create;
-        N4OGWBandMap.Init (N4OGWBandMapIP, N4OGWBandMapPort);
+        N4OGW_BandMap := N4OGW_BandMap_Object.Create;
+        N4OGW_BandMap.Init (N4OGW_BandMap_IP, N4OGW_BandMap_Port, N4OGW_BandMap_UDP_Port);
         END;
 
     IF QTCsEnabled THEN LoadQTCDataFile;

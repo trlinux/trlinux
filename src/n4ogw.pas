@@ -36,34 +36,170 @@ UNIT N4OGW;
 
 INTERFACE
 
-USES SlowTree, Tree, Sockets, keycode;
+USES SlowTree, datetimec, Tree, KeyCode, Sockets, UnixType, BaseUnix, portname;
+
+CONST MaxQTCs = 10;
 
 TYPE
-    N4OGWBandMapObject = CLASS
+    N4OGW_BandMap_Object = CLASS
         BandMapCenterFrequency: LONGINT;
         IPAddress: STRING;
         PortNumber: LONGINT;
         Socket: LONGINT;
 
-        PROCEDURE Init (IP: STRING; Port: LONGINT);
+        TXMode: BOOLEAN;
+        TXModeTimeout: INTEGER;     { Timer used to count down the TX hold time }
+        TXModeSecondsMemory: WORD;  { Used to remember last seconds value for timer }
+
+        QTC_Count: INTEGER;    { Number of UDP messages cued up }
+        QTC_Buffer: ARRAY [0..MaxQTCs - 1] OF STRING;
+
+        UDP_PortNumber: LONGINT;
+        UDP_Socket: LONGINT;
+        UDP_Message: STRING;
+
+        FUNCTION  Check_UDP_Port: BOOLEAN;  { Returns true if a message was found }
+
+        PROCEDURE DeleteCallsign (Call: STRING);
+        FUNCTION  GetNextQTC: STRING;
+
+        PROCEDURE Heartbeat; { Call this often to give oxygen to UDP polling and TX timeout }
+
+        PROCEDURE Init (IP: STRING; Port: LONGINT; UDP_Port: LONGINT);
 
         PROCEDURE SendBandMapCall (Call: CallString; Frequency: LongInt;
                                    Dupe: BOOLEAN; Mult: BOOLEAN);
 
         PROCEDURE SetCenterFrequency (Frequency: INTEGER);
+        PROCEDURE SetTXMode;
+        PROCEDURE SetRXMode;
+        FUNCTION  UDP_Normal_Status_Message (Message: STRING): BOOLEAN;
+        PROCEDURE WriteToDebugFile (Entry: STRING);
         END;
 
-VAR
-    N4OGWBandMapIP: STRING;     { Global variables used for config file parsing }
-    N4OGWBandMapPort: LONGINT;  { Global variables used for config file parsing }
 
-    N4OGWBandMap: N4OGWBandMapObject;
+VAR
+    N4OGW_BandMap_IP: STRING;             { Global variables used for config file parsing }
+    N4OGW_BandMap_Port: LONGINT;          { Global variables used for config file parsing }
+    N4OGW_BandMap_UDP_Port: LONGINT;      { Global variables used for config file parsing }
+
+    N4OGW_BandMap: N4OGW_BandMap_Object;
+
+    N4OGW_UpdateFrequencyEnable: BOOLEAN; { Hack to stop sending frequenc updates because
+                                            the program isn't setup for them yet }
 
 IMPLEMENTATION
 
+CONST DebugFileName = 'N4OGW_debug.txt';
+
 
 
-PROCEDURE N4OGWBandMapObject.Init (IP: STRING; Port: LONGINT);
+FUNCTION  N4OGW_BandMap_Object.GetNextQTC: STRING;
+
+{ Pulls the oldest QTC off the QTC buffer }
+
+VAR Index: INTEGER;
+
+    BEGIN
+    IF QTC_Count = 0 THEN
+        BEGIN
+        GetNextQTC := '';
+        Exit;
+        END;
+
+    GetNextQTC := QTC_Buffer [0];
+
+    IF QTC_Count > 1 THEN
+        FOR Index := 0 TO QTC_Count - 2 DO
+            QTC_Buffer [Index] := QTC_Buffer [Index + 1];
+
+    Dec (QTC_Count);
+    END;
+
+
+
+FUNCTION GetExactTimeString: STRING;
+
+VAR Temp1, Temp2, Temp3: String[5];
+    Hours, Minutes, Seconds, Hundredths: Word;
+
+    BEGIN
+    GetTime (Hours, Minutes, Seconds, Hundredths);
+
+    Str (Hours,  Temp1);
+    Str (Minutes, Temp2);
+    Str (Seconds, Temp3);
+
+    IF Length (Temp1) < 2 THEN Temp1 := '0' + Temp1;
+    IF Length (Temp2) < 2 THEN Temp2 := '0' + Temp2;
+    IF Length (Temp3) < 2 THEN Temp3 := '0' + Temp3;
+
+    GetExactTimeString := Temp1 + ':' + Temp2 + ':' + Temp3;
+    END;
+
+
+PROCEDURE N4OGW_BandMap_Object.WriteToDebugFile (Entry: STRING);
+
+VAR FileWrite: TEXT;
+
+    BEGIN
+    OpenFileForAppend (FileWrite, DebugFileName);
+    WriteLn (FileWrite, GetDateString, ' ', GetExactTimeString, ' ', Entry);
+    Close (FileWrite);
+    END;
+
+
+
+PROCEDURE N4OGW_BandMap_Object.DeleteCallsign (Call: STRING);
+
+{ Removes the callsign label for the indicated call }
+
+VAR SendString: STRING;
+
+    BEGIN
+    SendString := 'd'  + Chr (Length (Call)) + Call;
+    FpSend (Socket, @SendString [1], Length (SendString), 0);
+    WriteToDebugFile ('Sent delete ' + Call);
+    END;
+
+
+PROCEDURE N4OGW_BandMap_Object.SetTXMode;
+
+VAR SendString: Str20;
+
+    BEGIN
+    IF TXMode THEN Exit;   { Someone already set it }
+
+    { We need to tell N4OGW we are transmitting now }
+
+    SendString := 't' + Chr(0);
+    FpSend (Socket, @SendString [1], Length (SendString), 0);
+    TXMode := True;
+    TXModeTimeout := 0;  { Stop counting down to turn off TX mode }
+
+    WriteToDebugFile ('Sent t command (transmit mode');
+    END;
+
+
+PROCEDURE N4OGW_BandMap_Object.SetRXMode;
+
+VAR Hours, Minutes, Sec100: WORD;
+
+    BEGIN
+    IF NOT TXMode THEN Exit;   { We are not in TX mode - nothing to do }
+
+    IF TXModeTimeout > 0 THEN Exit;  { We are already doing a TX timeout }
+
+    { We actually don't set the RX Mode just yet - we need to delay a couple
+      of seconds to make sure the pipeline including RX latency is all
+      processed before doing this.  So - we set a timer to create this delay }
+
+    TXModeTimeout := 2;
+    GetTime (Hours, Minutes, TXModeSecondsMemory, Sec100);
+    END;
+
+
+PROCEDURE N4OGW_BandMap_Object.Init (IP: STRING; Port: LONGINT; UDP_Port: LONGINT);
 
 VAR SocketAddr: TINetSockAddr;
     ConnectResult: INTEGER;
@@ -72,6 +208,12 @@ VAR SocketAddr: TINetSockAddr;
     BandMapCenterFrequency := 0;
     IPAddress := IP;
     PortNumber := Port;
+    QTC_Count := 0;
+    TXMode := False;
+    TXModeTimeout := 0;
+    UDP_PortNumber := UDP_Port;
+
+    { Setup the TCP port }
 
     Socket := fpSocket (AF_INET, SOCK_STREAM, 0);  { TCP port }
 
@@ -88,14 +230,34 @@ VAR SocketAddr: TINetSockAddr;
         Exit;
         END;
 
+    { Setup the UDP port }
+
+    UDP_Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (UDP_PortNumber);
+    SocketAddr.sin_addr.s_addr := INADDR_ANY;
+
+    ConnectResult := fpBind (UDP_Socket, @SocketAddr, SizeOf (SocketAddr));
+
+    IF ConnectResult <> 0 THEN
+        BEGIN
+        WriteLn ('Unable to connect to UDP port ', PortNumber);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    { Log startup in debug file }
+
+    WriteToDebugFile ('TR Log Init');
     END;
 
 
 
-PROCEDURE N4OGWBandMapObject.SendBandMapCall (Call: CallString;
-                                              Frequency: LongInt;
-                                              Dupe: BOOLEAN;
-                                              Mult: BOOLEAN);
+PROCEDURE N4OGW_BandMap_Object.SendBandMapCall (Call: CallString;
+                                                Frequency: LongInt;
+                                                Dupe: BOOLEAN;
+                                                Mult: BOOLEAN);
 
 VAR FrequencyString, SendString: STRING;
 
@@ -109,6 +271,7 @@ VAR FrequencyString, SendString: STRING;
 
         SendString [2] := Chr (Length (SendString) - 2);
         FpSend (Socket, @SendString [1], Length (SendString), 0);
+        WriteToDebugFile ('Sent a command with ' + Call + ' on ' + FrequencyString + ' as a dupe');
         Exit;
         END;
 
@@ -119,6 +282,7 @@ VAR FrequencyString, SendString: STRING;
 
         SendString [2] := Chr (Length (SendString) - 2);
         FpSend (Socket, @SendString [1], Length (SendString), 0);
+        WriteToDebugFile ('Sent a command with ' + Call + ' on ' + FrequencyString + ' as a mult');
         Exit;
         END;
 
@@ -129,11 +293,13 @@ VAR FrequencyString, SendString: STRING;
 
     SendString [2] := Chr (Length (SendString) - 2);
     FpSend (Socket, @SendString [1], Length (SendString), 0);
+
+    WriteToDebugFile ('Sent a command with ' + Call + ' on ' + FrequencyString + ' as a regular entry');
     END;
 
 
 
-PROCEDURE N4OGWBandMapObject.SetCenterFrequency (Frequency: INTEGER);
+PROCEDURE N4OGW_BandMap_Object.SetCenterFrequency (Frequency: INTEGER);
 
 { Sets the displayed center frequency of the N4OGW bandmap }
 
@@ -146,41 +312,110 @@ VAR FrequencyString, SendString: STRING;
         SendString := 'f' + Chr (Length (FrequencyString)) + FrequencyString;
         FpSend (Socket, @SendString [1], Length (SendString), 0);
         BandMapCenterFrequency := Frequency;
+
+        WriteToDebugFile ('Set new center frequency to ' + FrequencyString);
         END;
     END;
 
 
 
-PROCEDURE ListenToUDP;
+FUNCTION N4OGW_BandMap_Object.Check_UDP_Port: BOOLEAN;  { Returns true if a message was found }
 
-{ this doesn't really work yet }
-
-VAR SocketAddr: TINetSockAddr;
-    ReceiveFlags, Socket: LONGINT;
-    ReadChar: CHAR;
-    ConnectResult: INTEGER;
-    Broadcast: INTEGER;
-    len: Tsocklen;
+VAR BytesRead: INTEGER;
+    FDS: Tfdset;
 
     BEGIN
-    Socket := fpSocket (AF_INET, SOCK_DGRAM, 0);
+    { Set up FDS and inquire if there is some data available }
 
-    SocketAddr.sin_family := AF_INET;
-    SocketAddr.sin_port := htons (45454);
-    SocketAddr.sin_addr := StrToNetAddr ('192.168.1.255');
+    fpFd_zero (FDS);
+    fpFd_set (UDP_Socket, FDS);
+    fpSelect (UDP_Socket+1, @FDS, nil, nil, 0);
 
-    Broadcast := 1;
+    IF fpFd_IsSet (UDP_Socket, FDS) = 0 THEN   { No data yet }
+        BEGIN
+        Check_UDP_Port := False;
+        Exit;
+        END;
 
-    len := sizeof (SocketAddr);
+    { We have some data to read - put it starting at char index 1 of message string }
 
-    WriteLn ('going to listen');
-    fprecvfrom (Socket, @ReadChar, 1, 0, @SocketAddr, @len);
-    Write (ReadChar);
+    BytesRead := fpRecv (UDP_Socket, @UDP_MEssage[1], 255, 0);
+
+    IF BytesRead = -1 THEN
+        BEGIN
+        Check_UDP_Port := False;
+        Exit;
+        END;
+
+    SetLength (UDP_Message, BytesRead);
+
+    WriteToDebugFile ('Received UDP Message = ' + UDP_Message);
+    Check_UDP_Port := True;
+    END;
+
+
+
+FUNCTION N4OGW_BandMap_Object.UDP_Normal_Status_Message (Message: STRING): BOOLEAN;
+
+{ Looks at the UDP message to see if it looks like the once second keep
+  alive message from N4OGW }
+
+    BEGIN
+    UDP_Normal_Status_Message := NOT StringHas (Message, 'freq');
+    END;
+
+
+
+PROCEDURE N4OGW_BandMap_Object.Heartbeat;
+
+{ This should be called as often as possible.  It will deal with any timeout
+  with the TX status and also check the UDP port.  If there is a command from
+  the UDP port that needs attention, it will be pushed into the QTC_Buffer }
+
+VAR Hours, Minutes, Seconds, Sec100: WORD;
+    SendString: STRING;
+
+    BEGIN
+    { Check the UDP port to see if there are any messages waiting }
+
+    WHILE Check_UDP_Port AND (QTC_Count < MaxQTCs) DO
+        IF NOT UDP_Normal_Status_Message (UDP_Message) THEN
+            BEGIN
+            QTC_Buffer [QTC_Count] := UDP_Message;
+            Inc (QTC_Count);
+
+            IF QTC_Count > 5 THEN
+                WriteToDebugFile ('QTC count is more than 5!!');
+            END;
+
+    { See if we are doing a TX delay to allow latency to catch up before enabling
+      peak detect }
+
+    IF TXModeTimeout > 0 THEN
+        BEGIN
+        GetTime (Hours, Minutes, Seconds, Sec100);
+
+        IF Seconds <> TXModeSecondsMemory THEN  { One second tick }
+            BEGIN
+            TXModeSecondsMemory := Seconds;
+            Dec (TXModeTimeOut);
+
+            IF TXModeTimeOut = 0 THEN
+                BEGIN
+                SendString := 'r' + Chr(0);
+                FpSend (Socket, @SendString [1], Length (SendString), 0);
+                TXMode := False;
+                WriteToDebugFile ('Sent r command (receive mode)');
+                END;
+            END;
+        END;
     END;
 
 
 
     BEGIN
-    N4OGWBandMapIP := '';
-    N4OGWBandMapPort := 0;
+    N4OGW_BandMap_IP := '';
+    N4OGW_BandMap_Port := 0;
+    N4OGW_BandMap_UDP_Port := 45454;
+    N4OGW_UpdateFrequencyEnable := True;
     END.

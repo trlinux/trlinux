@@ -2183,14 +2183,21 @@ VAR xResult,tempint: INTEGER;
 
     IF ID = 'N4OGW BAND MAP IP' THEN
         BEGIN
-        N4OGWBandMapIP := CMD;
+        N4OGW_BandMap_IP := CMD;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
 
     IF ID = 'N4OGW BAND MAP PORT' THEN
         BEGIN
-        Val (Cmd, N4OGWBandMapPort, xResult);
+        Val (Cmd, N4OGW_BandMap_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW BAND UDP PORT' THEN
+        BEGIN
+        Val (Cmd, N4OGW_BandMap_UDP_Port, xResult);
         ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;

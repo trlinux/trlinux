@@ -2016,11 +2016,42 @@ VAR TestString: Str20;
 PROCEDURE CheckEverything (VAR KeyChar: CHAR; VAR WindowString: Str80);
 
 VAR Result: INTEGER;
-    BandMapInitialExchange: Str20;
+    FrequencyString, Call, BandMapInitialExchange: Str20;
     TimeOut: INTEGER;
     PacketChar: CHAR;
+    N4OGW_Command: STRING;
+    Frequency: LONGINT;
 
     BEGIN
+    { Here is where we take care of some N4OGW bandmap stuff }
+
+    IF (N4OGW_BandMap_IP <> '') THEN
+        BEGIN
+        IF (N4OGW_BandMap.TXMode) THEN CWStillBeingSent;  { clears TX flag }
+
+        WHILE N4OGW_BandMap.QTC_Count > 0 DO
+            N4OGW_Command := N4OGW_BandMap.GetNextQTC;
+
+        { There are two different types of commands that I can get from N4OGW:
+          - QSY to new frequency
+          - Deleting a callsign from the band map }
+
+        IF StringHas (N4OGW_Command, 'operation="delete"') THEN  { Delete callsign }
+            BEGIN
+            Call := BracketedString (N4OGW_Command, 'call="', '"');
+            DeleteBandMapCall (Call);
+            END
+
+        ELSE
+            IF StringHas (N4OGW_Command, 'freq=') THEN
+                BEGIN     { Here we are doing a QSY to a new frequency }
+                FrequencyString := BracketedString (N4OGW_Command, 'freq="', '.');
+                Val (FrequencyString, Frequency);
+                SetRadioFreq (ActiveRadio, Frequency, ModeMemory[ActiveRadio], 'B');
+                END;
+
+        END;
+
     IF ActiveMultiPort <> nil THEN CheckMultiState;
 
     IF ActiveRTTYPort <> nil THEN CheckRTTY;
@@ -3011,7 +3042,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
             { Okay - this is a bit of a hack - but I am not smart enough to figure
               out how Footsw worked }
 
-          IF ActiveKeyer = ArdKeyer THEN
+            IF ActiveKeyer = ArdKeyer THEN
                 BEGIN
                 FootSwitchPressed := ArdKeyer.FootSwitchPressed;
                 END
@@ -3120,9 +3151,9 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                         FootSwitchPressed := False;
                         END;
-                    END;
+                    END;  { of case FootswitchMode }
 
-                END;
+                END; { of FootSwitchPressed }
 
             {IF (AutoSAPEnable) AND (OpMode = CQOpMode) THEN                    }
             {    IF ((ActiveRadio = RadioOne) AND RadioOnTheMove[RadioOne]) OR  }
@@ -3134,7 +3165,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                     Exit;
                     END;
 
-            Wait (6);
+            Wait (6);  { Hmm - I have no idea why }
 
             IF (ParamCount > 0) AND (ParamStr (1) = 'EXIT') THEN ExitProgram;
 
