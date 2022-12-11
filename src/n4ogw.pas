@@ -143,9 +143,18 @@ PROCEDURE N4OGW_BandMap_Object.WriteToDebugFile (Entry: STRING);
 VAR FileWrite: TEXT;
 
     BEGIN
-    OpenFileForAppend (FileWrite, DebugFileName);
-    WriteLn (FileWrite, GetDateString, ' ', GetExactTimeString, ' ', Entry);
-    Close (FileWrite);
+    IF StringHas (Entry, 'winid') THEN
+        BEGIN
+        OpenFileForAppend (FileWrite, DebugFileName);
+        WriteLn (FileWrite, GetDateString, ' ', GetExactTimeString, ' N4OGW says hi');
+        Close (FileWrite);
+        END
+    ELSE
+        BEGIN
+        OpenFileForAppend (FileWrite, DebugFileName);
+        WriteLn (FileWrite, GetDateString, ' ', GetExactTimeString, ' ', Entry);
+        Close (FileWrite);
+        END;
     END;
 
 
@@ -267,7 +276,7 @@ VAR FrequencyString, SendString: STRING;
     IF Dupe THEN  { Blue call and signal }
         BEGIN
         SendString := 'a ' + Call + ',' + FrequencyString + ',' +
-                      Chr (0) + Chr (0) + Chr (255) + Chr (0) + Chr (0) + Chr (1) + Chr (1);
+                      Chr (0) + Chr (0) + Chr (0) + Chr (1) + Chr (0) + Chr (0) + Chr (1);
 
         SendString [2] := Chr (Length (SendString) - 2);
         FpSend (Socket, @SendString [1], Length (SendString), 0);
@@ -278,7 +287,7 @@ VAR FrequencyString, SendString: STRING;
     IF Mult THEN  { Red call and signal }
         BEGIN
         SendString := 'a ' + Call + ',' + FrequencyString + ',' +
-                      Chr (255) + Chr (0) + Chr (0) + Chr (1) + Chr (0) + Chr (0) + Chr (1);
+                      Chr (000) + Chr (0) + Chr (0) + Chr (0) + Chr (1) + Chr (0) + Chr (1);
 
         SendString [2] := Chr (Length (SendString) - 2);
         FpSend (Socket, @SendString [1], Length (SendString), 0);
@@ -289,12 +298,12 @@ VAR FrequencyString, SendString: STRING;
     { Regular entry - Green call and signal }
 
     SendString := 'a ' + Call + ',' + FrequencyString + ',' +
-                  Chr (0) + Chr (255) + Chr (255) + Chr (0) + Chr (1) + Chr (1) + Chr (1);
+                  Chr (0) + Chr (000) + Chr (000) + Chr (1) + Chr (0) + Chr (1) + Chr (1);
 
     SendString [2] := Chr (Length (SendString) - 2);
     FpSend (Socket, @SendString [1], Length (SendString), 0);
 
-    WriteToDebugFile ('Sent a command with ' + Call + ' on ' + FrequencyString + ' as a regular entry');
+    WriteToDebugFile ('Sent ' + Call + ' on ' + FrequencyString + ' as a regular entry');
     END;
 
 

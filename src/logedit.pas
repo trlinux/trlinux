@@ -29,7 +29,7 @@ INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
      LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
-     LogSCP,datetimec,radio;
+     LogSCP,datetimec,radio,n4ogw;
 
 TYPE
     EditableLog = OBJECT
@@ -3583,23 +3583,25 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
 
 
 PROCEDURE UpdateBandMapMultiplierStatus;
-{KK1L: 6.64 Made the procedure create a mult as well if the need be. When called from}
-{      Alt-Y it is possible mults are recreated. The original routine checked if}
-{      the entry was a mult before checking to see if it was no longer a mult.}
-{      Logic could be added to only fully process the whole band map on a call}
+
+{KK1L: 6.64 Made the procedure create a mult as well if the need be. When called from }
+{      Alt-Y it is possible mults are recreated. The original routine checked if }
+{      the entry was a mult before checking to see if it was no longer a mult. }
+{      Logic could be added to only fully process the whole band map on a call }
 {      from "EditableLog.DeleteLastLogEntry"}
+
+{ In December 2022, this routine needed to take the N4OGW bandmap into account }
 
 VAR BandMapEntryRecord: BandMapEntryPointer;
     Mode: ModeType;
     Band: BandType;
     MultString: Str20;
+    OriginalStatus: BYTE;
 
     BEGIN
-
     FOR Band := Band160 TO Band2 DO
         FOR Mode := CW TO Phone DO
             BEGIN
-
             BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];
 
             WHIlE BandMapEntryRecord <> nil DO
@@ -3608,11 +3610,21 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
                         BEGIN
                         VisibleLog.DetermineIfNewMult (BigExpandedString (Call), Band, Mode, MultString);
 
+                        OriginalStatus := StatusByte;
+
                         StatusByte := StatusByte AND $7F;
 
                         IF MultString <> '' THEN
-                            StatusByte := StatusByte OR $80
+                            StatusByte := StatusByte OR $80;
+
+                        IF OriginalStatus <> StatusByte THEN   { Something changed }
+                            IF N4OGW_BandMap_IP <> '' THEN
+                                BEGIN
+                                N4OGW_BandMap.DeleteCallsign (BigExpandedString (Call));
+                                N4OGW_Bandmap.SendBandMapCall (BigExpandedString (Call), Frequency, False, MultString <> '');
+                                END;
                         END;
+
 
                 BandMapEntryRecord  := BandMapEntryRecord^.NextEntry;
                 END;
@@ -3624,6 +3636,7 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
 
 PROCEDURE UpdateBandMapDupeStatus(RXCall: CallString; RXBand: BandType; RXMode: ModeType; MakeDupe: BOOLEAN);
 
+{ Takes a call we are logging and sets it to dupe on the band/mode }
 
 VAR BandMapEntryRecord: BandMapEntryPointer;
     ChangeMade: BOOLEAN;
@@ -3632,28 +3645,41 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
     ChangeMade := False;
 
     BandMapEntryRecord := BandMapFirstEntryList [RXBand, RXMode];
+
     WHILE BandMapEntryRecord <> nil DO
         BEGIN
         WITH BandMapEntryRecord^ DO
             BEGIN
-
-            {IF (RXCall = BandMapExpandedString(Call)) AND           } {KK1L: 6.73 Removed}
-            {   (RXBand = ActiveBand) AND (RXMode = ActiveMode) THEN }
-            {KK1L: 6.73 Don't limit compare to active band/mode. This keeps a contact made on the}
-            {           second radio from getting reset correctly. The BandMapFirstEntryList limits}
-            {           the check appropriately to the band/mode of the deleted contact.}
             IF (RXCall = BandMapExpandedString(Call)) THEN
-              IF MakeDupe THEN
-                BEGIN
-                StatusByte := StatusByte OR $40;   {KK1L: 6.64 Turn on dupe bit}
-                StatusByte := StatusByte AND $7F; {KK1L: 6.69 if it is a dupe it CAN'T be a mult}
-                ChangeMade := True;
-                END
-              ELSE
-                BEGIN
-                StatusByte := StatusByte AND $BF; {KK1L: 6.64 Turn off dupe bit}
-                ChangeMade := True;
-                END;
+                IF MakeDupe THEN
+                    BEGIN
+                    StatusByte := StatusByte OR $40;   {KK1L: 6.64 Turn on dupe bit}
+                    StatusByte := StatusByte AND $7F; {KK1L: 6.69 if it is a dupe it CAN'T be a mult}
+
+                    IF N4OGW_BandMap_IP <> '' THEN
+                        BEGIN
+                        N4OGW_BandMap.DeleteCallsign (BigExpandedString (Call));
+                        N4OGW_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, True, False);
+                        END;
+
+                    ChangeMade := True;
+                    END
+                ELSE
+                    BEGIN
+                    StatusByte := StatusByte AND $BF; {KK1L: 6.64 Turn off dupe bit}
+
+                    IF N4OGW_BandMap_IP <> '' THEN
+                        BEGIN
+                        N4OGW_BandMap.DeleteCallsign (BigExpandedString (Call));
+
+                        IF (StatusByte AND $80) <> 0 THEN  { This is a mult }
+                            N4OGW_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, True)
+                        ELSE
+                            N4OGW_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, False);
+                        END;
+
+                    ChangeMade := True;
+                    END;
             END;
         BandMapEntryRecord  := BandMapEntryRecord^.NextEntry;
         END;

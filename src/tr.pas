@@ -28,6 +28,12 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+11-Dec-2022
+
+   - Some rough edges with bandmap blinking call resolved.  Seems to work great with the
+     N4OGW bandmap now.  Made calls from the N4OGW bandmap go to VFO A for now.  Not sure
+     how things will work with the second VFO or even a different rig ATM
+
 10-Dec-2022
 
    - N4OGW bandmap interface is now feature complete.  Will need some adjustement of the

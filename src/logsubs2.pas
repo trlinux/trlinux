@@ -904,6 +904,7 @@ VAR Frequency: LONGINT;
         BEGIN
         StationInformationCall := '';
         ShowStationInformation (CallWindowString);
+
         DisplayGridSquareStatus (CallWindowString);
 
         IF BandMapEnable THEN
@@ -2047,7 +2048,7 @@ VAR Result: INTEGER;
                 BEGIN     { Here we are doing a QSY to a new frequency }
                 FrequencyString := BracketedString (N4OGW_Command, 'freq="', '.');
                 Val (FrequencyString, Frequency);
-                SetRadioFreq (ActiveRadio, Frequency, ModeMemory[ActiveRadio], 'B');
+                SetRadioFreq (ActiveRadio, Frequency, ModeMemory[ActiveRadio], 'A');
                 END;
 
         END;
@@ -2350,13 +2351,16 @@ VAR Result: INTEGER;
                             BEGIN
                             SaveSetAndClearActiveWindow (DupeInfoWindow);
                             {KK1L: 6.73 add condition to make auto ALT-D an option. Added TuneDupeCheckEnable}
+
                             IF (OpMode = CQOpMode) THEN
                                 BEGIN
                                 IF ModeMemory[InactiveRadio] = CW THEN
                                     WriteLn (BandMapBlinkingCall + ' OK!! at ' + SpeedString + ' WPM')
                                 ELSE
                                     WriteLn (BandMapBlinkingCall + ' OK!!');
+
                                 DupeInfoCallPrompt := BandMapBlinkingCall;
+
                                 IF TuneDupeCheckEnable THEN
                                     BEGIN
                                     Write ('Space bar for ', BandString [BandMapBand], ModeString [BandMapMode], ' QSO');
@@ -2367,6 +2371,7 @@ VAR Result: INTEGER;
                             ELSE
                                 BEGIN
                                 DupeInfoCallPrompt := BandMapBlinkingCall;
+
                                 IF TuneDupeCheckEnable THEN
                                     BEGIN
                                     WriteLn (BandMapBlinkingCall + ' OK!!          ');
@@ -2377,19 +2382,12 @@ VAR Result: INTEGER;
                             VisibleLog.ShowQSOStatus (BandMapBlinkingCall);
                             VisibleLog.ShowMultiplierStatus (BandMapBlinkingCall);
                             RestorePreviousWindow;
-
-                            {SaveSetAndClearActiveWindow (AltCallWindow);  }
-                            {Write (BandMapBlinkingCall, ' Call Ready!');  }
-                            {DupeInfoCall := BandMapBlinkingCall;          }
-                            {RestorePreviousWindow;                        }
                             END;
                         END;
                     END;
 
-{  Moved this down 7 lines because it would over-write info for CQ QSO in
-   progress.
-
-                ShowStationInformation (BandMapBlinkingCall); }
+                { The big IF below is not working right because OkayToPutUpBandMap is often false
+                  when I think it should be true }
 
                 IF (ActiveWindow = CallWindow) AND
                    (OpMode = SearchAndPounceOpMode) AND
@@ -2401,16 +2399,14 @@ VAR Result: INTEGER;
                        { Moved this from up 7 lines in 5.88 }
 
                        ShowStationInformation (BandMapBlinkingCall);
-
                        WindowString := BandMapBlinkingCall;
                        ClrScr;
-                       Write (' ' + WindowString + '  ' + BandMapInitialExchange);
+
+                       { So - in Dec 2022, I am sitting here wondering why there is a space in
+                         front of the callsign when doing this.  Decided to remove it }
+
+                       Write (WindowString + '  ' + BandMapInitialExchange);
                        GoToXY (Length (WindowString) + 1, WhereY);
-
-                       { Why is this? - Removed in 6.44 }
-
-                       { RestorePreviousWindow;  }
-
                        BandMapEntryInCallWindow := True;
                        END;
                 END
@@ -2480,10 +2476,13 @@ VAR Result: INTEGER;
 
     UpdateTimeAndRateDisplays (True, True); {KK1L: 6.72 Moved here to speed up SCP and other things}
 
-    IF RadioOnTheMove[ActiveRadio] THEN {KK1L: 6.73 To fix call popping up after already working them.}
-        OkayToPutUpBandMapCall := True
+    IF RadioOnTheMove [ActiveRadio] THEN {KK1L: 6.73 To fix call popping up after already working them.}
+        OkayToPutUpBandMapCall := True;
+
+    { KK1L had this - but once I am on the move - I don't think I ever want to set it back to
+      false
     ELSE
-        OkayToPutUpBandMapCall := False;
+        OkayToPutUpBandMapCall := False; }
 
     END;
 
@@ -3347,6 +3346,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                           WindowString := '';
                           ClrScr;
+                          OkayToPutUpBandMapCall := False;
                           NameCallsignPutUp := '';
                           END;
                   END;

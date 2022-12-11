@@ -241,10 +241,7 @@ PROCEDURE ListenToUDP;
 
 VAR
    SocketAddr	     : TINetSockAddr;
-   ReceiveFlags, Socket : LONGINT;
-   ReadChar	     : CHAR;
-   ConnectResult     : INTEGER;
-   Broadcast	     : INTEGER;
+   Socket : LONGINT;
    rc		     : INTEGER;
    FDS		     : Tfdset;
    msg		     : string[255];
@@ -309,7 +306,7 @@ PROCEDURE TcpTest;
 
 VAR IPAddress: Str20;
     Port: LONGINT;
-    FrequencyString, Callsign, Message: STRING;
+    FrequencyString, Callsign: STRING;
     SocketAddress: LONGINT;
     Key: CHAR;
 
