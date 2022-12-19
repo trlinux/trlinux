@@ -32,6 +32,7 @@ type
       procedure putradiooutofsplit;override;
       procedure setradiofreq(f: longint; m: modetype; vfo: char);override;
       procedure clearrit;override;
+      procedure swapVFO;override;
       procedure bumpritup;override;
       procedure bumpritdown;override;
       procedure bumpvfoup;override;
@@ -70,6 +71,7 @@ type
          ritclr: string;
          vfoup: string;
          vfodn: string;
+         vfoswap: string;
          cwmode: string;
          cwmoder: string;
          digitalmode: string;
@@ -122,6 +124,7 @@ begin
    ritclr := 'RC;';
    vfoup := 'UP;';
    vfodn := 'DN;';
+   vfoswap := 'AB2;';
    cwmoder := 'MD7;';
    cwmode := 'MD3;';
    digitalmode := 'MD6;';
@@ -244,6 +247,11 @@ end;
 procedure kenwoodctl.clearrit;
 begin
    sendstring(ritclr);
+end;
+
+procedure kenwoodctl.swapvfo;
+begin
+   sendstring(VFOSwap);
 end;
 
 procedure kenwoodctl.bumpritup;

@@ -29,7 +29,18 @@ UNIT N4OGW;
 
   N4OGWBandMap := N4OGWBandMapObject.Create;
 
-  Then N4OGWBandMap1.Init (IPAddress: String; Port: LONGINT): BOOLEAN;  }
+  Then N4OGWBandMap1.Init (IPAddress: String; Port: LONGINT): BOOLEAN;
+
+  The K7RAT RTL-SDR device works best like this:
+
+      10M - IF Offset 100   Tuner Gain  170  Not direct sampling
+
+
+     160M -                                  Direct sampling
+
+
+
+  }
 
 {$O+}
 {$V-}
@@ -84,9 +95,6 @@ VAR
     N4OGW_BandMap_UDP_Port: LONGINT;      { Global variables used for config file parsing }
 
     N4OGW_BandMap: N4OGW_BandMap_Object;
-
-    N4OGW_UpdateFrequencyEnable: BOOLEAN; { Hack to stop sending frequenc updates because
-                                            the program isn't setup for them yet }
 
 IMPLEMENTATION
 
@@ -426,5 +434,4 @@ VAR Hours, Minutes, Seconds, Sec100: WORD;
     N4OGW_BandMap_IP := '';
     N4OGW_BandMap_Port := 0;
     N4OGW_BandMap_UDP_Port := 45454;
-    N4OGW_UpdateFrequencyEnable := True;
     END.

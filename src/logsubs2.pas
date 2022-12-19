@@ -74,6 +74,8 @@ VAR TempStr1, TempStr2, TempString: Str80;
         END;
     END;
 
+
+
 PROCEDURE SetUpAltDDupeCheck (Call: CallString; AddToBandMap: BOOLEAN);
 
 { This procedure will setup the AltD DupeInfo window for the callsign passed
@@ -2048,7 +2050,7 @@ VAR Result: INTEGER;
                 BEGIN     { Here we are doing a QSY to a new frequency }
                 FrequencyString := BracketedString (N4OGW_Command, 'freq="', '.');
                 Val (FrequencyString, Frequency);
-                SetRadioFreq (ActiveRadio, Frequency, ModeMemory[ActiveRadio], 'A');
+                SetRadioFreq (ActiveRadio, Frequency, ModeMemory[ActiveRadio], 'B');
                 END;
 
         END;
@@ -6111,6 +6113,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 END;
 
             SpaceBar:
+                BEGIN
+                { We are using Alt-D to check a call on the other radio and want to go call them now }
+
                 IF (AltDDupeCheckDisplayedCall <> '') AND (CallWindowString = '') THEN
                     BEGIN
                     FlushCWBufferAndClearPTT;
@@ -6190,69 +6195,94 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                             ResetSavedWindowListAndPutUpCallWindow;
                             END;
                         END;
-                    END
+                    Continue;
+                    END;
 
-{ Still a SpaceBar, but not doing AltDDupeCheckCall }
+                { We have the SO2V feature enabled - and if the call window is empty - we want to swap
+                  VFOs and go into S&P mode for one QSO }
 
-                ELSE
-                    IF (CallWindowString = '') OR NOT SpaceBarDupeCheckEnable THEN
+                IF (TwoVFOState <> TwoVFOsDisabled) AND (CallWindowString = '') THEN
+                    BEGIN
+                    SwapVFOs;
+
+                    TwoVFOState := TwoVFOSwapped;
+
+                    REPEAT
+                        PutUpExchangeWindow;
+                        DisplayNextQSONumber (QSONumberForThisQSO);
+                        ClearContestExchange (ReceivedData);
+                        ExchangeHasBeenSent := False;
+                    UNTIL NOT SearchAndPounce;
+
+                    SwapVFOs;
+
+                    TwoVFOState := TwoVFOIdle;
+                    Continue;
+                    END;
+
+                { Go into S&P mode and send my callsign }
+
+                IF (CallWindowString = '') OR NOT SpaceBarDupeCheckEnable THEN
+                    BEGIN
+                    IF CWStillBeingSent THEN FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
+
+                    SetUpToSendOnActiveRadio;
+
+                    InactiveRigCallingCQ := False;
+
+                    IF MessageEnable THEN
                         BEGIN
-                        IF CWStillBeingSent THEN FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
-
-                        SetUpToSendOnActiveRadio;
-
-                        InactiveRigCallingCQ := False;
-
-                        IF MessageEnable THEN
+                        IF ActiveMode = CW THEN
                             BEGIN
-                            IF ActiveMode = CW THEN
-                                BEGIN
-                                IF DEEnable THEN
-                                    SendStringAndStop ('DE ' + MyCall)
-                                ELSE
-                                    SendStringAndStop (MyCall);
-                                END
+                            IF DEEnable THEN
+                                SendStringAndStop ('DE ' + MyCall)
                             ELSE
-                                IF ActiveMode = Digital THEN
-                                    { REALLY?  }
-                                    SendStringAndStop (MyCall + ' ' + MyCALL)
-                                ELSE
-                                    SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
-                            END;
+                                SendStringAndStop (MyCall);
+                            END
+                        ELSE
+                            IF ActiveMode = Digital THEN
+                                { REALLY?  }
+                                SendStringAndStop (MyCall + ' ' + MyCALL)
+                            ELSE
+                                SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
+                        END;
 
-                        KeyStamp (F1);
+                    KeyStamp (F1);
 
-                        REPEAT
-                            PutUpExchangeWindow;
+                    REPEAT
+                        PutUpExchangeWindow;
 
-                            DisplayNextQSONumber (QSONumberForThisQSO);
-
-                            ClearContestExchange (ReceivedData);
-                            ExchangeHasBeenSent := False;
-                        UNTIL NOT SearchAndPounce;
+                        DisplayNextQSONumber (QSONumberForThisQSO);
 
                         ClearContestExchange (ReceivedData);
+                        ExchangeHasBeenSent := False;
+                    UNTIL NOT SearchAndPounce;
 
-                        IF ActiveRadio = RadioOne THEN
-                            CQRITEnabled := (Radio1Type = TS850) OR (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4)
-                        ELSE
-                            CQRITEnabled := (Radio2Type = TS850) OR (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4);
+                    ClearContestExchange (ReceivedData);
 
-
-                        RemoveWindow (ExchangeWindow);
-
-                        DisplayAutoSendCharacterCount;
-
-                        EscapeDeletedCallEntry := CallWindowString;
-
-                        IF CallWindowString = '' THEN
-                            ResetSavedWindowListAndPutUpCallWindow;
-                        END
+                    IF ActiveRadio = RadioOne THEN
+                        CQRITEnabled := (Radio1Type = TS850) OR (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4)
                     ELSE
-                        BEGIN
-                        IF WindowDupeCheck THEN RemoveWindow (ExchangeWindow);
-                        RestorePreviousWindow;
-                        END;
+                        CQRITEnabled := (Radio2Type = TS850) OR (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4);
+
+
+                    RemoveWindow (ExchangeWindow);
+
+                    DisplayAutoSendCharacterCount;
+
+                    EscapeDeletedCallEntry := CallWindowString;
+
+                    IF CallWindowString = '' THEN
+                        ResetSavedWindowListAndPutUpCallWindow;
+
+                    Continue;
+                    END;
+
+                { No special function - do a dupe check }
+
+                IF WindowDupeCheck THEN RemoveWindow (ExchangeWindow);
+                RestorePreviousWindow;
+                END;
 
             TabKey, ControlU:
                 BEGIN

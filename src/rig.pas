@@ -42,6 +42,7 @@ type
       procedure putradiooutofsplit;virtual;
       procedure setradiofreq(f: longint; m: modetype; vfo: char);virtual;
       procedure clearrit;virtual;
+      procedure swapVFO;virtual;
       procedure bumpritup;virtual;
       procedure bumpritdown;virtual;
       procedure bumpvfoup;virtual;
@@ -254,6 +255,10 @@ begin
 end;
 
 procedure radioctl.clearrit;
+begin
+end;
+
+procedure radioctl.swapvfo;
 begin
 end;
 

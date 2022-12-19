@@ -28,6 +28,13 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+17-Dec-2022
+
+  - Added TWO VFO MODE (control-J) which when enabled will process a space bar at an empty
+    call window in CQ mode to swap the A and B VFOs and put you into S&P mode.  Once out of
+    S&P mode - you are back on your CQ frequency.  This currently only works with Kenwood
+    and Elecraft radios.
+
 11-Dec-2022
 
    - Some rough edges with bandmap blinking call resolved.  Seems to work great with the

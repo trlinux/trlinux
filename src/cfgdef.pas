@@ -474,7 +474,8 @@ PROCEDURE SetConfigurationDefaultValues;
     Winkey.SetTuneWithDits(False);
     Yccckey.SetTuneWithDits(False);
     TuneDupeCheckEnable := False; {KK1L: 6.73}
-    TwoRadioState   := TwoRadiosDisabled;
+    TwoRadioState := TwoRadiosDisabled;
+    TwoVFOState   := TwoVFOsDisabled;
 
     UnknownCountryFileEnable := False;
     UnknownCountryFileName   := 'UNKNOWN.CTY';

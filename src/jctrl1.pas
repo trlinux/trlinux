@@ -218,6 +218,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       TDE, {KK1L: 6.73 TuneDupeCheckEnable}
                       TWD,
                       TRM,
+                      TVM,
                       URF,
                       UIS,
                       VER,
@@ -457,6 +458,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       TDE: Description := 'TUNE ALT-D ENABLE'; {KK1L: 6.73}
       TWD: Description := 'TUNE WITH DITS';
       TRM: Description := 'TWO RADIO MODE';
+      TVM: Description := 'TWO VFO MODE';
 
       URF: Description := 'UPDATE RESTART FILE ENABLE';
       UIS: Description := 'USER INFO SHOWN';
@@ -829,6 +831,11 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       TWD: Write (ActiveKeyer.GetTuneWithDits);
 
       TRM: IF TwoRadioState <> TwoRadiosDisabled THEN
+               Write ('TRUE')
+           ELSE
+               Write ('FALSE');
+
+      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
                Write ('TRUE')
            ELSE
                Write ('FALSE');
@@ -1747,6 +1754,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Special two radio mode is enabled')
            ELSE
                Write ('Special two radio mode is disabled');
+
+      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
+               Write ('Special two VFO mode is enabled')
+           ELSE
+               Write ('Special two VFO mode is disabled');
 
       URF: IF UpdateRestartFileEnable THEN
                Write ('RESTART.BIN updated after each QSO')

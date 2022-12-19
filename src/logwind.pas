@@ -117,6 +117,10 @@ TYPE
                       SendingExchange);
 
 
+    TwoVFOStates = (TwoVFOsDisabled,
+                    TwoVFOIdle,
+                    TwoVFOSwapped);
+
     BandMapEntry = RECORD
         Call:       EightBytes;
         Frequency:  LONGINT;
@@ -829,8 +833,9 @@ VAR
     TotalLastSixty: INTEGER;
     TotalScoreMessages:     ARRAY [0..10] OF TotalScoreMessageRecord;
     TRFree:                 BOOLEAN;
-    TwoRadioState:          TwoRadioStates;
     TuneDupeCheckEnable:    BOOLEAN; {KK1L: 6.73}
+    TwoRadioState:          TwoRadioStates;
+    TwoVFOState:            TwoVFOStates;
 
     UnknownCountryFileEnable: BOOLEAN;
     UnknownCountryFileName:   Str80;
@@ -3534,10 +3539,8 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
     LastFullTimeString := FullTimeString;
 
     IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-        BEGIN
-        N4OGW_BandMap.SetCenterFrequency (28030000);
-        N4OGW_UpdateFrequencyEnable := False;
-        END;
+        N4OGW_BandMap.SetCenterFrequency (1830000);
+{       N4OGW_BandMap.SetCenterFrequency (28030000);}
 
     { This used to be in the DoRadio block above - but moved it here in 2022 }
 

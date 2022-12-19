@@ -3999,7 +3999,15 @@ VAR xResult: INTEGER;
         Exit;
         END;
 
-
+    IF ID = 'TWO VFO MODE' THEN
+        BEGIN
+        IF UpCase (CMD [1]) = 'T' THEN
+            TwoVFOState := TwoVFOIdle
+        ELSE
+            TwoVFOState := TwoVFOsDisabled;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
 
     IF UpperCase (ID) = 'UPDATE RESTART FILE ENABLE' THEN
         BEGIN
