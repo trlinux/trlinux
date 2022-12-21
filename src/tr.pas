@@ -28,6 +28,11 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+20-Dec-2022
+
+  - Did some work to simplify the WindowEditor routine.
+  - Fixed bug where I coudln't overwrite a band map displayed callsign by typing over it
+
 17-Dec-2022
 
   - Added TWO VFO MODE (control-J) which when enabled will process a space bar at an empty

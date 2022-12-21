@@ -3299,7 +3299,13 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
     IF Length (Temp2) < 2 THEN Temp2 := '0' + Temp2;
     IF Length (Temp3) < 2 THEN Temp3 := '0' + Temp3;
 
-    FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3;
+    { Added # as a debug indicator of the status of BandMapEntryInCallWindow }
+
+    IF BandMapEntryInCallWindow THEN
+        FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3 + '#'
+    ELSE
+        FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3;
+
 
     { We can create TimeString easily now - which looks like 23:42 }
 
