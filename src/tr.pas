@@ -32,9 +32,15 @@ PROGRAM ContestLoggingProgram;
 
   - Fixed QSOs this hour display - was stuck at zero.
 
+  - Added display of working directory for TRMaster file to both Control-J and
+    the Statistics display in POST (function Z at the TRMASTER menu).  The default
+    location appears to be .trlog in the users home directory.
+
 24-Dec-2022
 
-  - Added Control-Q to CW message - will send integer kHz of the other radio's frequency
+  - Added Control-Q to CW message - will send integer kHz of the other radio's
+    frequency.  It will also generate a note in the log indicating who was asked
+    to go where.
 
 23-Dec-2022
 

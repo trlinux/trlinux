@@ -83,6 +83,11 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 25-Dec-2022
 
+  - Added the Control-Q CW character to get the frequency from the other
+    radio.  This is the identical function as added to the classic mode
+    but the implementation is totally unique to TBSIQ.  It will also
+    generate a note to the log file indicating who was asked to go where.
+
   - Cleaned up retry message from SO2R mini so pieces of it don't get left
     over and displayed forever just after the Score total window.
 
