@@ -1610,8 +1610,9 @@ VAR Key: CHAR;
 FUNCTION QSOMachineObject.ExpandCrypticString (SendString: STRING): STRING;
 
 VAR CharacterCount: INTEGER;
-    QSONumberString, NewSendString: STRING;
+    TempString, QSONumberString, NewSendString: STRING;
     SendChar: CHAR;
+    TempFreq: LONGINT;
 
 { This is a very scaled down version of what is in the main program }
 
@@ -1668,6 +1669,20 @@ VAR CharacterCount: INTEGER;
             '{': NewSendString := NewSendString + ReceivedData.Callsign;
 
             '>': ClearRIT;
+
+            ControlQ:   { Send frequency of other radio }
+                BEGIN
+                IF Radio = RadioOne THEN
+                    TempFreq := Radio2QSOMachine.DisplayedFrequency
+                ELSE
+                    TempFreq := Radio1QSOMachine.DisplayedFrequency;
+
+                TempFreq := Round (TempFreq / 1000);  { Compute kHz }
+                Str (TempFreq, TempString);
+                NewSendString := NewSendString + TempString;
+
+                TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (GetDateString + ' ' + GetTimeString + ': ' + 'Asked ' + CallWindowString + ' to QSY to ' + TempString, True);
+                END;
 
             { Not a special character - just add it as is }
 
@@ -5587,9 +5602,6 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
             IF ShiftKey THEN KeyStatus.KeyChar := '}';
             IF ControlKey THEN KeyStatus.KeyChar := ControlRightBracket;
             END;
-
-        { I am not going to deal with Control or Shift Enter right now - but feel free }
-        { Back in the DOS version - I was reading a port directly to detect them }
 
         28: BEGIN                               { Carriage Return }
             KeyStatus.KeyChar := CarriageReturn;

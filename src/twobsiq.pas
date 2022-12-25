@@ -81,6 +81,30 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+25-Dec-2022
+
+  - Cleaned up retry message from SO2R mini so pieces of it don't get left
+    over and displayed forever just after the Score total window.
+
+23-Dec-2022
+
+  - Added AUTO QSY REQUEST ENABLE parameter (control-J) which is intended to
+    automatically ask someone who is a multiplier to QSY to the other band
+    when 2BSIQing.  It is intended that it only do this when the other band
+    has some minimum number of QSOs (so you aren't doing this for easy
+    multipliers) and when for sure you are actively calling CQ on the
+    other frequency.
+
+    This is still in the idea phase.  I need to make some kind of mechanism
+    that keeps tracks of the CQ activtiy of each radio.  Then I need a
+    function that looks at that data to decide if I am active on an
+    established frequency before asking someone to QSY to that frequency.
+
+    But maybe before doing that - I should make sure I have a manual way of
+    doing it using CW messsage character for the frequency of the other radio.
+    I think I remember implementing that sometime ago?  It appears note - so
+    let's add that first (for both calssic and 2BSIQ).
+
 28-Nov-2022
   - Realized that these removal of PttUnforce was kind of a bad idea as
     the SO2R mini should keep PTT asserted if it has characters in the
@@ -88,7 +112,7 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
     letup of PTT with the CW messages after a callsign is sent and before
     the CQ exchange shows up after we have enough QSOs.
 
-    So - the SO2R mini firmware needs to be changed so it emulates how
+    So - the SO2R mini firmware needed to be changed so it emulates how
     things worked before - and the PTTUnassert commands put back into
     the high level program (both classic and 2BSIQ).  Also, we need
     to force PTT on while sending a callsign in CQ mode so that the
@@ -105,11 +129,8 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
     The new SO2R Mini command prefix is now semi-colon.
 
-    Added PTTHold to CW message buffer and attempted to remove yellow flash between
-    the callsign being sent in a CQ QSOs and the exchange.
-
-
 26-Nov-2022
+
   - In effort to make PTT work again in classic mode while sending CW,
     I restored the old SendCrypticCW procedure in logsubs1.pas.  It had
     been moved to logedit.pas in an attempt to let the TBSIQ stuff

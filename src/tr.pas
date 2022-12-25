@@ -28,6 +28,20 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+25-Dec-2022
+
+  - Fixed QSOs this hour display - was stuck at zero.
+
+24-Dec-2022
+
+  - Added Control-Q to CW message - will send integer kHz of the other radio's frequency
+
+23-Dec-2022
+
+  - When a band map entry times out (over 60 minutes) it will also get deleted in the
+    N4OGW bandmap as well.  Pretty sure this will delete any instance of that call regardless
+    of the band however.
+
 20-Dec-2022
 
   - Did some work to simplify the WindowEditor routine.

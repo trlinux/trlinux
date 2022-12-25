@@ -202,6 +202,13 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'AUTO QSY REQUEST' THEN
+        BEGIN
+        AutoQSYRequestEnable := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
     IF ID = 'AUTO RETURN TO CQ MODE' THEN
         BEGIN
         AutoReturnToCQMode := UpCase (CMD [1]) = 'T';

@@ -41,6 +41,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       ADS,
                       AQI,
                       AQD,
+                      AQR,
                       ASP,
                       ASR, {KK1L: 6.72}
                       ARC,
@@ -215,6 +216,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       TAB,
                       TMR,
                       TOT,
+                      TDL, { TRMASTER.DTA file location }
                       TDE, {KK1L: 6.73 TuneDupeCheckEnable}
                       TWD,
                       TRM,
@@ -263,9 +265,10 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       ADS: Description := 'AUTO DUPE ENABLE S AND P';
       AQI: Description := 'AUTO QSL INTERVAL';
       AQD: Description := 'AUTO QSO NUMBER DECREMENT';
+      AQR: Description := 'AUTO QSY REQUEST ENABLE';
       ASP: Description := 'AUTO S&P ENABLE';
-      ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ARC: Description := 'AUTO RETURN TO CQ MODE';
+      ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ASC: Description := 'AUTO SEND CHARACTER COUNT';
       ATI: Description := 'AUTO TIME INCREMENT';
 
@@ -455,6 +458,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       TAB: Description := 'TAB MODE';
       TMR: Description := 'TEN MINUTE RULE';
       TOT: Description := 'TOTAL OFF TIME';
+      TDL: Description := 'TRMASTER.DTA LOCATION';
       TDE: Description := 'TUNE ALT-D ENABLE'; {KK1L: 6.73}
       TWD: Description := 'TUNE WITH DITS';
       TRM: Description := 'TWO RADIO MODE';
@@ -505,6 +509,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       ADS: Write (AutoDupeEnableSAndP);
       AQI: Write (AutoQSLInterval);
       AQD: Write (AutoQSONumberDecrement);
+      AQR: Write (AutoQSYRequestEnable);
       ASP: Write (AutoSAPEnable);
       ASR: Write (AutoSAPEnableRate); {KK1L: 6.72}
       ARC: Write (AutoReturnToCQMode);
@@ -826,6 +831,8 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       TOT: Write (MinutesToTimeString (TotalOffTime));
 
+      TDL: Write (CD.ActiveFileName);
+
       TDE: Write (TuneDupeCheckEnable); {KK1L: 6.73}
 
       TWD: Write (ActiveKeyer.GetTuneWithDits);
@@ -935,6 +942,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('If in S&P & blank windows, decrement #')
            ELSE
                Write ('No auto decrement if in S&P & no input');
+
+      AQR: IF AutoQSYRequestEnable THEN
+               Write ('Ask for QSY to other run freq')
+           ELSE
+               Write ('Do not ask for QSY to other run freq');
 
       ASP: IF AutoSAPEnable THEN
                Write ('Jump into S&P mode if tuning VFO')

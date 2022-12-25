@@ -1284,10 +1284,11 @@ PROCEDURE DisplayFrequency (Freq: LONGINT; Radio: RadioType); {KK1L: 6.73 Added 
 VAR TempFreq: REAL;
 
     BEGIN
-    IF (Freq = LastDisplayedFreq[RadioOne]) AND (Radio = RadioOne) THEN Exit; {KK1L: 6.73 Added Radio}
-    IF (Freq = LastDisplayedFreq[RadioTwo]) AND (Radio = RadioTwo) THEN Exit; {KK1L: 6.73}
+    IF (Freq = LastDisplayedFreq [RadioOne]) AND (Radio = RadioOne) THEN Exit; {KK1L: 6.73 Added Radio}
+    IF (Freq = LastDisplayedFreq [RadioTwo]) AND (Radio = RadioTwo) THEN Exit; {KK1L: 6.73}
 
-    {KK1L: 6.73 Added Radio=ActiveRadio. Keeps freq correct when logging with LogFrequencyEnable}
+    { KK1L: 6.73 Added Radio=ActiveRadio. Keeps freq correct when logging with LogFrequencyEnable }
+
     IF (Freq <> 0) AND (Radio = ActiveRadio) THEN DisplayedFrequency := Freq;
 
     CASE Radio OF  {KK1L: 6.73}
@@ -3192,6 +3193,11 @@ VAR BandMapEntryRecord, PreviousBandMapEntryRecord: BandMapEntryPointer;
 
                     IF MinutesLeft = 0 THEN   { Time to die }
                         BEGIN
+                        { Let's delete it from the N4OGW band map if that is running }
+
+                        IF N4OGW_BandMap_IP <> '' THEN
+                            N4OGW_BandMap.DeleteCallsign (BigExpandedString (BandMapEntryRecord^.Call));
+
                         IF PreviousBandMapEntryRecord = nil THEN { This is the first one in list }
                             BEGIN
                             BandMapFirstEntryList [Band, Mode] := BandMapEntryRecord^.NextEntry;
@@ -3212,6 +3218,7 @@ VAR BandMapEntryRecord, PreviousBandMapEntryRecord: BandMapEntryPointer;
                         { We want to process the next band map entry next }
 
                         BandMapEntryRecord := PreviousBandMapEntryRecord^.NextEntry;
+
                         Continue;
                         END;
 
@@ -3306,10 +3313,10 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
     ELSE
         FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3;
 
-
-    { We can create TimeString easily now - which looks like 23:42 }
+    { We can create TimeString easily now - which looks like 23:42.  Don't forget HourString }
 
     TimeString := Temp1 + ':' + Temp2;
+    HourString := Temp1;
 
     { If the N4OGW bandmap is active - it is good to give it oxygen }
 
@@ -3544,6 +3551,8 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
     IF LastFullTimeString = FullTimeString THEN Exit;
     LastFullTimeString := FullTimeString;
 
+{ This is a hack until we get the radio frequency stuff sorted out with N4OGW }
+
     IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
         N4OGW_BandMap.SetCenterFrequency (1830000);
 {       N4OGW_BandMap.SetCenterFrequency (28030000);}
@@ -3731,6 +3740,8 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
         ELSE
             Rate := 0;
         END;
+
+    { LastDisplayedHour is a null string initially }
 
     IF HourString <> LastDisplayedHour THEN
         BEGIN

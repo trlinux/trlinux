@@ -494,6 +494,9 @@ VAR DelayLoops: INTEGER;
                     Halt;
                     END;
 
+                GoToXY (1, WhereY);
+                ClrEol;
+
                 EchoTest := True;
                 Exit;
                 END;

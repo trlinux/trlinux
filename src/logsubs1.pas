@@ -607,6 +607,7 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
     CommandMode, WarningSounded: BOOLEAN;
     TempCall: CallString;
     TempString: Str80;
+    TempFreq: LONGINT;
 
     BEGIN
     SetSpeed (DisplayedCodeSpeed);
@@ -846,41 +847,56 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
                      AddStringToBuffer (TempString, CWTone);
                      END;
 
+            ControlQ:   { Send frequency of other radio }
+                BEGIN
+                IF ActiveRadio = RadioOne THEN
+                    TempFreq := LastDisplayedFreq [RadioTwo]
+                ELSE
+                    TempFreq := LastDisplayedFreq [RadioOne];
 
-            ControlW: AddStringToBuffer (VisibleLog.LastName (4), CWTone);
+                TempFreq := Round (TempFreq / 1000);  { Compute kHz }
+                Str (TempFreq, TempString);
+                AddStringToBuffer (TempString, CWTone);
+                END;
 
-            ControlR: BEGIN
-                      ReceivedData.RandomCharsSent := '';
+            ControlR:   { Generate random characters }
+                BEGIN
+                ReceivedData.RandomCharsSent := '';
 
-                      REPEAT
-                          ReceivedData.RandomCharsSent :=
-                            ReceivedData.RandomCharsSent +
-                            Chr (Random (25) + Ord ('A'));
-                      UNTIL Length (ReceivedData.RandomCharsSent) = 5;
+                REPEAT
+                    ReceivedData.RandomCharsSent := ReceivedData.RandomCharsSent + Chr (Random (25) + Ord ('A'));
+                UNTIL Length (ReceivedData.RandomCharsSent) = 5;
 
-                      AddStringToBuffer (ReceivedData.RandomCharsSent, CWTone);
+                AddStringToBuffer (ReceivedData.RandomCharsSent, CWTone);
 
-                      SaveSetAndClearActiveWindow (DupeInfoWindow);
-                      Write ('Sent = ', ReceivedData.RandomCharsSent);
-                      RestorePreviousWindow;
-                      END;
+                SaveSetAndClearActiveWindow (DupeInfoWindow);
+                Write ('Sent = ', ReceivedData.RandomCharsSent);
+                RestorePreviousWindow;
+                END;
 
-            ControlT: AddStringToBuffer (ReceivedData.RandomCharsSent, CWTone);
+            ControlT:   { Repeat random characters previously sent }
+                AddStringToBuffer (ReceivedData.RandomCharsSent, CWTone);
 
-            ControlU: BEGIN
-                      TempCall := GetCorrectedCallFromExchangeString (ExchangeWindowString);
+            ControlU:   { Show station information }
+                BEGIN
+                TempCall := GetCorrectedCallFromExchangeString (ExchangeWindowString);
 
-                      IF TempCall <> '' THEN
-                          CallSignICameBackTo := TempString
-                      ELSE
-                          CallsignICameBackTo := CallWindowString;
+                IF TempCall <> '' THEN
+                    CallSignICameBackTo := TempString
+                ELSE
+                    CallsignICameBackTo := CallWindowString;
 
-                      ShowStationInformation (CallsignICameBackTo);
-                      END;
+                ShowStationInformation (CallsignICameBackTo);
+                END;
 
-            ControlLeftBracket: CommandMode := True;
+            ControlW:   { Send previous name sent }
+                AddStringToBuffer (VisibleLog.LastName (4), CWTone);
 
-            ELSE AddStringToBuffer (SendChar, CWTone);
+            ControlLeftBracket:
+                CommandMode := True;
+
+            ELSE
+                AddStringToBuffer (SendChar, CWTone);
             END;
         END;
 

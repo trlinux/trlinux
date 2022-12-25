@@ -46,6 +46,7 @@ PROCEDURE SetConfigurationDefaultValues;
     AutoDupeEnableCQ       := True;
     AutoDupeEnableSAndP    := True;
     AutoQSONumberDecrement := False;
+    AutoQSYRequestEnable   := False;
     AutoReturnToCQMode     := True;
     AutoSAPEnable          := False;
     AutoSAPEnableRate      := 1000; {KK1L 6.72}

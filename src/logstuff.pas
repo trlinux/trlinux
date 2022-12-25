@@ -240,6 +240,7 @@ VAR
     AutoQSLCount:           BYTE;
     AutoQSLInterval:        BYTE;
     AutoQSONumberDecrement: BOOLEAN;
+    AutoQSYRequestEnable:   BOOLEAN;
     AutoSAPEnable:          BOOLEAN;
 
     BandMapCallWindowEnable: BOOLEAN;
