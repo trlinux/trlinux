@@ -3336,8 +3336,14 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
             BEGIN
             IF GetRadioParameters (RadioOne, '', Freq, Band, Mode, TRUE, False) THEN
                 BEGIN
+
+                { For testing purposes - we are just hardwiring radio 1 to the N4OGW bandmap }
+
+                IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
+                    N4OGW_BandMap.SetCenterFrequency (Freq);
+
                 IF (Abs (Freq - SplitFreq) <= 1000) THEN   { Why? }
-                       GoTo IgnoreRadioOneFreq;
+                    GoTo IgnoreRadioOneFreq;
 
                 RadioOnTheMove [RadioOne] := ((PreviousRadioOneFreq <> 0) AND
                                              (Abs (PreviousRadioOneFreq - Freq) > (Rig1FreqPollRate * AutoSAPEnableRate div 1000))) OR
@@ -3553,8 +3559,6 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
 { This is a hack until we get the radio frequency stuff sorted out with N4OGW }
 
-    IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-        N4OGW_BandMap.SetCenterFrequency (1830000);
 {       N4OGW_BandMap.SetCenterFrequency (28030000);}
 
     { This used to be in the DoRadio block above - but moved it here in 2022 }
