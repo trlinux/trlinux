@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, LogDVP, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, K1EANet;
+     SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, K1EANet, N4OGW;
 
 PROCEDURE DisplayStatus (FirstEntryDisplayed: MenuEntryType; ActiveEntry: MenuEntryType);
 FUNCTION  GetActiveLineFromEntryString (EntryString: Str80): MenuEntryType;
@@ -550,6 +550,13 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       MUM: MultiUpdateMultDisplay := NOT MultiUpdateMultDisplay;
       MBA: MultipleBandsEnabled   := NOT MultipleBandsEnabled;
       MMD: MultipleModesEnabled   := NOT MultipleModesEnabled;
+
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: N4OGW_Frequency_Control := N4OGW_FC_VFOB;
+               N4OGW_FC_VFOB: N4OGW_Frequency_Control := N4OGW_FC_AUTO;
+               N4OGW_FC_AUTO: N4OGW_Frequency_Control := N4OGW_FC_VFOA;
+               END;  { of CASE }
+
       NFE: NameFlagEnable         := NOT NameFlagEnable;
 
       NEQ: BEGIN
@@ -1157,6 +1164,12 @@ VAR FileWrite: TEXT;
       MBA: WriteLn (FileWrite, MultipleBandsEnabled);
       MMD: WriteLn (FileWrite, MultipleModesEnabled);
 
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: WriteLn (FileWrite, 'VFOA');
+               N4OGW_FC_VFOB: WriteLn (FileWrite, 'VFOB');
+               N4OGW_FC_AUTO: WriteLn (FileWrite, 'AUTO');
+               END;  { of CASE }
+
       NFE: WriteLn (FileWrite, NameFlagEnable);
       NLQ: WriteLn (FileWrite, NoLog);
       NPP: WriteLn (FileWrite, NoPollDuringPTT);
@@ -1529,6 +1542,13 @@ VAR TempString: Str40;
       MFD: TempString := MyFDClass;
       MGR: TempString := MyGrid;
       MIO: TempString := MyIOTA;
+
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: TempString := 'VFOA';
+               N4OGW_FC_VFOB: TempString := 'VFOB';
+               N4OGW_FC_AUTO: TempString := 'AUTO';
+               END;  { of CASE }
+
       NFE: IF NameFlagEnable THEN TempString := 'TRUE';
       NLQ: IF NoLog THEN TempString := 'TRUE';
       NPP: IF NoPollDuringPTT THEN TempString := 'TRUE';

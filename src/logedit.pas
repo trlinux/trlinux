@@ -3618,13 +3618,21 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
                             StatusByte := StatusByte OR $80;
 
                         IF OriginalStatus <> StatusByte THEN   { Something changed }
-                            IF N4OGW_BandMap_IP <> '' THEN
+                            BEGIN
+                            IF N4OGW_RadioOne_BandMap_IP <> '' THEN
                                 BEGIN
-                                N4OGW_BandMap.DeleteCallsign (BigExpandedString (Call));
-                                N4OGW_Bandmap.SendBandMapCall (BigExpandedString (Call), Frequency, False, MultString <> '');
+                                N4OGW_RadioOne_BandMap.DeleteCallsign (BigExpandedString (Call));
+                                N4OGW_RadioOne_Bandmap.SendBandMapCall (BigExpandedString (Call), Frequency, False, MultString <> '');
                                 END;
-                        END;
 
+                            IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                                BEGIN
+                                N4OGW_RadioTwo_BandMap.DeleteCallsign (BigExpandedString (Call));
+                                N4OGW_RadioTwo_Bandmap.SendBandMapCall (BigExpandedString (Call), Frequency, False, MultString <> '');
+                                END;
+                            END;
+
+                        END;
 
                 BandMapEntryRecord  := BandMapEntryRecord^.NextEntry;
                 END;
@@ -3656,10 +3664,16 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
                     StatusByte := StatusByte OR $40;   {KK1L: 6.64 Turn on dupe bit}
                     StatusByte := StatusByte AND $7F; {KK1L: 6.69 if it is a dupe it CAN'T be a mult}
 
-                    IF N4OGW_BandMap_IP <> '' THEN
+                    IF N4OGW_RadioOne_BandMap_IP <> '' THEN
                         BEGIN
-                        N4OGW_BandMap.DeleteCallsign (BigExpandedString (Call));
-                        N4OGW_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, True, False);
+                        N4OGW_RadioOne_BandMap.DeleteCallsign (BigExpandedString (Call));
+                        N4OGW_RadioOne_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, True, False);
+                        END;
+
+                    IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                        BEGIN
+                        N4OGW_RadioTwo_BandMap.DeleteCallsign (BigExpandedString (Call));
+                        N4OGW_RadioTwo_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, True, False);
                         END;
 
                     ChangeMade := True;
@@ -3668,14 +3682,24 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
                     BEGIN
                     StatusByte := StatusByte AND $BF; {KK1L: 6.64 Turn off dupe bit}
 
-                    IF N4OGW_BandMap_IP <> '' THEN
+                    IF N4OGW_RadioOne_BandMap_IP <> '' THEN
                         BEGIN
-                        N4OGW_BandMap.DeleteCallsign (BigExpandedString (Call));
+                        N4OGW_RadioOne_BandMap.DeleteCallsign (BigExpandedString (Call));
 
                         IF (StatusByte AND $80) <> 0 THEN  { This is a mult }
-                            N4OGW_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, True)
+                            N4OGW_RadioOne_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, True)
                         ELSE
-                            N4OGW_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, False);
+                            N4OGW_RadioOne_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, False);
+                        END;
+
+                    IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                        BEGIN
+                        N4OGW_RadioTwo_BandMap.DeleteCallsign (BigExpandedString (Call));
+
+                        IF (StatusByte AND $80) <> 0 THEN  { This is a mult }
+                            N4OGW_RadioTwo_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, True)
+                        ELSE
+                            N4OGW_RadioTwo_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, False);
                         END;
 
                     ChangeMade := True;

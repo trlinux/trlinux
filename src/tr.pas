@@ -28,6 +28,32 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+27-Dec-2022
+
+ - Expanded the N4OGW commands to support two radios:
+
+    N4OGW RADIO ONE BANDMAP IP        defauly is blank string (Use 127.0.0.1 for local running bandmap )
+    N4OGW RADIO ONE BANDMAP PORT      default is zero
+    N4OGW RADIO ONE BANDMAP UDP PORT  default is 45454
+    N4OGW RADIO TWO BANDMAP IP        default is blank string (Use 127.0.0.1 for local running bandmap )
+    N4OGW RADIO TWO BANDMAP PORT      default is zero
+    N4OGW RADIO TWO BANDMAP UDP PORT  default is 45454
+
+    When using two band maps - TR will send any spotted call to both bandmaps.
+    When a call is deleted - it will also be deleted in both bandmaps.
+
+    Really - the only time the two are handled distinctly is when they generate a frequency command
+    from a mouse click and it needs to be routed to the proper radio.  However, we can get extra
+    bonus points for being careful when we get a delete command and only removing the specific
+    frequency for that callsign.  Note that this will generate a non-specific-frequency delete
+    command to N4OGW which will remove the call from all frequencies on his bandmap.  This could
+    perhaps be worked around by detecing this condition in TR Log and then sending a new spot to
+    N4OGW for the instances of the call that should stay displayed.
+
+    The two bandmaps can likely share the same UDP port number for sending data back to the logging
+    program.  There is a RadioNr field in the packet that will make it clear which radio should
+    respond to the command.
+
 25-Dec-2022
 
   - Fixed QSOs this hour display - was stuck at zero.

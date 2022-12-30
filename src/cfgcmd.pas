@@ -2188,23 +2188,54 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-    IF ID = 'N4OGW BAND MAP IP' THEN
+    IF ID = 'N4OGW FREQUENCY CONTROL' THEN
         BEGIN
-        N4OGW_BandMap_IP := CMD;
+        CMD := UpperCase (CMD);
+        ProcessConfigInstructions2 := True;
+        IF StringHas (CMD, 'VFOA') THEN BEGIN N4OGW_Frequency_Control := N4OGW_FC_VFOA; Exit; END;
+        IF StringHas (CMD, 'VFOB') THEN BEGIN N4OGW_Frequency_Control := N4OGW_FC_VFOB; Exit; END;
+        IF StringHas (CMD, 'AUTO') THEN BEGIN N4OGW_Frequency_Control := N4OGW_FC_Auto; Exit; END;
+        ProcessConfigInstructions2 := False;
+        END;
+
+    IF ID = 'N4OGW RADIO ONE BANDMAP IP' THEN
+        BEGIN
+        N4OGW_RadioOne_BandMap_IP := CMD;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
 
-    IF ID = 'N4OGW BAND MAP PORT' THEN
+    IF ID = 'N4OGW RADIO TWO BANDMAP IP' THEN
         BEGIN
-        Val (Cmd, N4OGW_BandMap_Port, xResult);
+        N4OGW_RadioTwo_BandMap_IP := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW RADIO ONE BANDMAP PORT' THEN
+        BEGIN
+        Val (Cmd, N4OGW_RadioOne_BandMap_Port, xResult);
         ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
-    IF ID = 'N4OGW BAND UDP PORT' THEN
+    IF ID = 'N4OGW RADIO TWO BANDMAP PORT' THEN
         BEGIN
-        Val (Cmd, N4OGW_BandMap_UDP_Port, xResult);
+        Val (Cmd, N4OGW_RadioTwo_BandMap_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW RADIO ONE BANDMAP UDP PORT' THEN
+        BEGIN
+        Val (Cmd, N4OGW_RadioOne_BandMap_UDP_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW RADIO TWO BANDMAP UDP PORT' THEN
+        BEGIN
+        Val (Cmd, N4OGW_RadioTwo_BandMap_UDP_Port, xResult);
         ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;

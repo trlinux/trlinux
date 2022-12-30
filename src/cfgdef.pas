@@ -256,6 +256,8 @@ PROCEDURE SetConfigurationDefaultValues;
     MyState      := '';
     MyZone       := '';
 
+    N4OGW_Frequency_Control := N4OGW_FC_Auto;
+
     NameFlagEnable  := True;
     NoLog           := False;
     NoPollDuringPTT := False;

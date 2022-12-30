@@ -130,10 +130,22 @@ VAR FileWrite: TEXT;
     BEGIN
     WriteLn ('Initializing program..');
 
-    IF (N4OGW_BandMap_IP <> '') AND (N4OGW_BandMap_Port <> 0) THEN
+    IF (N4OGW_RadioOne_BandMap_IP <> '') AND (N4OGW_RadioOne_BandMap_Port <> 0) THEN
         BEGIN
-        N4OGW_BandMap := N4OGW_BandMap_Object.Create;
-        N4OGW_BandMap.Init (N4OGW_BandMap_IP, N4OGW_BandMap_Port, N4OGW_BandMap_UDP_Port);
+        N4OGW_RadioOne_BandMap := N4OGW_BandMap_Object.Create;
+
+        N4OGW_RadioOne_BandMap.Init (N4OGW_RadioOne_BandMap_IP,
+                                     N4OGW_RadioOne_BandMap_Port,
+                                     N4OGW_RadioOne_BandMap_UDP_Port);
+        END;
+
+    IF (N4OGW_RadioTwo_BandMap_IP <> '') AND (N4OGW_RadioTwo_BandMap_Port <> 0) THEN
+        BEGIN
+        N4OGW_RadioTwo_BandMap := N4OGW_BandMap_Object.Create;
+
+        N4OGW_RadioTwo_BandMap.Init (N4OGW_RadioTwo_BandMap_IP,
+                                     N4OGW_RadioTwo_BandMap_Port,
+                                     N4OGW_RadioTwo_BandMap_UDP_Port);
         END;
 
     IF QTCsEnabled THEN LoadQTCDataFile;

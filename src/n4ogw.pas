@@ -27,18 +27,14 @@ UNIT N4OGW;
 
   To use this - you need to create the instance for the bandmap you want using
 
-  N4OGWBandMap := N4OGWBandMapObject.Create;
+  N4OGW_BandMap_RadioOne := N4OGW_BandMapObject.Create;
 
   Then N4OGWBandMap1.Init (IPAddress: String; Port: LONGINT): BOOLEAN;
 
   The K7RAT RTL-SDR device works best like this:
 
       10M - IF Offset 100   Tuner Gain  170  Not direct sampling
-
-
      160M -                                  Direct sampling
-
-
 
   }
 
@@ -88,13 +84,22 @@ TYPE
         PROCEDURE WriteToDebugFile (Entry: STRING);
         END;
 
+    N4OGW_Frequency_Control_Type = (N4OGW_FC_VFOA, N4OGW_FC_VFOB, N4OGW_FC_Auto);
 
 VAR
-    N4OGW_BandMap_IP: STRING;             { Global variables used for config file parsing }
-    N4OGW_BandMap_Port: LONGINT;          { Global variables used for config file parsing }
-    N4OGW_BandMap_UDP_Port: LONGINT;      { Global variables used for config file parsing }
+    N4OGW_Frequency_Control: N4OGW_Frequency_Control_Type;
 
-    N4OGW_BandMap: N4OGW_BandMap_Object;
+    N4OGW_RadioOne_BandMap_IP: STRING;             { Global variables used for config file parsing }
+    N4OGW_RadioTwo_BandMap_IP: STRING;             { Global variables used for config file parsing }
+    N4OGW_RadioOne_BandMap_Port: LONGINT;          { Global variables used for config file parsing }
+    N4OGW_RadioTwo_BandMap_Port: LONGINT;          { Global variables used for config file parsing }
+    N4OGW_RadioOne_BandMap_UDP_Port: LONGINT;      { Global variables used for config file parsing }
+    N4OGW_RadioTwo_BandMap_UDP_Port: LONGINT;      { Global variables used for config file parsing }
+
+    N4OGW_RadioOne_BandMap: N4OGW_BandMap_Object;
+    N4OGW_RadioTwo_BandMap: N4OGW_BandMap_Object;
+
+    N4OGW_UDP_Port_Initialized: BOOLEAN;           { Gets set to TRUE when the first instance opens the port }
 
 IMPLEMENTATION
 
@@ -116,6 +121,8 @@ VAR Index: INTEGER;
         END;
 
     GetNextQTC := QTC_Buffer [0];
+
+    WriteToDebugFile ('QTC_Buffer = ' + QTC_Buffer [0]);
 
     IF QTC_Count > 1 THEN
         FOR Index := 0 TO QTC_Count - 2 DO
@@ -151,7 +158,7 @@ PROCEDURE N4OGW_BandMap_Object.WriteToDebugFile (Entry: STRING);
 VAR FileWrite: TEXT;
 
     BEGIN
-    IF StringHas (Entry, 'winid') THEN
+    IF StringHas (Entry, 'xyzzy') THEN
         BEGIN
         OpenFileForAppend (FileWrite, DebugFileName);
         WriteLn (FileWrite, GetDateString, ' ', GetExactTimeString, ' N4OGW says hi');
@@ -247,26 +254,32 @@ VAR SocketAddr: TINetSockAddr;
         Exit;
         END;
 
-    { Setup the UDP port }
+    WriteToDebugFile ('TR Log Init for ' + IPAddress);
 
-    UDP_Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    { Setup the UDP port.  Note that if we only need to set it up once since all
+      commands from whatever bandmaps that are out there all come to one place }
 
-    SocketAddr.sin_family := AF_INET;
-    SocketAddr.sin_port := htons (UDP_PortNumber);
-    SocketAddr.sin_addr.s_addr := INADDR_ANY;
-
-    ConnectResult := fpBind (UDP_Socket, @SocketAddr, SizeOf (SocketAddr));
-
-    IF ConnectResult <> 0 THEN
+    IF NOT N4OGW_UDP_Port_Initialized THEN
         BEGIN
-        WriteLn ('Unable to connect to UDP port ', PortNumber);
-        WaitForKeyPressed;
-        Exit;
+        UDP_Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+        SocketAddr.sin_family := AF_INET;
+        SocketAddr.sin_port := htons (UDP_PortNumber);
+        SocketAddr.sin_addr.s_addr := INADDR_ANY;
+
+        ConnectResult := fpBind (UDP_Socket, @SocketAddr, SizeOf (SocketAddr));
+
+        IF ConnectResult <> 0 THEN
+            BEGIN
+            WriteLn ('Unable to connect to UDP port ', PortNumber);
+            WaitForKeyPressed;
+            Exit;
+            END;
+
+        N4OGW_UDP_Port_Initialized := True;  { Make sure we don't do this again }
+        WriteToDebugFile ('TR Log UDP init for port');
         END;
 
-    { Log startup in debug file }
-
-    WriteToDebugFile ('TR Log Init');
     END;
 
 
@@ -431,7 +444,11 @@ VAR Hours, Minutes, Seconds, Sec100: WORD;
 
 
     BEGIN
-    N4OGW_BandMap_IP := '';
-    N4OGW_BandMap_Port := 0;
-    N4OGW_BandMap_UDP_Port := 45454;
+    N4OGW_RadioOne_BandMap_IP := '';
+    N4OGW_RadioOne_BandMap_Port := 0;
+    N4OGW_RadioOne_BandMap_UDP_Port := 45454;
+    N4OGW_RadioTwo_BandMap_IP := '';
+    N4OGW_RadioTwo_BandMap_Port := 0;
+    N4OGW_RadioTwo_BandMap_UDP_Port := 45454;
+    N4OGW_UDP_Port_Initialized := False;
     END.

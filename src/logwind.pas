@@ -3193,10 +3193,13 @@ VAR BandMapEntryRecord, PreviousBandMapEntryRecord: BandMapEntryPointer;
 
                     IF MinutesLeft = 0 THEN   { Time to die }
                         BEGIN
-                        { Let's delete it from the N4OGW band map if that is running }
+                        { Let's delete it from the N4OGW band maps if running }
 
-                        IF N4OGW_BandMap_IP <> '' THEN
-                            N4OGW_BandMap.DeleteCallsign (BigExpandedString (BandMapEntryRecord^.Call));
+                        IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                            N4OGW_RadioOne_BandMap.DeleteCallsign (BigExpandedString (BandMapEntryRecord^.Call));
+
+                        IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                            N4OGW_RadioTwo_BandMap.DeleteCallsign (BigExpandedString (BandMapEntryRecord^.Call));
 
                         IF PreviousBandMapEntryRecord = nil THEN { This is the first one in list }
                             BEGIN
@@ -3308,9 +3311,9 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
     { Added # as a debug indicator of the status of BandMapEntryInCallWindow }
 
-    IF BandMapEntryInCallWindow THEN
+{    IF BandMapEntryInCallWindow THEN
         FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3 + '#'
-    ELSE
+    ELSE}
         FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3;
 
     { We can create TimeString easily now - which looks like 23:42.  Don't forget HourString }
@@ -3320,8 +3323,11 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
     { If the N4OGW bandmap is active - it is good to give it oxygen }
 
-    IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-        N4OGW_BandMap.Heartbeat;
+    IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+        N4OGW_RadioOne_BandMap.Heartbeat;
+
+    IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+        N4OGW_RadioTwo_BandMap.Heartbeat;
 
     { In 2022 - I am not sure I understand why ShowTime is required in order
       to do radios.  The only time I seem to call this with ShowTime = False
@@ -3336,11 +3342,10 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
             BEGIN
             IF GetRadioParameters (RadioOne, '', Freq, Band, Mode, TRUE, False) THEN
                 BEGIN
+                { Send to the radio one N4OGW bandmap if enabled }
 
-                { For testing purposes - we are just hardwiring radio 1 to the N4OGW bandmap }
-
-                IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-                    N4OGW_BandMap.SetCenterFrequency (Freq);
+                IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                    N4OGW_RadioOne_BandMap.SetCenterFrequency (Freq);
 
                 IF (Abs (Freq - SplitFreq) <= 1000) THEN   { Why? }
                     GoTo IgnoreRadioOneFreq;
@@ -3450,6 +3455,10 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
             BEGIN
             IF GetRadioParameters (RadioTwo, '', Freq, Band, Mode, TRUE, False) THEN
                 BEGIN
+                { Send to the radio two N4OGW bandmap if enabled }
+
+                IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                    N4OGW_RadioTwo_BandMap.SetCenterFrequency (Freq);
 
                 IF (Abs (Freq - SplitFreq) <= 1000) THEN
                        GoTo IgnoreRadioTwoFreq;
@@ -3556,10 +3565,6 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
 
     IF LastFullTimeString = FullTimeString THEN Exit;
     LastFullTimeString := FullTimeString;
-
-{ This is a hack until we get the radio frequency stuff sorted out with N4OGW }
-
-{       N4OGW_BandMap.SetCenterFrequency (28030000);}
 
     { This used to be in the DoRadio block above - but moved it here in 2022 }
 
@@ -3872,9 +3877,14 @@ PROCEDURE DisplayAutoSendCharacterCount;
 
 PROCEDURE DeleteBandMapCall (Call: Callstring);
 
+{ At some point, this should also delete the call from the TR Log bandmap? }
+
     BEGIN
-    IF N4OGW_BandMap_IP <> '' THEN
-        N4OGW_BandMap.DeleteCallsign (Call);
+    IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+        N4OGW_RadioOne_BandMap.DeleteCallsign (Call);
+
+    IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+        N4OGW_RadioTwo_BandMap.DeleteCallsign (Call);
     END;
 
 
@@ -4433,7 +4443,6 @@ PROCEDURE RemoveCallFromBandMapLinkedList (Call: CallString; Band: BandType; Mod
   code somewhere so it can be easier to work with }
 
 VAR ActiveEntry, PreviousEntry: BandMapEntryPointer;
-    CompressedCall: EightBytes;
     N4OGW_Notified: BOOLEAN;  { Only does it once }
 
     BEGIN
@@ -4441,6 +4450,8 @@ VAR ActiveEntry, PreviousEntry: BandMapEntryPointer;
 
     ActiveEntry := BandMapFirstEntryList [Band, Mode];
     PreviousEntry := nil;
+
+    N4OGW_Notified := False;
 
     WHILE ActiveEntry <> nil DO
         BEGIN
@@ -4461,10 +4472,16 @@ VAR ActiveEntry, PreviousEntry: BandMapEntryPointer;
 
             IF NOT N4OGW_Notified THEN
                 BEGIN
-                IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
+                IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
                     BEGIN
-                    N4OGW_BandMap.DeleteCallsign (Call);
-                    N4OGW_BandMap.WriteToDebugFile ('N4OGW notified of a removal');
+                    N4OGW_RadioOne_BandMap.DeleteCallsign (Call);
+                    N4OGW_RadioOne_BandMap.WriteToDebugFile ('N4OGW Radio One notified of a removal');
+                    END;
+
+                IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                    BEGIN
+                    N4OGW_RadioTwo_BandMap.DeleteCallsign (Call);
+                    N4OGW_RadioTwo_BandMap.WriteToDebugFile ('N4OGW Radio Two notified of a removal');
                     END;
 
                 { I assume N4OGW will remove all instances of the call }
@@ -4477,9 +4494,6 @@ VAR ActiveEntry, PreviousEntry: BandMapEntryPointer;
         PreviousEntry := ActiveEntry;
         ActiveEntry := ActiveEntry^.NextEntry;
         END;
-
-    IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-        N4OGW_BandMap.WriteToDebugFile ('End of RemoveCallFromBandMapLinkedList');
     END;
 
 
@@ -4506,8 +4520,11 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
         BEGIN
         { Send to N4OGW bandmap if it is enabled }
 
-        IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-            N4OGW_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+        IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+            N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+        IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+            N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
 
         Exit;
         END;
@@ -4558,13 +4575,14 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
         BandMapFirstEntryList [Band, Mode]^.StatusByte := StatusByte;
         BandMapFirstEntryList [Band, Mode]^.NextEntry  := nil;
 
-        { Send to N4OGW bandmap }
+        { Send to N4OGW bandmaps }
 
-        IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-            BEGIN
-            N4OGW_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
-            N4OGW_BandMap.WriteToDebugFile ('Adding call as first entry in bandmap linked list');
-            END;
+        IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+            N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+        IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+            N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
         Exit;
         END;
 
@@ -4584,14 +4602,20 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
         BEGIN
         IF Abs (Frequency - BandMapEntryRecord^.Frequency) <= BandMapGuardBand THEN
             BEGIN
-            { Remove old call from the N4OGW band map and send the new one }
+            { Remove old call from the N4OGW band maps and send the new one }
 
-            IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
+            IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
                 IF BigExpandedString (BandMapEntryRecord^.Call) <> Call THEN
                     BEGIN
-                    N4OGW_BandMap.DeleteCallsign (BandMapExpandedString (BandMapEntryRecord^.Call));
-                    N4OGW_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
-                    N4OGW_BandMap.WriteToDebugFile ('Replacing record with new callsign');
+                    N4OGW_RadioOne_BandMap.DeleteCallsign (BandMapExpandedString (BandMapEntryRecord^.Call));
+                    N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+                    END;
+
+            IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                IF BigExpandedString (BandMapEntryRecord^.Call) <> Call THEN
+                    BEGIN
+                    N4OGW_RadioTwo_BandMap.DeleteCallsign (BandMapExpandedString (BandMapEntryRecord^.Call));
+                    N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
                     END;
 
             BandMapEntryRecord^.Call       := CompressedCall;
@@ -4629,22 +4653,22 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
                 BandMapEntryRecord^.QSXOffset  := QSXOffset;
                 BandMapEntryRecord^.StatusByte := StatusByte;
 
-                IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-                    BEGIN
-                    N4OGW_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
-                    N4OGW_BandMap.WriteToDebugFile ('Squeezing in new record at start of linked list');
-                    END;
+                IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                    N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+                IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                    N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
 
                 Exit;  { is a wonderful thing }
                 END;
 
             { We need to squeeze an new entry in here }
 
-            IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-                BEGIN
-                N4OGW_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
-                N4OGW_BandMap.WriteToDebugFile ('Squeezing in new record in middle of linked list');
-                END;
+            IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+            IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
 
             TempBandMapEntryRecord := BandMapEntryRecord;  { Remember }
 
@@ -4673,8 +4697,6 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
     { We got to the end of the list without finding the call or a place to
       add it.  Add to end of list. }
 
-    N4OGW_BandMap.WriteToDebugFile ('About to add map entry to end of linked list');
-
     BandMapEntryRecord := New (BandMapEntryPointer);
     LastBandMapEntryRecord^.NextEntry := BandMapEntryRecord;
 
@@ -4684,12 +4706,12 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
     BandMapEntryRecord^.StatusByte   := StatusByte;
     BandMapEntryRecord^.NextEntry    := nil;
 
-    IF (N4OGW_BandMap_Port <> 0) AND (N4OGW_BandMap_IP <> '') THEN
-       BEGIN
-       N4OGW_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
-       N4OGW_BandMap.WriteToDebugFile ('Adding band map entry to end of linked list');
-       END;
-    END;
+    IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+       N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+    IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+       N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+   END;
 
 
 

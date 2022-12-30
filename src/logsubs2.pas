@@ -2014,45 +2014,90 @@ VAR TestString: Str20;
     VisibleLog.ShowMultiplierStatus (WindowString);
     END;
 
+
 
+PROCEDURE ProcessN4OGWCommand (N4OGW_Command: STRING);
+
+{ There are two different types of commands that I can get from N4OGW:
+    - QSY to new frequency
+    - Deleting a callsign from the band map }
+
+VAR Call, FrequencyString: STRING;
+    Frequency: LONGINT;
+    N4OGW_Command_Radio: RadioType;
+
+    BEGIN
+    IF StringHas (N4OGW_Command, 'operation="delete"') THEN  { Delete callsign }
+        BEGIN
+        Call := BracketedString (N4OGW_Command, 'call="', '"');
+        DeleteBandMapCall (Call);
+        END
+
+    ELSE
+        IF StringHas (N4OGW_Command, 'freq=') THEN
+            BEGIN     { Here we are doing a QSY to a new frequency }
+            FrequencyString := BracketedString (N4OGW_Command, 'freq="', '.');
+            Val (FrequencyString, Frequency);
+
+            { Figure out which radio this is for - could be either one }
+
+            IF StringHas (N4OGW_Command, 'RadioNr="1') THEN  { Radio One }
+                N4OGW_Command_Radio := RadioOne
+            ELSE
+                N4OGW_Command_Radio := RadioTwo;
+
+            CASE N4OGW_Frequency_Control OF
+                N4OGW_FC_VFOA:
+                    SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'A');
+
+                N4OGW_FC_VFOB:
+                    SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'B');
+
+                N4OGW_FC_Auto:
+                    IF OpMode = CQOpMode THEN
+                        SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'B')
+                    ELSE
+                        SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'A')
+
+                END; { of CASE }
+            END;
+    END;
+
+
 
 PROCEDURE CheckEverything (VAR KeyChar: CHAR; VAR WindowString: Str80);
 
 VAR Result: INTEGER;
-    FrequencyString, Call, BandMapInitialExchange: Str20;
+    Call, BandMapInitialExchange: Str20;
     TimeOut: INTEGER;
     PacketChar: CHAR;
     N4OGW_Command: STRING;
-    Frequency: LONGINT;
 
     BEGIN
-    { Here is where we take care of some N4OGW bandmap stuff }
+    { Here is where we take care of some N4OGW bandmap stuff. }
 
-    IF (N4OGW_BandMap_IP <> '') THEN
+    IF (N4OGW_RadioOne_BandMap_IP <> '') THEN
         BEGIN
-        IF (N4OGW_BandMap.TXMode) THEN CWStillBeingSent;  { clears TX flag }
+        IF (N4OGW_RadioOne_BandMap.TXMode) THEN CWStillBeingSent;  { clears TX flag }
 
-        WHILE N4OGW_BandMap.QTC_Count > 0 DO
-            N4OGW_Command := N4OGW_BandMap.GetNextQTC;
+        { Need to look for commands from both instances just in case there is only one }
 
-        { There are two different types of commands that I can get from N4OGW:
-          - QSY to new frequency
-          - Deleting a callsign from the band map }
-
-        IF StringHas (N4OGW_Command, 'operation="delete"') THEN  { Delete callsign }
+        WHILE N4OGW_RadioOne_BandMap.QTC_Count > 0 DO
             BEGIN
-            Call := BracketedString (N4OGW_Command, 'call="', '"');
-            DeleteBandMapCall (Call);
-            END
+            N4OGW_Command := N4OGW_RadioOne_BandMap.GetNextQTC;
+            ProcessN4OGWCommand (N4OGW_Command);
+            END;
+        END;
 
-        ELSE
-            IF StringHas (N4OGW_Command, 'freq=') THEN
-                BEGIN     { Here we are doing a QSY to a new frequency }
-                FrequencyString := BracketedString (N4OGW_Command, 'freq="', '.');
-                Val (FrequencyString, Frequency);
-                SetRadioFreq (ActiveRadio, Frequency, ModeMemory[ActiveRadio], 'B');
-                END;
+    IF (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+        BEGIN
+        IF (N4OGW_RadioTwo_BandMap.TXMode) THEN CWStillBeingSent;  { clears TX flag }
 
+        WHILE N4OGW_RadioTwo_BandMap.QTC_Count > 0 DO
+            BEGIN
+            N4OGW_Command := N4OGW_RadioTwo_BandMap.GetNextQTC;
+            ProcessN4OGWCommand (N4OGW_Command);
+            END;
         END;
 
     IF ActiveMultiPort <> nil THEN CheckMultiState;

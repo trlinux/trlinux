@@ -187,9 +187,19 @@ PROCEDURE PTTForceOn;
 
 PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
 
+{ We hope ActiveRadio is correct for N4OGW }
+
     BEGIN
-    IF N4OGW_BandMap_IP <> '' THEN
-        N4OGW_BandMap.SetTXMode;
+    CASE ActiveRadio OF
+        RadioOne:
+           IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+               N4OGW_RadioOne_BandMap.SetTXMode;
+
+        RadioTwo:
+           IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+               N4OGW_RadioTwo_BandMap.SetTXMode;
+
+        END;  { of CASE ActiveRadio }
 
     IF CWEnable AND CWEnabled THEN
         BEGIN
@@ -208,8 +218,16 @@ FUNCTION CWStillBeingSent: BOOLEAN;
         BEGIN
         CWStillBeingSent := False;
 
-        IF N4OGW_BandMap_IP <> '' THEN
-            N4OGW_BandMap.SetRXMode;
+        CASE ActiveRadio OF
+            RadioOne:
+                IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                    N4OGW_RadioOne_BandMap.SetRXMode;
+
+            RadioTwo:
+                IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                    N4OGW_RadioTwo_BandMap.SetRXMode;
+
+            END;  { of CASE ActiveRadio }
         END;
     END;
 
@@ -389,8 +407,17 @@ VAR CharPointer: INTEGER;
     BEGIN
     IF ActiveMode = CW THEN
         BEGIN
-        IF N4OGW_BandMap_IP <> '' THEN
-            N4OGW_BandMap.SetTXMode;
+        CASE ActiveRadio OF
+            RadioOne:
+                IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                    N4OGW_RadioOne_BandMap.SetTXMode;
+
+            RadioTwo:
+                IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                    N4OGW_RadioTwo_BandMap.SetTXMode;
+
+            END;  { of CASE ActiveRadio }
+
 
         IF CWEnable AND CWEnabled THEN
             BEGIN

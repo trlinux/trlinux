@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, LogDVP, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, K1EANet;
+     SlowTree, LogWAE, LogPack, LogDDX, K1EANet, N4OGW;
 
 
 TYPE MenuEntryType = (NoMenuEntry,
@@ -135,6 +135,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MGR,
                       MIO,
                       MZN,
+                      NFC,
                       NFE,
                       NEQ,
                       NLQ,
@@ -372,6 +373,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MIO: Description := 'MY IOTA';
       MZN: Description := 'MY ZONE';
 
+      NFC: Description := 'N4OGW FREQUENCY CONTROL';
       NFE: Description := 'NAME FLAG ENABLE';
       NEQ: Description := 'NEXT QSO NUMBER';
       NLQ: Description := 'NO LOG';
@@ -693,6 +695,12 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MGR: Write (MyGrid);
       MIO: Write (MyIOTA);
       MZN: Write (MyZone);
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: Write ('VFOA');
+               N4OGW_FC_VFOB: Write ('VFOB');
+               N4OGW_FC_AUTO: Write ('AUTO');
+               END;  { of CASE }
+
       NFE: Write (NameFlagEnable);
       NEQ: Write (NextQSONumberToGiveOut);
       NLQ: Write (NoLog);
@@ -1366,6 +1374,12 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
       MGR: Write ('Reference grid used for beam headings');
       MIO: Write ('IOTA Reference Designator');
       MZN: Write ('Set by MY CALL / MY ZONE in cfg file');
+
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: Write ('Send freq command to VFO A');
+               N4OGW_FC_VFOB: Write ('Send freq command to VFO B');
+               N4OGW_FC_AUTO: Write ('IF CQ mode > VFO B  S&P > VFO A');
+               END;  { of CASE }
 
       NFE: IF NameFlagEnable THEN
                Write ('Asterisk shows calls with known name')

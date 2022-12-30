@@ -1238,7 +1238,8 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     { Send some oxygen to the N4OGW bandmap if it is there }
 
-    IF N4OGW_BandMap_IP <> '' THEN N4OGW_BandMap.Heartbeat;
+    IF N4OGW_RadioOne_BandMap_IP <> '' THEN N4OGW_RadioOne_BandMap.Heartbeat;
+    IF N4OGW_RadioTwo_BandMap_IP <> '' THEN N4OGW_RadioTwo_BandMap.Heartbeat;
 
     { See if the clock has ticked a second }
 
