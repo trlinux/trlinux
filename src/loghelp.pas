@@ -3329,15 +3329,13 @@ PROCEDURE StartUpHelp;
     TextColor (Cyan);
     WriteLn ('Legal commands include the following (see manual for details) : ');
     WriteLn;
-    WriteLn ('B64Decode           BandMap             Coax                Debug');
-    WriteLn ('Distance            FindFile            FootSwitchDebug     Grid');
-    WriteLn ('Help                HexConvert          HexDump             IOPort');
-    WriteLn ('HP                  LC                  LoopBack            NetDebug');
-    WriteLn ('New                 Packet              PacketFile          PacketInputFile');
-    WriteLn ('Port                PacketSimulate      PassThrough         PortToFile');
-    WriteLn ('RadioDebug          Read                Sun                 TalkDebug');
-    WriteLn ('Trace               UUDecode            UnixTime            ViewRadioDebug');
-    WriteLn ('KeyerDebug          NoStdcfg');
+    WriteLn ('B64Decode BandMap Coax Debug Distance FindFile FootSwitchDebug');
+    WriteLn ('Grid Help HexConvert HexDump IOPort HP KeyerDebug LC LoopBack');
+    WriteLn ('NetDebug New NoStdCfg Packet PacketFile PacketInputFile PacketSimulate');
+    WriteLn ('PassThrough Port RadioDebug Read Sun TalkDebug Trace UDPSend UDPRx');
+    WriteLn ('UnixTime UUDecode ViewRadioDebug');
+    WriteLn;
+    WriteLn ('Some of these might be legacy DOS commands and are not functional');
     WriteLn;
     END;
 
@@ -3564,8 +3562,11 @@ VAR TempString: STRING;
             BytesRead := fpRecv (Socket, @UDPReceiveBuffer, 4095, 0);
 
             IF BytesRead > 0 THEN
+                BEGIN
                 FOR Index := 0 TO BytesRead - 1 DO
                     Write (UDPReceiveBuffer [Index]);
+                WriteLn;
+                END;
             END;
 
         { Check to see if ESCAPE Key pressed }
