@@ -29,7 +29,7 @@ UNIT Tree;
 
 INTERFACE
 
-uses communication,baseunix;
+uses Sockets, UnixType, portname, communication, baseunix;
 
 TYPE
     Str10 = STRING [10];
@@ -360,6 +360,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  OpenFileForAppend   (VAR FileHandle: TEXT; FIlename: Str80): BOOLEAN;
     FUNCTION  OpenFileForRead     (VAR FileHandle: TEXT; Filename: Str80): BOOLEAN;
     FUNCTION  OpenFileForWrite    (VAR FileHandle: TEXT; Filename: Str80): BOOLEAN;
+    FUNCTION  OpenUDPPortForOutput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
     FUNCTION  OperatorEscape: BOOLEAN;
 
     PROCEDURE PacketSendChar (SerialPort: serialportx; CharToSend: CHAR);
@@ -4905,6 +4906,28 @@ PROCEDURE WaitForKeyPressed;
 
 procedure getdegree(d: pchar);cdecl;external;
 
+
+
+FUNCTION OpenUDPPortForOutput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
+
+VAR SocketAddr: TINetSockAddr;
+    ConnectResult: INTEGER;
+
+    BEGIN
+    Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (PortNumber);
+    SocketAddr.sin_addr := StrToNetAddr (IPAddress);
+
+    ConnectResult := fpConnect (Socket, @SocketAddr, SizeOf (SocketAddr));
+
+    WriteLn ('Connect result from fpBind is ', ConnectResult);
+
+    OpenUDPPortForOutput := ConnectResult = 0;
+    END;
+
+
 
 // Executed at startup
 

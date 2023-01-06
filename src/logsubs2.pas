@@ -5011,11 +5011,19 @@ VAR LogString: Str80;
             BandUp;
 
     IF BandMapEnable THEN
-      BEGIN
-      UpdateBandMapMultiplierStatus;
-      {KK1L: 6.64 Need to change dupe status for this contact as well}
-      UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
-      END;
+        BEGIN
+        UpdateBandMapMultiplierStatus;
+        {KK1L: 6.64 Need to change dupe status for this contact as well}
+        UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
+        END;
+
+    { New for Jan 2023 - send QSO data to UDP port }
+
+    IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
+        BEGIN
+        RXData.Date := GetFullDateString;
+        SendQSOToUDPPort (RXData);
+        END;
     END;
 
 

@@ -28,6 +28,17 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+06-Jan-2023
+
+ - Added UDP export of QSO information.  New LOGCFG commands:
+
+     QSO UDP IP = 192.168.0.100
+     QSO UDP PORT = 10009
+
+   Many data fields are being parsed, but some are not yet fully engaged (like frequency information).
+   However, there should be enough information there for the basic information of the QSO.
+
+
 27-Dec-2022
 
  - Expanded the N4OGW commands to support two radios:
@@ -3595,6 +3606,7 @@ Uses
      LogProm,
      LogSCP,
      LogStuff,
+     LogUDP,
      LogWAE,
      LogWind,
      N4OGW,

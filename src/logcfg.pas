@@ -918,6 +918,18 @@ VAR ParameterCount: INTEGER;
         IF UpperCase (ParamStr (ParameterCount)) = 'TRACE' THEN
             Trace := True;
 
+        IF UpperCase (ParamStr (ParameterCount)) = 'UDPSEND' THEN
+            BEGIN
+            UDPSend;
+            Halt;
+            END;
+
+        IF UpperCase (ParamStr (ParameterCount)) = 'UDPRX' THEN
+            BEGIN
+            UDPRX;
+            Halt;
+            END;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'UUDECODE' THEN
             BEGIN
             UUDecode;

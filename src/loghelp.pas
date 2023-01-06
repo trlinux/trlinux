@@ -76,6 +76,8 @@ VAR
     PROCEDURE SunriseSunset;
     PROCEDURE TcpTest;
     PROCEDURE TellMeMyGrid;
+    PROCEDURE UDPSend;
+    PROCEDURE UDPRX;
     PROCEDURE UUDecode;
     PROCEDURE ViewLogFile;
     PROCEDURE ViewRadioDebug;
@@ -102,6 +104,8 @@ VAR
     LogFileRead:     TEXT;
     NumberBuffers:   INTEGER;
     TextBuffer:      ARRAY [0..MaxBuffers - 1] OF PageBufferPointer;
+
+    UDPReceiveBuffer: ARRAY [0..4095] OF Char;
 
 function serialaddress(i: integer):integer;cdecl;external;
 function paralleladdress(i: integer):integer;cdecl;external;
@@ -3481,6 +3485,94 @@ VAR Password: Str40;
     WaitForKeyPressed;
 
     PacketMessMode := True;
+    END;
+
+
+
+PROCEDURE UDPSend;
+
+VAR TempString, IPAddress: STRING;
+    Port: LONGINT;
+    Socket: LONGINT;
+
+    BEGIN
+    IPAddress := GetREsponse ('Enter IP Address (none to abort) : ');
+    IF IPAddress = '' THEN Halt;
+    Port := GetValue ('Enter port number (zero to abort) : ');
+    IF Port = 0 THEN Halt;
+
+    IF OpenUDPPortForOutput (IPAddress, Port, Socket) THEN
+        WriteLn ('Port open.  Socket = ', Socket)
+    ELSE
+        BEGIN
+        WriteLn ('Port not open');
+        WaitForKeyPressed;
+        Halt;
+        END;
+
+    REPEAT
+        TempString := GetResponse ('Enter text to send (none to exit) : ');
+        IF TempString = '' THEN Halt;
+        FPSend (Socket, @TempString [1], Length (TempString), 0);
+    UNTIL False;
+    END;
+
+
+
+PROCEDURE UDPRX;
+
+VAR TempString: STRING;
+    Port: LONGINT;
+    SocketAddr: TINetSockAddr;
+    Socket: LONGINT;
+    BytesRead: INTEGER;
+    FDS: Tfdset;
+    ConnectResult: INTEGER;
+    Index, NumberCharactersInBuffer: INTEGER;
+
+    BEGIN
+    Port := GetValue ('Enter port number (zero to abort) : ');
+    IF Port = 0 THEN Halt;
+
+    Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    WriteLn ('Socket = ', Socket);
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (Port);
+    SocketAddr.sin_addr.s_addr := INADDR_ANY;  { No IP address filter }
+
+    ConnectResult := fpBind (Socket, @SocketAddr, SizeOf (SocketAddr));
+
+    IF ConnectResult <> 0 THEN
+        BEGIN
+        WriteLn ('Unable to bind to UDP port ', Port);
+        Halt;
+        END;
+
+    WriteLn ('Listening to port ', Port, '.  Press ESCAPE key to exit');
+
+    REPEAT
+        { Check to see if something has come in the port }
+
+        fpFd_zero (FDS);
+        fpFd_set (Socket, FDS);
+        fpSelect (Socket+1, @FDS, nil, nil, 0);
+
+        IF fpFd_IsSet (Socket, FDS) <> 0 THEN   { We have data }
+            BEGIN
+            BytesRead := fpRecv (Socket, @UDPReceiveBuffer, 4095, 0);
+
+            IF BytesRead > 0 THEN
+                FOR Index := 0 TO BytesRead - 1 DO
+                    Write (UDPReceiveBuffer [Index]);
+            END;
+
+        { Check to see if ESCAPE Key pressed }
+
+        IF KeyPressed THEN
+            IF ReadKey = EscapeKey THEN Halt;
+    UNTIL False;
     END;
 
 

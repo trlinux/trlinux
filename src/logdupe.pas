@@ -105,7 +105,7 @@ TYPE
           Callsign:       Str20;
           Chapter:        Str20;                      { QCWA Chapter }
           Check:          Str20;
-          Classs:          Str20;                      { Field day class }
+          Classs:         Str20;                      { Field day class - extra s on purpose }
           DomesticMult:   BOOLEAN;
           DomMultQTH:     DomesticMultiplierString;
           DomesticQTH:    Str20;

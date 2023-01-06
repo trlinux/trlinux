@@ -29,7 +29,7 @@ INTERFACE
 USES SlowTree, Tree, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
      LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt, K1EANet,
-     communication,linuxsound,N4OGW;
+     communication,linuxsound,N4OGW,LogUDP;
 
 
     FUNCTION  ProcessConfigInstruction (FileString: STRING; VAR FirstCommand: BOOLEAN): BOOLEAN;
@@ -2667,6 +2667,21 @@ VAR xResult,tempint: INTEGER;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
+
+    IF ID = 'QSO UDP IP' THEN
+        BEGIN
+        QSO_UDP_IP := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'QSO UDP PORT' THEN
+        BEGIN
+        Val (Cmd, QSO_UDP_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
 
     IF ID = 'QSX ENABLE' THEN
         BEGIN

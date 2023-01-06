@@ -31,7 +31,7 @@ INTERFACE
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
      slowtree, so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW,
-     N4OGW;
+     N4OGW,LogUDP;
 
 TYPE
 
@@ -6857,6 +6857,12 @@ VAR LogString: Str80;
         BEGIN
         UpdateBandMapMultiplierStatus;
         UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
+        END;
+
+    IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
+        BEGIN
+        RXData.Date := GetFullDateString;
+        SendQSOToUDPPort (RXData);
         END;
     END;
 
