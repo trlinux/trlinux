@@ -446,8 +446,34 @@ VAR CharPointer: INTEGER;
 
         RTTYReceiveCharBuffer.AddEntry (Ord (CarriageReturn));
         RTTYReceiveCharBuffer.AddEntry (Ord (LineFeed));
+        Exit;
         END;
 
+    { K3/K4 stuff }
+
+    IF ActiveMode = Digital THEN
+        BEGIN
+        IF ActiveRadio = RadioOne THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                IF MSG <> '' THEN
+                    BEGIN
+                    WHILE Pos ('_', MSG) > 0 DO
+                        MSG [Pos ('_', MSG)] := ' ';
+
+                    rig1.directcommand ('KY ' + MSG + '|;');
+                    END;
+
+        IF ActiveRadio = RadioTwo THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                IF MSG <> '' THEN
+                    BEGIN
+                    WHILE Pos ('_', MSG) > 0 DO
+                        MSG [Pos ('_', MSG)] := ' ';
+
+                    rig2.directcommand ('KY ' + MSG + '|;');
+                    END;
+
+        END;
     END;
 
 PROCEDURE SetSpeed (Speed: INTEGER);
@@ -1380,7 +1406,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                  AppendConfigFile ('EX MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
 
                              Digital:
-                                 AppendConfigFile ('EX DIGIGAL MEMORY' + KeyId (FunctionKey) + ' = ' + TempString);
+                                 AppendConfigFile ('EX DIGITAL MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
 
                              END;  { of CASE ActiveMode }
                          END;

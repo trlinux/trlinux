@@ -922,7 +922,6 @@ VAR TimeOut: BYTE;
             Inc (TimeOut);
         UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 30);
         END;
-    {QuickDisplay2('SendCrypticMessage...playback stopped.');}
 
     InactiveRigCallingCQ := False;
 
@@ -961,7 +960,6 @@ VAR TimeOut: BYTE;
         END;
 
     CASE ActiveMode OF
-
         Phone:
             BEGIN
             IF DVPEnable THEN
@@ -981,7 +979,7 @@ VAR TimeOut: BYTE;
     END;
 
 
-PROCEDURE SendFunctionKeyMessage  (Key: CHAR; OpMode: OpModeType);
+PROCEDURE SendFunctionKeyMessage (Key: CHAR; OpMode: OpModeType);
 
 VAR FileName, QSONumberString: Str20;
     MessageKey: CHAR;
@@ -1144,8 +1142,6 @@ VAR FileName, QSONumberString: Str20;
                                 END;
                            END;
 
-
-
                     IF (ActiveMultiPort <> nil) AND (MultiInfoMessage <> '') THEN
                         CreateAndSendCQMultiInfoMessage;
 
@@ -1158,59 +1154,74 @@ VAR FileName, QSONumberString: Str20;
 
 PROCEDURE AddOnCQExchange;
 
+{ In Jan 2023, came here trying to make the RTTY exchange get sent and it
+  was not happening with the ELSE into the CW case, so I put in the case
+  statement of the ActiveMode }
+
 VAR Name: Str20;
     StationSpeed: INTEGER;
 
     BEGIN
-
-    IF ActiveMode = Phone THEN
-        BEGIN
-        IF (CQPhoneExchangeNameKnown <> '') AND SayHiEnable THEN
+    CASE ActiveMode OF
+        Phone:
             BEGIN
-            Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
+            IF (CQPhoneExchangeNameKnown <> '') AND SayHiEnable THEN
+                BEGIN
+                Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
 
-            IF (Name = '') OR (Name = 'CLUB') THEN
-                SendCrypticMessage (CQPhoneExchangeNameKnown)
+                IF (Name = '') OR (Name = 'CLUB') THEN
+                    SendCrypticMessage (CQPhoneExchangeNameKnown)
+                ELSE
+                    SendCrypticMessage (CQPhoneExchange);
+                END
             ELSE
                 SendCrypticMessage (CQPhoneExchange);
-            END
-        ELSE
-            SendCrypticMessage (CQPhoneExchange);
-        END
-    ELSE
-        BEGIN
-        IF CWSpeedFromDataBase THEN
-            BEGIN
-            StationSpeed := CD.GetCodeSpeed (RootCall (CallsignICameBackTo));
+            END;
 
-            IF StationSpeed > 0 THEN
+        CW:
+            BEGIN
+            IF CWSpeedFromDataBase THEN
                 BEGIN
-                RememberCWSpeed := CodeSpeed;
-                SetSpeed (StationSpeed);
-                DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                StationSpeed := CD.GetCodeSpeed (RootCall (CallsignICameBackTo));
+
+                IF StationSpeed > 0 THEN
+                    BEGIN
+                    RememberCWSpeed := CodeSpeed;
+                    SetSpeed (StationSpeed);
+                    DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                    END;
                 END;
-            END;
 
-        IF (CQExchangeNameKnown <> '') AND SayHiEnable THEN
-            BEGIN
-            Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
+            IF (CQExchangeNameKnown <> '') AND SayHiEnable THEN
+                BEGIN
+                Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
 
-            IF (Name = '') OR (Name = 'CLUB') THEN
-                SendCrypticMessage (CQExchange)
+                IF (Name = '') OR (Name = 'CLUB') THEN
+                    SendCrypticMessage (CQExchange)
+                ELSE
+                    SendCrypticMessage (CQExchangeNameKnown);
+                END
             ELSE
-                SendCrypticMessage (CQExchangeNameKnown);
-            END
-        ELSE
-            BEGIN
-            SendCrypticMessage (CQExchange);
+                BEGIN
+                SendCrypticMessage (CQExchange);
+                END;
+
+            { ClearPTTForceOn;   Taking this out in Nov 22 }
             END;
 
-        { ClearPTTForceOn;   Taking this out in Mov 22 }
-        END;
+        Digital:
+            { Digital does not use CQ EXCHANGE.  It also does not send the
+              callsign automaticall.  It is up to the user to put the callsign
+              in the EX DIGITAL MEMORY F2 }
+
+            SendCrypticMessage (GetEXMemoryString (Digital, F2));
+
+        END; { of CASE }
 
     ExchangeHasBeenSent := True;
     END;
 
+
 
 PROCEDURE Send73Message;
 

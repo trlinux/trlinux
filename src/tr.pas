@@ -28,6 +28,10 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+07-Jan-2023
+
+ - Fixed RTTY messages being saved incorrectly into CFG file.
+
 06-Jan-2023
 
  - Added UDP export of QSO information.  New LOGCFG commands:
@@ -181,8 +185,8 @@ PROGRAM ContestLoggingProgram;
    Note - for most of the messages - we use the CW messages to create strings to
    send to the K3/K4 radios.  However, there are some issues with using the EXCHANGE
    CW memories since F1 gets hardwired to send the callsign - not an actual memory.
-   So - we support EX DIGITAL MEMORY are a prefix for the function key memories and
-   use these with in digigal mode.
+   So - we support EX DIGITAL MEMORY as a prefix for the function key memories and
+   use these with in digital mode instead of MY CALL and CQ EXCHANGE.
 
  - Fixed Cabrillo output for CQ WW RTTY to show DX instead of country ID
 

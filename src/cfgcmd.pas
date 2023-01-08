@@ -1249,8 +1249,6 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
-
-
     IF StringHas (ID, 'EX DIGITAL MEMORY ALTF') THEN
         BEGIN
         ProcessConfigInstructions1 := True;

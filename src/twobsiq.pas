@@ -81,6 +81,12 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+07-Jan-2023
+  - Cleaned up some stuff with RTTY.  Trying to make it as consistent to
+    CW and Classic as much as possible.  Note that you do not use CQ EXCHANGE
+    and must program EX Function Key memories F1 and F2.  MY CALL is not
+    automatically used when you call someone in S&P
+
 25-Dec-2022
 
   - Added the Control-Q CW character to get the frequency from the other

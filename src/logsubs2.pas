@@ -4744,7 +4744,7 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
 
 { This procedure is used when a function key has been pressed when the
   exchange menu is up (either CQ or pounce).  A function key will send
-  the memory that is assigned to that key in the CQ exchange mode. }
+  the memory that is assigned to that key in the exchange mode. }
 
     BEGIN
     SetUpToSendOnActiveRadio;
@@ -4790,12 +4790,7 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                         END
                     ELSE
                         IF ActiveMode = Digital THEN
-                            BEGIN
-
-                            { REALLY??? }
-
-                            SendStringAndStop (MyCall + ' ' + MyCall + ' ' + MyCall);
-                            END
+                            SendCrypticDigitalString (GetEXMemoryString (Digital, F1))
                         ELSE
                             SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
 
@@ -5421,10 +5416,7 @@ ControlEnterCommand1:
                                    ELSE
                                        IF ActiveMode = Digital THEN
                                            BEGIN
-
-                                           { REALLY??? }
-
-                                           SendStringAndStop (MyCall + ' ' + MyCall);
+                                           SendCrypticDigitalString (GetEXMemoryString (Digital, F1));
                                            END
                                        ELSE
                                            BEGIN
@@ -5495,10 +5487,12 @@ ControlEnterCommand1:
                         ELSE
                             IF MessageEnable AND (NOT ExchangeHasBeenSent) AND (NOT BeSilent) AND MessageEnable THEN
                                 BEGIN
-                                IF ActiveMode = CW THEN
-                                    SendCrypticMessage (SearchAndPounceExchange)
-                                ELSE
-                                    SendCrypticMessage (SearchAndPouncePhoneExchange);
+                                CASE ActiveMode OF
+                                    CW:      SendCrypticMessage (SearchAndPounceExchange);
+                                    Phone:   SendCrypticMessage (SearchAndPouncePhoneExchange);
+                                    Digital: SendCrypticDigitalString (GetEXMemoryString (Digital, F2));
+                                    END;
+
                                 ExchangeHasBeenSent := True;
                                 END;
 
@@ -5740,10 +5734,11 @@ ControlEnterCommand2:
                         IF NOT ExchangeHasBeenSent THEN
                             BEGIN
                             IF MessageEnable AND NOT BeSilent THEN
-                                IF ActiveMode <> Phone THEN
-                                    SendCrypticMessage (SearchAndPounceExchange)
-                                ELSE
-                                    SendCrypticMessage (SearchAndPouncePhoneExchange);
+                                CASE ActiveMode OF
+                                    CW:      SendCrypticMessage (SearchAndPounceExchange);
+                                    Phone:   SendCrypticMessage (SearchAndPouncePhoneExchange);
+                                    Digital: SendCrypticDigitalString (GetEXMemoryString (Digital, F2));
+                                    END;
 
                             ExchangeHasBeenSent := True;
                             END;
@@ -6314,8 +6309,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                             END
                         ELSE
                             IF ActiveMode = Digital THEN
-                                { REALLY?  }
-                                SendStringAndStop (MyCall + ' ' + MyCALL)
+                                SendCrypticDigitalString (GetEXMemoryString (Digital, F1))
                             ELSE
                                 SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
                         END;
@@ -6993,7 +6987,6 @@ VAR MTotals: MultTotalArrayType;
 
         Packet.PushPacketSpot (DXSpot);
 
-
         WITH DXSpot DO
             BEGIN
             Call := 'SM4CAN';
@@ -7154,8 +7147,8 @@ VAR MTotals: MultTotalArrayType;
             CallAlreadySent := True;
             END;
 
-        IF (ActiveMode = Digital) AND (NOT CallAlreadySent) THEN
-            StartRTTYTransmission (CallsignICameBackTo + ' ');
+        { We used to start a RTTY tranmission here - but now we use the function key
+          memory and send it during AddOnCQExchange }
 
         { Not sure why this is here - if it is real - then we should not
           pretend to be about to send an exchange ? }

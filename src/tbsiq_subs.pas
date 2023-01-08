@@ -2107,7 +2107,6 @@ VAR Key, ExtendedKey: CHAR;
                                                 ActiveRadio := Radio;
                                                 ActiveMode := Mode;
                                                 CallsignICameBackTo := WindowString;
-                                                ShowCWMessage (WindowString);
                                                 QSOState := QST_CQStationBeingAnswered;
                                                 END;
 
@@ -2195,10 +2194,13 @@ VAR Key, ExtendedKey: CHAR;
                     IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                         BEGIN
                         CASE Mode OF
-                            CW, Digital:
+                            CW: BEGIN
                                 ExpandedString := ExpandCrypticString (CQExchange);
+                                AppendCWMessageDisplay (ExpandedString);
+                                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
+                                END;
 
-                            { Note sure we ever could be here on Phone }
+                            { Note sure we ever could be here on Phone or digital }
 
                             Phone:
                                 ExpandedString := ExpandCrypticString (CQPhoneExchange);
@@ -2206,8 +2208,6 @@ VAR Key, ExtendedKey: CHAR;
 
                         IF Mode = CW THEN
                             BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
-                            AppendCWMessageDisplay (ExpandedString);
                             END;
 
                         QSOState := QST_CQExchangeBeingSent;
@@ -2222,6 +2222,7 @@ VAR Key, ExtendedKey: CHAR;
                             TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                             ShowCWMessage (ExpandedString);
                             END;
+
 
                         QSOState := QST_Idle;
                         END;
@@ -2239,15 +2240,18 @@ VAR Key, ExtendedKey: CHAR;
                         CASE Mode OF
                             CW, Digital:
                                 BEGIN
-                                ExpandedString := ExpandCrypticString (CQExchange);
-
-                                AppendCWMessageDisplay (ExpandedString);
 
                                 IF Mode = CW THEN
+                                    BEGIN
+                                    ExpandedString := ExpandCrypticString (CQExchange);
+                                    AppendCWMessageDisplay (ExpandedString);
                                     TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
+                                    END;
 
                                 IF Mode = Digital THEN
                                     BEGIN
+                                    ExpandedString := ExpandCrypticString (GetExMemoryString (Digital, F2));
+                                    AppendCWMessageDisplay (ExpandedString);
                                     ActiveRadio := Radio;
                                     ActiveMode := Mode;
 
@@ -2275,16 +2279,17 @@ VAR Key, ExtendedKey: CHAR;
                         END
                     ELSE
                         BEGIN
-                        ExpandedString := ExpandCrypticString (QSOBeforeMessage);
 
                         IF Mode = CW THEN
                             BEGIN
+                            ExpandedString := ExpandCrypticString (QSOBeforeMessage);
                             TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                             ShowCWMessage (ExpandedString);
                             END;
 
                         IF Mode = Digital THEN
                             BEGIN
+                            ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
                             ActiveRadio := Radio;
                             ActiveMode := Mode;
                             TransmitCountdown := InitialTransmitCountdown;
@@ -2398,27 +2403,25 @@ VAR Key, ExtendedKey: CHAR;
             IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                 BEGIN
                 CASE Mode OF
-                    CW, Digital:
+                    CW:
                         BEGIN
                         ExpandedString := ExpandCrypticString (CQExchange);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
+                        AppendCWMessageDisplay (ExpandedString);
+                        END;
 
-                        IF Mode = CW THEN
-                            BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
-                            AppendCWMessageDisplay (ExpandedString);
-                            END;
+                    Digital:
+                        BEGIN
+                        ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
 
-                        IF Mode = Digital THEN
-                            BEGIN
-                            ActiveMode := Mode;
-                            ActiveRadio := Radio;
+                        ActiveMode := Mode;
+                        ActiveRadio := Radio;
 
-                            { We have waited until now to send the callsign }
+                        { We have waited until now to send the callsign }
 
-                            TransmitCountdown := InitialTransmitCountdown;
-                            FinishRTTYTransmission (CallsignICameBackTo + ExpandedString);
-                            AppendCWMessageDisplay (ExpandedString);
-                            END;
+                        TransmitCountdown := InitialTransmitCountdown;
+                        FinishRTTYTransmission (ExpandedString);
+                        AppendCWMessageDisplay (ExpandedString);
                         END;
 
                     Phone:
@@ -6536,23 +6539,23 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                    IF Mode = CW THEN
                        Message := '\'
                    ELSE
-                       Message := GetExMemoryString (Mode, Key);
+                       Message := ExpandCrypticString (GetExMemoryString (Mode, Key));
                    END;
 
                F2: CASE Mode OF
                        CW:      Message := SearchAndPounceExchange;
 
                        Phone:   BEGIN
-                                Message := SearchAndPouncePhoneExchange;
+                                Message := ExpandCrypticString (SearchAndPouncePhoneExchange);
                                 IF Message = '' THEN
-                                    Message := GetExMemoryString (Phone, Key);
+                                    Message := ExpandCrypticString (GetExMemoryString (Phone, Key));
                                 END;
 
-                       Digital: Message := GetExMemoryString (Digital, Key);
+                       Digital: Message := ExpandCrypticString (GetExMemoryString (Digital, Key));
                        END;  { of CASE Mode }
 
                ELSE
-                   Message := GetEXMemoryString (Mode, Key);
+                   Message := ExpandCrypticString (GetEXMemoryString (Mode, Key));
 
                END;  { of CASE Key }
 
