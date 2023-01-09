@@ -511,8 +511,11 @@ VAR DelayLoops: INTEGER;
                 BEGIN
                 ClrScr;
                 WriteLn;
-                WriteLn ('Unable to communicate with Arduino after ', RetryCount, ' retries');
-                WriteLn ('Returned string = ', Version);
+                WriteLn ('No valid response from Arduino after ', RetryCount, ' attempts');
+
+                IF Version <> '' THEN
+                    WriteLn ('Returned characters = ', Version);
+
                 WaitForKeyPressed;
                 Halt;
                 END;

@@ -54,7 +54,7 @@ PROCEDURE SetConfigurationDefaultValues;
     AutoTimeIncrementQSOs  := 0;
 
     BandMapAllBands         := False;
-    BandMapAllModes         := False;
+    BandMapAllModes         := True;
     BandMapMultsOnly        := False; {KK1L: 6.68}
     BandMapCallWindowEnable := True;
     BandMapDisplayCQ        := True;

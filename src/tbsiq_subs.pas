@@ -742,7 +742,7 @@ VAR MultString: Str40;
             TBSIQ_BandMapFocus := Radio;
             BandMapCallPutUp := CallWindowString;
 
-            { First True is dupe - second one is SendToMulti }
+            { First True is dupe - first True is SendToMulti }
 
             NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, Mult, BandMapDecayTime, True);
 
@@ -785,7 +785,7 @@ VAR MultString: Str40;
             TBSIQ_BandMapFocus := Radio;
             BandMapCallPutUp := CallWindowString;
 
-            { First True is dupe - second one is SendToMulti }
+            { First false is not dupe - first true is SendToMulti }
 
             NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
             DisablePutUpBandMapCall := False;
@@ -2240,7 +2240,6 @@ VAR Key, ExtendedKey: CHAR;
                         CASE Mode OF
                             CW, Digital:
                                 BEGIN
-
                                 IF Mode = CW THEN
                                     BEGIN
                                     ExpandedString := ExpandCrypticString (CQExchange);
@@ -2432,6 +2431,8 @@ VAR Key, ExtendedKey: CHAR;
                             END;
 
                     END;
+
+                ShowStationInformation (CallsignICameBackTo);
 
                 QSOState := QST_CQExchangeBeingSent;
                 Exit;
@@ -2963,6 +2964,8 @@ VAR Key, ExtendedKey: CHAR;
                                 CASE Mode OF
                                     Digital:
                                         BEGIN
+                                        ActiveRadio := Radio;
+                                        ActiveMode := Mode;
                                         ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
                                         ShowCWMessage (ExpandedString);
                                         TransmitCountdown := InitialTransmitCountdown;
@@ -6558,7 +6561,6 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                    Message := ExpandCrypticString (GetEXMemoryString (Mode, Key));
 
                END;  { of CASE Key }
-
 
     { New on 30-Sep-2022 - hmm - should I do this if the message is only going
       into the cue?  Am I doing this for SSB only? }

@@ -28,6 +28,11 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+08-Jan-2023
+
+ - Changed default of BANDMAP ALL MODES to TRUE to get around weird bug I was
+   having during an RTTY contest.
+
 07-Jan-2023
 
  - Fixed RTTY messages being saved incorrectly into CFG file.

@@ -323,25 +323,31 @@ VAR DayString, MonthString, YearString, TimeString, TempString: Str20;
         CASE Band OF
             Band160: UDP_Record.band := '1.8';
             Band80:  UDP_Record.band := '3.5';
-            Band40:  UDP_Record.band := '7.0';
-            Band30:  UDP_Record.band := '10.0';
-            Band20:  UDP_Record.band := '14.0';
-            Band17:  UDP_Record.band := '18.0';
-            Band15:  UDP_Record.band := '21.0';
-            Band12:  UDP_Record.band := '24.0';
-            Band10:  UDP_Record.band := '28.0';
-            Band6:   UDP_Record.band := '50.0';
-            Band2:   UDP_Record.band := '144.0';
-            Band222: UDP_Record.band := '222.0';
-            Band432: UDP_Record.band := '432.0';
-            Band902: UDP_Record.band := '902.0';
-            Band1296: UDP_Record.band := '1240.0';
-            Band2304: UDP_Record.band := '2300.0';
-            Band3456: UDP_Record.band := '3300.0';
-            Band5760: UDP_Record.band := '5650.0';
-            Band10G:  UDP_Record.band := '1000.0';
-            Band24G:  UDP_Record.band := '24000.0';
-            BandLight:UDP_Record.band := '400000000.0';
+            Band40:  UDP_Record.band := '7';
+            Band30:  UDP_Record.band := '10';
+            Band20:  UDP_Record.band := '14';
+            Band17:  UDP_Record.band := '18';
+            Band15:  UDP_Record.band := '21';
+            Band12:  UDP_Record.band := '24';
+            Band10:  UDP_Record.band := '28';
+            Band6:   UDP_Record.band := '50';
+            Band2:   UDP_Record.band := '144';
+            Band222: UDP_Record.band := '222';
+            Band432: UDP_Record.band := '420';
+            Band902: UDP_Record.band := '902';
+            Band1296: UDP_Record.band := '1240';
+            Band2304: UDP_Record.band := '2300';
+            Band3456: UDP_Record.band := '3300';
+            Band5760: UDP_Record.band := '5650';
+            Band10G:  UDP_Record.band := '10000';
+            Band24G:  UDP_Record.band := '24000';
+//
+//          Band47G:  UDP_Record.band := '47000';
+//          Band76G:  UDP_Record.band := '76000';
+//          Band122G:  UDP_Record.band := '122250';
+//          Band241G:  UDP_Record.band := '241000';
+
+            BandLight:UDP_Record.band := '4E+08';
             ELSE UDP_Record.band := '???';
             END;
 
@@ -481,6 +487,8 @@ PROCEDURE BuildUDPPAcket;
     BEGIN
     NumberBytesInUDPBuffer := 0;    { Start with and empty buffer }
 
+    AddStringToUDPBuffer ('<?xml version=''1.0'' encoding=''utf-8''?>');
+    AddStringToUDPBuffer ('<contactinfo>');
     AddStringToUDPBuffer ('<app>TRLogLinux</app>');
     AddStringtoUDPBuffer ('<contestname>' + ContestName + '</contestname>');
 
@@ -532,6 +540,7 @@ PROCEDURE BuildUDPPAcket;
         IF ID <> '' THEN AddStringtoUDPBuffer ('<ID>' + ID + '</ID>');
         IF IsClaimedQSO <> '' THEN AddStringtoUDPBuffer ('<IsClaimedQso>' + IsCLaimedQSO + '</IsClaimedQso> ');
         END;
+    AddStringToUDPBuffer ('</contactinfo>');
     END;
 
 
