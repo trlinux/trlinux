@@ -4862,6 +4862,9 @@ VAR LogString: Str80;
     Address: INTEGER;
 
     BEGIN
+    RXData.TimeSeconds := GetTimeSeconds;    { Add seconds for better resolution for those who want it }
+    RXData.Radio := ActiveRadio;
+
     VisibleDupeSheetChanged := True;
 
     IF ActivePacketPort <> nil THEN

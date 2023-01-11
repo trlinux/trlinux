@@ -167,7 +167,7 @@ Contact Delete
 INTERFACE
 
 USES Dos, Tree, ZoneCont, Country9, datetimec, KeyCode, Sockets,
-     LogWind, LogDupe, UnixType, BaseUnix, portname;
+     Radio, LogWind, LogDupe, UnixType, BaseUnix, portname;
 
 CONST BufferSize = 4096;
 
@@ -297,7 +297,7 @@ PROCEDURE MergeRXExchangeToUDPRecord (RXData: ContestExchange);
 
 { Takes the data found in the RXData record and puts it into the UDPRecord }
 
-VAR DayString, MonthString, YearString, TimeString, TempString: Str20;
+VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: Str20;
 
     BEGIN
     WITH RXData DO
@@ -354,7 +354,7 @@ VAR DayString, MonthString, YearString, TimeString, TempString: Str20;
        { The date/time go into the single entry timestamp.  The ContestExchange has the
          format dd-mmm-yy.  This must be converted to 2020-01-17.  The time is in an
          integer number of minutes in integer format and needs to be comverted to a
-         string, but already has hours * 100 }
+         string, but already has hours * 100.  Seconds gets added on using TimeSeconds }
 
        { The Date field looks like 06-Jan-2023 }
 
@@ -370,7 +370,11 @@ VAR DayString, MonthString, YearString, TimeString, TempString: Str20;
         Str (Time, TimeString);
         WHILE Length (TimeString) < 4 DO TimeString := '0' + TimeString;
         Insert (':', TimeString, 3);
-        TimeString := TimeString + ':00';  { We are always going to be 0 seconds }
+
+        Str (TimeSeconds, SecondsString);
+        IF Length (SecondsString) < 2 THEN SecondsString := '0' + SecondsString;
+
+        TimeString := TimeString + ':' + SecondsString;
 
         UDP_Record.timeStamp := YearString + '-' + MonthString + '-' + DayString + ' ' + TimeString;
 
@@ -382,6 +386,11 @@ VAR DayString, MonthString, YearString, TimeString, TempString: Str20;
         IF Classs <> '' THEN UDP_Record.rcv := Classs;
         IF Kids <> '' THEN UDP_Record.rcv := Kids;
         IF Name <> '' THEN UDP_Record.name := Name;
+
+        CASE Radio OF
+            RadioOne: UDP_Record.RadioNr := '1';
+            RadioTwo: UDP_Record.RadioNr := '2';
+            END;  { of CASE }
 
         IF NumberReceived <> -1 THEN
             BEGIN
@@ -532,7 +541,11 @@ PROCEDURE BuildUDPPAcket;
         IF Run1Run2 <> '' THEN AddStringtoUDPBuffer ('<run1run2>' + Run1Run2 + '<run1run2>');
         IF RoverLocation <> '' THEN AddStringtoUDPBuffer ('<RoverLocation>' + RoverLocation + '</RoverLocation>');
         IF RadioInterfaced <> '' THEN AddStringToUDPBuffer ('<RadioInterfaced>' + RadioInterfaced + '</RadioInterfaced>');
-        IF NetworkedCompNr <> '' THEN AddStringtoUDPBuffer ('<NetworkedCompNr>' + NetworkedCompNr + '</NetworkedCompNr>');
+
+        { For now - we always send zero for this }
+
+        AddStringtoUDPBuffer ('<NetworkedCompNr>' + '0' + '</NetworkedCompNr>');
+
         IF IsOriginal <> '' THEN AddStringtoUDPBuffer ('<IsOriginal>' + IsOriginal + '</IsOriginal>');
         IF NetBiosName <> '' THEN AddStringtoUDPBuffer ('<NetBiosName>' + NetBIOSName + '</NetBiosName>');
         IF IsRunQSO <> '' THEN AddStringtoUDPBuffer ('<IsRunQSO>' + IsRunQSO + '</IsRunQSO>');
@@ -540,6 +553,7 @@ PROCEDURE BuildUDPPAcket;
         IF ID <> '' THEN AddStringtoUDPBuffer ('<ID>' + ID + '</ID>');
         IF IsClaimedQSO <> '' THEN AddStringtoUDPBuffer ('<IsClaimedQso>' + IsCLaimedQSO + '</IsClaimedQso> ');
         END;
+
     AddStringToUDPBuffer ('</contactinfo>');
     END;
 

@@ -29,7 +29,7 @@ UNIT LogDupe;
 INTERFACE
 
 USES LogDom, trCrt, Dos, SlowTree, Tree, Country9, ZoneCont, LogWind,
-     LogSCP, LogK1EA;
+     radio, LogSCP, LogK1EA;
 
 
 
@@ -113,7 +113,7 @@ TYPE
           DXQTH:          DXMultiplierString;
           Frequency:      LONGINT;
           InhibitMults:   BOOLEAN;
-          Kids:           Str40;              { Used for whole ex string }
+          Kids:           Str40;                      { Used for whole ex string }
           Mode:           ModeType;
           Name:           Str20;
           NameSent:       BOOLEAN;
@@ -122,21 +122,23 @@ TYPE
           PostalCode:     Str20;
           Power:          Str20;
           Precedence:     Str20;
-          Prefecture:     INTEGER;                 { Up to four characters }
+          Prefecture:     INTEGER;                    { Up to four characters }
           PrefixMult:     BOOLEAN;
           Prefix:         PrefixMultiplierString;
           QSOPoints:      INTEGER;
-          QTH:            QTHRecord;               { See ZoneCont }
+          QTH:            QTHRecord;                  { See ZoneCont }
           QTHString:      STRING [30];
 
           RandomCharsSent:     STRING [10];
           RandomCharsReceived: STRING [10];
 
+          Radio:           RadioType;                 { Which radio made the QSO }
           RSTSent:         RSTString;
           RSTReceived:     RSTString;
           SearchAndPounce: BOOLEAN;
           TenTenNum:       LONGINT;
           Time:            INTEGER;                   { INTEGER time }
+          TimeSeconds:     INTEGER;                   { Use with Time to get more resolution }
           Zone:            ZoneMultiplierString;
           ZoneMult:        BOOLEAN;
           END;
@@ -402,7 +404,7 @@ VAR ActiveDXMult:           DXMultType;
 
 IMPLEMENTATION
 
-uses memlinux,keycode,beep,radio;
+uses memlinux,keycode,beep;
 
 {$I RemMults}
 
@@ -994,11 +996,13 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
 
     Exchange.QTHString        := '';
 
+    Exchange.Radio           := NoRadio;
     Exchange.RSTReceived     := '';
     Exchange.RSTSent         := '';
     Exchange.SearchAndPounce := FALSE;
     Exchange.TenTenNum       := -1;
     Exchange.Time            := -1;
+    Exchange.TimeSeconds     := -1;
     Exchange.Zone            := '';
     Exchange.ZoneMult        := False;
     END;

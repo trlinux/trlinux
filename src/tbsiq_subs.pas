@@ -6806,6 +6806,9 @@ PROCEDURE TBSIQ_LogContact (VAR RXData: ContestExchange);
 VAR LogString: Str80;
 
     BEGIN
+    RXData.TimeSeconds := GetTimeSeconds;
+    RXData.Radio := ActiveRadio;
+
     VisibleDupeSheetChanged := True;
 
     LastTwoLettersCrunchedOn := '';

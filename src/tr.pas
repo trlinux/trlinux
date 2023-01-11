@@ -28,6 +28,11 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+11-Jan-2023
+
+ - Made some minor tweaks to the QSO UDP record so that K3IT's Qsorder program will be happy
+   with our UDP packets including SO2R support.
+
 08-Jan-2023
 
  - Changed default of BANDMAP ALL MODES to TRUE to get around weird bug I was

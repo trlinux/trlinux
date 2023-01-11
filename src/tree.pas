@@ -306,6 +306,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  GetSCPIntegerFromChar (InputChar: CHAR): INTEGER;
     FUNCTION  GetStateFromSection (Section: Str20): Str20;
     FUNCTION  GetSuffix (Call: CallString): CallString;
+    FUNCTION  GetTimeSeconds: INTEGER;
     FUNCTION  GetTimeString: Str80;
     FUNCTION  GetTomorrowString: Str80;
     FUNCTION  GetValue (Prompt: Str80): LONGINT;
@@ -2308,6 +2309,17 @@ VAR Temp1, Temp2, Temp3: String[5];
     END;
 
 
+
+FUNCTION GetTimeSeconds: INTEGER;
+
+{ No need to worry about HourOffset }
+
+VAR Hours, Minutes, Seconds, Hundredths: Word;
+
+    BEGIN
+    GetTime (Hours, Minutes, Seconds, Hundredths);
+    GetTimeSeconds := Seconds;
+    END;
 
 FUNCTION GetTimeString: Str80;
 
