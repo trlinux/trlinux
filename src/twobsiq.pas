@@ -81,6 +81,9 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+14-Jan-2023
+  - Added support for N4OGW bandmap commands and VFO support.
+
 07-Jan-2023
   - Cleaned up some stuff with RTTY.  Trying to make it as consistent to
     CW and Classic as much as possible.  Note that you do not use CQ EXCHANGE

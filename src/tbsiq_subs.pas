@@ -1280,7 +1280,6 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     { Code after here is only executed once a minute }
 
-
     Inc (MinutesSinceLastBMUpdate);
 
     IF BandMapEnable AND (MinutesSinceLastBMUpdate >= BandMapDecayMultiplier) THEN
@@ -1891,7 +1890,6 @@ PROCEDURE QSOMachineObject.PTTTest;
     ActiveKeyer.PTTForceOn;
     END;
 
-
 
 
 PROCEDURE QSOMachineObject.CheckQSOStateMachine;
@@ -1908,6 +1906,38 @@ VAR Key, ExtendedKey: CHAR;
 
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
+
+    { Tend to the N4OGW band map as needed }
+
+    CASE Radio OF
+        RadioOne:
+            IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                BEGIN
+                { Check to see if TX mode should be disabled }
+
+                IF (N4OGW_RadioOne_BandMap.TXMode) THEN CWStillBeingSent;
+
+                { See if we have a command }
+
+                WHILE N4OGW_RadioOne_BandMap.QTC_Count > 0 DO
+                    ProcessN4OGWCommand (N4OGW_RadioOne_BandMap.GetNextQTC);
+                END;
+
+        RadioTwo:
+            IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                BEGIN
+                { Check to see if TX mode should be disabled }
+
+                IF (N4OGW_RadioTwo_BandMap.TXMode) THEN CWStillBeingSent;
+
+                { See if we have a command }
+
+                WHILE N4OGW_RadioTwo_BandMap.QTC_Count > 0 DO
+                    ProcessN4OGWCommand (N4OGW_RadioTwo_BandMap.GetNextQTC);
+                END;
+
+        END;  { of CASE }
+
 
     { Show new QSO state if diffrent and update TX indicator }
 
@@ -3424,6 +3454,18 @@ VAR FrequencyChange, TempFreq: LONGINT;
         { Was > 0.  This clears the flag set when a key is pressed }
 
         IF FrequencyChange > BandMapGuardBand THEN DisablePutUpBandMapCall := False;
+
+        IF FrequencyChange > 0 THEN
+            CASE Radio OF
+                RadioOne:
+                    IF (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                        N4OGW_RadioOne_Bandmap.SetCenterFrequency (Frequency);
+
+                RadioTwo:
+                    IF (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                        N4OGW_RadioTwo_Bandmap.SetCenterFrequency (Frequency);
+
+                END;  { of CASE }
         END;
 
     LastFrequency := Frequency;
