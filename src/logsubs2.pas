@@ -2016,55 +2016,6 @@ VAR TestString: Str20;
 
 
 
-PROCEDURE ProcessN4OGWCommand (N4OGW_Command: STRING);
-
-{ There are two different types of commands that I can get from N4OGW:
-    - QSY to new frequency
-    - Deleting a callsign from the band map }
-
-VAR Call, FrequencyString: STRING;
-    Frequency: LONGINT;
-    N4OGW_Command_Radio: RadioType;
-
-    BEGIN
-    IF StringHas (N4OGW_Command, 'operation="delete"') THEN  { Delete callsign }
-        BEGIN
-        Call := BracketedString (N4OGW_Command, 'call="', '"');
-        DeleteBandMapCall (Call);
-        END
-
-    ELSE
-        IF StringHas (N4OGW_Command, 'freq=') THEN
-            BEGIN     { Here we are doing a QSY to a new frequency }
-            FrequencyString := BracketedString (N4OGW_Command, 'freq="', '.');
-            Val (FrequencyString, Frequency);
-
-            { Figure out which radio this is for - could be either one }
-
-            IF StringHas (N4OGW_Command, 'RadioNr="1') THEN  { Radio One }
-                N4OGW_Command_Radio := RadioOne
-            ELSE
-                N4OGW_Command_Radio := RadioTwo;
-
-            CASE N4OGW_Frequency_Control OF
-                N4OGW_FC_VFOA:
-                    SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'A');
-
-                N4OGW_FC_VFOB:
-                    SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'B');
-
-                N4OGW_FC_Auto:
-                    IF OpMode = CQOpMode THEN
-                        SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'B')
-                    ELSE
-                        SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'A')
-
-                END; { of CASE }
-            END;
-    END;
-
-
-
 PROCEDURE CheckEverything (VAR KeyChar: CHAR; VAR WindowString: Str80);
 
 VAR Result: INTEGER;

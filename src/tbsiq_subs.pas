@@ -3468,6 +3468,11 @@ VAR FrequencyChange, TempFreq: LONGINT;
                 END;  { of CASE }
         END;
 
+    { W9CF adds this to make his antenna switch work }
+
+    IF Band <> BandMemory [Radio] THEN
+        OutputBandInfo (Radio, Band);
+
     LastFrequency := Frequency;
     BandMemory [Radio] := Band;
     ModeMemory [Radio] := Mode;

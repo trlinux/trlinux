@@ -81,6 +81,9 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+19-Jan-2023
+  - Supported updating the bandmap output.
+
 14-Jan-2023
   - Added support for N4OGW bandmap commands and VFO support.
 
