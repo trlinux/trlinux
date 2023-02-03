@@ -7035,47 +7035,73 @@ PROCEDURE ProcessN4OGWCommand (N4OGW_Command: STRING);
 
 { There are two different types of commands that I can get from N4OGW:
     - QSY to new frequency
-    - Deleting a callsign from the band map }
+    - Deleting a callsign from the band map
+
+  Note that this procedure is used for both Classic and 2BSIQ }
 
 VAR Call, FrequencyString: STRING;
     Frequency: LONGINT;
     N4OGW_Command_Radio: RadioType;
 
     BEGIN
+    { Delete callsign from bandmap }
+
     IF StringHas (N4OGW_Command, 'operation="delete"') THEN  { Delete callsign }
         BEGIN
         Call := BracketedString (N4OGW_Command, 'call="', '"');
+
+        { Note - DeleteBandMapCall doesn't remove it from the TR Log bandmap yet.
+          It just sends the delete command back to N4OGW so he will actually do
+          the delete from his bandmap }
+
         DeleteBandMapCall (Call);
-        END
+        Exit;
+        END;
 
-    ELSE
-        IF StringHas (N4OGW_Command, 'freq=') THEN
-            BEGIN     { Here we are doing a QSY to a new frequency }
-            FrequencyString := BracketedString (N4OGW_Command, 'freq="', '.');
-            Val (FrequencyString, Frequency);
+    { QSY to clicked frequency marker }
 
-            { Figure out which radio this is for - could be either one }
+    IF StringHas (N4OGW_Command, 'freq=') THEN
+        BEGIN     { Here we are doing a QSY to a new frequency }
+        FrequencyString := BracketedString (N4OGW_Command, 'freq="', '.');
+        Val (FrequencyString, Frequency);
 
-            IF StringHas (N4OGW_Command, 'RadioNr="1') THEN  { Radio One }
-                N4OGW_Command_Radio := RadioOne
-            ELSE
-                N4OGW_Command_Radio := RadioTwo;
+        { Figure out which radio this is for - could be either one }
 
-            CASE N4OGW_Frequency_Control OF
-                N4OGW_FC_VFOA:
-                    SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'A');
+        IF StringHas (N4OGW_Command, 'RadioNr="1') THEN  { Radio One }
+            N4OGW_Command_Radio := RadioOne
+        ELSE
+            N4OGW_Command_Radio := RadioTwo;
 
-                N4OGW_FC_VFOB:
+        { Depending on the Frequency Control global - set either the A or B VFO to the
+          new frequency.  Note that this seems to try and be working for both the classic
+          and 2BSIQ modes.  }
+
+        CASE N4OGW_Frequency_Control OF
+            N4OGW_FC_VFOA:
+                SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'A');
+
+            N4OGW_FC_VFOB:
+                SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'B');
+
+            N4OGW_FC_Auto:
+                IF Doing2BSIQ THEN
+                    BEGIN
+
+                    { Need to think about this - for now - just use VFO B }
+
                     SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'B');
+                    END
 
-                N4OGW_FC_Auto:
+                ELSE   { Classic mode }
+                    BEGIN
                     IF OpMode = CQOpMode THEN
                         SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'B')
                     ELSE
                         SetRadioFreq (N4OGW_Command_Radio, Frequency, ModeMemory [N4OGW_Command_Radio], 'A')
+                    END;
 
-                END; { of CASE }
-            END;
+            END; { of CASE }
+        END;
     END;
 
 

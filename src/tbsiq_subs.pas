@@ -2848,7 +2848,9 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             { We come here when someone pressed the SPACE BAR with an empty
               call window - so we need to jump into S&P mode and send my
-              callsign. }
+              callsign. Also - if the other instance of the radio is only
+              calling CQ - we need to stop the CW so the call can be made
+              quickly.  }
 
             ClearAutoSendDisplay;
 
@@ -2858,6 +2860,18 @@ VAR Key, ExtendedKey: CHAR;
             SetTBSIQWindow (TBSIQ_ExchangeWindow);
             ClrScr;
             SetTBSIQWindow (TBSIQ_CallWindow);
+
+            { Stop CW on the other radio if just calling CQ }
+
+            CASE Radio OF
+                RadioOne:
+                    IF Radio2QSOMachine.QSOState = QST_CallingCQ THEN
+                        TBSIQ_CW_Engine.ClearMessages (RadioTwo, True);
+
+                RadioTwo:
+                    IF Radio1QSOMachine.QSOState = QST_CallingCQ THEN
+                        TBSIQ_CW_Engine.ClearMessages (RadioOne, True);
+                END;
 
             SendFunctionKeyMessage (F1, Message);
 
@@ -3082,6 +3096,17 @@ VAR Key, ExtendedKey: CHAR;
                         BEGIN
                         IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
                             BEGIN
+                            IF ExtendedKey = F1 THEN    { If the other radio is calling CQ - make it stop }
+                               CASE Radio OF
+                                   RadioOne:
+                                       IF Radio2QSOMachine.QSOState = QST_CallingCQ THEN
+                                           TBSIQ_CW_Engine.ClearMessages (RadioTwo, True);
+
+                                   RadioTwo:
+                                       IF Radio1QSOMachine.QSOState = QST_CallingCQ THEN
+                                           TBSIQ_CW_Engine.ClearMessages (RadioOne, True);
+                                   END;
+
                             SendFunctionKeyMessage (ExtendedKey, Message);
 
                             IF ExtendedKey = F1 THEN
@@ -6832,13 +6857,6 @@ VAR I: INTEGER;
     GetRidOfPostcedingSpaces (ExchangeString);
 
     TBSIQ_ParametersOkay := ProcessExchange (ExchangeString, RData);
-
-    IF ExchangeErrorMessage <> '' THEN
-        BEGIN
-        QuickDisplayError (ExchangeErrorMessage);
-        ReminderPostedCount := 60;
-        END;
-
     CalculateQSOPoints (RData);
     END;
 

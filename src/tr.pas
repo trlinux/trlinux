@@ -28,6 +28,19 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+???? - When a callsign is in the call window from a QSY using the N4OGW bandmap and
+       you want to edit the call - ESCAPE will clear the whole entry - but backspace
+       does nothing.  Maybe you can make backspace also clear the whole entry - or
+       perhaps start editing the call (and get rid of the initial exchange stuff).
+
+     - When you click on a spot then enter the call and it is a dupe - it disappears
+       which is different behavior than if you do it just tuning to a frequency .
+
+     - Although when working someone in S&P - after you are done - the call is gone
+
+     - When using footswitch to send CQ message, I get a VOX warning which I do
+       not get from pressing F1.
+
 11-Jan-2023
 
  - Made some minor tweaks to the QSO UDP record so that K3IT's Qsorder program will be happy

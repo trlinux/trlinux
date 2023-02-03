@@ -3564,6 +3564,9 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
     { We are now going to leave if a new second hasn't ticked up }
 
     IF LastFullTimeString = FullTimeString THEN Exit;
+
+    { We are now executing code only once a calendar second }
+
     LastFullTimeString := FullTimeString;
 
     { This used to be in the DoRadio block above - but moved it here in 2022 }

@@ -81,6 +81,11 @@ TODO LIST
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+02-Feb-2023
+
+  - If callsing CQ on one radio and wanting to send F1 in S&P mode - CW will be
+    stopped on the CQing radio.
+
 19-Jan-2023
   - Supported updating the bandmap output.
 
