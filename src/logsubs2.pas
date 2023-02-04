@@ -4646,6 +4646,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                               IF (ActiveMode = CW) AND (OpMode = CQOpMode) AND
                                   AutoSendEnable AND
                                   (AutoSendCharacterCount = Length (WindowString)) AND
+                                  (NOT (Copy (WindowString, 1, 3) = '2BS')) AND
                                   (NOT StringIsAllNumbersOrDecimal (WindowString)) AND
  {                                 (NOT (Copy (WindowString, 1, 1) = '\')) THEN 6.44  }
                                   (NOT StringHas (WindowString, '/')) THEN

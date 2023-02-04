@@ -86,6 +86,8 @@ TYPE
         AutoCQFinishTime: TimeRecord;  { Marks time when Auto-CQ finished }
         AutoCQMemory: CHAR;            { Function Key memory to send for AutoCQ }
 
+        AutoStartSendEnable: BOOLEAN;         { Cleverly named different than the global AutoSendEnable }
+        AutoStartSendCharacterCount: INTEGER; { Cleverly named different than the global AutoSendCharacterCount }
         AutoStartSendStationCalled: BOOLEAN;
 
         Band: BandType;
@@ -155,7 +157,6 @@ TYPE
         SCPScreenFull: BOOLEAN;
         SearchAndPounceStationCalled: BOOLEAN;
         SearchAndPounceExchangeSent: BOOLEAN;
-        StartSendingCursorPosition: INTEGER; { initially = AutoSendCharacterCount }
         StationInformationCall: CallString;
 
         TBSIQ_ActiveWindow: TBSIQ_WindowType;
@@ -166,12 +167,12 @@ TYPE
         PROCEDURE AppendCWMessageDisplay (Message: STRING);
 
         PROCEDURE CheckQSOStateMachine;
-        PROCEDURE ClearAutoSendDisplay;  { for use during S&P }
+        PROCEDURE ClearAutoStartSendDisplay;  { for use during S&P }
 
         FUNCTION  DisableTransmitting: BOOLEAN;
 
         PROCEDURE DisplayActiveRadio;              { Shows TX next to active radio }
-        PROCEDURE DisplayAutoSendCharacterCount;
+        PROCEDURE DisplayAutoStartSendCharacterCount;
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayCodeSpeed;
         PROCEDURE DisplayFrequency;
@@ -1382,7 +1383,7 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
 
 
-PROCEDURE QSOMachineObject.ClearAutoSendDisplay;
+PROCEDURE QSOMachineObject.ClearAutoStartSendDisplay;
 
     BEGIN
     CASE Radio OF
@@ -1695,7 +1696,7 @@ VAR CharacterCount: INTEGER;
 
 
 
-PROCEDURE QSOMachineObject.DisplayAutoSendCharacterCount;
+PROCEDURE QSOMachineObject.DisplayAutoStartSendCharacterCount;
 
     BEGIN
     CASE Radio OF
@@ -1705,9 +1706,9 @@ PROCEDURE QSOMachineObject.DisplayAutoSendCharacterCount;
 
     ClrScr;
 
-    IF (StartSendingCursorPosition > 0) AND AutoSendEnable THEN
+    IF (AutoStartSendCharacterCount > 0) AND AutoStartSendEnable THEN
         BEGIN
-        GoToXY (StartSendingCursorPosition + 1, 1);
+        GoToXY (AutoStartSendCharacterCount + 1, 1);
         Write ('|');
         END;
 
@@ -1950,7 +1951,7 @@ VAR Key, ExtendedKey: CHAR;
         ActiveBand := Band;
 
         IF (QSOState <> QST_SearchAndPounce) AND (QSOState <> QST_SearchAndPounceInit) THEN
-            DisplayAutoSendCharacterCount;
+            DisplayAutoStartSendCharacterCount;
         END;
 
     { Do not process any keystrokes while auto start send active on the
@@ -2178,8 +2179,8 @@ VAR Key, ExtendedKey: CHAR;
                 BEGIN
                 { Check to see if AutoStartSend should be triggered }
 
-                IF AutoSendEnable AND (StartSendingCursorPosition > 0) AND (Mode = CW) THEN
-                    IF Length (CallWindowString) >= AutoSendCharacterCount THEN
+                IF AutoStartSendEnable AND (AutoStartSendCharacterCount > 0) AND (Mode = CW) THEN
+                    IF Length (CallWindowString) >= AutoStartSendCharacterCount THEN
                         IF NOT StringIsAllNumbersOrDecimal (CallWindowString) THEN
                             IF NOT StringHas ('/', CallWindowString) THEN
                                 IF NOT AutoStartSendStationCalled THEN
@@ -2828,7 +2829,7 @@ VAR Key, ExtendedKey: CHAR;
 
             TBSIQ_BandMapFocus := Radio;
 
-            ClearAutoSendDisplay;
+            ClearAutoStartSendDisplay;
 
             ExchangeWindowString := '';
             ExchangeWindowCursorPosition := 1;
@@ -2852,7 +2853,7 @@ VAR Key, ExtendedKey: CHAR;
               calling CQ - we need to stop the CW so the call can be made
               quickly.  }
 
-            ClearAutoSendDisplay;
+            ClearAutoStartSendDisplay;
 
             ExchangeWindowString := '';
             ExchangeWindowCursorPosition := 1;
@@ -3753,6 +3754,10 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     AutoCQDelayTime := 400;     { Four seconds }
     AutoCQMemory := Chr (0);
+
+    AutoStartSendEnable := AutoSendEnable;                  { Adopt global as initial value }
+    AutoStartSendCharacterCount := AutoSendCharacterCount;  { Adopt global as initial value }
+
     AutoStartSendStationCalled := False;
     CallWindowString := '';
     CallWindowCursorPosition := 1;
@@ -3779,7 +3784,6 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     RadioOnTheMove := False;
     SearchAndPounceStationCalled := False;
-    StartSendingCursorPosition := AutoSendCharacterCount;
     TransmitCountDown := 0;
 
     { Setup the window locations derived from the X,Y reference }
@@ -3986,7 +3990,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     { Now that the windows are defined, we can display stuff }
 
-    DisplayAutoSendCharacterCount;   { This doesn't seem to work }
+    DisplayAutoStartSendCharacterCount;   { This doesn't seem to work }
     DisplayCodeSpeed;
     DisplayEditableLog (VisibleLog.LogEntries);
     DisplayInsertMode;
@@ -5105,12 +5109,12 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                     ShowStationInformation (CallWindowString);
                     END;  { of AltZ }
 
-                AltDash:   { Uses the global AutoSendEnable }
+                AltDash:
                     BEGIN
-                    IF AutoSendCharacterCount > 0 THEN
-                        AutoSendEnable := NOT AutoSendEnable;
+                    IF AutoStartSendCharacterCount > 0 THEN
+                        AutoStartSendEnable := NOT AutoStartSendEnable;
 
-                    DisplayAutoSendCharacterCount;
+                    DisplayAutoStartSendCharacterCount;
                     END;
 
                 HomeKey:

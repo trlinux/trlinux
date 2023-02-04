@@ -29,9 +29,6 @@ TODO LIST
 
  - "ActiveBand" cursor on the band totals display is not right.
 
- - Occasionally, the auto start send doesn't start if I am busy on the other radio.
-   This might be fixed as of 4-Sep - waiting to see if it shows up again.
-
  - Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
 
  - When starting AutoStartSend when the other radio is sending CW - the indicator is
@@ -80,6 +77,17 @@ TODO LIST
     Put hooks for N4OGW init and bandmap enter in - and center freq
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+04-Feb-2023
+
+  - Some minor fixes with the AutoStartSend feature.  First off - if it is
+    enabled in classic mode - typing 2BSIQ will not start a transmission so
+    you can enter 2BSIQ without having to turn AutoStartSend off.  A minor
+    bug where you had to press the Alt-Dash key twice occasionally has been
+    fixed - and also the AutoStartSend state (which is called
+    AutoStartSendEnable in the local variable for the QSOMachine instance) is
+    copied from the Classic global variable - so both QSOMachines should come
+    up in the same Classic state.
 
 02-Feb-2023
 
