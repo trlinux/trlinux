@@ -3761,7 +3761,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     AutoStartSendStationCalled := False;
     CallWindowString := '';
     CallWindowCursorPosition := 1;
-    Characterinput := Chr(0) ;                       { AltD path to other radio }
+    Characterinput := Chr(0) ;                               { AltD path to other radio }
     CodeSpeed := SpeedMemory [Radio];
     CWMessageDisplayed := '';
     DisablePutUpBandMapCall := False;
@@ -3775,7 +3775,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
     K3RXPollActive := False;
-    LocalInsertMode := InsertMode;      { Need to get the global Insert Mode here }
+    LocalInsertMode := InsertMode;                          { Need to get the global Insert Mode here }
     LastFrequency := 0;
     MarkTime (LastFunctionKeyTime);
     LastQSOState := QST_None;
