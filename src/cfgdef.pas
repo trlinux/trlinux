@@ -488,6 +488,8 @@ PROCEDURE SetConfigurationDefaultValues;
     VGADisplayEnable := True;
     VHFBandsEnabled := False;
     VisibleDupesheetEnable := False;
+    VisibleDupesheetBand := NoBand;
+    VisibleDupesheetMode := NoMode;
 
     WakeUpTimeout := 0;
     WaitForStrength := True;

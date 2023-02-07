@@ -72,11 +72,21 @@ TODO LIST
     Would be nice to get capital letters when editing log.  Same for
     Memory program (like shift keys for characters).
 
-    CQ with footswitch not working?
+  - SPRINT DUPESHEET!!
 
-    Put hooks for N4OGW init and bandmap enter in - and center freq
+  - Occasionally sending wrong TX ID to Qsorder
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+06-Feb-2023
+
+   - Hopefully fixed bug where the wrong radio was being indcated some of the
+     time with the UDP messages - thus making Qsorder save the wrong channel
+     some of the time.
+
+   - Fixed the visible dupesheet being pretty brain dead.  Now works good for
+     the sprint hopefully.  It basically uses the same criteria as the band map
+     to switching bands.
 
 04-Feb-2023
 

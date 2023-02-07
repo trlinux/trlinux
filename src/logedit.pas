@@ -115,6 +115,9 @@ VAR VisibleLog: EditableLog;
     OriginalTextMode: INTEGER;
     RememberHeap:     POINTER;
 
+    VisibleDupeSheetBand: BandType;
+    VisibleDupeSheetMode: ModeType;
+
 PROCEDURE AddQTCToQTCBuffer (VAR QTCBuffer: LogEntryArray; QTCString: Str80; Message: INTEGER);
 
 PROCEDURE BandDown;
@@ -1227,6 +1230,9 @@ VAR CallsThisDistrict, CallDistrict, NumberDistrictsOver25: INTEGER;
 
     BEGIN
     IF NOT VisibleDupeSheetChanged THEN Exit;
+
+    VisibleDupeSheetBand := Band;
+    VisibleDupeSheetMode := Mode;
 
     VisibleDupeSheetChanged := False;
 

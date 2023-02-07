@@ -265,7 +265,7 @@ VAR
 
     RData: ContestExchange;  { Used to talk between TBSIQ_ParametersOkay and TBSIQ_LogContact }
 
-    TBSIQ_BandMapFocus: RadioType;
+    TBSIQ_BandMapFocus: RadioType;   { gets used for the visible dupesheet too }
 
 FUNCTION  InitializeKeyboards: BOOLEAN;
 FUNCTION  NewInitializeKeyboards: BOOLEAN;
@@ -1172,7 +1172,8 @@ PROCEDURE TBSIQ_DeleteLastContact;
 PROCEDURE TBSIQ_CheckBandMap;
 
 { Looks at the status of the two radios and determines which one should have the focus
-  of the bandmap.  If it changes, the new bandmap will be displayed }
+  of the bandmap.  If it changes, the new bandmap will be displayed.  Tried to also make
+  this work for the dupesheet which never seemed to be getting redisplayed. }
 
 VAR RadioThatShouldHaveFocus: RadioType;
 
@@ -1180,7 +1181,11 @@ VAR RadioThatShouldHaveFocus: RadioType;
     { First - we look at the state of both radios and decide which one we think
       shuld have the band map focus }
 
-    RadioThatShouldHaveFocus := TBSIQ_BandMapFocus;  { Default }
+    { Defaults }
+
+    RadioThatShouldHaveFocus := TBSIQ_BandMapFocus;
+
+    { If one radio is in S&P and the other isn't - then focus on the S&P radio }
 
     IF (Radio1QSOMachine.QSOState =  QST_SearchAndPounce) AND
        (Radio2QSOMachine.QSOState <> QST_SearchAndPounce) THEN
@@ -1197,14 +1202,32 @@ VAR RadioThatShouldHaveFocus: RadioType;
            IF Radio2QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioTwo;
            END;
 
+   { Let's add the case where both rigs are in CQ mode, but one is on the move.  This
+     is typical in the CW Sprint where you need to look at the visible dupeshet of
+     the band that the radio is moving on in preparation of pressing the SPACE BAR
+     and pouncing on a station }
+
+   IF (Radio1QSOMachine.QSOState <> QST_SearchAndPounce) AND
+      (Radio2QSOMachine.QSOState <> QST_SearchAndPounce) THEN
+           BEGIN
+           IF Radio1QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioOne;
+           IF Radio2QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioTwo;
+           END;
+
     IF RadioThatShouldHaveFocus <> TBSIQ_BandMapFocus THEN  { We need to change }
         BEGIN
-        TBSIQ_BandMapFocus := RadiothatShouldHaveFocus;
+        TBSIQ_BandMapFocus := RadioThatShouldHaveFocus;
 
         { Not sure if this is better than just sending the Radio's band/mode }
 
         BandMapBand := BandMemory [TBSIQ_BandMapFocus];
         BandMapMode := ModeMemory [TBSIQ_BandMapFocus];
+
+        IF VisibleDupeSheetEnable THEN
+            BEGIN
+            VisibleDupeSheetChanged := True;
+            VisibleLog.DisplayVisibleDupeSheet (BandMapBand, BandMapMode);
+            END;
 
         CASE TBSIQ_BandMapFocus OF
             RadioOne: BandMapCursorFrequency := Radio1QSOMachine.Frequency;
@@ -1233,7 +1256,7 @@ VAR TimeString, FullTimeString, HourString: Str20;
     BEGIN
     TBSIQ_CheckDualingCQState;  { The orchestral director of the dualing CQ process }
     TBSIQ_CheckTestLoopState;   { Test loop process }
-    TBSIQ_CheckBandMap;         { Sees if the bandmap is on the right radio }
+    TBSIQ_CheckBandMap;         { Sees if the bandmap and visible dupesheet are on the right radio }
 
     Packet.CheckPacket;         { See if any spots have come in for the bandmap }
 
@@ -2684,7 +2707,16 @@ VAR Key, ExtendedKey: CHAR;
                                     END;  { of CASE Mode }
                                 END;
 
+                            RData.Radio := Radio;
                             TBSIQ_LogContact (RData);
+
+                            IF VisibleDupeSheetEnable THEN
+                                BEGIN
+                                VisibleDupeSheetChanged := True;
+                                VisibleLog.DisplayVisibleDupeSheet (Band, Mode);
+                                TBSIQ_BandMapFocus := Radio;
+                                END;
+
                             ShowStationInformation (CallWindowString);
                             QSOState := QST_CQSending73Message;
                             AutoStartSendStationCalled := False;
@@ -2713,7 +2745,16 @@ VAR Key, ExtendedKey: CHAR;
                                                          ExchangeWindowString,
                                                          Band, Mode, Frequency, RData) THEN
                                     BEGIN
+                                    RData.Radio := Radio;
                                     TBSIQ_LogContact (RData);
+
+                                    IF VisibleDupeSheetEnable THEN
+                                        BEGIN
+                                        VisibleDupeSheetChanged := True;
+                                        VisibleLog.DisplayVisibleDupeSheet (Band, Mode);
+                                        TBSIQ_BandmapFocus := Radio;
+                                        END;
+
                                     ShowStationInformation (CallWindowString);
                                     QSOState := QST_CQSending73Message;
                                     AutoStartSendStationCalled := False;
@@ -3064,7 +3105,16 @@ VAR Key, ExtendedKey: CHAR;
                                 MarkTime (LoggedSAndPCallTime);
 
                                 RData.SearchAndPounce := True;
+                                RData.Radio := Radio;
                                 TBSIQ_LogContact (RData);
+
+                                IF VisibleDupeSheetEnable THEN
+                                    BEGIN
+                                    VisibleDupeSheetChanged := True;
+                                    VisibleLog.DisplayVisibleDupeSheet (Band, Mode);
+                                    TBSIQ_BandMapFocus := Radio;
+                                    END;
+
                                 ShowStationInformation (CallWindowString);
 
                                 ExchangeWindowString := '';
@@ -3228,7 +3278,16 @@ VAR Key, ExtendedKey: CHAR;
                                             BEGIN
                                             EscapeDeletedCallEntry := CallWindowString;
                                             RData.SearchAndPounce := True;
+                                            RData.Radio := Radio;
                                             TBSIQ_LogContact (RData);
+
+                                            IF VisibleDupeSheetEnable THEN
+                                                BEGIN
+                                                VisibleDupeSheetChanged := True;
+                                                VisibleLog.DisplayVisibleDupeSheet (Band, Mode);
+                                                TBSIQ_BandMapFocus := Radio;
+                                                END;
+
                                             ShowStationInformation (CallWindowString);
 
                                             ExchangeWindowString := '';
@@ -6876,7 +6935,6 @@ VAR LogString: Str80;
 
     BEGIN
     RXData.TimeSeconds := GetTimeSeconds;
-    RXData.Radio := ActiveRadio;
 
     VisibleDupeSheetChanged := True;
 
@@ -7069,6 +7127,8 @@ PROCEDURE PaintVerticalLine;
 
 
     BEGIN
+    TBSIQ_BandMapFocus := NoRadio;
+
     ResetKeyStatus (RadioOne);
     ResetKeyStatus (RadioTwo);
     END.
