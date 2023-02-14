@@ -2005,6 +2005,9 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_AltDInput:    { Send characters to the other radio's call window }
             BEGIN
+            IF Key = EscapeKey THEN
+                QSOState := RememberQSOState;
+
             IF ActionRequired THEN
                 CASE Radio OF
                     RadioOne: Radio2QSOMachine.CharacterInput := Key;
@@ -3691,7 +3694,7 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         END;
 
     CASE QSOState OF
-        QST_AltDInput: Write ('Sending inpput to other radio');
+        QST_AltDInput: Write ('Sending input to other radio');
         QST_Idle: Write ('CQ Mode - Idle');
         QST_AutoStartSending: Write ('Auto start send started');
         QST_CallingCQ: Write ('CQing');

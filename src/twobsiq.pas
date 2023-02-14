@@ -76,9 +76,13 @@ TODO LIST
 
   - Occasionally sending wrong TX ID to Qsorder
 
+  - The AltD thing really messed me up in CWT.
+
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 06-Feb-2023
+
+   - Hopefully enabled escape key to get out of Alt-D mode.
 
    - Hopefully fixed bug where the wrong radio was being indcated some of the
      time with the UDP messages - thus making Qsorder save the wrong channel
