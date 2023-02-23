@@ -2206,32 +2206,34 @@ VAR Key, ExtendedKey: CHAR;
                 BEGIN
                 { Check to see if AutoStartSend should be triggered }
 
-                IF AutoStartSendEnable AND (AutoStartSendCharacterCount > 0) AND (Mode = CW) THEN
-                    IF Length (CallWindowString) >= AutoStartSendCharacterCount THEN
-                        IF NOT StringIsAllNumbersOrDecimal (CallWindowString) THEN
-                            IF NOT StringHas ('/', CallWindowString) THEN
-                                IF NOT AutoStartSendStationCalled THEN
-                                    BEGIN
-                                    { We need to start sending the callsign }
+                { First - we look for all the reasons not to start }
 
-                                    IF Mode = CW THEN
-                                        BEGIN
-                                        TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High, True);
-                                        CallsignICameBackTo := CallWindowString;
-                                        ShowCWMessage (CallWindowString);
-                                        END;
+                IF Mode <> CW THEN Exit;
+                IF NOT AutoStartSendEnable THEN Exit;
+                IF AutoStartSendCharacterCount = 0 THEN Exit;
 
-                                    QSOState := QST_AutoStartSending;
-                                    ShowStationInformation (CallWindowString);
-                                    AutoStartSendStationCalled := True;    { This makes sure we don't call again }
-                                    END;
+                IF Length (CallWindowString) < AutoStartSendCharacterCount THEN Exit;
+                IF StringIsAllNumbersOrDecimal (CallWindowString) THEN Exit;
+                IF StringHas (CallWindowString, '/') THEN Exit;
+                IF AutoStartSendStationCalled THEN Exit;
+                IF WhereX <= Length (CallWindowString) THEN Exit;
 
-                { Check SuperCheckPartial }
+                { Okay - seems we need to start auto send }
+
+                TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High, True);
+                CallsignICameBackTo := CallWindowString;
+                ShowCWMessage (CallWindowString);
+
+                QSOState := QST_AutoStartSending;
+                ShowStationInformation (CallWindowString);
+                AutoStartSendStationCalled := True;
+
+                { Check SuperCheckPartial - this might need some oxygen in cases above where
+                  we exit }
 
                 IF SCPMinimumLetters > 0 THEN
                     IF Length (CallWindowString) >= SCPMinimumLetters THEN
                         SuperCheckPartial;
-
                 END;
 
             END;  { Of QST_Idle or QST_CQCalled }
