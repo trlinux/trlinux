@@ -1677,6 +1677,7 @@ VAR CharacterCount: INTEGER;
                    going to support that out of the gate. }
 
                 NewSendString := NewSendString + CallWindowString;
+                CallsignICameBackTo := CallWindowString;
                 END;
 
             ':': BEGIN   { Forget everything and setup to send CW from keyboard }
@@ -2221,6 +2222,7 @@ VAR Key, ExtendedKey: CHAR;
                                         END;
 
                                     QSOState := QST_AutoStartSending;
+                                    ShowStationInformation (CallWindowString);
                                     AutoStartSendStationCalled := True;    { This makes sure we don't call again }
                                     END;
 

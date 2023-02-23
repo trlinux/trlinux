@@ -78,7 +78,31 @@ TODO LIST
 
   - The AltD thing really messed me up in CWT.
 
+  NOTES FROM ARRL DX CW
+
+  - No Auto start if cursor is not at end of callsign please.
+
+  - Maybe improve the mult/qso display with auto start CQs - I sort of fixed it
+
+  - Footswitch doesn't seem to want to send F1 - does PTT instead.
+
+  - I keep calling dupes in S&P mode - need better warnings.
+
+  - Label the remaining mults with the band
+
+  - Dualing CQs not working?
+
+  - Not getting SCP calls from log?
+
+  - When doing SCP - if I have entered a whole callsign - seems like it isn't updated
+
+  - No space before CQ EXCHANGE when doing auto start send.
+
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+19-Feb-2023
+
+   - Made sending @ in a function key message update CallsignICameBackTo
 
 06-Feb-2023
 
