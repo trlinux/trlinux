@@ -2597,10 +2597,18 @@ PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; R
 
     GridSquareListShown := False;
 
+    FirstSCPCall := '';
+    NumberSCPCalls := 0;
+
     REPEAT
         Call := CD.GetNextPartialCall;
+
         IF Call <> '' THEN
+            BEGIN
             DisplaySCPCall (Call, Radio); {KK1L: 6.73 Fixed proc to for SO2R}
+            Inc (NumberSCPCalls);
+            IF FirstSCPCall = '' THEN FirstSCPCall := Call;
+            END;
 
         IF SCPScreenFull THEN Break;
 

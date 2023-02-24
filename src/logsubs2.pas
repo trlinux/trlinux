@@ -2019,7 +2019,7 @@ VAR TestString: Str20;
 PROCEDURE CheckEverything (VAR KeyChar: CHAR; VAR WindowString: Str80);
 
 VAR Result: INTEGER;
-    Call, BandMapInitialExchange: Str20;
+    BandMapInitialExchange: Str20;
     TimeOut: INTEGER;
     PacketChar: CHAR;
     N4OGW_Command: STRING;
@@ -6468,6 +6468,14 @@ VAR Key, TempKey, ExtendedKey : CHAR;
             CarriageReturn:
                 IF Length (CallWindowString) > 1 THEN
                     BEGIN
+                    IF AutoSCPCallFetch AND (Length (CallWindowString) = 3) THEN
+                        IF NumberSCPCalls = 1 THEN
+                            BEGIN
+                            ClrScr;
+                            Write (FirstSCPCall);
+                            CallWindowString := FirstSCPCall;
+                            END;
+
                     CallsignICameBackTo := CallWindowString;
                     Exit;
                     END

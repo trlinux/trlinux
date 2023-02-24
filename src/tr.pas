@@ -41,6 +41,13 @@ PROGRAM ContestLoggingProgram;
      - When using footswitch to send CQ message, I get a VOX warning which I do
        not get from pressing F1.
 
+23-Feb-2023
+
+ - AUTO SCP CALL FETCH feature implemented (default FALSE - available on ControlJ menu)
+   When TRUE - if you have entered three letters and they resolve so that only one SCP
+   call is shown - pressing RETURN will use that SCP call.  Works in both classic and
+   TBSIQ.
+
 11-Jan-2023
 
  - Made some minor tweaks to the QSO UDP record so that K3IT's Qsorder program will be happy

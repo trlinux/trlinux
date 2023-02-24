@@ -109,6 +109,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       AQD: AutoQSONumberDecrement := NOT AutoQSONumberDecrement;
       AQR: AutoQSYRequestEnable   := NOT AutoQSYRequestEnable;
       ASP: AutoSAPEnable          := NOT AutoSAPEnable;
+      ASF: AutoSCPCallFetch       := NOT AutoSCPCallFetch;
+
       ASR: BEGIN {KK1L: 6.72}
            TempInt := QuickEditInteger ('Enter new Auto SAP Enable sensitivity in Hz/sec) : ', 5);
            IF (TempInt > 9) AND (TempInt < 10001)THEN
@@ -997,6 +999,7 @@ VAR FileWrite: TEXT;
       AQD: WriteLn (FileWrite, AutoQSONumberDecrement);
       AQR: WriteLn (FileWrite, AutoQSYRequestEnable);
       ASP: WriteLn (FileWrite, AutoSAPEnable);
+      ASF: WriteLn (FileWrite, AutoSCPCallFetch);
       ASR: WriteLn (FileWrite, AutoSAPEnableRate); {KK1L: 6.72}
       ARC: WriteLn (FileWrite, AutoReturnToCQMode);
       ASC: WriteLn (FileWrite, AutoSendCharacterCount);
@@ -1379,6 +1382,7 @@ VAR TempString: Str40;
       AQD: IF AutoQSONumberDecrement THEN TempString := 'TRUE';
       AQR: IF AutoQSYRequestEnable THEN TempString := 'TRUE';
       ASP: IF AutoSAPEnable THEN TempString := 'TRUE';
+      ASF: IF AutoSCPCallFetch THEN TempString := 'TRUE';
       ASR: Str (AutoSAPEnableRate, TempString); {KK1L: 6.72}
       ASC: Str (AutoSendCharacterCount, TempString);
       ATI: Str (AutoTimeIncrementQSOs, TempString);

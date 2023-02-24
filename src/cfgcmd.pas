@@ -223,6 +223,13 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'AUTO SCP CALL FETCH' THEN
+        BEGIN
+        AutoSCPCallFetch := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
     IF ID = 'AUTO S&P ENABLE SENSITIVITY' THEN {KK1L: 6.72}
         BEGIN
         Val (CMD, AutoSAPEnableRate, xResult);
@@ -4252,7 +4259,6 @@ VAR Count: INTEGER;
 
     IF ID = '' THEN ProcessConfigInstruction := True;
     END;
-
 
 
     BEGIN

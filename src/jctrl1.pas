@@ -45,6 +45,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       ASP,
                       ASR, {KK1L: 6.72}
                       ARC,
+                      ASF,
                       ASC,
                       ATI,
                       BEN,
@@ -269,6 +270,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       AQR: Description := 'AUTO QSY REQUEST ENABLE';
       ASP: Description := 'AUTO S&P ENABLE';
       ARC: Description := 'AUTO RETURN TO CQ MODE';
+      ASF: Description := 'AUTO SCP CALL FETCH';
       ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ASC: Description := 'AUTO SEND CHARACTER COUNT';
       ATI: Description := 'AUTO TIME INCREMENT';
@@ -513,6 +515,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       AQD: Write (AutoQSONumberDecrement);
       AQR: Write (AutoQSYRequestEnable);
       ASP: Write (AutoSAPEnable);
+      ASF: Write (AutoSCPCallFetch);
       ASR: Write (AutoSAPEnableRate); {KK1L: 6.72}
       ARC: Write (AutoReturnToCQMode);
       ASC: Write (AutoSendCharacterCount);
@@ -960,6 +963,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Jump into S&P mode if tuning VFO')
            ELSE
                Write ('Do not jump into S&P mode when tuning');
+
+      ASF: IF AutoSCPCallFetch THEN
+               Write ('3 Letter call uses single SCP call')
+           ELSE
+               Write ('No update of call based on SCP');
 
       ASR: Write ('Auto SAP Enable Sensitivity (Hz/sec)'); {KK1L: 6.72}
 

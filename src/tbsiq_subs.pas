@@ -117,7 +117,7 @@ TYPE
         ExchangeWindowString: STRING;
         ExchangeWindowCursorPosition: INTEGER;
 
-        Frequency: LONGINT;   { The most current frequency for the radio }
+        Frequency: LONGINT;                 { The most current frequency for the radio }
 
         InitialExchangePutUp: BOOLEAN;
 
@@ -129,7 +129,7 @@ TYPE
         LastFunctionKeyTime: TimeRecord;
         LastQSOState: TBSIQ_QSOStateType;
         LastPossibleCall: CallString;
-        LastSCPCall: CallString;
+        LastSCPCall: CallString;             { The last call processed by the SCP engine }
 
         LocalInsertMode: BOOLEAN;
         LoggedSAndPCall: CallString;
@@ -1485,10 +1485,18 @@ VAR Call: CallString;
 
     SaveSetAndClearActiveWindow (EditableLogWindow);
 
+    FirstSCPCall := '';
+    NumberSCPCalls := 0;
+
     REPEAT
         Call := CD.GetNextPartialCall;
 
-        IF Call <> '' THEN DisplaySCPCall (Call);
+        IF Call <> '' THEN
+            BEGIN
+            DisplaySCPCall (Call);
+            Inc (NumberSCPCalls);
+            IF FirstSCPCall = '' THEN FirstSCPCall := Call;
+            END;
 
         IF SCPScreenFull THEN Break;
 
@@ -1633,12 +1641,12 @@ VAR Key: CHAR;
 
 FUNCTION QSOMachineObject.ExpandCrypticString (SendString: STRING): STRING;
 
+{ This is a scaled down version of what is in classic mode }
+
 VAR CharacterCount: INTEGER;
     TempString, QSONumberString, NewSendString: STRING;
     SendChar: CHAR;
     TempFreq: LONGINT;
-
-{ This is a very scaled down version of what is in the main program }
 
     BEGIN
     FoundCommand (Radio, SendString);
@@ -1843,7 +1851,7 @@ VAR Response: STRING;
                 REPEAT UNTIL CalmDownEveryone;
                 REPEAT
                     Response := DirectCommandAndResponse ('SM;');
-                    Timer (caughtup);
+                    Timer (CaughtUp);
                 UNTIL Response <> '';
                 END;
 
@@ -2064,7 +2072,6 @@ VAR Key, ExtendedKey: CHAR;
                             END;
                         END;  { of NullKey case }
 
-
                     CarriageReturn:
                         IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                             BEGIN
@@ -2150,6 +2157,18 @@ VAR Key, ExtendedKey: CHAR;
                                     ClrScr;
                                     END
                                 ELSE
+                                    BEGIN
+                                    IF AutoSCPCallFetch AND (Length (CallWindowString) = 3) THEN
+                                        BEGIN
+                                        IF NumberSCPCalls = 1 THEN
+                                            BEGIN
+                                            ClrScr;
+                                            Write (FirstSCPCall);
+                                            WindowString := FirstSCPCall;
+                                            CallWindowString := FirstSCPCall;
+                                            END;
+                                        END;
+
                                     CASE Mode OF
                                         CW:
                                             BEGIN
@@ -2172,6 +2191,7 @@ VAR Key, ExtendedKey: CHAR;
                                             QSOState := QST_CQStationBeingAnswered;
 
                                         END;  { of CASE Mode }
+                                    END;
                                 END;
                             END;
 
@@ -2204,32 +2224,25 @@ VAR Key, ExtendedKey: CHAR;
                   letters in the CallWindow }
 
                 BEGIN
-                { Check to see if AutoStartSend should be triggered }
+                { Check to see if AutoStartSend should be triggered.  }
 
-                { First - we look for all the reasons not to start }
+                IF (Mode = CW) AND AutoStartSendEnable AND
+                   (AutoStartSendCharacterCount > 0) AND
+                   (Length (CallWindowString) = AutoStartSendCharacterCount) AND
+                   (NOT StringIsAllNumbersOrDecimal (CallWindowString)) AND
+                   (NOT StringHas (CallWindowString, '/')) AND
+                   (NOT AutoStartSendStationCalled) AND
+                   (WhereX > Length (CallWindowString)) THEN
+                       BEGIN
+                       TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High, True);
+                       CallsignICameBackTo := CallWindowString;
+                       ShowCWMessage (CallWindowString);
+                       ShowStationInformation (CallWindowString);
+                       AutoStartSendStationCalled := True;
+                       QSOState := QST_AutoStartSending;
+                       END;
 
-                IF Mode <> CW THEN Exit;
-                IF NOT AutoStartSendEnable THEN Exit;
-                IF AutoStartSendCharacterCount = 0 THEN Exit;
-
-                IF Length (CallWindowString) < AutoStartSendCharacterCount THEN Exit;
-                IF StringIsAllNumbersOrDecimal (CallWindowString) THEN Exit;
-                IF StringHas (CallWindowString, '/') THEN Exit;
-                IF AutoStartSendStationCalled THEN Exit;
-                IF WhereX <= Length (CallWindowString) THEN Exit;
-
-                { Okay - seems we need to start auto send }
-
-                TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High, True);
-                CallsignICameBackTo := CallWindowString;
-                ShowCWMessage (CallWindowString);
-
-                QSOState := QST_AutoStartSending;
-                ShowStationInformation (CallWindowString);
-                AutoStartSendStationCalled := True;
-
-                { Check SuperCheckPartial - this might need some oxygen in cases above where
-                  we exit }
+                { Update SuperCheckPartial }
 
                 IF SCPMinimumLetters > 0 THEN
                     IF Length (CallWindowString) >= SCPMinimumLetters THEN
@@ -2238,7 +2251,7 @@ VAR Key, ExtendedKey: CHAR;
 
             END;  { Of QST_Idle or QST_CQCalled }
 
-        QST_AutoStartSending:  { We have started sending a callsign }
+        QST_AutoStartSending:  { We have started sending a callsign - can only be here if in CW }
             BEGIN
             QSONumberUnused := False;
 
@@ -2250,49 +2263,37 @@ VAR Key, ExtendedKey: CHAR;
               4. Someone hit RETURN to end input of the callsign.
               5. All of the entered letters have been sent - send exchange. }
 
-            IF TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
+            { Firstly - we are going to check to see if there are no new characterrs
+              to send - and we have finished sending CW }
+
+            IF (NOT ActionRequired) AND TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
+                BEGIN
                 IF AutoCallTerminate THEN
                     IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                         BEGIN
-                        CASE Mode OF
-                            CW: BEGIN
-                                ExpandedString := ExpandCrypticString (CQExchange);
-                                AppendCWMessageDisplay (ExpandedString);
-                                TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
-                                END;
-
-                            { Note sure we ever could be here on Phone or digital }
-
-                            Phone:
-                                ExpandedString := ExpandCrypticString (CQPhoneExchange);
-                            END;
-
-                        IF Mode = CW THEN
-                            BEGIN
-                            END;
-
+                        ExpandedString := ExpandCrypticString (CQExchange);
+                        AppendCWMessageDisplay (ExpandedString);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                         QSOState := QST_CQExchangeBeingSent;
-                        Exit;
                         END
                     ELSE
-                        BEGIN
+                        BEGIN  { Is a dupe }
                         ExpandedString := ExpandCrypticString (QSOBeforeMessage);
-
-                        IF Mode = CW THEN
-                            BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
-                            ShowCWMessage (ExpandedString);
-                            END;
-
-
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
+                        ShowCWMessage (ExpandedString);
                         QSOState := QST_Idle;
                         END;
+                END;
 
             IF NOT ActionRequired THEN Exit;  { No keystroke to respond to }
 
+            { We have a keystroke to act upon - and we don't care of we are done sending CW }
+
             CASE Key OF
                 EscapeKey:
-                    QSOState := QST_Idle;
+                    BEGIN
+                    QSOState := QST_Idle;  { Do not start sending the exchange! }
+                    END;
 
                 CarriageReturn:
                     BEGIN
@@ -2386,6 +2387,12 @@ VAR Key, ExtendedKey: CHAR;
                             TBSIQ_CW_Engine.AddCharacterToBuffer (Key, Radio);
                             ShowCWMessage (CallsignICameBackTo);
                             END;
+
+                        { Update SuperCheckPartial }
+
+                        IF SCPMinimumLetters > 0 THEN
+                            IF Length (CallWindowString) >= SCPMinimumLetters THEN
+                                SuperCheckPartial;
                         END;
                     END;
 
@@ -3840,6 +3847,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
+    FirstSCPCall := '';
     K3RXPollActive := False;
     LocalInsertMode := InsertMode;                          { Need to get the global Insert Mode here }
     LastFrequency := 0;
@@ -4679,7 +4687,11 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
             IF Mode = CW THEN
                 IF TBSIQ_CW_Engine.ClearMessages (Radio, True) THEN   { was something to stop }
                     BEGIN
-                    ActionRequired := False;
+                    { If you have triggered AutoStartSend - we need to tell someone that
+                      the ESCAPE KEY was pressed so that it doesn't move on to sending the
+                      CQ Exchange }
+
+                    ActionRequired := QSOState = QST_AutoStartSending;
                     Exit;
                     END;
 

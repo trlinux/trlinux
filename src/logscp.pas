@@ -260,9 +260,12 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
 
 VAR CD: CallDatabase;
 
+    AutoSCPCallFetch: BOOLEAN;
     CallsAlreadySaved: CallsAlreadySavedArrayPtr;
+    FirstSCPCall: CallString;
 
     NumberCallsAlreadySaved: INTEGER;
+    NumberSCPCalls: INTEGER;
 
     PossibleCallList: PossibleCallRecord;
 
