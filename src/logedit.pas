@@ -2268,7 +2268,7 @@ if remmultmatrix[multband,multmode,Zone] = nil then exit;
 
         END;
 
-    DisplayRemainingMults (RemainingMults, RemainingMultDisplay);
+    DisplayRemainingMults (RemainingMults, RemainingMultDisplay, MultBand, MultMode);
     Dispose (RemainingMults);
     END;
 

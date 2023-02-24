@@ -56,7 +56,7 @@ TODO LIST
 
   - Serial number needs better way to start off if recording freqs
 
-  NOTES FROM SSCW:
+NOTES FROM SSCW:
 
     > character in CW messages clears RIT on wrong radio
 
@@ -72,31 +72,25 @@ TODO LIST
     Would be nice to get capital letters when editing log.  Same for
     Memory program (like shift keys for characters).
 
-  - SPRINT DUPESHEET!!
-
-  - Occasionally sending wrong TX ID to Qsorder
-
-  - The AltD thing really messed me up in CWT.
-
-  NOTES FROM ARRL DX CW
-
-  - The AltD thing really messsed me up once or twice.
+NOTES FROM ARRL DX CW
 
   - Maybe improve the mult/qso display with auto start CQs - I sort of fixed it
-
   - Footswitch doesn't seem to want to send F1 - does PTT instead.
-
   - I keep calling dupes in S&P mode - need better warnings.
-
-  - Label the remaining mults with the band
-
   - Dualing CQs not working?
-
   - Not getting SCP calls from log?
-
   - No space before CQ EXCHANGE when doing auto start send.
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+24-Feb-2023
+
+   - Removed AltD feature.
+
+   - If you are messing around with a callsign in the call window with AutoStartSend enabled,
+     you could get the AutoStartSend to trigger if you came at the AutoStartSendCharacterCount
+     by deleting a character.  This is no longer possible.  There has always been a mechanism
+     to rearm the auto start send if you go down to two letters and then enter more stuff.
 
 23-Feb-2023
 

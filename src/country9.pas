@@ -1702,25 +1702,29 @@ VAR Continent: ContinentType;
 PROCEDURE CountryTableObject.MakeDefaultRemainingCountryList;
 
 CONST
-    NumberDefaultCountries = 99;
-    BigNumberDefaultCountries = 147;
+    NumberDefaultCountries = 97;
+    BigNumberDefaultCountries = 145;
 
     DefaultRemMults: ARRAY [1..NumberDefaultCountries] OF STRING [3] =
 
-('4J',  '4L',  '4X',  '6Y',  '8P',  '9A', '9M2', '9M6',  '9Y',  'BV',
- 'BY',  'C6',  'CE',  'CM',  'CT', 'CT3',  'CU',  'DL',  'DU',  'EA',
- 'EA6','EA8', 'EA9',  'EI',  'EK',  'ER',  'ES',  'EU',  'EX',  'EY',  'EZ',
-  'F',  'FM',   'G',  'GD',  'GI',  'GJ',  'GM',  'GW',  'HA',  'HB',  'HC',
-'HC8',  'HI',  'HK',  'HL',   'I',  'IS',  'J6',  'JA',   'K', 'KH2', 'KH6',
- 'KL', 'KP2', 'KP4',  'LA',  'LU',  'LX',  'LY',  'LZ',  'OA',  'OE',  'OH',
- 'OK',  'OM',  'ON',  'OZ',  'P4',  'PA', 'PJ2', 'PJ7',  'PY',  'S5',  'SM',
+{ Removed 4L, 9Y, EK, EZ.   Added PJ4, PJ5 }
+
+('4J',  '4X',  '6Y',  '8P',  '9A', '9M2', '9M6',  'BV',  'BY',  'C6',  'CE',
+ 'CM',  'CT', 'CT3',  'CU',  'DL',  'DU',  'EA',  'EA6','EA8', 'EA9',  'EI',
+ 'ER',  'ES',  'EU',  'EX',  'EY',  'F',  'FM',   'G',  'GD',  'GI',  'GJ',
+ 'GM',  'GW',  'HA',  'HB',  'HC', 'HC8',  'HI',  'HK',  'HL',   'I',  'IS',
+ 'J6',  'JA',   'K', 'KH2', 'KH6',  'KL', 'KP2', 'KP4',  'LA',  'LU',  'LX',
+ 'LY',  'LZ',  'OA',  'OE',  'OH',  'OK',  'OM',  'ON',  'OZ',  'P4',  'PA',
+ 'PJ2', 'PJ4', 'PJ5', 'PJ7', 'PY',  'S5',  'SM',
  'SP',  'SV',  'TG',  'TI',  'UA', 'UA2', 'UA9',  'UK',  'UN',  'UR',  'VE',
  'VK',  'VU',  'XE',  'YB',  'YL',  'YO',  'YU',  'YV',  'Z3',  'ZA',  'ZF',
  'ZL',  'ZS');
 
   BigDefaultRemMults: ARRAY [1..BigNumberDefaultCountries] OF STRING [4] =
 
-('3B8',  '3V',  '4J',  '4L', '4U1I', '4U1U',  '4S',  '4X',  '5B',  '6Y',
+{ Removed 4U1I, 4U1U, KG4, PY0F.  Added PJ4 and PJ5 }
+
+('3B8',  '3V',  '4J',  '4L', '4S',  '4X',  '5B',  '6Y',
   '7X',  '8P',  '8R',  '9A',   '9H',  '9K',  '9M2', '9M6',  '9V',  '9Y',
   'A7',  'BV',  'BY',  'C3',   'C6',  'CE',   'CM',  'CN',  'CP',  'CT',
  'CT3',  'CU',  'CX',  'D4',   'DL',  'DU',   'EA', 'EA6', 'EA8', 'EA9',
@@ -1728,9 +1732,9 @@ CONST
   'FK',  'FM',  'FO',  'FR',   'FY',   'G',   'GD',  'GI',  'GJ',  'GM',
   'GW',  'HA',  'HB', 'HB0',   'HC', 'HC8',   'HH',  'HI',  'HK',  'HL',
   'HP',  'HS',  'HZ',   'I',  'IG9',  'IS',  'IT9',  'J6',  'JA',   'K',
- 'KG4', 'KH2', 'KH6',  'KL',  'KP2', 'KP4',   'LA',  'LU',  'LX',  'LY',
+ 'KH2', 'KH6',  'KL',  'KP2', 'KP4',   'LA',  'LU',  'LX',  'LY',
   'LZ',  'OA',  'OD',  'OE',  'OH',  'OH0',   'OK',  'OM',  'ON',  'OY',
-  'OZ',  'P4',  'PA', 'PJ2', 'PJ7',   'PY', 'PY0F',  'S5',  'SM',  'SP',
+  'OZ',  'P4',  'PA', 'PJ2', 'PJ4', 'PJ5', 'PJ7',   'PY', 'S5',  'SM',  'SP',
   'SU',  'SV', 'SV5', 'SV9',  'T9',   'TA',  'TA1',  'TF',  'TG',  'TI',
   'TK',  'TR',  'TU',  'UA', 'UA2',  'UA9',  'UK',   'UN',  'UR',  'VE',
   'VK','VK9N', 'VS6',  'VU',  'XE',  'XX9',  'YB',   'YL',  'YO',  'YU',

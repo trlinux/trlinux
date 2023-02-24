@@ -3519,14 +3519,13 @@ VAR TempString, IPAddress: STRING;
 
 PROCEDURE UDPRX;
 
-VAR TempString: STRING;
-    Port: LONGINT;
+VAR Port: LONGINT;
     SocketAddr: TINetSockAddr;
     Socket: LONGINT;
     BytesRead: INTEGER;
     FDS: Tfdset;
     ConnectResult: INTEGER;
-    Index, NumberCharactersInBuffer: INTEGER;
+    Index: INTEGER;
 
     BEGIN
     Port := GetValue ('Enter port number (zero to abort) : ');

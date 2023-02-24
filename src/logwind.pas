@@ -915,7 +915,8 @@ VAR
   PROCEDURE DisplayRate (Rate: INTEGER);
 
   PROCEDURE DisplayRemainingMults (RemainingMults: RemainingMultListPointer;
-                                   RemMultDisplay: RemainingMultiplierType);
+                                   RemMultDisplay: RemainingMultiplierType;
+                                   Band: BandType; Mode: ModeType);
 
   PROCEDURE DisplayTotalScore (Score: LONGINT);
   PROCEDURE DisplayUserInfo (Call: CallString);
@@ -3039,7 +3040,8 @@ PROCEDURE ActivateExchangeWindow;
 
 
 PROCEDURE DisplayRemainingMults (RemainingMults: RemainingMultListPointer;
-                                 RemMultDisplay: RemainingMultiplierType);
+                                 RemMultDisplay: RemainingMultiplierType;
+                                 Band: BandType; Mode: ModeType);
 
 
 VAR TempString: Str80;
@@ -3048,6 +3050,22 @@ VAR TempString: Str80;
 
     BEGIN
     SaveSetAndClearActiveWindow (RemainingMultsWindow);
+
+    IF Band <> All THEN
+        BEGIN
+        TempString := BandString [Band];
+        GetRidOfPrecedingSpaces (TempString);
+        Write (TempString);
+        END;
+
+    IF Mode <> Both THEN
+        BEGIN
+        TempString := ModeString [Mode];
+        GetRidOfPostcedingSpaces (TempString);
+        Write (TempString);
+        END;
+
+    IF WhereX > 1 THEN Write (':');
 
     CleanSweep := RemainingMultDisplayMode = Erase;
 
@@ -3145,7 +3163,6 @@ VAR TempString: Str80;
                               Str (RemainingMult:2, TempString)
 
                     END;
-
 
                 TextColor (SelectedColors.RemainingMultsWindowColor);
 

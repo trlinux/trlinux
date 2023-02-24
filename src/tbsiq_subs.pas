@@ -2226,6 +2226,10 @@ VAR Key, ExtendedKey: CHAR;
                 BEGIN
                 { Check to see if AutoStartSend should be triggered.  }
 
+                IF AutoStartSendEnable AND (Mode = CW) THEN
+                    IF Length (CallWindowString) > AutoStartSendCharacterCount THEN
+                        AutoStartSendStationCalled := True;
+
                 IF (Mode = CW) AND AutoStartSendEnable AND
                    (AutoStartSendCharacterCount > 0) AND
                    (Length (CallWindowString) = AutoStartSendCharacterCount) AND
@@ -5018,12 +5022,13 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                           END;
                       END;
 
-                  AltD:
+{                 AltD:
                       BEGIN
                       RememberQSOState := QSOState;
                       QSOState := QST_AltDInput;
                       ActionRequired := False;
                       END;
+}
 
                   AltE: BEGIN
                       RITEnable := False;

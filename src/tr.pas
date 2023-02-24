@@ -41,6 +41,12 @@ PROGRAM ContestLoggingProgram;
      - When using footswitch to send CQ message, I get a VOX warning which I do
        not get from pressing F1.
 
+24-Feb-2023
+
+  - Added indication of the band/mode for the reminaing multiplier display.
+  - Updated remaining country list to include PJ4 and PJ5.  Removed four
+    rarer countries from both remaining country lists to make room.
+
 23-Feb-2023
 
  - AUTO SCP CALL FETCH feature implemented (default FALSE - available on ControlJ menu)
