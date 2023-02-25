@@ -3,7 +3,7 @@
 //
 //This file is part of TR log for linux.
 //
-//TR log for linux is free software: you can redistribute it and/or
+//TR log for linux is free software: you can redistribute it and/or                       3
 //modify it under the terms of the GNU General Public License as
 //published by the Free Software Foundation, either version 2 of the
 //License, or (at your option) any later version.
@@ -79,7 +79,28 @@ NOTES FROM ARRL DX CW
   - I keep calling dupes in S&P mode - need better warnings.
   - Dualing CQs not working?
   - Not getting SCP calls from log?
-  - No space before CQ EXCHANGE when doing auto start send.
+
+BIG ASS PROJECT
+
+  - The current partial call stuff is writen in such a way that adopting it to 2BSIQ
+    is messy.  The reason is that it was all intended to be used by Calssic mode and
+    there are various global variables used to remember where we are at in creating
+    the partial calls that show up while entering a callsign.  Since we will be entering
+    calls from two different "radios" - it would be best to have two completly isolated
+    instances of the partial call code running which are totally independant.  This will
+    likely require a total rewrite of the low level code to make it a nice object for
+    which we can define specific instances of.  I chose not to do this a few hours before
+    the NAQP RTTY test - but this will be an important addition as it will improve the
+    "callsign fetch" process when just entering the suffic of a call immensely (instead
+    of relying on SCP).  As part of this - we can likely clean up the data structure
+    used for the "partial call list" which really is something more like just an
+    alphabetical list of all the calls worked in the contest plus any that are in an
+    initial exchange file (we really don't use initial exchanges files anymore since
+    all that data is in the TRMASTER.DTA database).
+
+    The code should be such that we can easily add in calls from the SCP database if
+    we want to for the partial call list.  Maybe with the criteria "have name" or
+    "have domestic QTH".
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 

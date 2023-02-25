@@ -139,6 +139,8 @@ TYPE
 
         OkaytoPutUpBandMapCall: BOOLEAN;
 
+        TBSIQPossibleCallList: PossibleCallRecord;  { We have specific ones for each instance }
+
         PTTState: BOOLEAN;
         PTTTestTimer: INTEGER;
 
@@ -617,13 +619,14 @@ PROCEDURE QSOMachineOBject.DoPossibleCalls (Callsign: CallString);
     BEGIN
     IF LastPossibleCall = Callsign THEN Exit;
     LastPossibleCall := Callsign;
-    PossibleCallList.NumberPossibleCalls := 0;
-    PossibleCallList.CursorPosition := 0;
+
     IF NOT PossibleCallEnable THEN Exit;
-    CD.GeneratePossibleCallList (Callsign);
-    Sheet.MakePossibleCallList (Callsign, PossibleCallList);
-    FlagDupesInPossibleCallList (Band, Mode, PossibleCallList);
-    DisplayPossibleCalls (PossibleCallList);
+
+    IF Sheet.TwoLetterCrunchProcess (Callsign, TBSIQPossibleCallList) THEN
+        BEGIN
+        VisibleLog.GeneratePartialCallList (Callsign, Band, Mode, TBSIQPossibleCallList);
+        DisplayPossibleCalls (TBSIQPossibleCallList);
+        END;
     END;
 
 
@@ -1940,6 +1943,15 @@ VAR Key, ExtendedKey: CHAR;
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
 
+    { Give some oxygen to the partial call two letter crunch.  This works on its own }
+
+    IF PartialCallEnable THEN
+        IF Sheet.TwoLetterCrunchProcess (CallWindowString, TBSIQPossibleCallList) THEN
+            BEGIN
+            VisibleLog.GeneratePartialCallList (CallWindowString, Band, Mode, TBSIQPossibleCallList);
+            DisplayPossiblecalls (TBSIQPossibleCallList);
+            END;
+
     { Tend to the N4OGW band map as needed }
 
     CASE Radio OF
@@ -2158,14 +2170,14 @@ VAR Key, ExtendedKey: CHAR;
                                     END
                                 ELSE
                                     BEGIN
-                                    IF AutoSCPCallFetch AND (Length (CallWindowString) = 3) THEN
+                                    IF AutoPartialCallFetch AND (Length (CallWindowString) = 3) THEN
                                         BEGIN
-                                        IF NumberSCPCalls = 1 THEN
+                                        IF TBSIQPossibleCallList.NumberPossibleCalls = 1 THEN
                                             BEGIN
                                             ClrScr;
-                                            Write (FirstSCPCall);
-                                            WindowString := FirstSCPCall;
-                                            CallWindowString := FirstSCPCall;
+                                            Write (TBSIQPossibleCallList.List [0].Call);
+                                            WindowString := TBSIQPossibleCallList.List [0].Call;;
+                                            CallWindowString := WindowString;
                                             END;
                                         END;
 
@@ -4197,7 +4209,7 @@ VAR CharacterPosition, PossibleCall: INTEGER;
     ELSE
         BEGIN
         GoToXY (9, 1);
-        Write ('No possible calls found');
+        Write ('No calls found');
         END;
 
     RestorePreviousWindow;
@@ -4612,29 +4624,29 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
     IF KeyChar = PossibleCallRightKey THEN
         BEGIN
-        WITH PossibleCallList DO
+        WITH TBSIQPossibleCallList DO
             IF (NumberPossibleCalls > 0) AND (CursorPosition < NumberPossibleCalls - 1) THEN
                 BEGIN
                 Inc (CursorPosition);
-                DisplayPossibleCalls (PossibleCallList);
+                DisplayPossibleCalls (TBSIQPossibleCallList);
                 END;
         Exit;
         END;
 
     IF KeyChar = PossibleCallLeftKey THEN
         BEGIN
-        WITH PossibleCallList DO
+        WITH TBSIQPossibleCallList DO
             IF (NumberPossibleCalls > 0) AND (CursorPosition > 0) THEN
                 BEGIN
                 Dec (CursorPosition);
-                DisplayPossibleCalls (PossibleCallList);
+                DisplayPossibleCalls (TBSIQPossibleCallList);
                 END;
         Exit;
         END;
 
     IF KeyChar = PossibleCallAcceptKey THEN
         BEGIN
-        WITH PossibleCallList DO
+        WITH TBSIQPossibleCallList DO
             IF NumberPossibleCalls > 0 THEN
                 BEGIN
                 CallWindowString := List [CursorPosition].Call;

@@ -39,13 +39,13 @@ TYPE MenuEntryType = (NoMenuEntry,
                       ADP,
                       ADE,
                       ADS,
+                      APF,
                       AQI,
                       AQD,
                       AQR,
                       ASP,
                       ASR, {KK1L: 6.72}
                       ARC,
-                      ASF,
                       ASC,
                       ATI,
                       BEN,
@@ -265,12 +265,12 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       ADP: Description := 'AUTO DISPLAY DUPE QSO';
       ADE: Description := 'AUTO DUPE ENABLE CQ';
       ADS: Description := 'AUTO DUPE ENABLE S AND P';
+      APF: Description := 'AUTO SCP CALL FETCH';
       AQI: Description := 'AUTO QSL INTERVAL';
       AQD: Description := 'AUTO QSO NUMBER DECREMENT';
       AQR: Description := 'AUTO QSY REQUEST ENABLE';
       ASP: Description := 'AUTO S&P ENABLE';
       ARC: Description := 'AUTO RETURN TO CQ MODE';
-      ASF: Description := 'AUTO SCP CALL FETCH';
       ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ASC: Description := 'AUTO SEND CHARACTER COUNT';
       ATI: Description := 'AUTO TIME INCREMENT';
@@ -511,11 +511,11 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       ADP: Write (AutoDisplayDupeQSO);
       ADE: Write (AutoDupeEnableCQ);
       ADS: Write (AutoDupeEnableSAndP);
+      APF: Write (AutoPartialCallFetch);
       AQI: Write (AutoQSLInterval);
       AQD: Write (AutoQSONumberDecrement);
       AQR: Write (AutoQSYRequestEnable);
       ASP: Write (AutoSAPEnable);
-      ASF: Write (AutoSCPCallFetch);
       ASR: Write (AutoSAPEnableRate); {KK1L: 6.72}
       ARC: Write (AutoReturnToCQMode);
       ASC: Write (AutoSendCharacterCount);
@@ -944,6 +944,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Call dupes in S&P mode with RETURN');
 
+      APF: IF AutoPartialCallFetch THEN
+               Write ('Single partial used if match 3 ltrs')
+           ELSE
+               Write ('No update of call based on partial');
+
       AQI: IF AutoQSLInterval > 0 THEN
                Write ('Number QSOs that use QUICK QSL message')
            ELSE
@@ -963,11 +968,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Jump into S&P mode if tuning VFO')
            ELSE
                Write ('Do not jump into S&P mode when tuning');
-
-      ASF: IF AutoSCPCallFetch THEN
-               Write ('3 Letter call uses single SCP call')
-           ELSE
-               Write ('No update of call based on SCP');
 
       ASR: Write ('Auto SAP Enable Sensitivity (Hz/sec)'); {KK1L: 6.72}
 

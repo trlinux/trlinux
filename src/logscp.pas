@@ -130,6 +130,8 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
     SCPIndexArrayPtr     = ^SCPIndexArrayType;
     BytesWrittenArrayPtr = ^SCPIndexArrayType;
 
+    { The CallDatabase object is everything to do with the TRMASTER.DTA database }
+
     CallDatabase = OBJECT
         ActiveASCIIFileName: Str80;      { For ASCII file }
         ActiveFilename:      Str80;      { Database filename }
@@ -159,6 +161,7 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
         InitialPartialList: PartialCallListEntryPtr;
 
         LastCallRecord: DataBaseEntryRecord;
+
         LastPartialCall: CallString;
         LastPartialList: PartialCallListEntryPtr;
 
@@ -260,14 +263,19 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
 
 VAR CD: CallDatabase;
 
-    AutoSCPCallFetch: BOOLEAN;
+    AutoPartialCallFetch: BOOLEAN;
+
     CallsAlreadySaved: CallsAlreadySavedArrayPtr;
-    FirstSCPCall: CallString;
+
+    FirstPartialCall: CallString;   { Not SCP - these come from the dupesheet/initial exchanges }
+    FirstSCPCall: CallString;       { From TRMASTER.DTA }
 
     NumberCallsAlreadySaved: INTEGER;
-    NumberSCPCalls: INTEGER;
 
-    PossibleCallList: PossibleCallRecord;
+    NumberPartialCalls: INTEGER;    { Not SCP - these come from dupesheet/initial exchanges }
+    NumberSCPCalls: INTEGER;        { From TRMASTER.DAT }
+
+    PossibleCallList: PossibleCallRecord;  { Used for the Classic UI only }
 
     FUNCTION  GetRandomLetter: CHAR;
     FUNCTION  GetRandomNumber: CHAR;

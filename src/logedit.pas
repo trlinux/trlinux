@@ -2092,12 +2092,16 @@ VAR OutputString: Str160;
 
 PROCEDURE EditableLog.DoPossibleCalls (Call: CallString);
 
+{ This is not partial calls.  Assumes someone has done TwoLetterCrunchProcess }
+
     BEGIN
     PossibleCallList.NumberPossibleCalls := 0;
     PossibleCallList.CursorPosition      := 0;
     IF NOT PossibleCallEnable THEN Exit;
-    CD.GeneratePossibleCallList (Call);
-    Sheet.MakePossibleCallList (Call, PossibleCallList);
+
+    CD.GeneratePossibleCallList (Call);                                      { From TRMASTER.DTA}
+
+    Sheet.GetPossibleCallsFromDupesheet (Call, PossibleCallList);            { From dupesheet }
     FlagDupesInPossibleCallList (ActiveBand, ActiveMode, PossibleCallList);
     DisplayPossibleCalls (PossibleCallList);
     END;
@@ -2481,6 +2485,8 @@ VAR Call: CallString;
     BEGIN
     Sheet.MakePartialCallList (InputCall, Band, Mode, PossibleCallList);
 
+    { Add in any entries from the Editable Log }
+
     FOR Entry := 1 TO 5 DO
         BEGIN
         Call := GetLogEntryCall (LogEntries [Entry]);
@@ -2532,6 +2538,7 @@ PROCEDURE DisplaySCPCall (Call: CallString; Radio: RadioType); {KK1L: 6.73 Added
     IF WhereX > 1 THEN Write (' ');
 
     {IF VisibleLog.CallIsADupe (Call, ActiveBand, ActiveMode) THEN}
+
     IF VisibleLog.CallIsADupe (Call, BandMemory[Radio], ModeMemory[Radio]) THEN  {KK1L: 6.73 supports SO2R SCP}
         BEGIN
         TextBackground (SCPDupeBackground);
@@ -2545,14 +2552,11 @@ PROCEDURE DisplaySCPCall (Call: CallString; Radio: RadioType); {KK1L: 6.73 Added
 
     END;
 
-
-
-
+
 
 PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; Radio: RadioType);
-{KK1L: 6.73 Added Radio to allow SO2R SCP}
 
-//LABEL NotAPartialCall, RememberNotAPartialCall;
+{KK1L: 6.73 Added Radio to allow SO2R SCP}
 
     BEGIN
     IF CD.SCPDisabledByApplication THEN Exit;
@@ -2563,7 +2567,6 @@ PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; R
     IF Call = '' THEN
         BEGIN
         IF VisibleDupeSheetEnable AND NOT SuperDupesheet THEN
-            {DisplayVisibleDupesheet (ActiveBand, ActiveMode)}
             DisplayVisibleDupesheet (BandMemory[Radio], ModeMemory[Radio]) {KK1L: 6.73 suppory SO2R SCP}
         ELSE
             IF NOT EditableLogDisplayed THEN
@@ -2792,7 +2795,7 @@ VAR InputString: Str80;
                     ClrEol;
 
                     IF PartialCallEnable THEN
-                        IF Sheet.TwoLetterCrunchProcess (InputString) THEN
+                        IF Sheet.TwoLetterCrunchProcess (InputString, PossibleCallList) THEN
                             BEGIN
                             VisibleLog.GeneratePartialCallList (InputString,
                                                                 ActiveBand,
@@ -2834,7 +2837,7 @@ VAR InputString: Str80;
                        InputString := InputString + Key;
 
                        IF PartialCallEnable THEN
-                           IF Sheet.TwoLetterCrunchProcess (InputString) THEN
+                           IF Sheet.TwoLetterCrunchProcess (InputString, PossibleCallList) THEN
                                BEGIN
                                VisibleLog.GeneratePartialCallList (InputString,
                                                                    ActiveBand,

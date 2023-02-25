@@ -2625,7 +2625,10 @@ VAR PossibleCall: INTEGER;
                 CharacterPosition := CharacterPosition + Length (Call) + 2;
                 END
             ELSE
+                BEGIN
                 PossibleCalls.NumberPossibleCalls := PossibleCall;
+                Break;  { I think this should be here }
+                END;
             END;
         END
     ELSE

@@ -45,12 +45,12 @@ PROCEDURE SetConfigurationDefaultValues;
     AutoCallTerminate      := False;
     AutoDupeEnableCQ       := True;
     AutoDupeEnableSAndP    := True;
+    AutoPartialCallFetch   := False;
     AutoQSONumberDecrement := False;
     AutoQSYRequestEnable   := False;
     AutoReturnToCQMode     := True;
     AutoSAPEnable          := False;
     AutoSAPEnableRate      := 1000; {KK1L 6.72}
-    AutoSCPCallFetch       := False;
     AutoSendCharacterCount := 0;
     AutoTimeIncrementQSOs  := 0;
 

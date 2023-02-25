@@ -29,7 +29,7 @@ UNIT LogDupe;
 INTERFACE
 
 USES LogDom, trCrt, Dos, SlowTree, Tree, Country9, ZoneCont, LogWind,
-     radio, LogSCP, LogK1EA;
+     LogHelp, radio, LogSCP, LogK1EA;
 
 
 
@@ -254,7 +254,7 @@ TYPE
                                                     Mode: ModeType);
 
 
-        FUNCTION  TwoLetterCrunchProcess (PartialCall: CallString): BOOLEAN;
+        FUNCTION  TwoLetterCrunchProcess (PartialCall: CallString; VAR PossCallList: PossibleCallRecord): BOOLEAN;
 
         PROCEDURE DisposeOfMemoryAndZeroTotals;
 
@@ -265,12 +265,12 @@ TYPE
         FUNCTION  EntryExists (Entry: FourBytes; Band: BandType; Mode: ModeType): BOOLEAN;
         PROCEDURE ExamineLogForQSOTotals (VAR QTotals: QSOTotalArray);
 
+        PROCEDURE GetPossibleCallsFromDupesheet (Call: CallString; VAR PossCallList: PossibleCallRecord);
+
         PROCEDURE MakePartialCallList (Call: CallString;
                                        ActiveBand: BandType;
                                        ActiveMode: ModeType;
                                        VAR PossCallList: PossibleCallRecord);
-
-        PROCEDURE MakePossibleCallList (Call: CallString; VAR PossCallList: PossibleCallRecord);
 
         PROCEDURE MultSheetTotals (VAR Totals: MultTotalArrayType);
 
@@ -316,6 +316,7 @@ VAR ActiveDXMult:           DXMultType;
     LastPartialCallBlock:         INTEGER;
     LastTwoLetterCrunchedAddress: INTEGER;
     LastTwoLettersCrunchedOn:     Str20;
+
     LoadingInLogFile:             BOOLEAN;
     LongPartialCallList:          LongPartialCallListPointer;
 
@@ -334,6 +335,9 @@ VAR ActiveDXMult:           DXMultType;
     OffTimeStart: TimeRecord;
 
     PartialCallEnable: BOOLEAN;
+
+    { The PartialCallList is an alphabetical list of callsigns which each have an index to an initial exchange }
+
     PartialCallList: ARRAY [1..MaxPartialCallBlocks] OF PartialCallArrayPtr;
     PartialCallLoadLogEnable: BOOLEAN;
 
@@ -368,7 +372,7 @@ VAR ActiveDXMult:           DXMultType;
     FUNCTION  BigEntryAddress (Entry: FourBytes): INTEGER;
 
     FUNCTION  CallNotInPossibleCallList (Call: CallString;
-                                         PossCallList: PossibleCallRecord): BOOLEAN;
+                                         VAR PossCallList: PossibleCallRecord): BOOLEAN;
 
     PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     PROCEDURE ConvertBigEntryAddressToFourBytes (EntryPointer: INTEGER; VAR BigEntry: FourBytes);
@@ -508,6 +512,8 @@ VAR QTHString: Str40;
 
 FUNCTION GetPartialCall (CallAddress: INTEGER): CallString;
 
+{ Fetches the partial call for the address specified. }
+
 VAR BlockNumber, BlockAddress: INTEGER;
     LongPartialCallAddress: INTEGER;
     TempString: CallString;
@@ -568,6 +574,8 @@ VAR Address, SearchStep, NumberSearches: INTEGER;
         Exit;
         END;
 
+    { For a low number of partial calls - we just do a linear search }
+
     IF NumberPartialCalls <= 10 THEN
         BEGIN
         Address := 0;
@@ -579,6 +587,8 @@ VAR Address, SearchStep, NumberSearches: INTEGER;
         FindProperPartialCallAddress := Address;
         Exit;
         END;
+
+    { Do a binary search }
 
     SearchStep := NumberPartialCalls DIV 2;
     Address    := SearchStep;
@@ -873,7 +883,7 @@ VAR CallAddress, BlockNumber, Index, BlockAddress: INTEGER;
 
 
 FUNCTION CallNotInPossibleCallList (Call: CallString;
-                                    PossCallList: PossibleCallRecord): BOOLEAN;
+                                    VAR PossCallList: PossibleCallRecord): BOOLEAN;
 
 VAR Entry: INTEGER;
 
@@ -897,6 +907,9 @@ PROCEDURE DupeAndMultSheet.MakePartialCallList (Call: CallString;
                                                 ActiveMode: ModeType;
                                                 VAR PossCallList: PossibleCallRecord);
 
+{ This assume someone has called the TwoLetterCrunchProcess so there are some
+  calls in the TwoLetterCrunchPartialCallList }
+
 VAR Address: INTEGER;
     TempCall: CallString;
 
@@ -905,6 +918,7 @@ VAR Address: INTEGER;
     PossCallList.CursorPosition      := 0;
 
     IF NOT PartialCallEnable THEN Exit;
+
     IF Length (Call) < 2 THEN Exit;
 
     IF NumberTwoLetterPartialCalls > 0 THEN
@@ -1660,12 +1674,17 @@ VAR Band: BandType;
 
 
 
-FUNCTION DupeAndMultSheet.TwoLetterCrunchProcess (PartialCall: CallString): BOOLEAN;
+FUNCTION DupeAndMultSheet.TwoLetterCrunchProcess (PartialCall: CallString; VAR PossCallList: PossibleCallRecord): BOOLEAN;
 
-{ This process will work on generating the TwoLetterPartialList based upon
-  the input provided.  It will return TRUE if there is a change to the list
-  which means there might be changes in the partial call list. }
+{ This process was created back when doing partial calls took a significant amount
+  of time.  It was put into the loop that waited for a keystroke (in the routine
+  CheckEverything in the logsubs.pas file).
 
+  It will process up to 200 calls each time this is called.  It will return TRUE
+  if there has been some change to the PossibleCallList.  So that I can use the
+  same routine for TBSIQ - it is now required that you specify which possible
+  call list you want to work with (as there are radio instance specific ones in
+  TBSIQ }
 
 VAR Address, FirstAddress, LastAddress, NumberCallsToCrunch: INTEGER;
     GotPartialCall, TempString: Str20;
@@ -1676,9 +1695,9 @@ VAR Address, FirstAddress, LastAddress, NumberCallsToCrunch: INTEGER;
     IF Length (PartialCall) < 2 THEN Exit;    { We don't do anything yet }
     IF NumberPartialCalls = 0 THEN Exit;      { No partial calls to look at }
 
-{ Look to see if we have different first two letters than the last time
-  this function was called.  If so, set up a brand new process with an
-  empty list of callsigns. }
+    { Look to see if we have different first two letters than the last time
+      this function was called.  If so, set up a brand new process with an
+      empty list of callsigns. }
 
     IF LastTwoLettersCrunchedOn <> Copy (PartialCall, 1, 2) THEN
         BEGIN
@@ -1689,10 +1708,10 @@ VAR Address, FirstAddress, LastAddress, NumberCallsToCrunch: INTEGER;
         LastPartialCall              := PartialCall;
         END;
 
-{ Look to see if we have process the whole list.  If so, then, there isn't
-  anything for us to do.  However, if the callsign has changed, we will
-  report TRUE so that the partial call list can be recalculated based upon
-  the new callsign.  }
+    { Look to see if we have processed the whole list.  If so, then, there isn't
+      anything for us to do.  However, if the callsign has changed, we will
+      report TRUE so that the partial call list can be recalculated based upon
+      the new callsign.  }
 
     IF LastTwoLetterCrunchedAddress >= NumberPartialCalls - 1 THEN
         BEGIN
@@ -1701,24 +1720,24 @@ VAR Address, FirstAddress, LastAddress, NumberCallsToCrunch: INTEGER;
         Exit;
         END;
 
-{ Now we only care about the first two letters. }
+    { Now we only care about the first two letters. }
 
     IF Length (PartialCall) > 2 THEN PartialCall := Copy (PartialCall, 1, 2);
 
-{ Wildcard partials means the two letters can show up anywhere in the
-  callsign. }
+    { Wildcard partials means the two letters can show up anywhere in the
+      callsign. }
 
     IF WildCardPartials THEN
         BEGIN
         NumberCallsToCrunch := NumberPartialCalls - LastTwoLetterCrunchedAddress - 1;
 
-{ We will only crunch up to 200 callsigns per call to this process.  Note
-  that we might not get to all of them if the operator presses a key. }
+        { We will only crunch up to 200 callsigns per call to this process.  Note
+          that we might not get to all of them if the operator presses a key. }
 
         IF NumberCallsToCrunch > 200 THEN NumberCallsToCrunch := 200;
 
-{ Now look through the partial call list, looking for any calls that have
-  the partial string in it. }
+        { Now look through the partial call list, looking for any calls that have
+          the partial string in it. }
 
         FOR Address := LastTwoLetterCrunchedAddress + 1 TO LastTwoLetterCrunchedAddress + NumberCallsToCrunch DO
             BEGIN
@@ -1734,7 +1753,9 @@ VAR Address, FirstAddress, LastAddress, NumberCallsToCrunch: INTEGER;
 
             Inc (LastTwoLetterCrunchedAddress);
 
-            IF NewKeyPressed THEN Exit;  { Went to NewKeyPressed in 6.27 }
+            { For the classic version - we will exit if a key has been pressed }
+
+            IF (NOT Doing2BSIQ) AND NewKeyPressed THEN Exit;  { Went to NewKeyPressed in 6.27 }
             END;
         END
 
@@ -2238,7 +2259,7 @@ VAR FileRead: TEXT;
 
 
 
-PROCEDURE DupeAndMultSheet.MakePossibleCallList (Call: CallString; VAR PossCallList: PossibleCallRecord);
+PROCEDURE DupeAndMultSheet.GetPossibleCallsFromDupesheet (Call: CallString; VAR PossCallList: PossibleCallRecord);
 
 LABEL CallAlreadyInList;
 
@@ -2281,6 +2302,7 @@ VAR Band, StartBand, EndBand: BandType;
         FOR Mode := StartMode TO EndMode DO
             BEGIN
             NumberCalls := DupeSheet.Totals [Band, Mode];
+
             IF NumberCalls > 0 THEN
                 BEGIN
                 NumberDupeBlocks         := (NumberCalls - 1) DIV FourByteBlockSize + 1;

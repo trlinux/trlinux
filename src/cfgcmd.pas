@@ -223,9 +223,9 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
-    IF ID = 'AUTO SCP CALL FETCH' THEN
+    IF ID = 'AUTO PARTIAL CALL FETCH' THEN
         BEGIN
-        AutoSCPCallFetch := UpCase (CMD [1]) = 'T';
+        AutoPartialCallFetch := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions1 := True;
         Exit;
         END;

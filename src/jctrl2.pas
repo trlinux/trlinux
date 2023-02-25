@@ -98,6 +98,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       ADE: AutoDupeEnableCQ       := NOT AutoDupeEnableCQ;
       ADS: AutoDupeEnableSAndP    := NOT AutoDupeEnableSAndP;
 
+      APF: AutoPartialCallFetch   := NOT AutoPartialCallFetch;
+
       AQI: BEGIN
            Inc (AutoQSLInterval);
            IF AutoQSLInterval > 6 THEN
@@ -109,7 +111,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       AQD: AutoQSONumberDecrement := NOT AutoQSONumberDecrement;
       AQR: AutoQSYRequestEnable   := NOT AutoQSYRequestEnable;
       ASP: AutoSAPEnable          := NOT AutoSAPEnable;
-      ASF: AutoSCPCallFetch       := NOT AutoSCPCallFetch;
 
       ASR: BEGIN {KK1L: 6.72}
            TempInt := QuickEditInteger ('Enter new Auto SAP Enable sensitivity in Hz/sec) : ', 5);
@@ -995,11 +996,11 @@ VAR FileWrite: TEXT;
       ADP: WriteLn (FileWrite, AutoDisplayDupeQSO);
       ADE: WriteLn (FileWrite, AutoDupeEnableCQ);
       ADS: WriteLn (FileWrite, AutoDupeEnableSAndP);
+      APF: WriteLn (FileWrite, AutoPartialCallFetch);
       AQI: WriteLn (FileWrite, AutoQSLInterval);
       AQD: WriteLn (FileWrite, AutoQSONumberDecrement);
       AQR: WriteLn (FileWrite, AutoQSYRequestEnable);
       ASP: WriteLn (FileWrite, AutoSAPEnable);
-      ASF: WriteLn (FileWrite, AutoSCPCallFetch);
       ASR: WriteLn (FileWrite, AutoSAPEnableRate); {KK1L: 6.72}
       ARC: WriteLn (FileWrite, AutoReturnToCQMode);
       ASC: WriteLn (FileWrite, AutoSendCharacterCount);
@@ -1377,12 +1378,11 @@ VAR TempString: Str40;
       ADP: IF AutoDisplayDupeQSO THEN TempString := 'TRUE';
       ADE: IF AutoDupeEnableCQ THEN TempString := 'TRUE';
       ADS: IF AutoDupeEnableSAndP THEN TempString := 'TRUE';
+      APF: IF AutoPartialCallFetch THEN TempString := 'TRUE';
       AQI: Str (AutoQSLInterval, TempString);
-
       AQD: IF AutoQSONumberDecrement THEN TempString := 'TRUE';
       AQR: IF AutoQSYRequestEnable THEN TempString := 'TRUE';
       ASP: IF AutoSAPEnable THEN TempString := 'TRUE';
-      ASF: IF AutoSCPCallFetch THEN TempString := 'TRUE';
       ASR: Str (AutoSAPEnableRate, TempString); {KK1L: 6.72}
       ASC: Str (AutoSendCharacterCount, TempString);
       ATI: Str (AutoTimeIncrementQSOs, TempString);

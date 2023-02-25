@@ -1952,7 +1952,7 @@ VAR Time: INTEGER;
     AutoCQResume (False);
     END;
 
-
+
 
 PROCEDURE ShowPartialCallMults (WindowString: Str20);
 
@@ -2177,7 +2177,7 @@ VAR Result: INTEGER;
     { Do all the right things with the new callsign }
 
     IF (ActiveWindow = CallWindow) AND PartialCallEnable THEN
-        IF Sheet.TwoLetterCrunchProcess (WindowString) THEN
+        IF Sheet.TwoLetterCrunchProcess (WindowString, PossibleCallList) THEN
              BEGIN
              VisibleLog.GeneratePartialCallList (WindowString,
                                                  ActiveBand,
@@ -6057,7 +6057,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 Write (TempKey);
 
                                 IF PartialCallEnable THEN
-                                    IF Sheet.TwoLetterCrunchProcess (CallWindowString) THEN
+                                    IF Sheet.TwoLetterCrunchProcess (CallWindowString, PossibleCallList) THEN
                                         BEGIN
                                         VisibleLog.GeneratePartialCallList (CallWindowString,
                                                         ActiveBand,
@@ -6468,12 +6468,12 @@ VAR Key, TempKey, ExtendedKey : CHAR;
             CarriageReturn:
                 IF Length (CallWindowString) > 1 THEN
                     BEGIN
-                    IF AutoSCPCallFetch AND (Length (CallWindowString) = 3) THEN
-                        IF NumberSCPCalls = 1 THEN
+                    IF AutoPartialCallFetch AND (Length (CallWindowString) = 3) THEN
+                        IF PossibleCallList.NumberPossibleCalls = 1 THEN
                             BEGIN
                             ClrScr;
-                            Write (FirstSCPCall);
-                            CallWindowString := FirstSCPCall;
+                            Write (PossibleCallList.List [0].Call);
+                            CallWindowString := PossibleCallList.List [0].Call;;
                             END;
 
                     CallsignICameBackTo := CallWindowString;
