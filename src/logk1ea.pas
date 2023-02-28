@@ -983,6 +983,7 @@ VAR TempChar:   CHAR;
                ArdKeyer.ClearFootSwitchControlPTT;
 
        PreviousFootSwitchMode := FootSwitchMode;
+       Write ('*');
        END;
 
     { Check the Beep count and status. }

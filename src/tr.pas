@@ -41,6 +41,11 @@ PROGRAM ContestLoggingProgram;
      - When using footswitch to send CQ message, I get a VOX warning which I do
        not get from pressing F1.
 
+28-Feb-2023
+
+   - Added N1MM_UDP_PORT config command which will accept "industry standard" QSO
+     records and log them.
+
 24-Feb-2023
 
   - Added indication of the band/mode for the reminaing multiplier display.

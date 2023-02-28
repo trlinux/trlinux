@@ -175,6 +175,7 @@ VAR
     QSO_UDP_IP: STRING;
     QSO_UDP_Port: LONGINT;
 
+FUNCTION  CreateRXDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange): BOOLEAN;
 PROCEDURE SendQSOToUDPPort (RXData: ContestExchange);
 
 IMPLEMENTATION
@@ -289,6 +290,62 @@ PROCEDURE ClearUDPRecord;
         ID := '';
         IsClaimedQso := '';
         END;
+    END;
+
+
+
+FUNCTION CreateRXDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange): BOOLEAN;
+
+{ Does the reverse of the MergeRXExchangeToUDPRecord so that we can take a QSO UDP message
+  from like N1MM and log it in the TRLog program.  I put there here instead of N1MM so that
+  other people could use it - and also all of the field definitions are located here  for
+  reference.  I will do some amount of checking to make sure the data looks complete and
+  if so - return TRUE. }
+
+VAR TempString: STRING;
+    UDPDateString, UDPTimeString: Str20;
+    YearString, MonthString, DayString: Str20;
+
+    BEGIN
+    CreateRXDataFromUDPMessage := False;
+
+    ClearContestExchange (RXData);
+
+    { First let's figure out the time and date <timestamp>2020-01-17 16:43:38</timestamp> }
+
+    TempString := BracketedString (UDPMessage, '<timestamp>', '</timestamp>');
+
+    UDPDateString := RemoveFirstString (TempString);   { 2020-01-17 }
+    UDPTimeString := RemoveFirstString (TempString);   { 16:43:38 }
+
+    { Only use two digits of the year }
+
+    YearString := Copy (UDPDateString, 3, 2);
+
+    { Convert integer month into JAN - DEC }
+
+    MonthString := Copy (UDPDateString, 6, 2);
+
+    IF MonthString = '01' THEN MonthString := 'JAN' ELSE
+    IF MonthString = '02' THEN MonthString := 'FEB' ELSE
+    IF MonthString = '03' THEN MonthString := 'MAR' ELSE
+    IF MonthString = '04' THEN MonthString := 'APR' ELSE
+    IF MonthString = '05' THEN MonthString := 'MAY' ELSE
+    IF MonthString = '06' THEN MonthString := 'JUN' ELSE
+    IF MonthString = '07' THEN MonthString := 'JUL' ELSE
+    IF MonthString = '08' THEN MonthString := 'AUG' ELSE
+    IF MonthString = '09' THEN MonthString := 'SEP' ELSE
+    IF MonthString = '10' THEN MonthString := 'OCT' ELSE
+    IF MonthString = '11' THEN MonthString := 'NOV' ELSE
+    IF MonthString = '12' THEN MonthString := 'DEC' ELSE
+        MonthString := '???';
+
+    DayString := Copy (UDPDateString, 9, 2);
+
+    RXData.Date := DayString + MonthString + YearString;
+
+    { Now we deal with the time }
+
     END;
 
 

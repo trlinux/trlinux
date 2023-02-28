@@ -31,7 +31,7 @@ INTERFACE
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
      slowtree, so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW,
-     N4OGW,LogUDP;
+     foot, N4OGW, LogUDP;
 
 TYPE
 
@@ -1257,6 +1257,17 @@ VAR TimeString, FullTimeString, HourString: Str20;
     RateMinute: INTEGER;
 
     BEGIN
+    IF FootSwitchMode <> PreviousFootSwitchMode THEN
+        BEGIN
+        IF FootSwitchMode = Normal THEN
+            ActiveKeyer.LetFootSwitchControlPTT  { This does nothing for YCCC }
+        ELSE
+            IF ActiveKeyer = ArdKeyer THEN
+                ArdKeyer.ClearFootSwitchControlPTT;
+
+        PreviousFootSwitchMode := FootSwitchMode;
+        END;
+
     TBSIQ_CheckDualingCQState;  { The orchestral director of the dualing CQ process }
     TBSIQ_CheckTestLoopState;   { Test loop process }
     TBSIQ_CheckBandMap;         { Sees if the bandmap and visible dupesheet are on the right radio }
@@ -2846,6 +2857,9 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             KeyboardCWMessage := '';
             QSOState := QST_SendingKeyboardCWWaiting;
+
+            IF Mode = Digital THEN
+                StartRTTYTransmission ('');
             END;
 
         QST_SendingKeyboardCWWaiting:
@@ -2866,6 +2880,10 @@ VAR Key, ExtendedKey: CHAR;
                     CarriageReturn, EscapeKey:
                         BEGIN
                         QSOState := RememberQSOState;
+
+                        IF Mode = Digital THEN
+                            FinishRTTYTransmission ('');
+
                         Exit;
                         END;
 
@@ -2875,6 +2893,13 @@ VAR Key, ExtendedKey: CHAR;
                             IF Mode = CW THEN
                                 BEGIN
                                 TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High, False);
+                                KeyboardCWMessage := KeyboardCWMessage + Key;
+                                ShowCWMessage (KeyboardCWMessage);
+                                END;
+
+                            IF Mode = Digital THEN
+                                BEGIN
+                                ContinueRTTYTransmission (Key);
                                 KeyboardCWMessage := KeyboardCWMessage + Key;
                                 ShowCWMessage (KeyboardCWMessage);
                                 END;

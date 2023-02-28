@@ -346,7 +346,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       FSE: FloppyFileSaveName := QuickEditResponse ('Enter new floppy file save name : ', 20);
 
-      FSM: CASE FootSwitchMode OF
+      FSM: BEGIN
+           CASE FootSwitchMode OF
                FootSwitchDisabled:                 FootSwitchMode := Normal;
                Normal:                             FootSwitchMode := FootSwitchF1;
                FootSwitchF1:                       FootSwitchMode := FootSwitchLastCQFreq;
@@ -371,6 +372,23 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                     ActiveKeyer.setCwGrant(false);
                   End;
                END;
+
+           IF FootSwitchMode <> PreviousFootSwitchMode THEN
+               BEGIN
+               IF FootSwitchMode = Normal THEN
+                   BEGIN
+                   ActiveKeyer.LetFootSwitchControlPTT;  { This does nothing for YCCC }
+
+                   IF ActiveKeyer = ArdKeyer THEN
+                       ArdKeyer.LetFootSwitchControlPTT;
+                   END
+               ELSE
+                   IF ActiveKeyer = ArdKeyer THEN
+                       ArdKeyer.ClearFootSwitchControlPTT;
+
+               PreviousFootSwitchMode := FootSwitchMode;
+               END;
+           END;
 
       FA1: BEGIN
            TempLongInt := QuickEditInteger ('Enter radio 1 frequency adder : ', 11);

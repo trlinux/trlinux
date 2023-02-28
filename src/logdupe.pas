@@ -101,11 +101,11 @@ TYPE
     ContestExchange = RECORD
           Age:            Str20;
           Band:           BandType;
-          Date:           Str20;                      { dd-mmm-yy }
           Callsign:       Str20;
           Chapter:        Str20;                      { QCWA Chapter }
           Check:          Str20;
           Classs:         Str20;                      { Field day class - extra s on purpose }
+          Date:           Str20;                      { dd-mmm-yy }
           DomesticMult:   BOOLEAN;
           DomMultQTH:     DomesticMultiplierString;
           DomesticQTH:    Str20;
@@ -3379,7 +3379,6 @@ VAR ExchangeString: Str80;
 
     IF (ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange) THEN {KK1L: 6.70 for FISTS funny exchange}
         BEGIN
-
         RXData.QTHString := RemoveFirstString(ExchangeString);
         RXData.Name := RemoveFirstString (ExchangeString);
         {KK1L: 6.70 The power/number is right where the mults usually go}

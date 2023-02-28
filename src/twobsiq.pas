@@ -102,6 +102,8 @@ BIG ASS PROJECT
     we want to for the partial call list.  Maybe with the criteria "have name" or
     "have domestic QTH".
 
+  - Improve sending RTTY message from keyboard
+
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 24-Feb-2023

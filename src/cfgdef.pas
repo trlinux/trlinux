@@ -178,6 +178,7 @@ PROCEDURE SetConfigurationDefaultValues;
     FloppyFileSaveFrequency := 0;
 
     FootSwitchMode := FootSwitchDisabled;
+    PreviousFootSwitchMode := Normal;
 
     ForcedEntry := False; {KK1L: 6.70 switch used in JCTRL2 to add comments to LOGCFG}
 

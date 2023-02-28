@@ -29,7 +29,7 @@ INTERFACE
 USES SlowTree, Tree, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
      LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt, K1EANet,
-     communication,linuxsound,N4OGW,LogUDP;
+     N1MM, communication, linuxsound, N4OGW, LogUDP;
 
 
     FUNCTION  ProcessConfigInstruction (FileString: STRING; VAR FirstCommand: BOOLEAN): BOOLEAN;
@@ -2190,6 +2190,13 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         MyIOTA := UpperCase (CMD);
         ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'N1MM UDP PORT' THEN
+        BEGIN
+        Val (Cmd, N1MM_UDP_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
 
