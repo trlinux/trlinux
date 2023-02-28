@@ -294,25 +294,14 @@ PROCEDURE ClearUDPRecord;
 
 
 
-FUNCTION CreateRXDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange): BOOLEAN;
-
-{ Does the reverse of the MergeRXExchangeToUDPRecord so that we can take a QSO UDP message
-  from like N1MM and log it in the TRLog program.  I put there here instead of N1MM so that
-  other people could use it - and also all of the field definitions are located here  for
-  reference.  I will do some amount of checking to make sure the data looks complete and
-  if so - return TRUE. }
+PROCEDURE GetTimeAndDateFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
 
 VAR TempString: STRING;
     UDPDateString, UDPTimeString: Str20;
     YearString, MonthString, DayString: Str20;
+    SecondsString: Str20;
 
     BEGIN
-    CreateRXDataFromUDPMessage := False;
-
-    ClearContestExchange (RXData);
-
-    { First let's figure out the time and date <timestamp>2020-01-17 16:43:38</timestamp> }
-
     TempString := BracketedString (UDPMessage, '<timestamp>', '</timestamp>');
 
     UDPDateString := RemoveFirstString (TempString);   { 2020-01-17 }
@@ -342,9 +331,85 @@ VAR TempString: STRING;
 
     DayString := Copy (UDPDateString, 9, 2);
 
-    RXData.Date := DayString + MonthString + YearString;
+    RXData.Date := DayString + '-' + MonthString + '-' + YearString;
 
-    { Now we deal with the time }
+    { Now we deal with the time - we have 12:34:56 and need an integer value for the
+      hour/minutes and seconds in its own field as an integer }
+
+    SecondsString := Copy (UDPTimeString, Length (UDPTimeString) - 1, 2);
+
+    Val (SecondsString, RXData.TimeSeconds);
+
+    { Remove seconds and the last colon }
+
+    Delete (UDPTimeString, Length (UDPTimeString) - 2, 3);
+
+    { Get rid of the remaining colon }
+
+    Delete (UDPTimeString, Length (UDPTimeString) - 2 , 1);
+
+    Val (UDPTimeString, RXData.Time);
+    END;
+
+
+
+PROCEDURE GetBandAndModeFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
+
+{ <band>3.5</band>  and  <mode>CW</mode> }
+
+VAR BandString, ModeString: Str20;
+
+    BEGIN
+    BandString := BracketedString (UDPMessage, '<band>', '</band>');
+    ModeString := BracketedString (UDPMessage, '<mode>', '</mode>');
+
+    RXData.Band := NoBand;
+    RXData.Mode := NoMode;
+
+    IF BandString = '1.8' THEN RXData.Band := Band160 ELSE
+    IF BandString = '3.5' THEN RXData.Band := Band80 ELSE
+    IF BandString = '7' THEN RXData.Band := Band40 ELSE
+    IF BandString = '10' THEN RXData.Band := Band30 ELSE
+    IF BandString = '14' THEN RXData.Band := Band20 ELSE
+    IF BandString = '18' THEN RXData.Band := Band17 ELSE
+    IF BandString = '21' THEN RXData.Band := Band15 ELSE
+    IF BandString = '24' THEN RXData.Band := Band12 ELSE
+    IF BandString = '28' THEN RXData.Band := Band10 ELSE
+    IF BandString = '50' THEN RXData.Band := Band6 ELSE
+    IF BandString = '144' THEN RXData.Band := Band2 ELSE
+    IF BandString = '222' THEN RXData.Band := Band222 ELSE
+    IF BandString = '420' THEN RXData.Band := Band432 ELSE
+    IF BandString = '902' THEN RXData.Band := Band902 ELSE
+    IF BandString = '1240' THEN RXData.Band := Band1296 ELSE
+    IF BandString = '2300' THEN RXData.Band := Band2304 ELSE
+    IF BandString = '3300' THEN RXData.Band := Band3456 ELSE
+    IF BandString = '5050' THEN RXData.Band := Band5760 ELSE
+    IF BandString = '10000' THEN RXData.Band := Band10G ELSE
+    IF BandString = '24000' THEN RXData.Band := Band24G;
+
+    IF ModeString = 'CW' THEN RXData.Mode := CW ELSE
+    IF ModeString = 'SSB' THEN RXData.Mode := Phone;
+    END;
+
+
+
+FUNCTION CreateRXDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange): BOOLEAN;
+
+{ Does the reverse of the MergeRXExchangeToUDPRecord so that we can take a QSO UDP message
+  from like N1MM and log it in the TRLog program.  I put there here instead of N1MM so that
+  other people could use it - and also all of the field definitions are located here  for
+  reference.  I will do some amount of checking to make sure the data looks complete and
+  if so - return TRUE. }
+
+    BEGIN
+    CreateRXDataFromUDPMessage := False;
+    ClearContestExchange (RXData);
+
+    GetTimeAndDateFromUDPMessage (UDPMessage, RXData);
+    GetBandAndModeFromUDPMessage (UDPMessage, RXData);
+
+
+
 
     END;
 
