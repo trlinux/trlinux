@@ -59,6 +59,8 @@ SRC=\
    logsubs2.pas\
    logwae.pas\
    logwind.pas\
+   n4ogw.pas\
+   n1mm.pas\
    postcfg.pas\
    remmults.pas\
    slowtree.pas\
