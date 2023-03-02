@@ -410,16 +410,99 @@ VAR TempString, RSTSentString, RSTReceivedString: Str20;
     xResult, Number: INTEGER;
 
     BEGIN
+    { Take care of fields that might be there for any contest.  Note that BracketedString
+      will return a null string if both the starting and ending strings are not found.  }
+
     RXData.RSTSent := BracketedString (UDPMessage, '<snt>', '</snt>');
     RXData.RSTReceived := BracketedSTring (UDPMessage, '<rcv>', '</rcv>');
 
-    TempString := BracketedString (UDPMessage, '<sntnr>', '</sntnr>');
-    Val (TempString, Number, xResult);
-    IF xResult = 0 THEN RXData.NumberSent := Number;
+    { Now look at the ActiveExchange and pull out the appropriate data }
 
-    TempString := BracketedString (UDPMessage, '<rcvnr>', '</rcvnr>');
-    Val (TempString, Number, xResult);
-    IF xResult = 0 THEN RXData.NumberReceived:= Number;
+    CASE ActiveExchange OF
+        UnknownExchange: BEGIN END;
+        NoExchangeReceived: BEGIN END;
+        CheckAndChapterOrQTHExchange: BEGIN END;
+        ClassDomesticOrDXQTHExchange: BEGIN END;
+        CWTExchange: BEGIN END;
+        KidsDayExchange: BEGIN END;
+        NameAndDomesticOrDXQTHExchange: BEGIN END;
+        NameQTHAndPossibleTenTenNumber: BEGIN END;
+        NameAndPossibleGridSquareExchange: BEGIN END;
+        NZFieldDayExchange: BEGIN END;
+        QSONumberAndNameExchange: BEGIN END;
+        QSONumberDomesticOrDXQTHExchange: BEGIN END;
+        QSONumberDomesticQTHExchange: BEGIN END;
+        QSONumberNameChapterAndQTHExchange: BEGIN END;
+        QSONumberNameDomesticOrDXQTHExchange: BEGIN END;
+
+        QSONumberPrecedenceCheckDomesticQTHExchange:  { AKA Sweepstakes }
+            BEGIN
+            TempString := BracketedString (UDPMessage, '<sntnr>', '</sntnr>');
+            Val (TempString, Number, xResult);
+            IF xResult = 0 THEN RXData.NumberSent := Number;
+
+            TempString := BracketedString (UDPMessage, '<rcvnr>', '</rcvnr>');
+            Val (TempString, Number, xResult);
+            IF xResult = 0 THEN RXData.NumberReceived:= Number;
+
+            RXData.Precedence := BracketedString (UDPMessage, '<prec>', '</prec>');
+            RXData.Check := BracketedString (UDPMessage, '<ck>', '</ck>');
+            RXData.QTHString := BracketedString (UDPMessage, '<section>', '</section>');
+            END;
+
+        RSTAgeExchange: BEGIN END;
+        RSTALLJAPrefectureAndPrecedenceExchange: BEGIN END;
+        RSTAndContinentExchange: BEGIN END;
+        RSTAndDomesticQTHOrZoneExchange: BEGIN END;
+
+        RSTAndGridExchange, RSTAndOrGridExchange:
+            BEGIN
+            RXData.DomesticQTH := BracketedString (UDPMessage, '<gridsquare>', '</gridsquare>');
+            RXData.QTHString := RXData.DomesticQTH;
+            END;
+
+        RSTAndQSONumberOrDomesticQTHExchange: BEGIN END;
+        RSTAndPostalCodeExchange: BEGIN END;
+        RSTDomesticOrDXQTHExchange: BEGIN END;
+        RSTDomesticQTHExchange: BEGIN END;
+        RSTDomesticQTHOrQSONumberExchange: BEGIN END;
+        RSTNameAndQTHExchange: BEGIN END;
+        RSTPossibleDomesticQTHAndPower: BEGIN END;
+
+        RSTPowerExchange:
+            RXData.Power := BracketedString (UDPMessage, '<power>', '</power>');
+
+        RSTPrefectureExchange: BEGIN END;
+        RSTQSONumberAndDomesticQTHExchange: BEGIN END;
+        RSTQSONumberAndGridSquareExchange: BEGIN END;
+        RSTQSONumberAndPossibleDomesticQTHExchange: BEGIN END;
+        QSONumberAndPossibleDomesticQTHExchange: BEGIN END; {KK1L: 6.73 For MIQP originally}
+        RSTQSONumberAndRandomCharactersExchange: BEGIN END;
+        RSTQTHNameAndFistsNumberOrPowerExchange: BEGIN END;
+
+        RSTQSONumberExchange:
+            BEGIN
+            TempString := BracketedString (UDPMessage, '<sntnr>', '</sntnr>');
+            Val (TempString, Number, xResult);
+            IF xResult = 0 THEN RXData.NumberSent := Number;
+
+            TempString := BracketedString (UDPMessage, '<rcvnr>', '</rcvnr>');
+            Val (TempString, Number, xResult);
+            IF xResult = 0 THEN RXData.NumberReceived:= Number;
+            END;
+
+        RSTQTHExchange: BEGIN END;
+        RSTZoneAndPossibleDomesticQTHExchange: BEGIN END;
+
+        RSTZoneExchange:
+            RXData.Zone := BracketedString (UDPMessage, '<zone>', '</zone>');
+
+        RSTZoneOrSocietyExchange: { Not sure where N1MM puts society }
+            BEGIN
+            END;
+
+        RSTLongJAPrefectureExchange: BEGIN END;
+        END;  { of CASE ActiveExchange }
     END;
 
 

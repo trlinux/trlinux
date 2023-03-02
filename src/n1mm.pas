@@ -305,17 +305,14 @@ PROCEDURE N1MM_Object.LogN1MMContact (RXData: ContestExchange);
 VAR LogString: Str80;
 
     BEGIN
-    RXData.TimeSeconds := GetTimeSeconds;
+    CalculateQSOPoints (RXData);
 
     VisibleDupeSheetChanged := True;
 
     LastTwoLettersCrunchedOn := '';
 
     IF LastDeletedLogEntry <> '' THEN
-        BEGIN
         LastDeletedLogEntry := '';
-        RemoveWindow (QuickCommandWindow);
-        END;
 
     LastQSOLogged := RXData;
 
@@ -360,6 +357,10 @@ VAR LogString: Str80;
         UpdateBandMapMultiplierStatus;
         UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
         END;
+
+    { This might not be a good thing to do.  FIrst off - Qsorder will not do anything
+      useful as a result.  If I am sending this to yet anotehr computer - what if it
+      is the one that sent the message.  Will it at some point send the QSO back to me? }
 
     IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
         BEGIN

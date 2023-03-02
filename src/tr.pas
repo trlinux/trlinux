@@ -41,6 +41,17 @@ PROGRAM ContestLoggingProgram;
      - When using footswitch to send CQ message, I get a VOX warning which I do
        not get from pressing F1.
 
+02-Mar-2023
+
+   - Note there is a new Arduino release - SO2RMini_2023_Feb_28.  This has a PTT
+     fix and code added by N4OGW to suuport integration of the SO2R Mini with the
+     TRLog firmware for his so2sdr program.
+
+   - Added some support for some of the typical multi-multi contests to the new
+     N1MM_UDP_PORT function.  There are still lots of exchanges that will not be
+     parsed correctly.  Also - currently, there is no validity check on the data
+     before attempting to log the QSO.  Also - none of it is tested yet.
+
 28-Feb-2023
 
    - Added N1MM_UDP_PORT config command which will accept "industry standard" QSO
