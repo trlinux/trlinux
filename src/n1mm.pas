@@ -129,7 +129,9 @@ VAR Index: INTEGER;
 
 
 
-FUNCTION N1MM_Object.Check_UDP_Port: BOOLEAN;  { Returns true if a message was found }
+FUNCTION N1MM_Object.Check_UDP_Port: BOOLEAN;
+
+{ Returns true if a message was found.  The message will be in the string UDP_Message }
 
 VAR BytesRead: INTEGER;
     FDS: Tfdset;
