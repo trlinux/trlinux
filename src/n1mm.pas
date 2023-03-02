@@ -330,6 +330,10 @@ VAR LogString: Str80;
 
     LogString := MakeLogString (RXData);  { This is in LOGSTUFF.PAS }
 
+    { We are going to makr these QSOs so we know they came from the N1MM QSO portal }
+
+    LogString [76] := '+';
+
     IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
         Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
 
