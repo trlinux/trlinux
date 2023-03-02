@@ -31,7 +31,7 @@ INTERFACE
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
      slowtree, so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW,
-     foot, N4OGW, LogUDP;
+     foot, N4OGW, N1MM, LogUDP;
 
 TYPE
 
@@ -1278,6 +1278,10 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     IF N4OGW_RadioOne_BandMap_IP <> '' THEN N4OGW_RadioOne_BandMap.Heartbeat;
     IF N4OGW_RadioTwo_BandMap_IP <> '' THEN N4OGW_RadioTwo_BandMap.Heartbeat;
+
+    { And also the N1MM QSO portal }
+
+    IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
 
     { See if the clock has ticked a second }
 

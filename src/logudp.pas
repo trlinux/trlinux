@@ -294,6 +294,13 @@ PROCEDURE ClearUDPRecord;
 
 
 
+PROCEDURE GetCallFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
+
+    BEGIN
+    RXData.Callsign := BracketedString (UDPMessage, '<call>', '</call>');
+    END;
+
+
 PROCEDURE GetTimeAndDateFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
 
 VAR TempString: STRING;
@@ -389,6 +396,48 @@ VAR BandString, ModeString: Str20;
 
     IF ModeString = 'CW' THEN RXData.Mode := CW ELSE
     IF ModeString = 'SSB' THEN RXData.Mode := Phone;
+
+    IF (ModeString = 'DIG') OR (ModeString = 'RTTY') OR (ModeString = 'FSK') THEN
+        RXData.Mode := Digital;
+
+    END;
+
+
+
+PROCEDURE GetExchangeDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
+
+VAR TempString, RSTSentString, RSTReceivedString: Str20;
+    xResult, Number: INTEGER;
+
+    BEGIN
+    RXData.RSTSent := BracketedString (UDPMessage, '<snt>', '</snt>');
+    RXData.RSTReceived := BracketedSTring (UDPMessage, '<rcv>', '</rcv>');
+
+    TempString := BracketedString (UDPMessage, '<sntnr>', '</sntnr>');
+    Val (TempString, Number, xResult);
+    IF xResult = 0 THEN RXData.NumberSent := Number;
+
+    TempString := BracketedString (UDPMessage, '<rcvnr>', '</rcvnr>');
+    Val (TempString, Number, xResult);
+    IF xResult = 0 THEN RXData.NumberReceived:= Number;
+    END;
+
+
+
+PROCEDURE GetFrequencyFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
+
+{ Frequency is in 10's of hertz }
+
+VAR TempString: Str20;
+    TempFreq: LONGINT;
+    xResult: INTEGER;
+
+    BEGIN
+    TempString := BracketedString (UDPMessage, '<rxfreq>', '</rxfreq');
+    Val (TempString, TempFreq, xResult);
+
+    IF xResult = 0 THEN
+        RXData.Frequency := TempFreq * 10;
     END;
 
 
@@ -396,8 +445,8 @@ VAR BandString, ModeString: Str20;
 FUNCTION CreateRXDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange): BOOLEAN;
 
 { Does the reverse of the MergeRXExchangeToUDPRecord so that we can take a QSO UDP message
-  from like N1MM and log it in the TRLog program.  I put there here instead of N1MM so that
-  other people could use it - and also all of the field definitions are located here  for
+  from like N1MM and log it in the TRLog program.  I put this here instead of N1MM so that
+  other "people" could use it - and also all of the field definitions are located here for
   reference.  I will do some amount of checking to make sure the data looks complete and
   if so - return TRUE. }
 
@@ -405,12 +454,11 @@ FUNCTION CreateRXDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExch
     CreateRXDataFromUDPMessage := False;
     ClearContestExchange (RXData);
 
-    GetTimeAndDateFromUDPMessage (UDPMessage, RXData);
-    GetBandAndModeFromUDPMessage (UDPMessage, RXData);
-
-
-
-
+    GetBandAndModeFromUDPMessage  (UDPMessage, RXData);
+    GetFrequencyFromUDPMessage    (UDPMessage, RXData);
+    GetTimeAndDateFromUDPMessage  (UDPMessage, RXData);
+    GetCallFromUDPMessage         (UDPMessage, RXData);
+    GetExchangeDataFromUDPMessage (UDPMessage, RXData);
     END;
 
 

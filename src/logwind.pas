@@ -706,6 +706,7 @@ VAR
     MyState:              Str10;  {KK1L: 6.67 Was Str20}
     MyZone:               ZoneMultiplierString;
 
+    N1MM_UDP_Port: LONGINT;
     NextQSONumberToGiveOut: INTEGER;
     NextQTCToBeAdded:   INTEGER;
     NextQTCToBeSent:    INTEGER;

@@ -27,7 +27,7 @@ INTERFACE
 USES trcrt, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
      LogWAE, LogHP, LogPack, LogK1EA, DOS, LogHelp, LogProm, CfgCmd,
-     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound,N4OGW;
+     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound,N4OGW, N1MM;
 
 
     FUNCTION  LoadInSeparateConfigFile (FileName: STRING;
@@ -147,6 +147,8 @@ VAR FileWrite: TEXT;
                                      N4OGW_RadioTwo_BandMap_Port,
                                      N4OGW_RadioTwo_BandMap_UDP_Port);
         END;
+
+    IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Init;
 
     IF QTCsEnabled THEN LoadQTCDataFile;
 

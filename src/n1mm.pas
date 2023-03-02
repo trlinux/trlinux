@@ -37,8 +37,7 @@ USES LogStuff, LogUDP, LogWind, LogDupe, LogEdit, SlowTree, datetimec, Tree, Key
 CONST MaxQTCs = 10;
 
 TYPE
-    N1MM_Object = CLASS
-        PortNumber: LONGINT;
+    N1MM_Object = OBJECT
         Socket: LONGINT;
 
         QTC_Count: INTEGER;    { Number of UDP messages cued up }
@@ -50,8 +49,14 @@ TYPE
 
         FUNCTION  Check_UDP_Port: BOOLEAN;  { Returns true if a message was found }
         FUNCTION  GetNextQTC: STRING;       { Pulls the next QTC off the buffer }
+
+        { These next two are the only procedures that should be used to make this work }
+
         PROCEDURE Heartbeat;                { Call this often to give oxygen to UDP polling }
-        PROCEDURE Init (UDP_Port: LONGINT); { Sets up the UDP port and QTC Buffer }
+        PROCEDURE Init;                     { Sets up the UDP port and QTC Buffer }
+
+        { The LogContacts will happen due to the Heartbeat }
+
         PROCEDURE LogContacts;              { This will take and UDP packets that have been
                                               saved up and push them into the log. Anything
                                               displayed will be generic enough that it will
@@ -62,19 +67,21 @@ TYPE
         PROCEDURE PutContactIntoLogFile (LogString: Str80);
         END;
 
-VAR
-     N1MM_UDP_Port: LONGINT;      { Global used for config.  Is equal to zero if not used }
+VAR  N1MM_QSO_Portal: N1MM_Object;
 
 IMPLEMENTATION
 
-PROCEDURE N1MM_Object.Init (UDP_Port: LONGINT);
+CONST N1MM_DebugFileName = 'N1MM_debug.txt';
+
+PROCEDURE N1MM_Object.Init;
 
 VAR SocketAddr: TINetSockAddr;
     ConnectResult: INTEGER;
+    FileWrite: TEXT;
 
     BEGIN
     QTC_Count := 0;
-    UDP_PortNumber := UDP_Port;
+    UDP_PortNumber := N1MM_UDP_Port;
 
     { Setup the UDP port.  }
 
@@ -86,12 +93,14 @@ VAR SocketAddr: TINetSockAddr;
 
     ConnectResult := fpBind (UDP_Socket, @SocketAddr, SizeOf (SocketAddr));
 
+    OpenFileForAppend (FileWrite, N1MM_DebugFileName);
+
     IF ConnectResult <> 0 THEN
-        BEGIN
-        WriteLn ('Unable to connect to UDP port ', PortNumber);
-        WaitForKeyPressed;
-        Exit;
-        END;
+        WriteLn (FileWrite, 'Unable to connect to UDP port ', UDP_PortNumber)
+    ELSE
+        WriteLn (FileWrite, 'Port ', UDP_PortNumber, ' open for input.  Socket = ',  UDP_Socket);
+
+    Close (FileWrite);
     END;
 
 
@@ -124,6 +133,7 @@ FUNCTION N1MM_Object.Check_UDP_Port: BOOLEAN;  { Returns true if a message was f
 
 VAR BytesRead: INTEGER;
     FDS: Tfdset;
+    FileWrite: TEXT;
 
     BEGIN
     { Set up FDS and inquire if there is some data available }
@@ -150,6 +160,10 @@ VAR BytesRead: INTEGER;
 
     SetLength (UDP_Message, BytesRead);
 
+    OpenFileForAppend (FileWrite, N1MM_DebugFileName);
+    WriteLn (UDP_Message);
+    Close (FileWrite);
+
     Check_UDP_Port := True;
     END;
 
@@ -158,7 +172,8 @@ VAR BytesRead: INTEGER;
 PROCEDURE N1MM_Object.Heartbeat;
 
 { This should be called as often as possible.  It will check to see if a UDP
-  message has arrived and put it into the QTC buffer if so }
+  message has arrived and put it into the QTC buffer if so.  It will also call
+  the routine to take any contents of the QTC buffer and log them. }
 
     BEGIN
     { Check the UDP port to see if there are any messages waiting }
@@ -168,6 +183,8 @@ PROCEDURE N1MM_Object.Heartbeat;
         QTC_Buffer [QTC_Count] := UDP_Message;
         Inc (QTC_Count);
         END;
+
+    LogContacts;
     END;
 
 
@@ -375,5 +392,5 @@ VAR N1MMString: STRING;
 
 
     BEGIN
-    N1MM_UDP_Port := 0;
+    N1MM_UDP_Port := 0;    { Declared in logwind.pas }
     END.

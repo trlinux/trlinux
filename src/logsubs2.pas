@@ -885,6 +885,7 @@ VAR Frequency: LONGINT;
             IF ActiveMultiPort <> nil THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
+            IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
             millisleep;
         UNTIL ElaspedSec100 (RememberTime) >= 50;
 
@@ -1227,7 +1228,7 @@ VAR Key: CHAR;
         IF ActiveMultiPort <> nil THEN CheckMultiState;
 
         UpdateTimeAndRateDisplays (True, True);
-
+        IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
 
         IF NewKeyPressed THEN
             BEGIN
@@ -1853,6 +1854,7 @@ VAR CQMemory, SendChar: CHAR;
                 {KK1L: 6.72 NOTE Timing delays can occur if there are radio communcations problems due to    }
                 {                various timeouts, etc in the polling called from UpdateTimeAndRateDisplays. }
                 UpdateTimeAndRateDisplays (True, True);
+                IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
 
                 IF ActiveMultiPort <> nil THEN CheckMultiState;
 
@@ -2122,6 +2124,7 @@ VAR Result: INTEGER;
             IF ActiveMultiPort <> nil THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
+            IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
         UNTIL (NOT CWStillBeingSent and  not dvpmessageplaying) OR NewKeyPressed;
 
         IF NewKeyPressed THEN
@@ -2476,6 +2479,7 @@ VAR Result: INTEGER;
             END;
 
     UpdateTimeAndRateDisplays (True, True); {KK1L: 6.72 Moved here to speed up SCP and other things}
+    IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
 
     IF RadioOnTheMove [ActiveRadio] THEN {KK1L: 6.73 To fix call popping up after already working them.}
         OkayToPutUpBandMapCall := True;
@@ -7186,6 +7190,7 @@ VAR MTotals: MultTotalArrayType;
                     REPEAT
                         IF ActiveMultiPort <> nil THEN CheckMultiState;
                         UpdateTimeAndRateDisplays (True, True);
+                        IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
                         Packet.CheckPacket;
                     UNTIL ElaspedSec100 (RememberTime) >= 30;
 
