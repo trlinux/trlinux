@@ -34,35 +34,29 @@ INTERFACE
 USES LogStuff, LogUDP, LogWind, LogDupe, LogEdit, SlowTree, datetimec, Tree, KeyCode,
      Country9, Sockets, UnixType, BaseUnix, portname;
 
-CONST MaxQTCs = 10;
+CONST UDPBufferSize = 4096;
 
 TYPE
     N1MM_Object = OBJECT
+        NumberCharsInUDPBuffer: INTEGER;
         Socket: LONGINT;
-
-        QTC_Count: INTEGER;    { Number of UDP messages cued up }
-        QTC_Buffer: ARRAY [0..MaxQTCs - 1] OF STRING;
-
         UDP_PortNumber: LONGINT;
         UDP_Socket: LONGINT;
-        UDP_Message: STRING;
+        UDPBuffer: ARRAY [0..UDPBufferSize -1] OF CHAR;
 
-        FUNCTION  Check_UDP_Port: BOOLEAN;  { Returns true if a message was found }
-        FUNCTION  GetNextQTC: STRING;       { Pulls the next QTC off the buffer }
-
-        { These next two are the only procedures that should be used to make this work }
-
-        PROCEDURE Heartbeat;                { Call this often to give oxygen to UDP polling }
-        PROCEDURE Init;                     { Sets up the UDP port and QTC Buffer }
-
-        { The LogContacts will happen due to the Heartbeat }
-
-        PROCEDURE LogContacts;              { This will take and UDP packets that have been
-                                              saved up and push them into the log. Anything
-                                              displayed will be generic enough that it will
-                                              be okay for classic or TBSIQ modes. }
-
+        FUNCTION  Check_UDP_Port: BOOLEAN;
+        FUNCTION  CreateRXDataFromUDPMessage (VAR RXData: ContestExchange): BOOLEAN;
+        PROCEDURE GetBandAndModeFromUDPMessage (VAR RXData: ContestExchange);
+        PROCEDURE GetCallFromUDPMessage (VAR RXData: ContestExchange);
+        PROCEDURE GetExchangeDataFromUDPMessage (VAR RXData: ContestExchange);
+        PROCEDURE GetFrequencyFromUDPMessage (VAR RXData: ContestExchange);
+        PROCEDURE GetTimeAndDateFromUDPMessage (VAR RXData: ContestExchange);
+        FUNCTION  GetXMLData (XMLField: STRING): STRING;
+        PROCEDURE Heartbeat;
+        PROCEDURE Init;
+        PROCEDURE LogContact;
         PROCEDURE LogN1MMContact (RXData: ContestExchange);  { Logs the QSO }
+        FUNCTION  NextBytesMatchString (Address: INTEGER; Pattern: STRING): BOOLEAN;
         PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
         PROCEDURE PutContactIntoLogFile (LogString: Str80);
         END;
@@ -73,6 +67,104 @@ IMPLEMENTATION
 
 CONST N1MM_DebugFileName = 'N1MM_debug.txt';
 
+
+
+FUNCTION N1MM_Object.NextBytesMatchString (Address: INTEGER; Pattern: STRING): BOOLEAN;
+
+VAR PatternIndex: INTEGER;
+
+    BEGIN
+    IF Length (Pattern) = 0 THEN
+        BEGIN
+        NextBytesMatchString := False;
+        Exit;
+        END;
+
+    PatternIndex := 1;
+
+    WHILE Address < NumberCharsInUDPBuffer DO
+        BEGIN
+        IF UDPBuffer [Address] <> Pattern [PatternIndex] THEN
+            BEGIN
+            NextBytesMatchString := False;
+            Exit;
+            END;
+
+        { We have a match - see if we have matched up all of the Pattern }
+
+        IF PatternIndex = Length (Pattern) THEN
+            BEGIN
+            NextBytesMatchString := True;
+            Exit;
+            END;
+
+        Inc (PatternIndex);
+        Inc (Address);
+        END;
+
+    { Failed to find a match before running out of characters }
+
+    NextBytesMatchString := False;
+    END;
+
+
+
+FUNCTION N1MM_Object.GetXMLData (XMLField: STRING): STRING;
+
+{ Will look through the buffer for a match of the XMLField indicated and return any
+  data found.  A nullstring indicates either the field was not included or there was
+  no data found. }
+
+VAR StartAddress, StopAddress, SaveAddress, Address: INTEGER;
+    TempString: STRING;
+
+    BEGIN
+    GetXMLData := '';
+
+    IF NumberCharsInUDPBuffer < (Length (XMLField) *2) THEN Exit;  { Not enough bytes }
+
+    Address := 0; { First byte of buffer }
+
+    WHILE Address < NumberCharsInUDPBuffer DO
+        BEGIN
+        IF NextBytesMatchString (Address, '<' + XMLField + '>') THEN
+            BEGIN
+            StartAddress := Length (XMLField) + 2;  { Jump over the <field> entry }
+
+            Address := StartAddress;  { Address of first character after field ID }
+
+            IF StartAddress >= NumberCharsInUDPBuffer THEN Exit;
+
+            WHILE Address < NumberCharsInUDPBuffer DO
+                BEGIN
+                IF NextBytesMatchString (Address, '</' + XMLField + '>') THEN
+                    BEGIN
+                    StopAddress := Address - 1;  { Address of last data character }
+
+                    TempString := '';
+
+                    IF StopAddress >= StartAddress THEN
+                        FOR SaveAddress := StartAddress TO StopAddress DO
+                            TempString := TempString + UDPBuffer [SaveAddress];
+
+                    GetXMLData := TempString;
+                    Exit;
+                    END;
+
+                Inc (Address);
+                END;
+
+            { We got to the end of the buffer without finding the </ entry }
+
+            Exit;
+            END;
+
+        Inc (Address);
+        END;
+    END;
+
+
+
 PROCEDURE N1MM_Object.Init;
 
 VAR SocketAddr: TINetSockAddr;
@@ -80,7 +172,8 @@ VAR SocketAddr: TINetSockAddr;
     FileWrite: TEXT;
 
     BEGIN
-    QTC_Count := 0;
+    NumberCharsinUDPBuffer := 0;
+
     UDP_PortNumber := N1MM_UDP_Port;
 
     { Setup the UDP port.  }
@@ -105,35 +198,11 @@ VAR SocketAddr: TINetSockAddr;
 
 
 
-FUNCTION N1MM_Object.GetNextQTC: STRING;
-
-{ Pulls the oldest QTC off the QTC buffer }
-
-VAR Index: INTEGER;
-
-    BEGIN
-    IF QTC_Count = 0 THEN
-        BEGIN
-        GetNextQTC := '';
-        Exit;
-        END;
-
-    GetNextQTC := QTC_Buffer [0];
-
-    IF QTC_Count > 1 THEN
-        FOR Index := 0 TO QTC_Count - 2 DO
-            QTC_Buffer [Index] := QTC_Buffer [Index + 1];
-
-    Dec (QTC_Count);
-    END;
-
-
-
 FUNCTION N1MM_Object.Check_UDP_Port: BOOLEAN;
 
-{ Returns true if a message was found.  The message will be in the string UDP_Message }
+{ Returns true if a message was found.  The message will be in the UDPBuffer }
 
-VAR BytesRead: INTEGER;
+VAR Address, BytesRead: INTEGER;
     FDS: Tfdset;
     FileWrite: TEXT;
 
@@ -152,7 +221,7 @@ VAR BytesRead: INTEGER;
 
     { We have some data to read - put it starting at char index 1 of message string }
 
-    BytesRead := fpRecv (UDP_Socket, @UDP_MEssage[1], 255, 0);
+    BytesRead := fpRecv (UDP_Socket, @UDPBuffer, UDPBufferSize, 0);
 
     IF BytesRead = -1 THEN
         BEGIN
@@ -160,12 +229,19 @@ VAR BytesRead: INTEGER;
         Exit;
         END;
 
-    SetLength (UDP_Message, BytesRead);
+    NumberCharsInUDPBuffer := BytesRead;
 
     OpenFileForAppend (FileWrite, N1MM_DebugFileName);
-    WriteLn (UDP_Message);
-    Close (FileWrite);
+    WriteLn (FileWrite, GetTimeString, ' BytesRead = ', BytesRead);
 
+    IF BytesRead > 0 THEN
+        BEGIN
+        FOR Address := 0 TO BytesRead - 1 DO
+            Write (FileWrite, UDPBuffer [Address]);
+        WriteLn;
+        END;
+
+    Close (FileWrite);
     Check_UDP_Port := True;
     END;
 
@@ -174,19 +250,10 @@ VAR BytesRead: INTEGER;
 PROCEDURE N1MM_Object.Heartbeat;
 
 { This should be called as often as possible.  It will check to see if a UDP
-  message has arrived and put it into the QTC buffer if so.  It will also call
-  the routine to take any contents of the QTC buffer and log them. }
+  message has arrived and log it if so. }
 
     BEGIN
-    { Check the UDP port to see if there are any messages waiting }
-
-    WHILE Check_UDP_Port AND (QTC_Count < MaxQTCs) DO
-        BEGIN
-        QTC_Buffer [QTC_Count] := UDP_Message;
-        Inc (QTC_Count);
-        END;
-
-    LogContacts;
+    IF Check_UDP_Port THEN LogContact;
     END;
 
 
@@ -377,23 +444,267 @@ VAR LogString: Str80;
 
 
 
-PROCEDURE N1MM_Object.LogContacts;
+PROCEDURE N1MM_Object.GetCallFromUDPMessage (VAR RXData: ContestExchange);
+
+    BEGIN
+    RXData.Callsign := GetXMLData ('call');
+    END;
+
+
+PROCEDURE N1MM_Object.GetTimeAndDateFromUDPMessage (VAR RXData: ContestExchange);
+
+VAR TempString: STRING;
+    UDPDateString, UDPTimeString: Str20;
+    YearString, MonthString, DayString: Str20;
+    SecondsString: Str20;
+
+    BEGIN
+    TempString := GetXMLData ('timestamp');
+
+    UDPDateString := RemoveFirstString (TempString);   { 2020-01-17 }
+    UDPTimeString := RemoveFirstString (TempString);   { 16:43:38 }
+
+    { Only use two digits of the year }
+
+    YearString := Copy (UDPDateString, 3, 2);
+
+    { Convert integer month into JAN - DEC }
+
+    MonthString := Copy (UDPDateString, 6, 2);
+
+    IF MonthString = '01' THEN MonthString := 'JAN' ELSE
+    IF MonthString = '02' THEN MonthString := 'FEB' ELSE
+    IF MonthString = '03' THEN MonthString := 'MAR' ELSE
+    IF MonthString = '04' THEN MonthString := 'APR' ELSE
+    IF MonthString = '05' THEN MonthString := 'MAY' ELSE
+    IF MonthString = '06' THEN MonthString := 'JUN' ELSE
+    IF MonthString = '07' THEN MonthString := 'JUL' ELSE
+    IF MonthString = '08' THEN MonthString := 'AUG' ELSE
+    IF MonthString = '09' THEN MonthString := 'SEP' ELSE
+    IF MonthString = '10' THEN MonthString := 'OCT' ELSE
+    IF MonthString = '11' THEN MonthString := 'NOV' ELSE
+    IF MonthString = '12' THEN MonthString := 'DEC' ELSE
+        MonthString := '???';
+
+    DayString := Copy (UDPDateString, 9, 2);
+
+    RXData.Date := DayString + '-' + MonthString + '-' + YearString;
+
+    { Now we deal with the time - we have 12:34:56 and need an integer value for the
+      hour/minutes and seconds in its own field as an integer }
+
+    SecondsString := Copy (UDPTimeString, Length (UDPTimeString) - 1, 2);
+
+    Val (SecondsString, RXData.TimeSeconds);
+
+    { Remove seconds and the last colon }
+
+    Delete (UDPTimeString, Length (UDPTimeString) - 2, 3);
+
+    { Get rid of the remaining colon }
+
+    Delete (UDPTimeString, Length (UDPTimeString) - 2 , 1);
+
+    Val (UDPTimeString, RXData.Time);
+    END;
+
+
+
+PROCEDURE N1MM_Object.GetBandAndModeFromUDPMessage (VAR RXData: ContestExchange);
+
+{ <band>3.5</band>  and  <mode>CW</mode> }
+
+VAR BandString, ModeString: Str20;
+
+    BEGIN
+    BandString := GetXMLData ('band');
+    ModeString := GetXMLData ('mode');
+
+    RXData.Band := NoBand;
+    RXData.Mode := NoMode;
+
+    IF BandString = '1.8' THEN RXData.Band := Band160 ELSE
+    IF BandString = '3.5' THEN RXData.Band := Band80 ELSE
+    IF BandString = '7' THEN RXData.Band := Band40 ELSE
+    IF BandString = '10' THEN RXData.Band := Band30 ELSE
+    IF BandString = '14' THEN RXData.Band := Band20 ELSE
+    IF BandString = '18' THEN RXData.Band := Band17 ELSE
+    IF BandString = '21' THEN RXData.Band := Band15 ELSE
+    IF BandString = '24' THEN RXData.Band := Band12 ELSE
+    IF BandString = '28' THEN RXData.Band := Band10 ELSE
+    IF BandString = '50' THEN RXData.Band := Band6 ELSE
+    IF BandString = '144' THEN RXData.Band := Band2 ELSE
+    IF BandString = '222' THEN RXData.Band := Band222 ELSE
+    IF BandString = '420' THEN RXData.Band := Band432 ELSE
+    IF BandString = '902' THEN RXData.Band := Band902 ELSE
+    IF BandString = '1240' THEN RXData.Band := Band1296 ELSE
+    IF BandString = '2300' THEN RXData.Band := Band2304 ELSE
+    IF BandString = '3300' THEN RXData.Band := Band3456 ELSE
+    IF BandString = '5050' THEN RXData.Band := Band5760 ELSE
+    IF BandString = '10000' THEN RXData.Band := Band10G ELSE
+    IF BandString = '24000' THEN RXData.Band := Band24G;
+
+    IF ModeString = 'CW' THEN RXData.Mode := CW ELSE
+    IF ModeString = 'SSB' THEN RXData.Mode := Phone;
+
+    IF (ModeString = 'DIG') OR (ModeString = 'RTTY') OR (ModeString = 'FSK') THEN
+        RXData.Mode := Digital;
+
+    END;
+
+
+
+PROCEDURE N1MM_Object.GetExchangeDataFromUDPMessage (VAR RXData: ContestExchange);
+
+VAR TempString: STRING;
+    xResult, Number: INTEGER;
+
+    BEGIN
+    RXData.RSTSent := GetXMLData ('snt');
+    RXData.RSTReceived := GetXMLData ('rcv');
+
+    { Now look at the ActiveExchange and pull out the appropriate data }
+
+    CASE ActiveExchange OF
+        UnknownExchange: BEGIN END;
+        NoExchangeReceived: BEGIN END;
+        CheckAndChapterOrQTHExchange: BEGIN END;
+        ClassDomesticOrDXQTHExchange: BEGIN END;
+        CWTExchange: BEGIN END;
+        KidsDayExchange: BEGIN END;
+        NameAndDomesticOrDXQTHExchange: BEGIN END;
+        NameQTHAndPossibleTenTenNumber: BEGIN END;
+        NameAndPossibleGridSquareExchange: BEGIN END;
+        NZFieldDayExchange: BEGIN END;
+        QSONumberAndNameExchange: BEGIN END;
+        QSONumberDomesticOrDXQTHExchange: BEGIN END;
+        QSONumberDomesticQTHExchange: BEGIN END;
+        QSONumberNameChapterAndQTHExchange: BEGIN END;
+        QSONumberNameDomesticOrDXQTHExchange: BEGIN END;
+
+        QSONumberPrecedenceCheckDomesticQTHExchange:  { AKA Sweepstakes }
+            BEGIN
+            TempString := GetXMLData ('sntnr');
+            Val (TempString, Number, xResult);
+            IF xResult = 0 THEN RXData.NumberSent := Number;
+
+            TempString := GetXMLData ('rcvnr');
+            Val (TempString, Number, xResult);
+            IF xResult = 0 THEN RXData.NumberReceived:= Number;
+
+            RXData.Precedence := GetXMLData ('prec');
+            RXData.Check := GetXMLData ('ck');
+            RXData.QTHString := GetXMLData ('section');
+            END;
+
+        RSTAgeExchange: BEGIN END;
+        RSTALLJAPrefectureAndPrecedenceExchange: BEGIN END;
+        RSTAndContinentExchange: BEGIN END;
+        RSTAndDomesticQTHOrZoneExchange: BEGIN END;
+
+        RSTAndGridExchange, RSTAndOrGridExchange:
+            BEGIN
+            RXData.DomesticQTH := GetXMLData ('gridsquare');
+            RXData.QTHString := RXData.DomesticQTH;
+            END;
+
+        RSTAndQSONumberOrDomesticQTHExchange: BEGIN END;
+        RSTAndPostalCodeExchange: BEGIN END;
+        RSTDomesticOrDXQTHExchange: BEGIN END;
+        RSTDomesticQTHExchange: BEGIN END;
+        RSTDomesticQTHOrQSONumberExchange: BEGIN END;
+        RSTNameAndQTHExchange: BEGIN END;
+        RSTPossibleDomesticQTHAndPower: BEGIN END;
+
+        RSTPowerExchange:
+            RXData.Power := GetXMLData ('power');
+
+        RSTPrefectureExchange: BEGIN END;
+        RSTQSONumberAndDomesticQTHExchange: BEGIN END;
+        RSTQSONumberAndGridSquareExchange: BEGIN END;
+        RSTQSONumberAndPossibleDomesticQTHExchange: BEGIN END;
+        QSONumberAndPossibleDomesticQTHExchange: BEGIN END; {KK1L: 6.73 For MIQP originally}
+        RSTQSONumberAndRandomCharactersExchange: BEGIN END;
+        RSTQTHNameAndFistsNumberOrPowerExchange: BEGIN END;
+
+        RSTQSONumberExchange:
+            BEGIN
+            TempString := GetXMLData ('sntnr');
+            Val (TempString, Number, xResult);
+            IF xResult = 0 THEN RXData.NumberSent := Number;
+
+            TempString := GetXMLData ('rcvnr');
+            Val (TempString, Number, xResult);
+            IF xResult = 0 THEN RXData.NumberReceived:= Number;
+            END;
+
+        RSTQTHExchange: BEGIN END;
+        RSTZoneAndPossibleDomesticQTHExchange: BEGIN END;
+
+        RSTZoneExchange:
+            RXData.Zone := GetXMLData ('zone');
+
+        RSTZoneOrSocietyExchange: { Not sure where N1MM puts society }
+            BEGIN
+            END;
+
+        RSTLongJAPrefectureExchange: BEGIN END;
+        END;  { of CASE ActiveExchange }
+    END;
+
+
+
+PROCEDURE N1MM_Object.GetFrequencyFromUDPMessage (VAR RXData: ContestExchange);
+
+{ Frequency is in 10's of hertz }
+
+VAR TempString: Str20;
+    TempFreq: LONGINT;
+    xResult: INTEGER;
+
+    BEGIN
+    TempString := GetXMLData ('rxfreq');
+    Val (TempString, TempFreq, xResult);
+
+    IF xResult = 0 THEN
+        RXData.Frequency := TempFreq * 10;
+    END;
+
+
+
+FUNCTION N1MM_Object.CreateRXDataFromUDPMessage (VAR RXData: ContestExchange): BOOLEAN;
+
+{ Does the reverse of the MergeRXExchangeToUDPRecord so that we can take a QSO UDP message
+  from like N1MM and log it in the TRLog program.  I put this here instead of N1MM so that
+  other "people" could use it - and also all of the field definitions are located here for
+  reference.  I will do some amount of checking to make sure the data looks complete and
+  if so - return TRUE. }
+
+    BEGIN
+    CreateRXDataFromUDPMessage := False;
+    ClearContestExchange (RXData);
+
+    GetBandAndModeFromUDPMessage  (RXData);
+    GetFrequencyFromUDPMessage    (RXData);
+    GetTimeAndDateFromUDPMessage  (RXData);
+    GetCallFromUDPMessage         (RXData);
+    GetExchangeDataFromUDPMessage (RXData);
+    END;
+
+
+
+PROCEDURE N1MM_Object.LogContact;
 
 { This is the meat of the N1MM interface.  Any UDP messages will be in the QTC Buffer
   wull be parsed into a TR Log RXData record and then the normal TR Log loggin routines
   will take that record - parse it into a Log String and push it into the editable
   log window. }
 
-VAR N1MMString: STRING;
-    RXData: ContestExchange;
+VAR RXData: ContestExchange;
 
     BEGIN
-    WHILE QTC_Count > 0 DO
-        BEGIN
-        N1MMString := GetNextQTC;
-        CreateRXDataFromUDPMessage (N1MMString, RXData);  { This is in LogUDP.pas }
-        LogN1MMContact (RXData);
-        END;
+    CreateRXDataFromUDPMessage (RXData);
+    LogN1MMContact (RXData);
     END;
 
 
