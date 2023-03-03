@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, LogDVP, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, K1EANet;
+     SlowTree, LogWAE, LogPack, LogDDX, K1EANet, N4OGW;
 
 
 TYPE MenuEntryType = (NoMenuEntry,
@@ -39,8 +39,10 @@ TYPE MenuEntryType = (NoMenuEntry,
                       ADP,
                       ADE,
                       ADS,
+                      APF,
                       AQI,
                       AQD,
+                      AQR,
                       ASP,
                       ASR, {KK1L: 6.72}
                       ARC,
@@ -134,6 +136,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MGR,
                       MIO,
                       MZN,
+                      NFC,
                       NFE,
                       NEQ,
                       NLQ,
@@ -215,9 +218,11 @@ TYPE MenuEntryType = (NoMenuEntry,
                       TAB,
                       TMR,
                       TOT,
+                      TDL, { TRMASTER.DTA file location }
                       TDE, {KK1L: 6.73 TuneDupeCheckEnable}
                       TWD,
                       TRM,
+                      TVM,
                       URF,
                       UIS,
                       VER,
@@ -260,11 +265,13 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       ADP: Description := 'AUTO DISPLAY DUPE QSO';
       ADE: Description := 'AUTO DUPE ENABLE CQ';
       ADS: Description := 'AUTO DUPE ENABLE S AND P';
+      APF: Description := 'AUTO SCP CALL FETCH';
       AQI: Description := 'AUTO QSL INTERVAL';
       AQD: Description := 'AUTO QSO NUMBER DECREMENT';
+      AQR: Description := 'AUTO QSY REQUEST ENABLE';
       ASP: Description := 'AUTO S&P ENABLE';
-      ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ARC: Description := 'AUTO RETURN TO CQ MODE';
+      ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ASC: Description := 'AUTO SEND CHARACTER COUNT';
       ATI: Description := 'AUTO TIME INCREMENT';
 
@@ -368,6 +375,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MIO: Description := 'MY IOTA';
       MZN: Description := 'MY ZONE';
 
+      NFC: Description := 'N4OGW FREQUENCY CONTROL';
       NFE: Description := 'NAME FLAG ENABLE';
       NEQ: Description := 'NEXT QSO NUMBER';
       NLQ: Description := 'NO LOG';
@@ -454,9 +462,11 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       TAB: Description := 'TAB MODE';
       TMR: Description := 'TEN MINUTE RULE';
       TOT: Description := 'TOTAL OFF TIME';
+      TDL: Description := 'TRMASTER.DTA LOCATION';
       TDE: Description := 'TUNE ALT-D ENABLE'; {KK1L: 6.73}
       TWD: Description := 'TUNE WITH DITS';
       TRM: Description := 'TWO RADIO MODE';
+      TVM: Description := 'TWO VFO MODE';
 
       URF: Description := 'UPDATE RESTART FILE ENABLE';
       UIS: Description := 'USER INFO SHOWN';
@@ -501,8 +511,10 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       ADP: Write (AutoDisplayDupeQSO);
       ADE: Write (AutoDupeEnableCQ);
       ADS: Write (AutoDupeEnableSAndP);
+      APF: Write (AutoPartialCallFetch);
       AQI: Write (AutoQSLInterval);
       AQD: Write (AutoQSONumberDecrement);
+      AQR: Write (AutoQSYRequestEnable);
       ASP: Write (AutoSAPEnable);
       ASR: Write (AutoSAPEnableRate); {KK1L: 6.72}
       ARC: Write (AutoReturnToCQMode);
@@ -686,6 +698,12 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MGR: Write (MyGrid);
       MIO: Write (MyIOTA);
       MZN: Write (MyZone);
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: Write ('VFOA');
+               N4OGW_FC_VFOB: Write ('VFOB');
+               N4OGW_FC_AUTO: Write ('AUTO');
+               END;  { of CASE }
+
       NFE: Write (NameFlagEnable);
       NEQ: Write (NextQSONumberToGiveOut);
       NLQ: Write (NoLog);
@@ -824,11 +842,18 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       TOT: Write (MinutesToTimeString (TotalOffTime));
 
+      TDL: Write (CD.ActiveFileName);
+
       TDE: Write (TuneDupeCheckEnable); {KK1L: 6.73}
 
       TWD: Write (ActiveKeyer.GetTuneWithDits);
 
       TRM: IF TwoRadioState <> TwoRadiosDisabled THEN
+               Write ('TRUE')
+           ELSE
+               Write ('FALSE');
+
+      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
                Write ('TRUE')
            ELSE
                Write ('FALSE');
@@ -919,6 +944,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Call dupes in S&P mode with RETURN');
 
+      APF: IF AutoPartialCallFetch THEN
+               Write ('Single partial used if match 3 ltrs')
+           ELSE
+               Write ('No update of call based on partial');
+
       AQI: IF AutoQSLInterval > 0 THEN
                Write ('Number QSOs that use QUICK QSL message')
            ELSE
@@ -928,6 +958,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('If in S&P & blank windows, decrement #')
            ELSE
                Write ('No auto decrement if in S&P & no input');
+
+      AQR: IF AutoQSYRequestEnable THEN
+               Write ('Ask for QSY to other run freq')
+           ELSE
+               Write ('Do not ask for QSY to other run freq');
 
       ASP: IF AutoSAPEnable THEN
                Write ('Jump into S&P mode if tuning VFO')
@@ -1348,6 +1383,12 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
       MIO: Write ('IOTA Reference Designator');
       MZN: Write ('Set by MY CALL / MY ZONE in cfg file');
 
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: Write ('Send freq command to VFO A');
+               N4OGW_FC_VFOB: Write ('Send freq command to VFO B');
+               N4OGW_FC_AUTO: Write ('IF CQ mode > VFO B  S&P > VFO A');
+               END;  { of CASE }
+
       NFE: IF NameFlagEnable THEN
                Write ('Asterisk shows calls with known name')
            ELSE
@@ -1747,6 +1788,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Special two radio mode is enabled')
            ELSE
                Write ('Special two radio mode is disabled');
+
+      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
+               Write ('Special two VFO mode is enabled')
+           ELSE
+               Write ('Special two VFO mode is disabled');
 
       URF: IF UpdateRestartFileEnable THEN
                Write ('RESTART.BIN updated after each QSO')

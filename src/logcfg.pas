@@ -27,7 +27,7 @@ INTERFACE
 USES trcrt, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
      LogWAE, LogHP, LogPack, LogK1EA, DOS, LogHelp, LogProm, CfgCmd,
-     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound;
+     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound,N4OGW, N1MM;
 
 
     FUNCTION  LoadInSeparateConfigFile (FileName: STRING;
@@ -129,6 +129,26 @@ VAR FileWrite: TEXT;
 
     BEGIN
     WriteLn ('Initializing program..');
+
+    IF (N4OGW_RadioOne_BandMap_IP <> '') AND (N4OGW_RadioOne_BandMap_Port <> 0) THEN
+        BEGIN
+        N4OGW_RadioOne_BandMap := N4OGW_BandMap_Object.Create;
+
+        N4OGW_RadioOne_BandMap.Init (N4OGW_RadioOne_BandMap_IP,
+                                     N4OGW_RadioOne_BandMap_Port,
+                                     N4OGW_RadioOne_BandMap_UDP_Port);
+        END;
+
+    IF (N4OGW_RadioTwo_BandMap_IP <> '') AND (N4OGW_RadioTwo_BandMap_Port <> 0) THEN
+        BEGIN
+        N4OGW_RadioTwo_BandMap := N4OGW_BandMap_Object.Create;
+
+        N4OGW_RadioTwo_BandMap.Init (N4OGW_RadioTwo_BandMap_IP,
+                                     N4OGW_RadioTwo_BandMap_Port,
+                                     N4OGW_RadioTwo_BandMap_UDP_Port);
+        END;
+
+    IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Init;
 
     IF QTCsEnabled THEN LoadQTCDataFile;
 
@@ -750,6 +770,12 @@ VAR ParameterCount: INTEGER;
             Halt;
             END;
 
+        IF UpperCase (ParamStr (ParameterCount)) = 'TCPTEST' THEN
+            BEGIN
+            TcpTest;
+            Halt;
+            END;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'HP' THEN
             BEGIN
             HP;
@@ -893,6 +919,18 @@ VAR ParameterCount: INTEGER;
 
         IF UpperCase (ParamStr (ParameterCount)) = 'TRACE' THEN
             Trace := True;
+
+        IF UpperCase (ParamStr (ParameterCount)) = 'UDPSEND' THEN
+            BEGIN
+            UDPSend;
+            Halt;
+            END;
+
+        IF UpperCase (ParamStr (ParameterCount)) = 'UDPRX' THEN
+            BEGIN
+            UDPRX;
+            Halt;
+            END;
 
         IF UpperCase (ParamStr (ParameterCount)) = 'UUDECODE' THEN
             BEGIN

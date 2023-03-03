@@ -294,6 +294,7 @@ PROCEDURE SetRadioFreq (Radio: RadioType; Freq: LONGINT; Mode: ModeType; VFO: Ch
 PROCEDURE SetRelayForActiveRadio (Radio: RadioType);
 PROCEDURE SetStereoPin (PinNumber: INTEGER; PinSet: BOOLEAN); {KK1L: 6.71}
 PROCEDURE StartDVK (MemorySwitch: INTEGER);
+PROCEDURE SwapVFOS;   { Swap VFOs on radio }
 
 FUNCTION  TS850CompatableRadio (Radio: InterfacedRadioType): BOOLEAN;
 
@@ -789,6 +790,16 @@ PROCEDURE SetRadioFreq (Radio: RadioType; Freq: LONGINT; Mode: ModeType; VFO: Ch
         END;
     END;
 
+PROCEDURE SwapVFOs;
+
+    BEGIN
+    IF ActiveRadio = RadioOne THEN
+        rig1.swapvfo
+    else
+        rig2.swapvfo;
+    END;
+
+
 PROCEDURE ClearRIT;
 
     BEGIN
@@ -972,6 +983,7 @@ VAR TempChar:   CHAR;
                ArdKeyer.ClearFootSwitchControlPTT;
 
        PreviousFootSwitchMode := FootSwitchMode;
+       Write ('*');
        END;
 
     { Check the Beep count and status. }

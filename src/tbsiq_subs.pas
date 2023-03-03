@@ -30,7 +30,8 @@ INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
      slowtree, so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
-     jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW;
+     jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW,
+     foot, N4OGW, N1MM, LogUDP;
 
 TYPE
 
@@ -85,6 +86,8 @@ TYPE
         AutoCQFinishTime: TimeRecord;  { Marks time when Auto-CQ finished }
         AutoCQMemory: CHAR;            { Function Key memory to send for AutoCQ }
 
+        AutoStartSendEnable: BOOLEAN;         { Cleverly named different than the global AutoSendEnable }
+        AutoStartSendCharacterCount: INTEGER; { Cleverly named different than the global AutoSendCharacterCount }
         AutoStartSendStationCalled: BOOLEAN;
 
         Band: BandType;
@@ -94,7 +97,7 @@ TYPE
         CallsignICameBackTo: STRING;
         CallWindowString: STRING;
         CallWindowCursorPosition: INTEGER;
-        CharacterInput: CHAR;                  { Used to send letters to the other radio }
+        CharacterInput: CHAR;             { Used to send letters to the other radio using AltD }
         ClearKeyCache: BOOLEAN;
         CodeSpeed: INTEGER;
         CWMessageDisplayed: STRING;
@@ -105,28 +108,41 @@ TYPE
         DisplayedInsertIndicator: InsertIndicatorType;
         DisplayedMode: ModeType;
         DisplayedTXColor: TXColorType;
+        DoingPTTTest: BOOLEAN;
+        DupeShown: BOOLEAN;
+        DupeShownCallsign: CallString;
+        DupeShownTime: TimeRecord;
 
         ExchangeWindowIsUp: BOOLEAN;
         ExchangeWindowString: STRING;
         ExchangeWindowCursorPosition: INTEGER;
 
-        Frequency: LONGINT;   { The most current frequency for the radio }
+        Frequency: LONGINT;                 { The most current frequency for the radio }
 
         InitialExchangePutUp: BOOLEAN;
-        InsertMode: BOOLEAN;
 
         K3RXPollActive: BOOLEAN;
         KeyboardCWMessage: STRING;
 
         LastFrequency: LONGINT;
         LastFullTimeString: STRING;          { Used for 1 second timer }
+        LastFunctionKeyTime: TimeRecord;
         LastQSOState: TBSIQ_QSOStateType;
         LastPossibleCall: CallString;
-        LastSCPCall: CallString;
+        LastSCPCall: CallString;             { The last call processed by the SCP engine }
+
+        LocalInsertMode: BOOLEAN;
+        LoggedSAndPCall: CallString;
+        LoggedSAndPCallTime: TimeRecord;
 
         Mode: ModeType;
 
         OkaytoPutUpBandMapCall: BOOLEAN;
+
+        TBSIQPossibleCallList: PossibleCallRecord;  { We have specific ones for each instance }
+
+        PTTState: BOOLEAN;
+        PTTTestTimer: INTEGER;
 
         QSONumberForThisQSO: INTEGER;
         QSONumberForPreviousQSO: INTEGER;
@@ -135,28 +151,30 @@ TYPE
         QSOState: TBSIQ_QSOStateType;
 
         RadioFrequencySettledCount: INTEGER;
-        RadioMovingInBandMode: BOOLEAN; { Replaces the classis RadioMovingInBandMode [radio] }
-        RadioOnTheMove: BOOLEAN;        { Replaces the classic RadioOntheMove [radio] }
+        RadioMovingInBandMode: BOOLEAN;      { Replaces the classis RadioMovingInBandMode [radio] }
+        RadioOnTheMove: BOOLEAN;             { Replaces the classic RadioOntheMove [radio] }
+        RadioInterfaced: InterfacedRadioType;
         RememberQSOState: TBSIQ_QSOStateType;
 
         SCPScreenFull: BOOLEAN;
         SearchAndPounceStationCalled: BOOLEAN;
         SearchAndPounceExchangeSent: BOOLEAN;
-        StartSendingCursorPosition: INTEGER; { initially = AutoSendCharacterCount }
         StationInformationCall: CallString;
 
         TBSIQ_ActiveWindow: TBSIQ_WindowType;
+
         TransmitCountDown: INTEGER;      { Set > 0 for # of seconds to fake "I am transmitting" }
+        TurnOffK3TXPollModeCount: INTEGER;
 
         PROCEDURE AppendCWMessageDisplay (Message: STRING);
 
         PROCEDURE CheckQSOStateMachine;
-        PROCEDURE ClearAutoSendDisplay;  { for use during S&P }
+        PROCEDURE ClearAutoStartSendDisplay;  { for use during S&P }
 
         FUNCTION  DisableTransmitting: BOOLEAN;
 
         PROCEDURE DisplayActiveRadio;              { Shows TX next to active radio }
-        PROCEDURE DisplayAutoSendCharacterCount;
+        PROCEDURE DisplayAutoStartSendCharacterCount;
         PROCEDURE DisplayBandMode;
         PROCEDURE DisplayCodeSpeed;
         PROCEDURE DisplayFrequency;
@@ -182,6 +200,9 @@ TYPE
         PROCEDURE ListenToBothRadios;
         PROCEDURE ListenToOtherRadio;
 
+        PROCEDURE PTTTest;
+
+        PROCEDURE ReadSMeter;
         PROCEDURE RemoveExchangeWindow;
         PROCEDURE RemovePossibleCallWindow;
         PROCEDURE RemoveQSONumberWindow;
@@ -192,9 +213,11 @@ TYPE
         PROCEDURE SetCodeSpeed (Speed: INTEGER);
         PROCEDURE SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
         PROCEDURE ShowCWMessage (Message: STRING);
+        PROCEDURE ShowDupeMessage (Message: STRING);
         PROCEDURE ShowStateMachineStatus;
         PROCEDURE ShowStationInformation (Call: CallString);
         PROCEDURE ShowTransmitStatus;
+        FUNCTION  SMeterReading: INTEGER;
         PROCEDURE SuperCheckPartial;
         PROCEDURE SwapWindows;     { Moves from exchange <> CQ window }
 
@@ -244,12 +267,13 @@ VAR
 
     RData: ContestExchange;  { Used to talk between TBSIQ_ParametersOkay and TBSIQ_LogContact }
 
-    TBSIQ_BandMapFocus: RadioType;
+    TBSIQ_BandMapFocus: RadioType;   { gets used for the visible dupesheet too }
 
 FUNCTION  InitializeKeyboards: BOOLEAN;
 FUNCTION  NewInitializeKeyboards: BOOLEAN;
 
 PROCEDURE TBSIQ_CheckDualingCQState;
+PROCEDURE TBSIQ_CheckTestLoopState;
 FUNCTION  TBSIQ_KeyPressed (Radio: RadioType): BOOLEAN;  { Radio = 1 or 2 }
 PROCEDURE TBSIQ_LogContact (VAR RXData: ContestExchange);
 
@@ -267,7 +291,7 @@ FUNCTION  ValidFunctionKey (Key: CHAR): BOOLEAN;
 
 IMPLEMENTATION
 
-USES KeyCode, BaseUnix;
+USES KeyCode, blcksock, Sockets, BaseUnix;  { last three are for TCP support }
 
 TYPE
     FileRecord = RECORD  { This is the data record that we read off of the keyboard "files"  }
@@ -282,9 +306,21 @@ TYPE
                        DualingCQOnRadioOne,
                        DualingCQOnRadioTwo);
 
+    TestLoopStates = (NoTestLoop,
+                      TestLoopStart,
+                      TestLoopSendingMessage,
+                      TestLoopDelay1,
+                      TestLoopAssertingPTT,
+                      TestLoopDelay2,
+                      TestLoopTestSmeter,
+                      TestLoopStop);
+
 CONST InitialTransmitCountdown = 3;
 
 VAR DualingCQState: DualingCQStates;
+    LoopCount: INTEGER;
+    TestLoopDelayCount: INTEGER;
+    TestLoopState:      TestLoopStates;
 
 
 
@@ -346,6 +382,7 @@ VAR Message: STRING;
         { Done with the CQ - now to to the other radio }
 
         ActiveKeyer.SetActiveRadio (RadioTwo);
+        SetUpToSendOnActiveRadio;
 
         WITH Radio2QSOMachine DO
             BEGIN
@@ -365,6 +402,7 @@ VAR Message: STRING;
         IF Radio2QSOMachine.IAmTransmitting THEN Exit;
 
         ActiveKeyer.SetActiveRadio (RadioOne);
+        SetUpToSendOnActiveRadio;
 
         WITH Radio1QSOMachine DO
             BEGIN
@@ -378,6 +416,95 @@ VAR Message: STRING;
 
         DualingCQState := DualingCQOnRadioOne;
         END;
+    END;
+
+
+
+PROCEDURE TBSIQ_CheckTestLoopState;
+
+VAR SMeter: INTEGER;
+    TempString, SMeterReadingString: STRING;
+
+{ Set TestLoopDelayCount to number of seconds and test when it goes to zero }
+
+    BEGIN
+    CASE TestLoopState OF
+        NoTestLoop:
+            BEGIN
+            TestLoopDelayCount := 0;
+            LoopCount := 0;
+            Exit;
+            END;
+
+        TestLoopStart:   { First thing we need to do is play a message on radio 1 }
+            BEGIN
+            IF TestLoopDelayCount > 0 THEN Exit;   { In case someone wanted a delay }
+
+            Radio2QSOMachine.ShowCWMessage ('Starting DVK');
+            Rig2.DirectCommand ('SW17;');
+            TestLoopDelayCount := 10;
+            TestLoopState := TestLoopSendingMessage;
+            Inc (LoopCount);
+            ClrScr;
+            Write ('Loops = ', LoopCount);
+            END;
+
+        TestLoopSendingMessage:
+            BEGIN
+            Radio2QSOMachine.ShowCWMessage ('Sending DVK Message');
+            IF TestLoopDelayCount > 0 THEN Exit;
+
+            { We are done with the DVK - now turn on the PTT }
+
+            Radio2QSOMachine.ShowCWMessage ('Attempting to turn on PTT');
+
+            ActiveKeyer.SetActiveRadio (RadioTwo);
+            ActiveKeyer.PTTForceOn;
+            TestLoopDelayCount := 5;
+
+            TestLoopState := TestLoopAssertingPTT;
+            END;
+
+        TestLoopAssertingPTT:
+            BEGIN
+            Radio2QSOMachine.ShowCWMessage ('PTT on - waiting');
+            IF TestLoopDelayCount > 1 THEN Exit;
+
+            { Now - take an Smeter reading on radio two }
+
+            SMeter := Radio1QSOMachine.SMeterReading;
+            Str (SMeter, SMeterReadingString);
+            Radio1QSOMachine.ShowCWMessage (SMeterReadingString);
+
+            IF SMeter <= 6 THEN
+                BEGIN
+                Str (LoopCount, TempString);
+                Radio1QSOMachine.ShowCWMessage ('FAILURE!! Loops = ' + TempString);
+                ActiveKeyer.PTTUnforce;
+                TestLoopState := TestLoopStop;
+                END
+            ELSE
+                BEGIN
+                ActiveKeyer.PTTUnforce;
+                TestLoopDelayCount := 3;
+                TestLoopState := TestLoopStart;
+                END;
+            END;
+
+        TestLoopDelay2:
+            BEGIN
+            END;
+
+        TestLoopTestSmeter:
+            BEGIN
+            END;
+
+        TestLoopStop:
+            BEGIN
+            { We just stay here }
+            END;
+
+        END;  { of CASE TestLoopState }
     END;
 
 
@@ -492,13 +619,14 @@ PROCEDURE QSOMachineOBject.DoPossibleCalls (Callsign: CallString);
     BEGIN
     IF LastPossibleCall = Callsign THEN Exit;
     LastPossibleCall := Callsign;
-    PossibleCallList.NumberPossibleCalls := 0;
-    PossibleCallList.CursorPosition := 0;
+
     IF NOT PossibleCallEnable THEN Exit;
-    CD.GeneratePossibleCallList (Callsign);
-    Sheet.MakePossibleCallList (Callsign, PossibleCallList);
-    FlagDupesInPossibleCallList (Band, Mode, PossibleCallList);
-    DisplayPossibleCalls (PossibleCallList);
+
+    IF Sheet.TwoLetterCrunchProcess (Callsign, TBSIQPossibleCallList) THEN
+        BEGIN
+        VisibleLog.GeneratePartialCallList (Callsign, Band, Mode, TBSIQPossibleCallList);
+        DisplayPossibleCalls (TBSIQPossibleCallList);
+        END;
     END;
 
 
@@ -506,16 +634,27 @@ PROCEDURE QSOMachineOBject.DoPossibleCalls (Callsign: CallString);
 PROCEDURE CreateAndSendPacketSpot (PacketSpotCall: CallString;
                                    PacketSpotFreq: LONGINT);
 
-VAR TempStr1, TempStr2, TempString: Str80;
+VAR TempString: Str80;
 
     BEGIN
     { Make sure this isn't a CQ Entry in the bandmap }
 
-    TempStr1 := PrecedingString  (PacketSpotCall, '/');
-    TempStr2 := PostcedingString (PacketSpotCall, '/');
+    IF NOT LooksLikeACallsign (PacketSpotCall) THEN Exit;
 
-    IF (TempStr1 = 'CQ') AND StringIsAllNumbers (TempStr2) THEN
-        EXIT;
+    IF PrecedingString  (PacketSpotCall, '/') = 'CQ' THEN
+        Exit;
+
+    IF Length (PacketSpotCall) = 8 THEN
+        IF Copy (PacketSpotCall, 1, 4) = Copy (PacketSpotCall, 5, 4) THEN
+            Exit;
+
+    IF Length (PacketSpotCall) = 10 THEN
+        IF Copy (PacketSpotCall, 1, 5) = Copy (PacketSpotCall, 6, 5) THEN
+            Exit;
+
+    IF Length (PacketSpotCall) = 12 THEN
+        IF Copy (PacketSpotCall, 1, 6) = Copy (PacketSpotCall, 7, 5) THEN
+            Exit;
 
     Str (PacketSpotFreq, TempString);
 
@@ -533,8 +672,7 @@ FUNCTION QSOMachineObject.WindowDupeCheck: BOOLEAN;
 { Taken from LOGSUBS2.  Returns TRUE if the CallWindow is a dupe.
   It is assumed you are in the CallWindow }
 
-VAR RememberTime: TimeRecord;
-    MultString: Str40;
+VAR MultString: Str40;
     Mult: BOOLEAN;
 
     BEGIN
@@ -560,9 +698,11 @@ VAR RememberTime: TimeRecord;
         GoToXY (Length (CallWindowString) + 1, WhereY);
         Write (' DUPE');
 
-        MarkTime (RememberTime);  { Not sure this does anything for me in 2BSIQ? }
-
-        ShowCWMessage (CallWindowString + ' was a dupe.');
+        ShowDupeMessage (CallWindowString + ' is a DUPE!');
+        DupeShown := True;
+        DupeShownCallsign := CallWindowString;
+        MarkTime (DupeShownTime);
+        DisplayEditableLog (VisibleLog.LogEntries);
 
         { Panic delete if I pressed F1 by mistake }
 
@@ -578,12 +718,14 @@ VAR RememberTime: TimeRecord;
             VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
             Mult := MultString <> '';
 
-            { First True is dupe - second one is SendToMulti }
-
             BandMapCursorFrequency := DisplayedFrequency;
             BandMapMode := Mode;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
+            BandMapCallPutUp := CallWindowString;
+
+            { First True is dupe - second one is SendToMulti }
+
             NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, True, Mult, BandMapDecayTime, True);
             DisablePutUpBandMapCall := False;
             END;
@@ -595,7 +737,19 @@ VAR RememberTime: TimeRecord;
             END
         ELSE
             BEGIN
-            NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, False, BandMapDecayTime, True);
+            VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
+            Mult := MultString <> '';
+
+            BandMapCursorFrequency := DisplayedFrequency;
+            BandMapMode := Mode;
+            BandMapBand := Band;
+            TBSIQ_BandMapFocus := Radio;
+            BandMapCallPutUp := CallWindowString;
+
+            { First True is dupe - first True is SendToMulti }
+
+            NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, Mult, BandMapDecayTime, True);
+
             SwapWindows;
             ClrScr;
             ExchangeWindowString := '';
@@ -613,7 +767,6 @@ VAR RememberTime: TimeRecord;
             CallWindowString := '';
             END;
 
-        ShowCWMessage (CallWindowString + ' is a DUPE!');
         ClrScr;
         CallWindowString := '';
         CallWindowCursorPosition := 1;
@@ -634,6 +787,10 @@ VAR RememberTime: TimeRecord;
             BandMapMode := Mode;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
+            BandMapCallPutUp := CallWindowString;
+
+            { First false is not dupe - first true is SendToMulti }
+
             NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
             DisablePutUpBandMapCall := False;
             END;
@@ -1018,8 +1175,8 @@ PROCEDURE TBSIQ_DeleteLastContact;
 PROCEDURE TBSIQ_CheckBandMap;
 
 { Looks at the status of the two radios and determines which one should have the focus
-  of the bandmap.  The band map gets updated in the radio update portion - once a
-  second }
+  of the bandmap.  If it changes, the new bandmap will be displayed.  Tried to also make
+  this work for the dupesheet which never seemed to be getting redisplayed. }
 
 VAR RadioThatShouldHaveFocus: RadioType;
 
@@ -1027,7 +1184,11 @@ VAR RadioThatShouldHaveFocus: RadioType;
     { First - we look at the state of both radios and decide which one we think
       shuld have the band map focus }
 
-    RadioThatShouldHaveFocus := TBSIQ_BandMapFocus;  { Default }
+    { Defaults }
+
+    RadioThatShouldHaveFocus := TBSIQ_BandMapFocus;
+
+    { If one radio is in S&P and the other isn't - then focus on the S&P radio }
 
     IF (Radio1QSOMachine.QSOState =  QST_SearchAndPounce) AND
        (Radio2QSOMachine.QSOState <> QST_SearchAndPounce) THEN
@@ -1040,20 +1201,47 @@ VAR RadioThatShouldHaveFocus: RadioType;
     IF (Radio1QSOMachine.QSOState = QST_SearchAndPounce) AND
        (Radio2QSOMachine.QSOState = QST_SearchAndPounce) THEN
            BEGIN
-           IF Radio1QSOMachine.RadioMovingInBandMode THEN RadioThatShouldHaveFocus := RadioOne;
-           IF Radio2QSOMachine.RadioMovingInBandMode THEN RadioThatShouldHaveFocus := RadioTwo;
+           IF Radio1QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioOne;
+           IF Radio2QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioTwo;
            END;
 
-    { Update the bandmap }
+   { Let's add the case where both rigs are in CQ mode, but one is on the move.  This
+     is typical in the CW Sprint where you need to look at the visible dupeshet of
+     the band that the radio is moving on in preparation of pressing the SPACE BAR
+     and pouncing on a station }
 
-    TBSIQ_BandMapFocus := RadiothatShouldHaveFocus;
-    BandMapBand := BandMemory [TBSIQ_BandMapFocus];
-    BandMapMode := ModeMemory [TBSIQ_BandMapFocus];
+   IF (Radio1QSOMachine.QSOState <> QST_SearchAndPounce) AND
+      (Radio2QSOMachine.QSOState <> QST_SearchAndPounce) THEN
+           BEGIN
+           IF Radio1QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioOne;
+           IF Radio2QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioTwo;
+           END;
 
-    CASE TBSIQ_BandMapFocus OF
-        RadioOne: BandMapCursorFrequency := Radio1QSOMachine.Frequency;
-        RadioTwo: BandMapCursorFrequency := Radio2QSOMachine.Frequency;
-        END;  { of CASE }
+    IF RadioThatShouldHaveFocus <> TBSIQ_BandMapFocus THEN  { We need to change }
+        BEGIN
+        TBSIQ_BandMapFocus := RadioThatShouldHaveFocus;
+
+        { Not sure if this is better than just sending the Radio's band/mode }
+
+        BandMapBand := BandMemory [TBSIQ_BandMapFocus];
+        BandMapMode := ModeMemory [TBSIQ_BandMapFocus];
+
+        IF VisibleDupeSheetEnable THEN
+            BEGIN
+            VisibleDupeSheetChanged := True;
+            VisibleLog.DisplayVisibleDupeSheet (BandMapBand, BandMapMode);
+            END;
+
+        CASE TBSIQ_BandMapFocus OF
+            RadioOne: BandMapCursorFrequency := Radio1QSOMachine.Frequency;
+            RadioTwo: BandMapCursorFrequency := Radio2QSOMachine.Frequency;
+            END;  { of CASE }
+
+        { New and improved? }
+
+        BandMapBLinkingCall := '';
+        DisplayBandMap;
+        END;
     END;
 
 
@@ -1069,10 +1257,31 @@ VAR TimeString, FullTimeString, HourString: Str20;
     RateMinute: INTEGER;
 
     BEGIN
+    IF FootSwitchMode <> PreviousFootSwitchMode THEN
+        BEGIN
+        IF FootSwitchMode = Normal THEN
+            ActiveKeyer.LetFootSwitchControlPTT  { This does nothing for YCCC }
+        ELSE
+            IF ActiveKeyer = ArdKeyer THEN
+                ArdKeyer.ClearFootSwitchControlPTT;
+
+        PreviousFootSwitchMode := FootSwitchMode;
+        END;
+
     TBSIQ_CheckDualingCQState;  { The orchestral director of the dualing CQ process }
-    TBSIQ_CheckBandMap;         { Sees if the bandmap is on the right radio }
+    TBSIQ_CheckTestLoopState;   { Test loop process }
+    TBSIQ_CheckBandMap;         { Sees if the bandmap and visible dupesheet are on the right radio }
 
     Packet.CheckPacket;         { See if any spots have come in for the bandmap }
+
+    { Send some oxygen to the N4OGW bandmap if it is there }
+
+    IF N4OGW_RadioOne_BandMap_IP <> '' THEN N4OGW_RadioOne_BandMap.Heartbeat;
+    IF N4OGW_RadioTwo_BandMap_IP <> '' THEN N4OGW_RadioTwo_BandMap.Heartbeat;
+
+    { And also the N1MM QSO portal }
+
+    IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
 
     { See if the clock has ticked a second }
 
@@ -1083,6 +1292,9 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     { Code following this will be exectued once for each new calendar second }
     { The time gets displayed in the upper left corner of the Total Window }
+
+    IF TestLoopDelayCount > 0 THEN
+        Dec (TestLoopDelayCount);
 
     SaveAndSetActiveWindow (TotalWindow);
     Write (' ' + FullTimeString);
@@ -1116,6 +1328,7 @@ VAR TimeString, FullTimeString, HourString: Str20;
         BEGIN
         MinutesSinceLastBMUpdate := 0;
         DecrementBandMapTimes;
+        DisplayBandMap;
         END;
 
     { Fix up the rate array. First, shuffle the minutes }
@@ -1211,7 +1424,7 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
 
 
-PROCEDURE QSOMachineObject.ClearAutoSendDisplay;
+PROCEDURE QSOMachineObject.ClearAutoStartSendDisplay;
 
     BEGIN
     CASE Radio OF
@@ -1290,10 +1503,18 @@ VAR Call: CallString;
 
     SaveSetAndClearActiveWindow (EditableLogWindow);
 
+    FirstSCPCall := '';
+    NumberSCPCalls := 0;
+
     REPEAT
         Call := CD.GetNextPartialCall;
 
-        IF Call <> '' THEN DisplaySCPCall (Call);
+        IF Call <> '' THEN
+            BEGIN
+            DisplaySCPCall (Call);
+            Inc (NumberSCPCalls);
+            IF FirstSCPCall = '' THEN FirstSCPCall := Call;
+            END;
 
         IF SCPScreenFull THEN Break;
 
@@ -1438,11 +1659,12 @@ VAR Key: CHAR;
 
 FUNCTION QSOMachineObject.ExpandCrypticString (SendString: STRING): STRING;
 
-VAR CharacterCount: INTEGER;
-    QSONumberString, NewSendString: STRING;
-    SendChar: CHAR;
+{ This is a scaled down version of what is in classic mode }
 
-{ This is a very scaled down version of what is in the main program }
+VAR CharacterCount: INTEGER;
+    TempString, QSONumberString, NewSendString: STRING;
+    SendChar: CHAR;
+    TempFreq: LONGINT;
 
     BEGIN
     FoundCommand (Radio, SendString);
@@ -1481,6 +1703,7 @@ VAR CharacterCount: INTEGER;
                    going to support that out of the gate. }
 
                 NewSendString := NewSendString + CallWindowString;
+                CallsignICameBackTo := CallWindowString;
                 END;
 
             ':': BEGIN   { Forget everything and setup to send CW from keyboard }
@@ -1498,6 +1721,20 @@ VAR CharacterCount: INTEGER;
 
             '>': ClearRIT;
 
+            ControlQ:   { Send frequency of other radio }
+                BEGIN
+                IF Radio = RadioOne THEN
+                    TempFreq := Radio2QSOMachine.DisplayedFrequency
+                ELSE
+                    TempFreq := Radio1QSOMachine.DisplayedFrequency;
+
+                TempFreq := Round (TempFreq / 1000);  { Compute kHz }
+                Str (TempFreq, TempString);
+                NewSendString := NewSendString + TempString;
+
+                TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (GetDateString + ' ' + GetTimeString + ': ' + 'Asked ' + CallWindowString + ' to QSY to ' + TempString, True);
+                END;
+
             { Not a special character - just add it as is }
 
             ELSE NewSendString := NewSendString + SendChar;
@@ -1509,7 +1746,7 @@ VAR CharacterCount: INTEGER;
 
 
 
-PROCEDURE QSOMachineObject.DisplayAutoSendCharacterCount;
+PROCEDURE QSOMachineObject.DisplayAutoStartSendCharacterCount;
 
     BEGIN
     CASE Radio OF
@@ -1519,9 +1756,9 @@ PROCEDURE QSOMachineObject.DisplayAutoSendCharacterCount;
 
     ClrScr;
 
-    IF (StartSendingCursorPosition > 0) AND AutoSendEnable THEN
+    IF (AutoStartSendCharacterCount > 0) AND AutoStartSendEnable THEN
         BEGIN
-        GoToXY (StartSendingCursorPosition + 1, 1);
+        GoToXY (AutoStartSendCharacterCount + 1, 1);
         Write ('|');
         END;
 
@@ -1616,18 +1853,151 @@ PROCEDURE QSOMachineObject.ListenToOtherRadio;
     END;
 
 
+FUNCTION QSOMachineObject.SMeterReading: INTEGER;
+
+VAR Response: STRING;
+    CaughtUp: BOOLEAN;
+    TempInt: INTEGER;
+
+    BEGIN
+    { Stop polling and let whatever messages are being received finish }
+
+    CASE Radio OF
+        RadioOne:
+            WITH Rig1 DO
+                BEGIN
+                REPEAT UNTIL CalmDownEveryone;
+                REPEAT
+                    Response := DirectCommandAndResponse ('SM;');
+                    Timer (CaughtUp);
+                UNTIL Response <> '';
+                END;
+
+        RadioTwo:
+            WITH Rig2 DO
+                BEGIN
+                REPEAT UNTIL CalmDownEveryone;
+                REPEAT
+                    Response := DirectCommandAndResponse ('SM;');
+                    Timer (caughtup);
+                UNTIL Response <> '';
+                END;
+        END; { of CASE Radio }
+
+    { Response looks like SM0003; }
+
+    Delete (Response, 1, 2);
+    Delete (Response, Length (Response), 1);
+
+    Val (Response, TempInt);
+    SMeterReading := TempInt;
+    END;
+
+
+
+PROCEDURE QSOMachineObject.ReadSMeter;
+
+VAR Response: STRING;
+    CaughtUp: BOOLEAN;
+
+    BEGIN
+    { Stop polling and let whatever messages are being received finish }
+
+    CASE Radio OF
+        RadioOne:
+            WITH Rig1 DO
+                BEGIN
+                REPEAT UNTIL CalmDownEveryone;
+                REPEAT
+                    Response := DirectCommandAndResponse ('SM;');
+                    Timer (caughtup);
+                UNTIL Response <> '';
+                END;
+
+        RadioTwo:
+            WITH Rig2 DO
+                BEGIN
+                REPEAT UNTIL CalmDownEveryone;
+                REPEAT
+                    Response := DirectCommandAndResponse ('SM;');
+                    Timer (caughtup);
+                UNTIL Response <> '';
+                END;
+        END; { of CASE Radio }
+
+    ShowCWMessage (Response);  { Polling is automatically restarted }
+    END;
+
+
+
+PROCEDURE QSOMachineObject.PTTTest;
+
+    BEGIN
+    ShowCWMessage ('Doing PTT Test');
+    DoingPTTTest := True;
+    PTTState := True;
+    PTTTestTimer := 3;
+    ActiveKeyer.SetActiveRadio (Radio);
+    ActiveKeyer.PTTForceOn;
+    END;
+
+
+
 PROCEDURE QSOMachineObject.CheckQSOStateMachine;
 
 VAR Key, ExtendedKey: CHAR;
     ExpandedString, TempString, InitialExchange, Message, WindowString: STRING;
     QSONumberString: STr20;
-    ActionRequired: BOOLEAN;
+    ThisIsADupe, ActionRequired: BOOLEAN;
     Freq: LONGINT;
     RealFreq: REAL;
     xResult: INTEGER;
+    MultString: Str20;
+    Mult: BOOLEAN;
 
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
+
+    { Give some oxygen to the partial call two letter crunch.  This works on its own }
+
+    IF PartialCallEnable THEN
+        IF Sheet.TwoLetterCrunchProcess (CallWindowString, TBSIQPossibleCallList) THEN
+            BEGIN
+            VisibleLog.GeneratePartialCallList (CallWindowString, Band, Mode, TBSIQPossibleCallList);
+            DisplayPossiblecalls (TBSIQPossibleCallList);
+            END;
+
+    { Tend to the N4OGW band map as needed }
+
+    CASE Radio OF
+        RadioOne:
+            IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                BEGIN
+                { Check to see if TX mode should be disabled }
+
+                IF (N4OGW_RadioOne_BandMap.TXMode) THEN CWStillBeingSent;
+
+                { See if we have a command }
+
+                WHILE N4OGW_RadioOne_BandMap.QTC_Count > 0 DO
+                    ProcessN4OGWCommand (N4OGW_RadioOne_BandMap.GetNextQTC);
+                END;
+
+        RadioTwo:
+            IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                BEGIN
+                { Check to see if TX mode should be disabled }
+
+                IF (N4OGW_RadioTwo_BandMap.TXMode) THEN CWStillBeingSent;
+
+                { See if we have a command }
+
+                WHILE N4OGW_RadioTwo_BandMap.QTC_Count > 0 DO
+                    ProcessN4OGWCommand (N4OGW_RadioTwo_BandMap.GetNextQTC);
+                END;
+
+        END;  { of CASE }
+
 
     { Show new QSO state if diffrent and update TX indicator }
 
@@ -1640,7 +2010,7 @@ VAR Key, ExtendedKey: CHAR;
         ActiveBand := Band;
 
         IF (QSOState <> QST_SearchAndPounce) AND (QSOState <> QST_SearchAndPounceInit) THEN
-            DisplayAutoSendCharacterCount;
+            DisplayAutoStartSendCharacterCount;
         END;
 
     { Do not process any keystrokes while auto start send active on the
@@ -1671,6 +2041,9 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_AltDInput:    { Send characters to the other radio's call window }
             BEGIN
+            IF Key = EscapeKey THEN
+                QSOState := RememberQSOState;
+
             IF ActionRequired THEN
                 CASE Radio OF
                     RadioOne: Radio2QSOMachine.CharacterInput := Key;
@@ -1726,7 +2099,6 @@ VAR Key, ExtendedKey: CHAR;
                             END;
                         END;  { of NullKey case }
 
-
                     CarriageReturn:
                         IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                             BEGIN
@@ -1735,6 +2107,27 @@ VAR Key, ExtendedKey: CHAR;
                                 QSONumberForThisQSO := GetNextQSONumber;   { from LOGWIND }
                                 QSONumberUnused := True;
                                 DisplayQSONumber;
+                                CallwindowString := '';
+                                CallWindowCursorPosition := 1;
+                                ClrScr;
+                                Exit;
+                                END;
+
+                            IF WindowString = 'PTTTEST' THEN
+                                PTTTest;
+
+                            IF WindowString = 'SMETER' THEN
+                                BEGIN
+                                ReadSMeter;
+                                CallwindowString := '';
+                                CallWindowCursorPosition := 1;
+                                ClrScr;
+                                Exit;
+                                END;
+
+                            IF WindowString = 'TESTLOOP' THEN
+                                BEGIN
+                                TestLoopState := TestLoopStart;
                                 CallwindowString := '';
                                 CallWindowCursorPosition := 1;
                                 ClrScr;
@@ -1791,10 +2184,22 @@ VAR Key, ExtendedKey: CHAR;
                                     ClrScr;
                                     END
                                 ELSE
+                                    BEGIN
+                                    IF AutoPartialCallFetch AND (Length (CallWindowString) = 3) THEN
+                                        BEGIN
+                                        IF TBSIQPossibleCallList.NumberPossibleCalls = 1 THEN
+                                            BEGIN
+                                            ClrScr;
+                                            Write (TBSIQPossibleCallList.List [0].Call);
+                                            WindowString := TBSIQPossibleCallList.List [0].Call;;
+                                            CallWindowString := WindowString;
+                                            END;
+                                        END;
+
                                     CASE Mode OF
                                         CW:
                                             BEGIN
-                                            TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High);
+                                            TBSIQ_CW_Engine.CueCWMessage (WindowString, Radio, CWP_High, True);
                                             CallsignICameBackTo := WindowString;
                                             ShowCWMessage (WindowString);
                                             QSOState := QST_CQStationBeingAnswered;
@@ -1806,7 +2211,6 @@ VAR Key, ExtendedKey: CHAR;
                                                 ActiveRadio := Radio;
                                                 ActiveMode := Mode;
                                                 CallsignICameBackTo := WindowString;
-                                                ShowCWMessage (WindowString);
                                                 QSOState := QST_CQStationBeingAnswered;
                                                 END;
 
@@ -1814,11 +2218,13 @@ VAR Key, ExtendedKey: CHAR;
                                             QSOState := QST_CQStationBeingAnswered;
 
                                         END;  { of CASE Mode }
+                                    END;
                                 END;
                             END;
 
-                    EscapeKey:
+                    EscapeKey:  { We got here with an empty window }
                         BEGIN
+                        ClrScr;  { Just to make sure }
                         DisplayEditableLog (VisibleLog.LogEntries);
                         QSOState := QST_Idle;
                         ShowTransmitStatus;
@@ -1845,38 +2251,38 @@ VAR Key, ExtendedKey: CHAR;
                   letters in the CallWindow }
 
                 BEGIN
-                { Check to see if AutoStartSend should be triggered }
+                { Check to see if AutoStartSend should be triggered.  }
 
-                IF AutoSendEnable AND (StartSendingCursorPosition > 0) AND (Mode = CW) THEN
-                    IF Length (CallWindowString) >= AutoSendCharacterCount THEN
-                        IF NOT StringIsAllNumbersOrDecimal (CallWindowString) THEN
-                            IF NOT StringHas ('/', CallWindowString) THEN
-                                IF NOT AutoStartSendStationCalled THEN
-                                    BEGIN
-                                    { We need to start sending the callsign }
+                IF AutoStartSendEnable AND (Mode = CW) THEN
+                    IF Length (CallWindowString) > AutoStartSendCharacterCount THEN
+                        AutoStartSendStationCalled := True;
 
-                                    IF Mode = CW THEN
-                                        BEGIN
-                                        TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High);
-                                        CallsignICameBackTo := CallWindowString;
-                                        ShowCWMessage (CallWindowString);
-                                        END;
+                IF (Mode = CW) AND AutoStartSendEnable AND
+                   (AutoStartSendCharacterCount > 0) AND
+                   (Length (CallWindowString) = AutoStartSendCharacterCount) AND
+                   (NOT StringIsAllNumbersOrDecimal (CallWindowString)) AND
+                   (NOT StringHas (CallWindowString, '/')) AND
+                   (NOT AutoStartSendStationCalled) AND
+                   (WhereX > Length (CallWindowString)) THEN
+                       BEGIN
+                       TBSIQ_CW_Engine.CueCWMessage (CallWindowString, Radio, CWP_High, True);
+                       CallsignICameBackTo := CallWindowString;
+                       ShowCWMessage (CallWindowString);
+                       ShowStationInformation (CallWindowString);
+                       AutoStartSendStationCalled := True;
+                       QSOState := QST_AutoStartSending;
+                       END;
 
-                                    QSOState := QST_AutoStartSending;
-                                    AutoStartSendStationCalled := True;    { This makes sure we don't call again }
-                                    END;
-
-                { Check SuperCheckPartial }
+                { Update SuperCheckPartial }
 
                 IF SCPMinimumLetters > 0 THEN
                     IF Length (CallWindowString) >= SCPMinimumLetters THEN
                         SuperCheckPartial;
-
                 END;
 
             END;  { Of QST_Idle or QST_CQCalled }
 
-        QST_AutoStartSending:  { We have started sending a callsign }
+        QST_AutoStartSending:  { We have started sending a callsign - can only be here if in CW }
             BEGIN
             QSONumberUnused := False;
 
@@ -1888,47 +2294,37 @@ VAR Key, ExtendedKey: CHAR;
               4. Someone hit RETURN to end input of the callsign.
               5. All of the entered letters have been sent - send exchange. }
 
-            IF TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
+            { Firstly - we are going to check to see if there are no new characterrs
+              to send - and we have finished sending CW }
+
+            IF (NOT ActionRequired) AND TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
+                BEGIN
                 IF AutoCallTerminate THEN
                     IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                         BEGIN
-                        CASE Mode OF
-                            CW, Digital:
-                                ExpandedString := ExpandCrypticString (CQExchange);
-
-                            { Note sure we ever could be here on Phone }
-
-                            Phone:
-                                ExpandedString := ExpandCrypticString (CQPhoneExchange);
-                            END;
-
-                        IF Mode = CW THEN
-                            BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
-                            AppendCWMessageDisplay (ExpandedString);
-                            END;
-
+                        ExpandedString := ExpandCrypticString (CQExchange);
+                        AppendCWMessageDisplay (ExpandedString);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                         QSOState := QST_CQExchangeBeingSent;
-                        Exit;
                         END
                     ELSE
-                        BEGIN
+                        BEGIN  { Is a dupe }
                         ExpandedString := ExpandCrypticString (QSOBeforeMessage);
-
-                        IF Mode = CW THEN
-                            BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
-                            ShowCWMessage (ExpandedString);
-                            END;
-
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
+                        ShowCWMessage (ExpandedString);
                         QSOState := QST_Idle;
                         END;
+                END;
 
             IF NOT ActionRequired THEN Exit;  { No keystroke to respond to }
 
+            { We have a keystroke to act upon - and we don't care of we are done sending CW }
+
             CASE Key OF
                 EscapeKey:
-                    QSOState := QST_Idle;
+                    BEGIN
+                    QSOState := QST_Idle;  { Do not start sending the exchange! }
+                    END;
 
                 CarriageReturn:
                     BEGIN
@@ -1937,15 +2333,17 @@ VAR Key, ExtendedKey: CHAR;
                         CASE Mode OF
                             CW, Digital:
                                 BEGIN
-                                ExpandedString := ExpandCrypticString (CQExchange);
-
-                                AppendCWMessageDisplay (ExpandedString);
-
                                 IF Mode = CW THEN
-                                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                                    BEGIN
+                                    ExpandedString := ExpandCrypticString (CQExchange);
+                                    AppendCWMessageDisplay (ExpandedString);
+                                    TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
+                                    END;
 
                                 IF Mode = Digital THEN
                                     BEGIN
+                                    ExpandedString := ExpandCrypticString (GetExMemoryString (Digital, F2));
+                                    AppendCWMessageDisplay (ExpandedString);
                                     ActiveRadio := Radio;
                                     ActiveMode := Mode;
 
@@ -1973,16 +2371,17 @@ VAR Key, ExtendedKey: CHAR;
                         END
                     ELSE
                         BEGIN
-                        ExpandedString := ExpandCrypticString (QSOBeforeMessage);
 
                         IF Mode = CW THEN
                             BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                            ExpandedString := ExpandCrypticString (QSOBeforeMessage);
+                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                             ShowCWMessage (ExpandedString);
                             END;
 
                         IF Mode = Digital THEN
                             BEGIN
+                            ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
                             ActiveRadio := Radio;
                             ActiveMode := Mode;
                             TransmitCountdown := InitialTransmitCountdown;
@@ -2012,11 +2411,19 @@ VAR Key, ExtendedKey: CHAR;
                         BEGIN
                         CallsignICameBackTo := CallSignICameBackTo + Key;
 
+                        { Note that this bypasses the CW message cues }
+
                         IF Mode = CW THEN
                             BEGIN
                             TBSIQ_CW_Engine.AddCharacterToBuffer (Key, Radio);
                             ShowCWMessage (CallsignICameBackTo);
                             END;
+
+                        { Update SuperCheckPartial }
+
+                        IF SCPMinimumLetters > 0 THEN
+                            IF Length (CallWindowString) >= SCPMinimumLetters THEN
+                                SuperCheckPartial;
                         END;
                     END;
 
@@ -2094,27 +2501,25 @@ VAR Key, ExtendedKey: CHAR;
             IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                 BEGIN
                 CASE Mode OF
-                    CW, Digital:
+                    CW:
                         BEGIN
                         ExpandedString := ExpandCrypticString (CQExchange);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
+                        AppendCWMessageDisplay (ExpandedString);
+                        END;
 
-                        IF Mode = CW THEN
-                            BEGIN
-                            TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
-                            AppendCWMessageDisplay (ExpandedString);
-                            END;
+                    Digital:
+                        BEGIN
+                        ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
 
-                        IF Mode = Digital THEN
-                            BEGIN
-                            ActiveMode := Mode;
-                            ActiveRadio := Radio;
+                        ActiveMode := Mode;
+                        ActiveRadio := Radio;
 
-                            { We have waited until now to send the callsign }
+                        { We have waited until now to send the callsign }
 
-                            TransmitCountdown := InitialTransmitCountdown;
-                            FinishRTTYTransmission (CallsignICameBackTo + ExpandedString);
-                            AppendCWMessageDisplay (ExpandedString);
-                            END;
+                        TransmitCountdown := InitialTransmitCountdown;
+                        FinishRTTYTransmission (ExpandedString);
+                        AppendCWMessageDisplay (ExpandedString);
                         END;
 
                     Phone:
@@ -2126,6 +2531,8 @@ VAR Key, ExtendedKey: CHAR;
 
                     END;
 
+                ShowStationInformation (CallsignICameBackTo);
+
                 QSOState := QST_CQExchangeBeingSent;
                 Exit;
                 END
@@ -2135,7 +2542,7 @@ VAR Key, ExtendedKey: CHAR;
                     CW:
                         BEGIN
                         ExpandedString := ExpandCrypticString (QSOBeforeMessage);
-                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                         ShowCWMessage (ExpandedString);
                         END;
 
@@ -2178,6 +2585,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQExchangeBeingSent:
             BEGIN
+            DisplayEditableLog (VisibleLog.LogEntries);
+
             DoPossibleCalls (CallWindowString);
             ListenToOtherRadio;
 
@@ -2211,6 +2620,8 @@ VAR Key, ExtendedKey: CHAR;
         QST_CQExchangeBeingSentAndExchangeWindowUp:
             BEGIN
             ListenToOtherRadio;
+
+            DisplayUserInfo (CallWindowString);
 
             IF ActionRequired THEN
                 CASE Key OF
@@ -2257,6 +2668,8 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQWaitingForExchange:
             BEGIN
+            DisplayUserInfo (CallWindowString);
+
             IF ActionRequired THEN
                 CASE Key OF
                     EscapeKey:
@@ -2315,7 +2728,7 @@ VAR Key, ExtendedKey: CHAR;
                                     CW:
                                         BEGIN
                                         ExpandedString := ExpandCrypticString (TempString);
-                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                                         ShowCWMessage (ExpandedString);
                                         END;
 
@@ -2339,7 +2752,16 @@ VAR Key, ExtendedKey: CHAR;
                                     END;  { of CASE Mode }
                                 END;
 
+                            RData.Radio := Radio;
                             TBSIQ_LogContact (RData);
+
+                            IF VisibleDupeSheetEnable THEN
+                                BEGIN
+                                VisibleDupeSheetChanged := True;
+                                VisibleLog.DisplayVisibleDupeSheet (Band, Mode);
+                                TBSIQ_BandMapFocus := Radio;
+                                END;
+
                             ShowStationInformation (CallWindowString);
                             QSOState := QST_CQSending73Message;
                             AutoStartSendStationCalled := False;
@@ -2368,7 +2790,16 @@ VAR Key, ExtendedKey: CHAR;
                                                          ExchangeWindowString,
                                                          Band, Mode, Frequency, RData) THEN
                                     BEGIN
+                                    RData.Radio := Radio;
                                     TBSIQ_LogContact (RData);
+
+                                    IF VisibleDupeSheetEnable THEN
+                                        BEGIN
+                                        VisibleDupeSheetChanged := True;
+                                        VisibleLog.DisplayVisibleDupeSheet (Band, Mode);
+                                        TBSIQ_BandmapFocus := Radio;
+                                        END;
+
                                     ShowStationInformation (CallWindowString);
                                     QSOState := QST_CQSending73Message;
                                     AutoStartSendStationCalled := False;
@@ -2430,6 +2861,9 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             KeyboardCWMessage := '';
             QSOState := QST_SendingKeyboardCWWaiting;
+
+            IF Mode = Digital THEN
+                StartRTTYTransmission ('');
             END;
 
         QST_SendingKeyboardCWWaiting:
@@ -2450,6 +2884,10 @@ VAR Key, ExtendedKey: CHAR;
                     CarriageReturn, EscapeKey:
                         BEGIN
                         QSOState := RememberQSOState;
+
+                        IF Mode = Digital THEN
+                            FinishRTTYTransmission ('');
+
                         Exit;
                         END;
 
@@ -2458,7 +2896,14 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             IF Mode = CW THEN
                                 BEGIN
-                                TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High);
+                                TBSIQ_CW_Engine.CueCWMessage (Key, Radio, CWP_High, False);
+                                KeyboardCWMessage := KeyboardCWMessage + Key;
+                                ShowCWMessage (KeyboardCWMessage);
+                                END;
+
+                            IF Mode = Digital THEN
+                                BEGIN
+                                ContinueRTTYTransmission (Key);
                                 KeyboardCWMessage := KeyboardCWMessage + Key;
                                 ShowCWMessage (KeyboardCWMessage);
                                 END;
@@ -2482,13 +2927,9 @@ VAR Key, ExtendedKey: CHAR;
 
             RemovePossibleCallWindow;
 
-            BandMapBand := DisplayedBand;
-            BandMapMode := DisplayedMode;
-
-            BandMapCursorFrequency := DisplayedFrequency;
             TBSIQ_BandMapFocus := Radio;
 
-            ClearAutoSendDisplay;
+            ClearAutoStartSendDisplay;
 
             ExchangeWindowString := '';
             ExchangeWindowCursorPosition := 1;
@@ -2508,9 +2949,11 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             { We come here when someone pressed the SPACE BAR with an empty
               call window - so we need to jump into S&P mode and send my
-              callsign. }
+              callsign. Also - if the other instance of the radio is only
+              calling CQ - we need to stop the CW so the call can be made
+              quickly.  }
 
-            ClearAutoSendDisplay;
+            ClearAutoStartSendDisplay;
 
             ExchangeWindowString := '';
             ExchangeWindowCursorPosition := 1;
@@ -2518,6 +2961,18 @@ VAR Key, ExtendedKey: CHAR;
             SetTBSIQWindow (TBSIQ_ExchangeWindow);
             ClrScr;
             SetTBSIQWindow (TBSIQ_CallWindow);
+
+            { Stop CW on the other radio if just calling CQ }
+
+            CASE Radio OF
+                RadioOne:
+                    IF Radio2QSOMachine.QSOState = QST_CallingCQ THEN
+                        TBSIQ_CW_Engine.ClearMessages (RadioTwo, True);
+
+                RadioTwo:
+                    IF Radio1QSOMachine.QSOState = QST_CallingCQ THEN
+                        TBSIQ_CW_Engine.ClearMessages (RadioOne, True);
+                END;
 
             SendFunctionKeyMessage (F1, Message);
 
@@ -2566,6 +3021,43 @@ VAR Key, ExtendedKey: CHAR;
 
                     CarriageReturn:
                         BEGIN
+                        IF StringIsAllNumbersOrDecimal (CallWindowString) THEN
+                            BEGIN
+                            IF Length (WindowString) = 3 THEN
+                                BEGIN
+                                CASE BandMemory[Radio] OF
+                                    Band160: TempString := '1'   + WindowString;
+                                    Band80:  TempString := '3'   + WindowString;
+                                    Band40:  TempString := '7'   + WindowString;
+                                    Band30:  TempString := '10'  + WindowString;
+                                    Band20:  TempString := '14'  + WindowString;
+                                    Band17:  TempString := '18'  + WindowString;
+                                    Band15:  TempString := '21'  + WindowString;
+                                    Band12:  TempString := '24'  + WindowString;
+                                    Band10:  TempString := '28'  + WindowString;
+                                    Band6:   TempString := '50'  + WindowString;
+                                    ELSE     TempString := '144' + WindowString;
+                                    END;
+                                END
+                            ELSE
+                                TempString := WindowString;
+
+                            IF StringHas (TempString, '.') THEN
+                                BEGIN
+                                Val (TempString, RealFreq, xResult);
+                                Freq := Round (RealFreq * 1000.0);
+                                END
+                            ELSE
+                                Val (TempString + '000', Freq, xResult);
+
+                            IF xResult = 0 THEN
+                                SetRadioFreq (Radio, Freq, Mode, 'A');
+
+                            CallWindowString := '';
+                            CallWindowCursorPosition := 1;
+                            ClrScr;
+                            Exit;
+                            END;
 
                         { This is a thing I don't normally do when programming - but it is very
                           important that WindowDupeCheck be last in the next IF statement!  You
@@ -2573,7 +3065,7 @@ VAR Key, ExtendedKey: CHAR;
 
                         IF AutoDupeEnableSandP AND (NOT SearchAndPounceStationCalled) AND WindowDupeCheck THEN
                             BEGIN  { get out of here }
-                            QSOState := QST_SearchAndPounceInit;
+                            SearchAndPounceStationCalled := False;
                             Exit;
                             END;
 
@@ -2617,6 +3109,8 @@ VAR Key, ExtendedKey: CHAR;
                                 CASE Mode OF
                                     Digital:
                                         BEGIN
+                                        ActiveRadio := Radio;
+                                        ActiveMode := Mode;
                                         ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
                                         ShowCWMessage (ExpandedString);
                                         TransmitCountdown := InitialTransmitCountdown;
@@ -2625,7 +3119,7 @@ VAR Key, ExtendedKey: CHAR;
 
                                     CW: BEGIN
                                         ExpandedString := ExpandCrypticString (SearchAndPounceExchange);
-                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High);
+                                        TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                                         ShowCWMessage (ExpandedString);
                                         END;
 
@@ -2666,7 +3160,20 @@ VAR Key, ExtendedKey: CHAR;
                                                      ExchangeWindowString,
                                                      Band, Mode, Frequency, RData) THEN
                                 BEGIN
+                                LoggedSAndPCall := CallWindowString;
+                                MarkTime (LoggedSAndPCallTime);
+
+                                RData.SearchAndPounce := True;
+                                RData.Radio := Radio;
                                 TBSIQ_LogContact (RData);
+
+                                IF VisibleDupeSheetEnable THEN
+                                    BEGIN
+                                    VisibleDupeSheetChanged := True;
+                                    VisibleLog.DisplayVisibleDupeSheet (Band, Mode);
+                                    TBSIQ_BandMapFocus := Radio;
+                                    END;
+
                                 ShowStationInformation (CallWindowString);
 
                                 ExchangeWindowString := '';
@@ -2699,13 +3206,47 @@ VAR Key, ExtendedKey: CHAR;
                         BEGIN
                         IF ValidFunctionKey (ExtendedKey) THEN  { Send function key message }
                             BEGIN
+                            IF ExtendedKey = F1 THEN    { If the other radio is calling CQ - make it stop }
+                               CASE Radio OF
+                                   RadioOne:
+                                       IF Radio2QSOMachine.QSOState = QST_CallingCQ THEN
+                                           TBSIQ_CW_Engine.ClearMessages (RadioTwo, True);
+
+                                   RadioTwo:
+                                       IF Radio1QSOMachine.QSOState = QST_CallingCQ THEN
+                                           TBSIQ_CW_Engine.ClearMessages (RadioOne, True);
+                                   END;
+
                             SendFunctionKeyMessage (ExtendedKey, Message);
 
                             IF ExtendedKey = F1 THEN
                                 BEGIN
                                 IF GoodCallSyntax (CallWindowString) THEN
                                     BEGIN
-                                    NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, False, BandMapDecayTime, True);
+                                    { We don't know if this is a dupe }
+
+                                    IF LooksLikeACallsign (CallWindowString) THEN
+                                        BEGIN
+                                        ThisIsADupe := VisibleLog.CallIsADupe (CallWindowString, Band, Mode);
+
+                                        IF NOT ThisIsADupe THEN
+                                            BEGIN
+                                            VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
+                                            Mult := MultString <> '';
+                                            END
+                                        ELSE
+                                            Mult := False;
+                                        END;
+
+                                    BandMapCursorFrequency := DisplayedFrequency;
+                                    BandMapMode := Mode;
+                                    BandMapBand := Band;
+                                    TBSIQ_BandMapFocus := Radio;
+                                    BandMapCallPutUp := CallWindowString;
+
+                                    { First True is dupe - second one is SendToMulti }
+
+                                    NewBandMapEntry (CallWindowString, Frequency, 0, Mode, ThisIsADupe, Mult, BandMapDecayTime, True);
                                     DisablePutUpBandMapCall := False;
 
                                     SetTBSIQWindow (TBSIQ_ExchangeWindow);
@@ -2795,8 +3336,17 @@ VAR Key, ExtendedKey: CHAR;
                                                                  Band, Mode, Frequency, RData) THEN
                                             BEGIN
                                             EscapeDeletedCallEntry := CallWindowString;
-                                            ShowCWMessage ('DeletedCall = ' + CallwindowString);
+                                            RData.SearchAndPounce := True;
+                                            RData.Radio := Radio;
                                             TBSIQ_LogContact (RData);
+
+                                            IF VisibleDupeSheetEnable THEN
+                                                BEGIN
+                                                VisibleDupeSheetChanged := True;
+                                                VisibleLog.DisplayVisibleDupeSheet (Band, Mode);
+                                                TBSIQ_BandMapFocus := Radio;
+                                                END;
+
                                             ShowStationInformation (CallWindowString);
 
                                             ExchangeWindowString := '';
@@ -2850,6 +3400,8 @@ VAR Key, ExtendedKey: CHAR;
                                         Write (ExchangeWindowString);
                                         ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
                                         END;
+
+                                    ShowStationInformation (CallWindowString);
                                     END;
 
                                 END;  { of CASE ExtendedKey }
@@ -2858,29 +3410,51 @@ VAR Key, ExtendedKey: CHAR;
                     END; { of case Key }
                 END;
 
-            { We are in S&P mode - and possibly we need to do something if we are
-              tuning to a new frequency }
+            { Hand around if the band map is enabled }
 
-            IF BandMapEnable AND (TBSIQ_ActiveWindow = TBSIQ_CallWindow) AND NOT DisablePutUpBandMapCall THEN
-                BEGIN
-                IF (CallWindowString = '') AND (BandMapBlinkingCall <> '') AND OkayToPutUpBandMapCall THEN
-                    IF CallWindowString <> BandMapBlinkingCall THEN
-                        BEGIN
-                        CallWindowString := BandMapBlinkingCall;
-                        BandMapCallPutUp := BandMapBlinkingCall;
-                        ClrScr;
-                        Write (CallWindowString);
-                        CallWindowCursorPosition := Length (CallWindowString) + 1;
-                        END;
+            IF NOT BandMapEnable THEN Exit;                        { Go away }
 
-                IF BandMapCallPutUp <> BandMapBlinkingCall THEN
-                    IF BandMapCallPutUp = CallWindowString THEN
+            { and the bandmap focus is this radio }
+
+            IF TBSIQ_BandMapFocus <> Radio THEN Exit;
+
+            { If we have tuned away from an entry that was put up from the band map
+              we need to clear the call window }
+
+            IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                IF BandMapCallPutUp = CallWindowString THEN
+                    IF (BandMapBlinkingCall <> CallWindowString) THEN
                         BEGIN
+                        SetTBSIQWindow (TBSIQ_ActiveWindow);  { Makes sure we are active }
                         ClrScr;
                         CallWindowString := '';
                         CallWindowCursorPosition := 1;
                         BandMapCallPutUp := '';
                         END;
+
+            { Now we see if there is a new blinking call to put up }
+
+            IF CallWindowString <> '' THEN Exit;                   { Only do it to an empty window }
+            IF BandMapBlinkingCall = '' THEN Exit;                 { No blinking call }
+            IF DisablePutUpBandMapCall THEN Exit;                  { Someone pressed a key }
+            IF TBSIQ_ActiveWindow <> TBSIQ_CallWindow THEN Exit;   { Not in call window }
+            IF NOT OkayToPutUpBandMapCall THEN Exit;               { Call is a dupe }
+
+            { Not sure I need to redo this frequency check }
+
+            { This is sometimes putting the band map call up on the wrong radio }
+
+            IF (ABS (BandMapBlinkingCallRecord^.Frequency - Frequency) <= BandMapGuardBand) THEN
+                BEGIN
+                SetTBSIQWindow (TBSIQ_ActiveWindow);  { Makes sure we are active }
+                CallWindowString := BandMapBlinkingCall;
+                ClrScr;
+                Write (CallWindowString);
+                CallWindowCursorPosition := Length (CallWindowString) + 1;
+
+                { Remember that this is the callsign we have put up }
+
+                BandMapCallPutUp := BandMapBlinkingCall;
                 END;
 
             END; { of QST_SearchAndPounce }
@@ -2963,6 +3537,22 @@ VAR FrequencyChange, TempFreq: LONGINT;
     TimeString: STRING;
 
     BEGIN
+    IF DupeShown THEN
+        IF ElaspedSec100 (DupeShownTime) > 300 THEN
+            BEGIN
+            CASE Radio OF
+                RadioOne: RemoveWindow (TBSIQ_R1_CWMessageWindow);
+                RadioTwo: RemoveWindow (TBSIQ_R2_CWMessageWindow);
+                END;
+
+            DupeShown := False;
+            DupeShownCallsign := '';
+            END;
+
+    IF LoggedSandPCall <> '' THEN
+        IF ElaspedSec100 (LoggedSAndPCallTime) > 500 THEN
+            LoggedSAndPCall := '';
+
     { Get a new reading from the clock }
 
     TimeString := GetFullTimeString;
@@ -3004,8 +3594,28 @@ VAR FrequencyChange, TempFreq: LONGINT;
             END; { of CASE }
 
         RadioMovingInBandMode := RadioOnTheMove AND (ModeMemory [Radio] = Mode) AND (BandMemory [Radio] = Band);
-        IF FrequencyChange > 0 THEN DisablePutUpBandMapCall := False;
+
+        { Was > 0.  This clears the flag set when a key is pressed }
+
+        IF FrequencyChange > BandMapGuardBand THEN DisablePutUpBandMapCall := False;
+
+        IF FrequencyChange > 0 THEN
+            CASE Radio OF
+                RadioOne:
+                    IF (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                        N4OGW_RadioOne_Bandmap.SetCenterFrequency (Frequency);
+
+                RadioTwo:
+                    IF (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                        N4OGW_RadioTwo_Bandmap.SetCenterFrequency (Frequency);
+
+                END;  { of CASE }
         END;
+
+    { W9CF adds this to make his antenna switch work }
+
+    IF Band <> BandMemory [Radio] THEN
+        OutputBandInfo (Radio, Band);
 
     LastFrequency := Frequency;
     BandMemory [Radio] := Band;
@@ -3020,16 +3630,10 @@ VAR FrequencyChange, TempFreq: LONGINT;
     IF RadioMovingInBandMode AND AutoSAPEnable AND (QSOState <> QST_SearchAndPounce) THEN
         QSOState := QST_SearchAndPounceInit;
 
-    { Kind of a hack here - if we moved away from a freqeuency while in S&P, make
-      sure to clear the call window }
+    { We use RadioFrequencySettledCount to see if we have landed on a frequency }
 
     IF RadioMovingInBandMode AND (QSOState = QST_SearchAndPounce) THEN
-        BEGIN
-        QSOState := QST_SearchAndPounceinit;
-        CallWindowString := '';
-        CallWindowCursorPosition := 1;
         RadioFrequencySettledCount := 1;
-        END;
 
     DisplayTXColor;
     DisplayActiveRadio;
@@ -3041,12 +3645,43 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     { We are now only executing this code once a second - per radio }
 
+    { Check turning off TX polling for K4 }
+
+    IF TurnOffK3TXPollModeCount > 0 THEN
+        Dec (TurnOffK3TXPollModeCount);
+
+    { PTTTest is used for testing purposes only }
+
+    IF DoingPTTTest THEN
+        BEGIN
+        Dec (PTTTestTimer);
+
+        IF PTTTestTimer <= 0 THEN
+            BEGIN
+            PTTTestTimer := 3;
+            IF PTTState THEN  { PTT is on }
+                BEGIN
+                ActiveKeyer.PTTUnForce;;
+                ShowCWMessage ('PTT On');
+                END
+            ELSE
+                BEGIN
+                ActiveKeyer.PTTForceOn;
+                ShowCWMessage ('PTT Off');
+                END;
+
+            PTTState := NOT PTTState;
+            END;
+        END;
+
     IF TransmitCountDown > 0 THEN Dec (TransmitCountDown);
 
-    IF TBSIQ_BandMapFocus = Radio THEN
+    { Update the cursor frequency of the band map and display the band map }
+
+    IF (TBSIQ_BandMapFocus = Radio) AND (BandMapCursorFrequency <> Frequency) THEN
         BEGIN
         BandMapCursorFrequency := Frequency;
-        IF BandMapEnable THEN DisplayBandMap;
+        DisplayBandMap;
         END;
 
     IF (RadioFrequencySettledCount > 0) AND (QSOState = QST_SearchAndPounce) THEN
@@ -3067,6 +3702,24 @@ PROCEDURE QSOMachineObject.ShowCWMessage (Message: STRING);
         RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_CWMessageWindow);
         END;
 
+    Write (CWMessageDisplayed);
+    RestorePreviousWindow;
+    END;
+
+
+PROCEDURE QSOMachineObject.ShowDupeMessage (Message: STRING);
+
+    BEGIN
+    CWMessageDisplayed := Message;
+
+    CASE Radio OF
+        RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_CWMessageWindow);
+        RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_CWMessageWindow);
+        END;
+
+    SetBackground (Red);
+    SetColor (Blue);
+    ClrScr;
     Write (CWMessageDisplayed);
     RestorePreviousWindow;
     END;
@@ -3097,7 +3750,7 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         END;
 
     CASE QSOState OF
-        QST_AltDInput: Write ('Sending inpput to other radio');
+        QST_AltDInput: Write ('Sending input to other radio');
         QST_Idle: Write ('CQ Mode - Idle');
         QST_AutoStartSending: Write ('Auto start send started');
         QST_CallingCQ: Write ('CQing');
@@ -3219,10 +3872,14 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     AutoCQDelayTime := 400;     { Four seconds }
     AutoCQMemory := Chr (0);
+
+    AutoStartSendEnable := AutoSendEnable;                  { Adopt global as initial value }
+    AutoStartSendCharacterCount := AutoSendCharacterCount;  { Adopt global as initial value }
+
     AutoStartSendStationCalled := False;
     CallWindowString := '';
     CallWindowCursorPosition := 1;
-    Characterinput := Chr(0) ;
+    Characterinput := Chr(0) ;                               { AltD path to other radio }
     CodeSpeed := SpeedMemory [Radio];
     CWMessageDisplayed := '';
     DisablePutUpBandMapCall := False;
@@ -3231,19 +3888,21 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     DisplayedInsertIndicator := NoInsertIndicator;
     DisplayedMode := NoMode;
     DisplayedTXColor := NoTXColor;
+    DoingPTTTest := False;
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
+    FirstSCPCall := '';
     K3RXPollActive := False;
-    InsertMode := InsertMode;
+    LocalInsertMode := InsertMode;                          { Need to get the global Insert Mode here }
     LastFrequency := 0;
+    MarkTime (LastFunctionKeyTime);
     LastQSOState := QST_None;
     OkayToPutUpBandMapCall := False;
     QSOState := QST_Idle;
 
     RadioOnTheMove := False;
     SearchAndPounceStationCalled := False;
-    StartSendingCursorPosition := AutoSendCharacterCount;
     TransmitCountDown := 0;
 
     { Setup the window locations derived from the X,Y reference }
@@ -3340,10 +3999,12 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             { Between CallWindow and ExchangeWindow }
 
-            TBSIQ_R1_UserInfoWindowLX := WindowLocationX + 14;
+            TBSIQ_R1_UserInfoWindowLX := WindowLocationX + 29;
             TBSIQ_R1_UserInfoWindowLY := WindowLocationY + 0;
-            TBSIQ_R1_UserInfoWindowRX := WindowLocationX + 25;
+            TBSIQ_R1_UserInfoWindowRX := WindowLocationX + 38;
             TBSIQ_R1_UserInfoWindowRY := WindowLocationY + 0;
+
+            RadioInterfaced := Radio1Type;
             END;
 
         RadioTwo:
@@ -3436,17 +4097,19 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             { Between CallWindow and ExchangeWindow }
 
-            TBSIQ_R2_UserInfoWindowLX := WindowLocationX + 14;
+            TBSIQ_R2_UserInfoWindowLX := WindowLocationX + 29;
             TBSIQ_R2_UserInfoWindowLY := WindowLocationY + 0;
-            TBSIQ_R2_UserInfoWindowRX := WindowLocationX + 25;
+            TBSIQ_R2_UserInfoWindowRX := WindowLocationX + 38;
             TBSIQ_R2_UserInfoWindowRY := WindowLocationY + 0;
+
+            RadioInterfaced := Radio2Type;
             END;
 
         END;
 
     { Now that the windows are defined, we can display stuff }
 
-    DisplayAutoSendCharacterCount;   { This doesn't seem to work }
+    DisplayAutoStartSendCharacterCount;   { This doesn't seem to work }
     DisplayCodeSpeed;
     DisplayEditableLog (VisibleLog.LogEntries);
     DisplayInsertMode;
@@ -3575,7 +4238,7 @@ VAR CharacterPosition, PossibleCall: INTEGER;
     ELSE
         BEGIN
         GoToXY (9, 1);
-        Write ('No possible calls found');
+        Write ('No calls found');
         END;
 
     RestorePreviousWindow;
@@ -3631,15 +4294,15 @@ PROCEDURE QSOMachineObject.DisplayInsertMode;
 
     BEGIN
     IF (DisplayedInsertIndicator = NoInsertIndicator) OR
-       ((DisplayedInsertIndicator = InsertOffIndicator) AND InsertMode) OR
-       ((DisplayedInsertIndicator = InsertOnIndicator) AND NOT InsertMode) THEN
+       ((DisplayedInsertIndicator = InsertOffIndicator) AND LocalInsertMode) OR
+       ((DisplayedInsertIndicator = InsertOnIndicator) AND NOT LocalInsertMode) THEN
            BEGIN
            CASE Radio OF
                RadioOne: SaveSetAndClearActiveWindow (TBSIQ_R1_InsertWindow);
                RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_InsertWindow);
                END;
 
-           IF InsertMode THEN
+           IF LocalInsertMode THEN
                BEGIN
                Write (' INSERT');
                RestorePreviousWindow;
@@ -3761,8 +4424,8 @@ VAR Key: CHAR;
                   END;  { of CASE ExtendedKey }
                 END
 
-            ELSE       { not Control-B }
-                SendChar (ActivePacketPort, Key)
+            ELSE       { not null key  }
+                SendChar (ActivePacketPort, Key);
             END;
 
         Packet.CheckPacketBuffer (True);
@@ -3864,11 +4527,25 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
         Exit;  { No reason to be here }
 
     { A keystroke will stop the DualingCQ activity.  Note that you are likely
-      on the wrong radio with the CW }
+      on the wrong radio with the CW or for sure SSB }
+
+     IF (DualingCQState <> NoDualingCQs) AND (Mode = Phone) THEN  { Make me the TX radio }
+         BEGIN
+         { Try and stop the message on the other radio? }
+
+         CASE Radio OF
+             RadioOne: rig2.directcommand ('RX;');
+             RadioTwo: rig1.directcommand ('RX;');
+             END;
+
+         ActiveRadio := Radio;
+         ActiveKeyer.SetActiveRadio (Radio);   { This seems necessary }
+         TBSIQ_CW_Engine.ShowActiveRadio;
+         END;
 
     DualingCQState := NoDualingCQs;
 
-    { A keystroke will clear the OkayToPutUpBandMappCall flag  and also disable
+    { A keystroke will clear the OkayToPutUpBandMapCall flag  and also disable
       the feature until we tune to a new frequency }
 
     OkayToPutUpBandMapCall := False;
@@ -3879,7 +4556,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
     SetTBSIQWindow (TBSIQ_ActiveWindow);  { Sets cursor }
 
-    { Deal with the case where someone is sending us a character }
+    { Deal with the case where someone is sending us a character using AltD on the other radio }
 
     IF CharacterInput <> Chr (0) THEN   { Someone is talking to us }
         BEGIN
@@ -3976,29 +4653,29 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
     IF KeyChar = PossibleCallRightKey THEN
         BEGIN
-        WITH PossibleCallList DO
+        WITH TBSIQPossibleCallList DO
             IF (NumberPossibleCalls > 0) AND (CursorPosition < NumberPossibleCalls - 1) THEN
                 BEGIN
                 Inc (CursorPosition);
-                DisplayPossibleCalls (PossibleCallList);
+                DisplayPossibleCalls (TBSIQPossibleCallList);
                 END;
         Exit;
         END;
 
     IF KeyChar = PossibleCallLeftKey THEN
         BEGIN
-        WITH PossibleCallList DO
+        WITH TBSIQPossibleCallList DO
             IF (NumberPossibleCalls > 0) AND (CursorPosition > 0) THEN
                 BEGIN
                 Dec (CursorPosition);
-                DisplayPossibleCalls (PossibleCallList);
+                DisplayPossibleCalls (TBSIQPossibleCallList);
                 END;
         Exit;
         END;
 
     IF KeyChar = PossibleCallAcceptKey THEN
         BEGIN
-        WITH PossibleCallList DO
+        WITH TBSIQPossibleCallList DO
             IF NumberPossibleCalls > 0 THEN
                 BEGIN
                 CallWindowString := List [CursorPosition].Call;
@@ -4055,7 +4732,11 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
             IF Mode = CW THEN
                 IF TBSIQ_CW_Engine.ClearMessages (Radio, True) THEN   { was something to stop }
                     BEGIN
-                    ActionRequired := False;
+                    { If you have triggered AutoStartSend - we need to tell someone that
+                      the ESCAPE KEY was pressed so that it doesn't move on to sending the
+                      CQ Exchange }
+
+                    ActionRequired := QSOState = QST_AutoStartSending;
                     Exit;
                     END;
 
@@ -4112,6 +4793,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                 Inc (CursorPosition);
                 GoToXY (CursorPosition, WhereY);
                 END;
+
 
         ControlF:  { Move forward to start of next word }
             IF CursorPosition <= Length (WindowString) THEN
@@ -4315,7 +4997,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
         SpaceBar:
             IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                 BEGIN
-                IF InsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
+                IF LocalInsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
                     BEGIN
                     IF CursorPosition > 1 THEN
                         BEGIN
@@ -4381,12 +5063,13 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                           END;
                       END;
 
-                  AltD:
+{                 AltD:
                       BEGIN
                       RememberQSOState := QSOState;
                       QSOState := QST_AltDInput;
                       ActionRequired := False;
                       END;
+}
 
                   AltE: BEGIN
                       RITEnable := False;
@@ -4547,14 +5230,15 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                     ClrScr;
                     Write (WindowString);
                     CursorPosition := Length (WindowString) + 1;
+                    ShowStationInformation (CallWindowString);
                     END;  { of AltZ }
 
-                AltDash:   { Uses the global AutoSendEnable }
+                AltDash:
                     BEGIN
-                    IF AutoSendCharacterCount > 0 THEN
-                        AutoSendEnable := NOT AutoSendEnable;
+                    IF AutoStartSendCharacterCount > 0 THEN
+                        AutoStartSendEnable := NOT AutoStartSendEnable;
 
-                    DisplayAutoSendCharacterCount;
+                    DisplayAutoStartSendCharacterCount;
                     END;
 
                 HomeKey:
@@ -4571,7 +5255,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                 DeleteKey:
                     BEGIN
-                    IF InsertMode THEN
+                    IF LocalInsertMode THEN
                         BEGIN
                         IF CursorPosition <= Length (WindowString) THEN
                             BEGIN
@@ -4684,7 +5368,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                 InsertKey:
                     BEGIN
-                    InsertMode := NOT InsertMode;
+                    LocalInsertMode := NOT LocalInsertMode;
                     DisplayInsertMode;
                     END;
 
@@ -4699,7 +5383,18 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
             IF LegalKey (KeyChar) THEN
                 BEGIN
-                IF InsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
+                { Don't add characters to a band map callsign }
+
+                IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                    IF BandMapCallPutUp <> '' THEN
+                        BEGIN
+                        ClrScr;
+                        WindowString := '';
+                        CursorPosition := 1;
+                        BandMapCallPutUp := '';
+                        END;
+
+                IF LocalInsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
                     BEGIN
                     IF CursorPosition > 1 THEN
                         BEGIN
@@ -5114,9 +5809,6 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
             IF ShiftKey THEN KeyStatus.KeyChar := '}';
             IF ControlKey THEN KeyStatus.KeyChar := ControlRightBracket;
             END;
-
-        { I am not going to deal with Control or Shift Enter right now - but feel free }
-        { Back in the DOS version - I was reading a port directly to detect them }
 
         28: BEGIN                               { Carriage Return }
             KeyStatus.KeyChar := CarriageReturn;
@@ -5908,6 +6600,8 @@ FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
   Mostly likely used to disable some function keys when in SSB mode or for
   dualing CQs }
 
+VAR TransmitStatus: BOOLEAN;
+
     BEGIN
     CASE Mode OF
         CW: IAmTransmitting := NOT TBSIQ_CW_Engine.CWFinished (Radio);
@@ -5921,15 +6615,52 @@ FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
             IF TransmitCountDown > 0 THEN
                 BEGIN
                 IAmTransmitting := True;
+
+                { We are going to enable faster polling of the K3 so
+                  we don't have to wait for the 300 ms delay that
+                  the IF; command has on the TX status }
+
+                IF RadioInterfaced = K4 THEN
+                    BEGIN
+                    CASE Radio OF
+                        RadioOne: Rig1.SetK3TXPollMode (True);  { Kind of a misname here }
+                        RadioTwo: Rig2.SetK3TXPollMode (True);  { Kind of a misname here }
+                        END;
+
+                    K3RXPollActive := True;
+                    END;
+
                 Exit;
                 END;
 
-            { We are going to rely on the radio status }
+            { We are now going to rely on the radio status }
 
             CASE Radio OF
-                RadioOne: IAmTransmitting := Rig1.K3IsStillTalking;
-                RadioTwo: IAmTransmitting := Rig2.K3IsStillTalking;
+                RadioOne: TransmitStatus := Rig1.K3IsStillTalking;
+                RadioTwo: TransmitStatus := Rig2.K3IsStillTalking;
                 END;  { of CASE }
+
+            { At some point we will go back to the normal method of monitoring
+              the TX state (using the IF command), but we need to wait a little
+              while before doing that as that TX state will stay true for about
+              a half second }
+
+            IF K3RXPollActive THEN
+                BEGIN
+                IF TransmitStatus THEN TurnOffK3TXPollModeCount := 2;
+
+                IF TurnOffK3TXPollModeCount = 0 THEN
+                    BEGIN
+                    CASE Radio OF
+                        RadioOne: Rig1.SetK3TXPollMode (False);  { Kind of a misname here }
+                        RadioTwo: Rig2.SetK3TXPollMode (False);  { Kind of a misname here }
+                        END;
+
+                    K3RXPollActive := False;
+                    END;
+                END;
+
+            IAmTransmitting := TransmitStatus;
             END;
 
         ELSE
@@ -5990,6 +6721,10 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     BEGIN
     IF NOT ValidFunctionKey (Key) THEN Exit;
 
+    IF ElaspedSec100 (LastFunctionKeyTime) < 10 THEN Exit;
+
+    MarkTime (LastFunctionKeyTime);
+
     { When doing ExpandCrypticString, a function key is likely to start some
       kind of transmission.  This is okay if both rigs are on CW - or if the
       other radio is not busy transmitting. }
@@ -6007,26 +6742,25 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                    IF Mode = CW THEN
                        Message := '\'
                    ELSE
-                       Message := GetExMemoryString (Mode, Key);
+                       Message := ExpandCrypticString (GetExMemoryString (Mode, Key));
                    END;
 
                F2: CASE Mode OF
                        CW:      Message := SearchAndPounceExchange;
 
                        Phone:   BEGIN
-                                Message := SearchAndPouncePhoneExchange;
+                                Message := ExpandCrypticString (SearchAndPouncePhoneExchange);
                                 IF Message = '' THEN
-                                    Message := GetExMemoryString (Phone, Key);
+                                    Message := ExpandCrypticString (GetExMemoryString (Phone, Key));
                                 END;
 
-                       Digital: Message := GetExMemoryString (Digital, Key);
+                       Digital: Message := ExpandCrypticString (GetExMemoryString (Digital, Key));
                        END;  { of CASE Mode }
 
                ELSE
-                   Message := GetEXMemoryString (Mode, Key);
+                   Message := ExpandCrypticString (GetEXMemoryString (Mode, Key));
 
                END;  { of CASE Key }
-
 
     { New on 30-Sep-2022 - hmm - should I do this if the message is only going
       into the cue?  Am I doing this for SSB only? }
@@ -6045,7 +6779,7 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
     IF (Mode = CW) AND (Message <> '') THEN
         BEGIN
-        TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High);
+        TBSIQ_CW_Engine.CueCWMessage (Message, Radio, CWP_High, False);
         ShowCWMessage (Message);
         END;
 
@@ -6251,13 +6985,6 @@ VAR I: INTEGER;
     GetRidOfPostcedingSpaces (ExchangeString);
 
     TBSIQ_ParametersOkay := ProcessExchange (ExchangeString, RData);
-
-    IF ExchangeErrorMessage <> '' THEN
-        BEGIN
-        QuickDisplayError (ExchangeErrorMessage);
-        ReminderPostedCount := 60;
-        END;
-
     CalculateQSOPoints (RData);
     END;
 
@@ -6272,6 +6999,8 @@ PROCEDURE TBSIQ_LogContact (VAR RXData: ContestExchange);
 VAR LogString: Str80;
 
     BEGIN
+    RXData.TimeSeconds := GetTimeSeconds;
+
     VisibleDupeSheetChanged := True;
 
     LastTwoLettersCrunchedOn := '';
@@ -6322,11 +7051,18 @@ VAR LogString: Str80;
 
     UpdateTotals;
     DisplayTotalScore (TotalScore);
+    VisibleLog.ShowRemainingMultipliers;
 
     IF BandMapEnable THEN
         BEGIN
         UpdateBandMapMultiplierStatus;
         UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
+        END;
+
+    IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
+        BEGIN
+        RXData.Date := GetFullDateString;
+        SendQSOToUDPPort (RXData);
         END;
     END;
 
@@ -6456,6 +7192,8 @@ PROCEDURE PaintVerticalLine;
 
 
     BEGIN
+    TBSIQ_BandMapFocus := NoRadio;
+
     ResetKeyStatus (RadioOne);
     ResetKeyStatus (RadioTwo);
     END.

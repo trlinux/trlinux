@@ -588,7 +588,322 @@ PROCEDURE SendDVKMessage (Message: Str20);
         END;
     END;
 
+
 
+PROCEDURE SendCrypticCWString (SendString: Str160);
+
+{ Control-A will put the message out on the InactiveRadio and set the flag
+  InactiveRadioSendingCW.  It does not change the ActiveRadio any more.
+
+  If you decide to answer someone who responds to CW on the inactive radio,
+  you will want to call SwapRadios.  This will now make Control-A messages
+  be sent on the new inactive radio (which is probably what you want).   }
+
+
+VAR CharPointer, CharacterCount, QSONumber: INTEGER;
+    cc: integer;
+    Result, Entry, Offset: INTEGER;
+    Key, SendChar, TempChar: CHAR;
+    CommandMode, WarningSounded: BOOLEAN;
+    TempCall: CallString;
+    TempString: Str80;
+    TempFreq: LONGINT;
+
+    BEGIN
+    SetSpeed (DisplayedCodeSpeed);
+
+    IF Length (SendString) = 0 THEN Exit;
+
+    CommandMode := False;
+
+//ugly patch to fix original code incrementing the for loop variable
+    cc := 0;
+    FOR CharacterCount := 1 TO Length (SendString) DO
+        BEGIN
+        cc := cc + 1;
+        if CharacterCount < cc then continue;
+        SendChar := SendString [CharacterCount];
+
+        IF CommandMode THEN
+            BEGIN
+            CASE SendChar OF
+
+                '@': IF StringHas (CallWindowString, '?') THEN
+                         AddStringToBuffer (' ' + CallWindowString, CWTone);
+
+                ELSE AddStringToBuffer (ControlLeftBracket + SendChar, CWTone);
+                END;
+
+            CommandMode := False;
+            Continue;
+            END;
+
+        CASE SendChar OF
+            '#': BEGIN
+                 QSONumber := TotalContacts + 1;
+
+                 IF TailEnding THEN Inc (QSONumber);
+
+                 IF AutoQSONumberDecrement THEN
+                     IF (ActiveWindow = CallWindow) AND
+                        (CallWindowString = '') AND (ExchangeWindowString = '') THEN
+                            Dec (QSONumber);
+
+                 IF Length (SendString) >= CharacterCount + 2 THEN
+                     BEGIN
+                     TempChar := SendString [CharacterCount + 1];
+
+                     IF TempChar = '+' THEN
+                         BEGIN
+                         TempChar := SendString [CharacterCount + 2];
+                         Val (TempChar, Offset, Result);
+                         IF Result = 0 THEN
+                             BEGIN
+                             QSONumber := QSONumber + Offset;
+//                             CharacterCount := CharacterCount + 2;
+                             cc := cc + 2;
+                             END;
+                         END;
+
+                     IF TempChar = '-' THEN
+                         BEGIN
+                         TempChar := SendString [CharacterCount + 2];
+                         Val (TempChar, Offset, Result);
+                         IF Result = 0 THEN
+                             BEGIN
+                             QSONumber := QSONumber - Offset;
+//                             CharacterCount := CharacterCount + 2;
+                             cc := cc + 2;
+                             END;
+                         END;
+                     END;
+
+                 TempString := QSONumberString (QSONumber);
+
+                 WHILE LeadingZeros > Length (TempString) DO
+                     TempString := LeadingZeroCharacter + TempString;
+
+                 IF ShortIntegers THEN
+                     FOR CharPointer := 1 TO Length (TempString) DO
+                         BEGIN
+                         IF TempString [CharPointer] = '0' THEN TempString [CharPointer] := Short0;
+                         IF TempString [CharPointer] = '1' THEN TempString [CharPointer] := Short1;
+                         IF TempString [CharPointer] = '2' THEN TempString [CharPointer] := Short2;
+                         IF TempString [CharPointer] = '9' THEN TempString [CharPointer] := Short9;
+                         END;
+
+                 AddStringToBuffer (TempString, CWTone);
+                 END;
+
+            '_': AddStringToBuffer (' ', CWTone);
+
+            ControlD: IF CWStillBeingSent THEN AddStringToBuffer (' ', CWTone);
+
+            '*': BEGIN {KK1L: 6.72 New character to send Alt-D dupe checked call or call in call window}
+                 IF (DupeInfoCall <> '') AND (DupeInfoCall <> EscapeKey) THEN
+                     AddStringToBuffer (DupeInfoCall, CWTone)
+                 ELSE
+                     BEGIN
+                     IF CallsignUpdateEnable THEN
+                         BEGIN
+                         TempString := GetCorrectedCallFromExchangeString (ExchangeWindowString);
+
+                         IF TempString <> '' THEN
+                             BEGIN
+                             CallWindowString := TempString;
+                             CallsignICameBackTo := TempString;
+                             END;
+                         END;
+
+                     IF CallWindowString <> '' THEN
+                         AddStringToBuffer (CallWindowString, CWTone);
+                     END;
+                 END;
+
+            '@': BEGIN
+                 IF CallsignUpdateEnable THEN
+                     BEGIN
+                     TempString := GetCorrectedCallFromExchangeString (ExchangeWindowString);
+
+                     IF TempString <> '' THEN
+                         BEGIN
+                         CallWindowString := TempString;
+                         CallsignICameBackTo := TempString;
+                         END;
+                     END;
+
+                IF CallWindowString <> '' THEN
+                         AddStringToBuffer (CallWindowString, CWTone);
+                END;
+
+            '$': IF SayHiEnable AND (Rate < SayHiRateCutoff) THEN SayHello (CallWindowString);
+            '%': IF SayHiEnable AND (Rate < SayHiRateCutoff) THEN SayName  (CallWindowString);
+
+            ':': BEGIN
+                 RITEnable := False;
+                 SendKeyboardInput;
+                 RITEnable := True;
+                 END;
+
+            '~': SendSalutation (CallWindowString);
+            '\': AddStringToBuffer (MyCall, CWTone);
+
+            '|': IF ReceivedData.Name <> '' THEN
+                     AddStringToBuffer (ReceivedData.Name + ' ', CWTone);
+
+            '[': BEGIN
+                 WarningSounded := False;
+
+                 QuickDisplay ('WAITING FOR YOU ENTER STRENGTH OF RST (Single digit)!!');
+
+                 AddStringToBuffer ('5', CWTone);
+
+                 Key := '0';
+
+                 REPEAT
+                     REPEAT
+                         IF NOT CWStillBeingSent THEN
+                             BEGIN
+                             IF NOT WaitForStrength THEN
+                                 BEGIN
+                                 Key := '9';
+                                 Break;
+                                 END
+                             ELSE
+                                 IF NOT WarningSounded THEN
+                                     BEGIN
+                                     WarningSounded := True;
+                                     Tone.DoABeep (ThreeHarmonics);
+                                     END;
+                             END;
+
+                     UNTIL KeyPressed;
+
+                     IF Key <> '9' THEN Key := ReadKey;
+
+                 UNTIL ((Key >= '1') AND (Key <= '9')) OR (Key = EscapeKey);
+
+                 IF Key = EscapeKey THEN
+                     BEGIN
+                     FlushCWBufferAndClearPTT;
+                     Exit;
+                     END;
+
+                 IF Key = '9' THEN
+                     AddStringToBuffer ('NN', CWTone)
+                 ELSE
+                     AddStringToBuffer (Key + 'N', CWTone);
+                 ReceivedData.RSTSent := '5' + Key + '9';
+
+                 LastRSTSent := ReceivedData.RSTSent;
+                 END;
+
+            ']': AddStringToBuffer (LastRSTSent, CWTone);
+
+            '{': AddStringToBuffer (ReceivedData.Callsign, CWTone);
+
+            '}': IF StringHas (ReceivedData.Callsign, '/') OR
+                    ((Length (ReceivedData.Callsign) = 4) AND SendCompleteFourLetterCall) OR
+                    StringHas (CallsignICameBackTo, '/') THEN
+                        AddStringToBuffer (ReceivedData.Callsign, CWTone)
+                    ELSE
+                        IF GetPrefix (ReceivedData.Callsign) =
+                           GetPrefix (CallsignICameBackTo) THEN
+                               BEGIN
+                               TempString := GetSuffix (ReceivedData.Callsign);
+                               IF Length (TempString) = 1 THEN
+                                   TempString := Copy (ReceivedData.Callsign, Length (ReceivedData.Callsign) - 1, 2);
+                               AddStringToBuffer (TempString, CWTone);
+                               END
+                        ELSE
+                           IF GetSuffix (ReceivedData.Callsign) =
+                              GetSuffix (CallsignICameBackTo) THEN
+                                  AddStringToBuffer (GetPrefix (ReceivedData.Callsign), CWTone)
+                           ELSE
+                               AddStringToBuffer (ReceivedData.Callsign, CWTone);
+
+            '>': ClearRIT;
+
+            ')': AddStringToBuffer (VisibleLog.LastCallsign, CWTone);
+
+            '(': IF TotalContacts = 0 THEN
+                     BEGIN
+                     IF MyName <> '' THEN
+                         AddStringToBuffer (MyName, CWTone)
+                     ELSE
+                         AddStringToBuffer (MyPostalCode, CWTone);
+                     END
+                 ELSE
+                     BEGIN
+                     TempString := '';
+                     Entry := 5;
+
+                     WHILE (TempString= '') AND (Entry > 0) DO
+                         BEGIN
+                         TempString := VisibleLog.LastName (Entry);
+                         Dec (Entry);
+                         END;
+
+                     AddStringToBuffer (TempString, CWTone);
+                     END;
+
+            ControlQ:   { Send frequency of other radio }
+                BEGIN
+                IF ActiveRadio = RadioOne THEN
+                    TempFreq := LastDisplayedFreq [RadioTwo]
+                ELSE
+                    TempFreq := LastDisplayedFreq [RadioOne];
+
+                TempFreq := Round (TempFreq / 1000);  { Compute kHz }
+                Str (TempFreq, TempString);
+                AddStringToBuffer (TempString, CWTone);
+                END;
+
+            ControlR:   { Generate random characters }
+                BEGIN
+                ReceivedData.RandomCharsSent := '';
+
+                REPEAT
+                    ReceivedData.RandomCharsSent := ReceivedData.RandomCharsSent + Chr (Random (25) + Ord ('A'));
+                UNTIL Length (ReceivedData.RandomCharsSent) = 5;
+
+                AddStringToBuffer (ReceivedData.RandomCharsSent, CWTone);
+
+                SaveSetAndClearActiveWindow (DupeInfoWindow);
+                Write ('Sent = ', ReceivedData.RandomCharsSent);
+                RestorePreviousWindow;
+                END;
+
+            ControlT:   { Repeat random characters previously sent }
+                AddStringToBuffer (ReceivedData.RandomCharsSent, CWTone);
+
+            ControlU:   { Show station information }
+                BEGIN
+                TempCall := GetCorrectedCallFromExchangeString (ExchangeWindowString);
+
+                IF TempCall <> '' THEN
+                    CallSignICameBackTo := TempString
+                ELSE
+                    CallsignICameBackTo := CallWindowString;
+
+                ShowStationInformation (CallsignICameBackTo);
+                END;
+
+            ControlW:   { Send previous name sent }
+                AddStringToBuffer (VisibleLog.LastName (4), CWTone);
+
+            ControlLeftBracket:
+                CommandMode := True;
+
+            ELSE
+                AddStringToBuffer (SendChar, CWTone);
+            END;
+        END;
+
+    { ClearPTTForceOn;  Removed Nov-2022  }
+    END;
+
+
 
 PROCEDURE SendCrypticMessage (Message: Str160);
 
@@ -597,7 +912,6 @@ VAR TimeOut: BYTE;
     BEGIN
     IF FoundCommand (Message) AND (Message = '') THEN Exit;
 
-    {QuickDisplay2('SendCrypticMessage...ready to stop playback');}
     IF (ActiveMode = Phone) AND DVPEnable AND DVPMessagePlaying THEN
         BEGIN
         TimeOut := 0;
@@ -608,7 +922,6 @@ VAR TimeOut: BYTE;
             Inc (TimeOut);
         UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 30);
         END;
-    {QuickDisplay2('SendCrypticMessage...playback stopped.');}
 
     InactiveRigCallingCQ := False;
 
@@ -647,7 +960,6 @@ VAR TimeOut: BYTE;
         END;
 
     CASE ActiveMode OF
-
         Phone:
             BEGIN
             IF DVPEnable THEN
@@ -667,7 +979,7 @@ VAR TimeOut: BYTE;
     END;
 
 
-PROCEDURE SendFunctionKeyMessage  (Key: CHAR; OpMode: OpModeType);
+PROCEDURE SendFunctionKeyMessage (Key: CHAR; OpMode: OpModeType);
 
 VAR FileName, QSONumberString: Str20;
     MessageKey: CHAR;
@@ -713,6 +1025,7 @@ VAR FileName, QSONumberString: Str20;
                END;
 
            InactiveRigCallingCQ := False;
+
            SetUpToSendOnActiveRadio;
 
            IF ActiveMode = CW THEN
@@ -726,6 +1039,12 @@ VAR FileName, QSONumberString: Str20;
                        AddStringToBuffer (' ', CWTone);
                    END
                ELSE
+
+                   { I am not sure exactly why this is here.  I notice when I press
+                     a function key memoery, I end up flushing the buffer and
+                     unasserting PTT.  I am not really sure this is necessary, but
+                     I will leave it here as it doesn't seem to do any harm.  }
+
                    IF Pos (ControlD, Message) = 0 THEN FlushCWBufferAndClearPTT;
                END;
 
@@ -759,6 +1078,7 @@ VAR FileName, QSONumberString: Str20;
                END;
 
            {QuickDisplay2('SendFunctionKeyMessage..1..2..3..4');}
+
            IF (ActiveMode = Phone) AND DVKEnable AND (Key >= ControlF1) AND (Key <= ControlF10) AND DVKControlKeyRecord THEN
                BEGIN
                {KK1L: 6.73 Added mode}
@@ -822,8 +1142,6 @@ VAR FileName, QSONumberString: Str20;
                                 END;
                            END;
 
-
-
                     IF (ActiveMultiPort <> nil) AND (MultiInfoMessage <> '') THEN
                         CreateAndSendCQMultiInfoMessage;
 
@@ -836,59 +1154,74 @@ VAR FileName, QSONumberString: Str20;
 
 PROCEDURE AddOnCQExchange;
 
+{ In Jan 2023, came here trying to make the RTTY exchange get sent and it
+  was not happening with the ELSE into the CW case, so I put in the case
+  statement of the ActiveMode }
+
 VAR Name: Str20;
     StationSpeed: INTEGER;
 
     BEGIN
-
-    IF ActiveMode = Phone THEN
-        BEGIN
-        IF (CQPhoneExchangeNameKnown <> '') AND SayHiEnable THEN
+    CASE ActiveMode OF
+        Phone:
             BEGIN
-            Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
+            IF (CQPhoneExchangeNameKnown <> '') AND SayHiEnable THEN
+                BEGIN
+                Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
 
-            IF (Name = '') OR (Name = 'CLUB') THEN
-                SendCrypticMessage (CQPhoneExchangeNameKnown)
+                IF (Name = '') OR (Name = 'CLUB') THEN
+                    SendCrypticMessage (CQPhoneExchangeNameKnown)
+                ELSE
+                    SendCrypticMessage (CQPhoneExchange);
+                END
             ELSE
                 SendCrypticMessage (CQPhoneExchange);
-            END
-        ELSE
-            SendCrypticMessage (CQPhoneExchange);
-        END
-    ELSE
-        BEGIN
-        IF CWSpeedFromDataBase THEN
-            BEGIN
-            StationSpeed := CD.GetCodeSpeed (RootCall (CallsignICameBackTo));
+            END;
 
-            IF StationSpeed > 0 THEN
+        CW:
+            BEGIN
+            IF CWSpeedFromDataBase THEN
                 BEGIN
-                RememberCWSpeed := CodeSpeed;
-                SetSpeed (StationSpeed);
-                DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                StationSpeed := CD.GetCodeSpeed (RootCall (CallsignICameBackTo));
+
+                IF StationSpeed > 0 THEN
+                    BEGIN
+                    RememberCWSpeed := CodeSpeed;
+                    SetSpeed (StationSpeed);
+                    DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                    END;
                 END;
-            END;
 
-        IF (CQExchangeNameKnown <> '') AND SayHiEnable THEN
-            BEGIN
-            Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
+            IF (CQExchangeNameKnown <> '') AND SayHiEnable THEN
+                BEGIN
+                Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
 
-            IF (Name = '') OR (Name = 'CLUB') THEN
-                SendCrypticMessage (CQExchange)
+                IF (Name = '') OR (Name = 'CLUB') THEN
+                    SendCrypticMessage (CQExchange)
+                ELSE
+                    SendCrypticMessage (CQExchangeNameKnown);
+                END
             ELSE
-                SendCrypticMessage (CQExchangeNameKnown);
-            END
-        ELSE
-            BEGIN
-            SendCrypticMessage (CQExchange);
+                BEGIN
+                SendCrypticMessage (CQExchange);
+                END;
+
+            { ClearPTTForceOn;   Taking this out in Nov 22 }
             END;
 
-        ClearPTTForceOn;
-        END;
+        Digital:
+            { Digital does not use CQ EXCHANGE.  It also does not send the
+              callsign automaticall.  It is up to the user to put the callsign
+              in the EX DIGITAL MEMORY F2 }
+
+            SendCrypticMessage (GetEXMemoryString (Digital, F2));
+
+        END; { of CASE }
 
     ExchangeHasBeenSent := True;
     END;
 
+
 
 PROCEDURE Send73Message;
 

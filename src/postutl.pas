@@ -77,11 +77,23 @@ TYPE
         NextRecord:     CabrilloRecPtr;
         END;
 
+    NAQPExchangeRecord = RECORD
+        Callsign: CallString;
+        NumberExchanges: INTEGER;
+        ExchangesFound: ARRAY [0..10] OF Str20;
+        END;
+
+    NAQPStationDatabaseType = RECORD
+        Stations: ARRAY [0..750] OF NAQPExchangeRecord;
+        END;
+
+    NAQPStationDatabasePointer = ^NAQPStationDatabaseType;
+
 
 VAR Buffer: FileBufferPointer;
     CheckCallBuffer: CallBufferPointer;
-
     CabrilloEntryHead: CabrilloRecPtr;
+    NAQPStationDatabase: NAQPStationDatabasePointer;
 
 { UTILITY Programs }
 
@@ -776,7 +788,6 @@ END;
 
 
 PROCEDURE ShowRestartDotBin;
-
 
 VAR FileWrite: TEXT;
     Block, NumberCalls, NumberEntriesInLastBlock, NumberBlocks: INTEGER;
@@ -2278,6 +2289,115 @@ VAR InputFileName, FieldCommand, OutputFileName: Str40;
 
 
 
+PROCEDURE NAQPExchangeChecker;
+
+{ Checks the log file from the NAQP contest to make sure the exchanges
+  for all of the QSOs with a specific station are consistent }
+
+LABEL StationFound;
+
+VAR FileName: Str40;
+    FileString: STRING;
+    Call, Name, QTH: Str20;
+    Exchange, NumberStations, Entry: INTEGER;
+    FileRead: TEXT;
+
+    BEGIN
+    ClearScreenAndTitle ('NAQP EXCHANGE CHECKER');
+    WriteLn;
+    WriteLn ('This procedure will look at your NAQP log and see if the exchanges');
+    WriteLn ('are all consistent');
+    WriteLn;
+
+    FileName := GetResponse ('Enter file to process (none to abort) : ');
+
+    IF FileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (FileRead, FileName) THEN
+        BEGIN
+        WriteLn ('Unable to open that file');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    New (NAQPStationDatabase);
+
+    WITH NAQPStationDatabase^ DO
+        BEGIN
+        NumberStations:= 0;
+
+        { Suck up the data into the database }
+
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+            GetRidOfPrecedingSpaces (FileString);
+
+            IF NOT StringHas (FileString, '-') THEN Continue;
+            IF NOT StringHas (FileSTring, ':') THEN Continue;
+
+            RemoveFirstString (FileString);  { 10CW }
+            RemoveFirstString (FileString);  { 10CW }
+            RemoveFirstString (FileString);  { 10CW }
+            RemoveFirstString (FileString);  { 10CW }
+
+            Call := RemoveFirstString (FileString);
+            Name := RemoveFirstString (FileString);
+            QTH  := RemoveFirstString (FileString);
+
+            { See if we have this entry already in the database }
+
+            IF NumberStations > 0 THEN
+                FOR Entry := 0 TO NumberStations - 1 DO
+                    WITH Stations [Entry] DO
+                        IF Callsign = Call THEN
+                            BEGIN
+                            ExchangesFound [NumberExchanges] := Name + ' ' + QTH;
+                            Inc (NumberExchanges);
+                            Goto StationFound;
+                            END;
+
+                { Callsign not worked before - add new entry }
+
+            WITH Stations [NumberStations] DO
+                BEGIN
+                Callsign := Call;
+                ExchangesFound [0] := Name + ' ' + QTH;
+                NumberExchanges := 1;
+                END;
+
+            Inc (NumberStations);
+  StationFound:
+            END;
+
+        WriteLn ('There were ', NumberStations, ' stations found');
+
+        { Now look at the data and highlight any exchanges that are inconsistent }
+
+        IF NumberStations = 0 THEN
+            BEGIN
+            WriteLn ('There were no QSOs found');
+            WaitForKeyPressed;
+            Exit;
+            END;
+
+        FOR Entry := 0 TO NumberStations - 1 DO
+            WITH Stations [Entry] DO
+                IF NumberExchanges > 1 THEN
+                    FOR Exchange := 1 TO NumberExchanges - 1 DO
+                        IF ExchangesFound [0] <> ExchangesFound [Exchange] THEN
+                            BEGIN
+                            WriteLn ('Issue found with ', Callsign);
+                            WriteLn (ExchangesFound [0], ' ', ExchangesFound [Exchange]);
+                            END;
+
+         END;
+
+    Dispose (NAQPStationDatabase);
+    WaitForKeyPressed;
+    END;
+
+
 
 FUNCTION UtilityMenu: BOOLEAN;
 
@@ -2301,6 +2421,7 @@ VAR Key: CHAR;
     WriteLn ('  L - Convert Cabrillo Log to TR Log.');
     WriteLn ('  M - Merge Cabrillo files into single file.');
     WriteLn ('  N - NameEdit (old NAMES.CMQ database editor).');
+    WriteLn ('  Q - NAQP exchange checker');
     WriteLn ('  S - Show contents of RESTART.BIN file.');
     WriteLn ('  Y - Download new country file.');
     WriteLn ('  X - Exit utility program menu.');
@@ -2324,6 +2445,7 @@ VAR Key: CHAR;
             'L': BEGIN ConvertCabrilloToTR;  Exit; END;
             'M': BEGIN MergeCabrilloLogs;    Exit; END;
             'N': BEGIN NameEditor;           Exit; END;
+            'Q': BEGIN NAQPExchangeChecker;  Exit; END;
             'Y': BEGIN DownloadCtyFile;      Exit; END;
             'S': BEGIN ShowRestartDotBin;    Exit; END;
 

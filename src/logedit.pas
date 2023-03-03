@@ -29,7 +29,7 @@ INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
      LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
-     LogSCP,datetimec,radio;
+     LogSCP,datetimec,radio,n4ogw;
 
 TYPE
     EditableLog = OBJECT
@@ -115,6 +115,9 @@ VAR VisibleLog: EditableLog;
     OriginalTextMode: INTEGER;
     RememberHeap:     POINTER;
 
+    VisibleDupeSheetBand: BandType;
+    VisibleDupeSheetMode: ModeType;
+
 PROCEDURE AddQTCToQTCBuffer (VAR QTCBuffer: LogEntryArray; QTCString: Str80; Message: INTEGER);
 
 PROCEDURE BandDown;
@@ -152,7 +155,6 @@ PROCEDURE MoveGridMap (Key: Char);
 FUNCTION  QuickEditResponseWithPartials (Prompt: Str80;
                                         MaxInputLength: INTEGER): Str80;
 PROCEDURE RememberFrequency;
-PROCEDURE SendCrypticCWString (SendString: Str160);
 PROCEDURE Send88Message;
 PROCEDURE ShowStationInformation (Call: CallString);
 PROCEDURE SwapMultDisplay;
@@ -1229,6 +1231,9 @@ VAR CallsThisDistrict, CallDistrict, NumberDistrictsOver25: INTEGER;
     BEGIN
     IF NOT VisibleDupeSheetChanged THEN Exit;
 
+    VisibleDupeSheetBand := Band;
+    VisibleDupeSheetMode := Mode;
+
     VisibleDupeSheetChanged := False;
 
     CallDistrictOver25 := 100;
@@ -2087,12 +2092,16 @@ VAR OutputString: Str160;
 
 PROCEDURE EditableLog.DoPossibleCalls (Call: CallString);
 
+{ This is not partial calls.  Assumes someone has done TwoLetterCrunchProcess }
+
     BEGIN
     PossibleCallList.NumberPossibleCalls := 0;
     PossibleCallList.CursorPosition      := 0;
     IF NOT PossibleCallEnable THEN Exit;
-    CD.GeneratePossibleCallList (Call);
-    Sheet.MakePossibleCallList (Call, PossibleCallList);
+
+    CD.GeneratePossibleCallList (Call);                                      { From TRMASTER.DTA}
+
+    Sheet.GetPossibleCallsFromDupesheet (Call, PossibleCallList);            { From dupesheet }
     FlagDupesInPossibleCallList (ActiveBand, ActiveMode, PossibleCallList);
     DisplayPossibleCalls (PossibleCallList);
     END;
@@ -2263,7 +2272,7 @@ if remmultmatrix[multband,multmode,Zone] = nil then exit;
 
         END;
 
-    DisplayRemainingMults (RemainingMults, RemainingMultDisplay);
+    DisplayRemainingMults (RemainingMults, RemainingMultDisplay, MultBand, MultMode);
     Dispose (RemainingMults);
     END;
 
@@ -2476,6 +2485,8 @@ VAR Call: CallString;
     BEGIN
     Sheet.MakePartialCallList (InputCall, Band, Mode, PossibleCallList);
 
+    { Add in any entries from the Editable Log }
+
     FOR Entry := 1 TO 5 DO
         BEGIN
         Call := GetLogEntryCall (LogEntries [Entry]);
@@ -2527,6 +2538,7 @@ PROCEDURE DisplaySCPCall (Call: CallString; Radio: RadioType); {KK1L: 6.73 Added
     IF WhereX > 1 THEN Write (' ');
 
     {IF VisibleLog.CallIsADupe (Call, ActiveBand, ActiveMode) THEN}
+
     IF VisibleLog.CallIsADupe (Call, BandMemory[Radio], ModeMemory[Radio]) THEN  {KK1L: 6.73 supports SO2R SCP}
         BEGIN
         TextBackground (SCPDupeBackground);
@@ -2540,14 +2552,11 @@ PROCEDURE DisplaySCPCall (Call: CallString; Radio: RadioType); {KK1L: 6.73 Added
 
     END;
 
-
-
-
+
 
 PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; Radio: RadioType);
-{KK1L: 6.73 Added Radio to allow SO2R SCP}
 
-//LABEL NotAPartialCall, RememberNotAPartialCall;
+{KK1L: 6.73 Added Radio to allow SO2R SCP}
 
     BEGIN
     IF CD.SCPDisabledByApplication THEN Exit;
@@ -2558,7 +2567,6 @@ PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; R
     IF Call = '' THEN
         BEGIN
         IF VisibleDupeSheetEnable AND NOT SuperDupesheet THEN
-            {DisplayVisibleDupesheet (ActiveBand, ActiveMode)}
             DisplayVisibleDupesheet (BandMemory[Radio], ModeMemory[Radio]) {KK1L: 6.73 suppory SO2R SCP}
         ELSE
             IF NOT EditableLogDisplayed THEN
@@ -2592,10 +2600,18 @@ PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; R
 
     GridSquareListShown := False;
 
+    FirstSCPCall := '';
+    NumberSCPCalls := 0;
+
     REPEAT
         Call := CD.GetNextPartialCall;
+
         IF Call <> '' THEN
+            BEGIN
             DisplaySCPCall (Call, Radio); {KK1L: 6.73 Fixed proc to for SO2R}
+            Inc (NumberSCPCalls);
+            IF FirstSCPCall = '' THEN FirstSCPCall := Call;
+            END;
 
         IF SCPScreenFull THEN Break;
 
@@ -2779,7 +2795,7 @@ VAR InputString: Str80;
                     ClrEol;
 
                     IF PartialCallEnable THEN
-                        IF Sheet.TwoLetterCrunchProcess (InputString) THEN
+                        IF Sheet.TwoLetterCrunchProcess (InputString, PossibleCallList) THEN
                             BEGIN
                             VisibleLog.GeneratePartialCallList (InputString,
                                                                 ActiveBand,
@@ -2821,7 +2837,7 @@ VAR InputString: Str80;
                        InputString := InputString + Key;
 
                        IF PartialCallEnable THEN
-                           IF Sheet.TwoLetterCrunchProcess (InputString) THEN
+                           IF Sheet.TwoLetterCrunchProcess (InputString, PossibleCallList) THEN
                                BEGIN
                                VisibleLog.GeneratePartialCallList (InputString,
                                                                    ActiveBand,
@@ -3584,23 +3600,25 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
 
 
 PROCEDURE UpdateBandMapMultiplierStatus;
-{KK1L: 6.64 Made the procedure create a mult as well if the need be. When called from}
-{      Alt-Y it is possible mults are recreated. The original routine checked if}
-{      the entry was a mult before checking to see if it was no longer a mult.}
-{      Logic could be added to only fully process the whole band map on a call}
+
+{KK1L: 6.64 Made the procedure create a mult as well if the need be. When called from }
+{      Alt-Y it is possible mults are recreated. The original routine checked if }
+{      the entry was a mult before checking to see if it was no longer a mult. }
+{      Logic could be added to only fully process the whole band map on a call }
 {      from "EditableLog.DeleteLastLogEntry"}
+
+{ In December 2022, this routine needed to take the N4OGW bandmap into account }
 
 VAR BandMapEntryRecord: BandMapEntryPointer;
     Mode: ModeType;
     Band: BandType;
     MultString: Str20;
+    OriginalStatus: BYTE;
 
     BEGIN
-
     FOR Band := Band160 TO Band2 DO
         FOR Mode := CW TO Phone DO
             BEGIN
-
             BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];
 
             WHIlE BandMapEntryRecord <> nil DO
@@ -3609,10 +3627,28 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
                         BEGIN
                         VisibleLog.DetermineIfNewMult (BigExpandedString (Call), Band, Mode, MultString);
 
+                        OriginalStatus := StatusByte;
+
                         StatusByte := StatusByte AND $7F;
 
                         IF MultString <> '' THEN
-                            StatusByte := StatusByte OR $80
+                            StatusByte := StatusByte OR $80;
+
+                        IF OriginalStatus <> StatusByte THEN   { Something changed }
+                            BEGIN
+                            IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                                BEGIN
+                                N4OGW_RadioOne_BandMap.DeleteCallsign (BigExpandedString (Call));
+                                N4OGW_RadioOne_Bandmap.SendBandMapCall (BigExpandedString (Call), Frequency, False, MultString <> '');
+                                END;
+
+                            IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                                BEGIN
+                                N4OGW_RadioTwo_BandMap.DeleteCallsign (BigExpandedString (Call));
+                                N4OGW_RadioTwo_Bandmap.SendBandMapCall (BigExpandedString (Call), Frequency, False, MultString <> '');
+                                END;
+                            END;
+
                         END;
 
                 BandMapEntryRecord  := BandMapEntryRecord^.NextEntry;
@@ -3625,6 +3661,7 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
 
 PROCEDURE UpdateBandMapDupeStatus(RXCall: CallString; RXBand: BandType; RXMode: ModeType; MakeDupe: BOOLEAN);
 
+{ Takes a call we are logging and sets it to dupe on the band/mode }
 
 VAR BandMapEntryRecord: BandMapEntryPointer;
     ChangeMade: BOOLEAN;
@@ -3633,338 +3670,63 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
     ChangeMade := False;
 
     BandMapEntryRecord := BandMapFirstEntryList [RXBand, RXMode];
+
     WHILE BandMapEntryRecord <> nil DO
         BEGIN
         WITH BandMapEntryRecord^ DO
             BEGIN
-
-            {IF (RXCall = BandMapExpandedString(Call)) AND           } {KK1L: 6.73 Removed}
-            {   (RXBand = ActiveBand) AND (RXMode = ActiveMode) THEN }
-            {KK1L: 6.73 Don't limit compare to active band/mode. This keeps a contact made on the}
-            {           second radio from getting reset correctly. The BandMapFirstEntryList limits}
-            {           the check appropriately to the band/mode of the deleted contact.}
             IF (RXCall = BandMapExpandedString(Call)) THEN
-              IF MakeDupe THEN
-                BEGIN
-                StatusByte := StatusByte OR $40;   {KK1L: 6.64 Turn on dupe bit}
-                StatusByte := StatusByte AND $7F; {KK1L: 6.69 if it is a dupe it CAN'T be a mult}
-                ChangeMade := True;
-                END
-              ELSE
-                BEGIN
-                StatusByte := StatusByte AND $BF; {KK1L: 6.64 Turn off dupe bit}
-                ChangeMade := True;
-                END;
+                IF MakeDupe THEN
+                    BEGIN
+                    StatusByte := StatusByte OR $40;   {KK1L: 6.64 Turn on dupe bit}
+                    StatusByte := StatusByte AND $7F; {KK1L: 6.69 if it is a dupe it CAN'T be a mult}
+
+                    IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                        BEGIN
+                        N4OGW_RadioOne_BandMap.DeleteCallsign (BigExpandedString (Call));
+                        N4OGW_RadioOne_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, True, False);
+                        END;
+
+                    IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                        BEGIN
+                        N4OGW_RadioTwo_BandMap.DeleteCallsign (BigExpandedString (Call));
+                        N4OGW_RadioTwo_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, True, False);
+                        END;
+
+                    ChangeMade := True;
+                    END
+                ELSE
+                    BEGIN
+                    StatusByte := StatusByte AND $BF; {KK1L: 6.64 Turn off dupe bit}
+
+                    IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                        BEGIN
+                        N4OGW_RadioOne_BandMap.DeleteCallsign (BigExpandedString (Call));
+
+                        IF (StatusByte AND $80) <> 0 THEN  { This is a mult }
+                            N4OGW_RadioOne_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, True)
+                        ELSE
+                            N4OGW_RadioOne_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, False);
+                        END;
+
+                    IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                        BEGIN
+                        N4OGW_RadioTwo_BandMap.DeleteCallsign (BigExpandedString (Call));
+
+                        IF (StatusByte AND $80) <> 0 THEN  { This is a mult }
+                            N4OGW_RadioTwo_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, True)
+                        ELSE
+                            N4OGW_RadioTwo_BandMap.SendBandMapCall (BigExpandedString (Call), Frequency, False, False);
+                        END;
+
+                    ChangeMade := True;
+                    END;
             END;
         BandMapEntryRecord  := BandMapEntryRecord^.NextEntry;
         END;
 
     IF ChangeMade THEN DisplayBandMap;
     END;
-
-
-
-{ Moved this here from LOGSUBS1 where it has lived forever, so that the
-  2BSIQ code could leverage it }
-
-PROCEDURE SendCrypticCWString (SendString: Str160);
-
-{ Control-A will put the message out on the InactiveRadio and set the flag
-  InactiveRadioSendingCW.  It does not change the ActiveRadio any more.
-
-  If you decide to answer someone who responds to CW on the inactive radio,
-  you will want to call SwapRadios.  This will now make Control-A messages
-  be sent on the new inactive radio (which is probably what you want).   }
-
-
-VAR CharPointer, CharacterCount, QSONumber: INTEGER;
-    cc: integer;
-    Result, Entry, Offset: INTEGER;
-    Key, SendChar, TempChar: CHAR;
-    CommandMode, WarningSounded: BOOLEAN;
-    TempCall: CallString;
-    TempString: Str80;
-
-    BEGIN
-    SetSpeed (DisplayedCodeSpeed);
-
-    IF Length (SendString) = 0 THEN Exit;
-
-    CommandMode := False;
-
-    //ugly patch to fix original code incrementing the for loop variable
-
-    cc := 0;
-    FOR CharacterCount := 1 TO Length (SendString) DO
-        BEGIN
-        cc := cc + 1;
-        if CharacterCount < cc then continue;
-        SendChar := SendString [CharacterCount];
-
-        IF CommandMode THEN
-            BEGIN
-            CASE SendChar OF
-
-                '@': IF StringHas (CallWindowString, '?') THEN
-                         AddStringToBuffer (' ' + CallWindowString, CWTone);
-
-                ELSE AddStringToBuffer (ControlLeftBracket + SendChar, CWTone);
-                END;
-
-            CommandMode := False;
-            Continue;
-            END;
-
-        CASE SendChar OF
-            '#': BEGIN
-                 QSONumber := TotalContacts + 1;
-
-                 IF TailEnding THEN Inc (QSONumber);
-
-                 IF AutoQSONumberDecrement THEN
-                     IF (ActiveWindow = CallWindow) AND
-                        (CallWindowString = '') AND (ExchangeWindowString = '') THEN
-                            Dec (QSONumber);
-
-                 IF Length (SendString) >= CharacterCount + 2 THEN
-                     BEGIN
-                     TempChar := SendString [CharacterCount + 1];
-
-                     IF TempChar = '+' THEN
-                         BEGIN
-                         TempChar := SendString [CharacterCount + 2];
-                         Val (TempChar, Offset, Result);
-                         IF Result = 0 THEN
-                             BEGIN
-                             QSONumber := QSONumber + Offset;
-//                             CharacterCount := CharacterCount + 2;
-                             cc := cc + 2;
-                             END;
-                         END;
-
-                     IF TempChar = '-' THEN
-                         BEGIN
-                         TempChar := SendString [CharacterCount + 2];
-                         Val (TempChar, Offset, Result);
-                         IF Result = 0 THEN
-                             BEGIN
-                             QSONumber := QSONumber - Offset;
-//                             CharacterCount := CharacterCount + 2;
-                             cc := cc + 2;
-                             END;
-                         END;
-                     END;
-
-                 TempString := QSONumberString (QSONumber);
-
-                 WHILE LeadingZeros > Length (TempString) DO
-                     TempString := LeadingZeroCharacter + TempString;
-
-                 IF ShortIntegers THEN
-                     FOR CharPointer := 1 TO Length (TempString) DO
-                         BEGIN
-                         IF TempString [CharPointer] = '0' THEN TempString [CharPointer] := Short0;
-                         IF TempString [CharPointer] = '1' THEN TempString [CharPointer] := Short1;
-                         IF TempString [CharPointer] = '2' THEN TempString [CharPointer] := Short2;
-                         IF TempString [CharPointer] = '9' THEN TempString [CharPointer] := Short9;
-                         END;
-
-                 AddStringToBuffer (TempString, CWTone);
-                 END;
-
-            '_': AddStringToBuffer (' ', CWTone);
-
-            ControlD: IF CWStillBeingSent THEN AddStringToBuffer (' ', CWTone);
-
-            '*': BEGIN {KK1L: 6.72 New character to send Alt-D dupe checked call or call in call window}
-                 IF (DupeInfoCall <> '') AND (DupeInfoCall <> EscapeKey) THEN
-                     AddStringToBuffer (DupeInfoCall, CWTone)
-                 ELSE
-                     BEGIN
-                     IF CallsignUpdateEnable THEN
-                         BEGIN
-                         TempString := GetCorrectedCallFromExchangeString (ExchangeWindowString);
-
-                         IF TempString <> '' THEN
-                             BEGIN
-                             CallWindowString := TempString;
-                             CallsignICameBackTo := TempString;
-                             END;
-                         END;
-
-                     IF CallWindowString <> '' THEN
-                         AddStringToBuffer (CallWindowString, CWTone);
-                     END;
-                 END;
-
-            '@': BEGIN
-                 IF CallsignUpdateEnable THEN
-                     BEGIN
-                     TempString := GetCorrectedCallFromExchangeString (ExchangeWindowString);
-
-                     IF TempString <> '' THEN
-                         BEGIN
-                         CallWindowString := TempString;
-                         CallsignICameBackTo := TempString;
-                         END;
-                     END;
-
-                IF CallWindowString <> '' THEN
-                         AddStringToBuffer (CallWindowString, CWTone);
-                END;
-
-            '$': IF SayHiEnable AND (Rate < SayHiRateCutoff) THEN SayHello (CallWindowString);
-            '%': IF SayHiEnable AND (Rate < SayHiRateCutoff) THEN SayName  (CallWindowString);
-
-            ':': BEGIN
-                 RITEnable := False;
-                 SendKeyboardInput;
-                 RITEnable := True;
-                 END;
-
-            '~': SendSalutation (CallWindowString);
-            '\': AddStringToBuffer (MyCall, CWTone);
-
-            '|': IF ReceivedData.Name <> '' THEN
-                     AddStringToBuffer (ReceivedData.Name + ' ', CWTone);
-
-            '[': BEGIN
-                 WarningSounded := False;
-
-                 QuickDisplay ('WAITING FOR YOU ENTER STRENGTH OF RST (Single digit)!!');
-
-                 AddStringToBuffer ('5', CWTone);
-
-                 Key := '0';
-
-                 REPEAT
-                     REPEAT
-                         IF NOT CWStillBeingSent THEN
-                             BEGIN
-                             IF NOT WaitForStrength THEN
-                                 BEGIN
-                                 Key := '9';
-                                 Break;
-                                 END
-                             ELSE
-                                 IF NOT WarningSounded THEN
-                                     BEGIN
-                                     WarningSounded := True;
-                                     Tone.DoABeep (ThreeHarmonics);
-                                     END;
-                             END;
-
-                     UNTIL KeyPressed;
-
-                     IF Key <> '9' THEN Key := ReadKey;
-
-                 UNTIL ((Key >= '1') AND (Key <= '9')) OR (Key = EscapeKey);
-
-                 IF Key = EscapeKey THEN
-                     BEGIN
-                     FlushCWBufferAndClearPTT;
-                     Exit;
-                     END;
-
-                 IF Key = '9' THEN
-                     AddStringToBuffer ('NN', CWTone)
-                 ELSE
-                     AddStringToBuffer (Key + 'N', CWTone);
-                 ReceivedData.RSTSent := '5' + Key + '9';
-
-                 LastRSTSent := ReceivedData.RSTSent;
-                 END;
-
-            ']': AddStringToBuffer (LastRSTSent, CWTone);
-
-            '{': AddStringToBuffer (ReceivedData.Callsign, CWTone);
-
-            '}': IF StringHas (ReceivedData.Callsign, '/') OR
-                    ((Length (ReceivedData.Callsign) = 4) AND SendCompleteFourLetterCall) OR
-                    StringHas (CallsignICameBackTo, '/') THEN
-                        AddStringToBuffer (ReceivedData.Callsign, CWTone)
-                    ELSE
-                        IF GetPrefix (ReceivedData.Callsign) =
-                           GetPrefix (CallsignICameBackTo) THEN
-                               BEGIN
-                               TempString := GetSuffix (ReceivedData.Callsign);
-                               IF Length (TempString) = 1 THEN
-                                   TempString := Copy (ReceivedData.Callsign, Length (ReceivedData.Callsign) - 1, 2);
-                               AddStringToBuffer (TempString, CWTone);
-                               END
-                        ELSE
-                           IF GetSuffix (ReceivedData.Callsign) =
-                              GetSuffix (CallsignICameBackTo) THEN
-                                  AddStringToBuffer (GetPrefix (ReceivedData.Callsign), CWTone)
-                           ELSE
-                               AddStringToBuffer (ReceivedData.Callsign, CWTone);
-
-            '>': ClearRIT;
-
-            ')': AddStringToBuffer (VisibleLog.LastCallsign, CWTone);
-
-            '(': IF TotalContacts = 0 THEN
-                     BEGIN
-                     IF MyName <> '' THEN
-                         AddStringToBuffer (MyName, CWTone)
-                     ELSE
-                         AddStringToBuffer (MyPostalCode, CWTone);
-                     END
-                 ELSE
-                     BEGIN
-                     TempString := '';
-                     Entry := 5;
-
-                     WHILE (TempString= '') AND (Entry > 0) DO
-                         BEGIN
-                         TempString := VisibleLog.LastName (Entry);
-                         Dec (Entry);
-                         END;
-
-                     AddStringToBuffer (TempString, CWTone);
-                     END;
-
-
-            ControlW: AddStringToBuffer (VisibleLog.LastName (4), CWTone);
-
-            ControlR: BEGIN
-                      ReceivedData.RandomCharsSent := '';
-
-                      REPEAT
-                          ReceivedData.RandomCharsSent :=
-                            ReceivedData.RandomCharsSent +
-                            Chr (Random (25) + Ord ('A'));
-                      UNTIL Length (ReceivedData.RandomCharsSent) = 5;
-
-                      AddStringToBuffer (ReceivedData.RandomCharsSent, CWTone);
-
-                      SaveSetAndClearActiveWindow (DupeInfoWindow);
-                      Write ('Sent = ', ReceivedData.RandomCharsSent);
-                      RestorePreviousWindow;
-                      END;
-
-            ControlT: AddStringToBuffer (ReceivedData.RandomCharsSent, CWTone);
-
-            ControlU: BEGIN
-                      TempCall := GetCorrectedCallFromExchangeString (ExchangeWindowString);
-
-                      IF TempCall <> '' THEN
-                          CallSignICameBackTo := TempString
-                      ELSE
-                          CallsignICameBackTo := CallWindowString;
-
-                      ShowStationInformation (CallsignICameBackTo);
-                      END;
-
-            ControlLeftBracket: CommandMode := True;
-
-            ELSE AddStringToBuffer (SendChar, CWTone);
-            END;
-        END;
-
-    ClearPTTForceOn;
-    END;
-
 
 
 

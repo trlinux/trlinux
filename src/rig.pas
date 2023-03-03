@@ -42,6 +42,7 @@ type
       procedure putradiooutofsplit;virtual;
       procedure setradiofreq(f: longint; m: modetype; vfo: char);virtual;
       procedure clearrit;virtual;
+      procedure swapVFO;virtual;
       procedure bumpritup;virtual;
       procedure bumpritdown;virtual;
       procedure bumpvfoup;virtual;
@@ -60,6 +61,8 @@ type
       procedure setcwreverse(on: boolean);virtual;
       procedure closedebug();
 
+      FUNCTION CalmDownEveryone: BOOLEAN;virtual;
+      FUNCTION DirectCommandAndResponse (RadioCommand: STRING): STRING;virtual;
       FUNCTION K3IsStillTalking: BOOLEAN;virtual;
       PROCEDURE SetK3TXPollMode (enable: boolean);virtual;
 
@@ -132,10 +135,24 @@ begin
 end;
 
 
+FUNCTION radioctl.CalmDownEveryone: BOOLEAN;
+
+    BEGIN
+    END;
+
+
+FUNCTION radioctl.DirectCommandAndResponse (RadioCommand: STRING): STRING;
+
+    BEGIN
+    END;
+
+
 function radioctl.k3isstilltalking: boolean;
     begin
     k3isstilltalking := false;
     end;
+
+
 
 procedure radioctl.setk3txpollmode (enable: boolean);
 
@@ -238,6 +255,10 @@ begin
 end;
 
 procedure radioctl.clearrit;
+begin
+end;
+
+procedure radioctl.swapvfo;
 begin
 end;
 

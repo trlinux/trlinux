@@ -29,7 +29,7 @@ UNIT Tree;
 
 INTERFACE
 
-uses communication,baseunix;
+uses Sockets, UnixType, portname, communication, baseunix;
 
 TYPE
     Str10 = STRING [10];
@@ -306,6 +306,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  GetSCPIntegerFromChar (InputChar: CHAR): INTEGER;
     FUNCTION  GetStateFromSection (Section: Str20): Str20;
     FUNCTION  GetSuffix (Call: CallString): CallString;
+    FUNCTION  GetTimeSeconds: INTEGER;
     FUNCTION  GetTimeString: Str80;
     FUNCTION  GetTomorrowString: Str80;
     FUNCTION  GetValue (Prompt: Str80): LONGINT;
@@ -360,6 +361,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  OpenFileForAppend   (VAR FileHandle: TEXT; FIlename: Str80): BOOLEAN;
     FUNCTION  OpenFileForRead     (VAR FileHandle: TEXT; Filename: Str80): BOOLEAN;
     FUNCTION  OpenFileForWrite    (VAR FileHandle: TEXT; Filename: Str80): BOOLEAN;
+    FUNCTION  OpenUDPPortForOutput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
     FUNCTION  OperatorEscape: BOOLEAN;
 
     PROCEDURE PacketSendChar (SerialPort: serialportx; CharToSend: CHAR);
@@ -2307,6 +2309,17 @@ VAR Temp1, Temp2, Temp3: String[5];
     END;
 
 
+
+FUNCTION GetTimeSeconds: INTEGER;
+
+{ No need to worry about HourOffset }
+
+VAR Hours, Minutes, Seconds, Hundredths: Word;
+
+    BEGIN
+    GetTime (Hours, Minutes, Seconds, Hundredths);
+    GetTimeSeconds := Seconds;
+    END;
 
 FUNCTION GetTimeString: Str80;
 
@@ -4905,6 +4918,28 @@ PROCEDURE WaitForKeyPressed;
 
 procedure getdegree(d: pchar);cdecl;external;
 
+
+
+FUNCTION OpenUDPPortForOutput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
+
+VAR SocketAddr: TINetSockAddr;
+    ConnectResult: INTEGER;
+
+    BEGIN
+    Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (PortNumber);
+    SocketAddr.sin_addr := StrToNetAddr (IPAddress);
+
+    ConnectResult := fpConnect (Socket, @SocketAddr, SizeOf (SocketAddr));
+
+    WriteLn ('Connect result from fpBind is ', ConnectResult);
+
+    OpenUDPPortForOutput := ConnectResult = 0;
+    END;
+
+
 
 // Executed at startup
 

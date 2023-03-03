@@ -25,7 +25,7 @@ UNIT LogCW;
 
 INTERFACE
 
-USES LogDVP, SlowTree, Tree, LogWind, Dos, LogK1EA, trCrt,communication,keycode;
+USES N4OGW, LogDVP, SlowTree, Tree, LogWind, Dos, LogK1EA, trCrt,communication,keycode;
 
 TYPE
      SendBufferType = ARRAY [0..255] OF Char;
@@ -187,7 +187,20 @@ PROCEDURE PTTForceOn;
 
 PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
 
+{ We hope ActiveRadio is correct for N4OGW }
+
     BEGIN
+    CASE ActiveRadio OF
+        RadioOne:
+           IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+               N4OGW_RadioOne_BandMap.SetTXMode;
+
+        RadioTwo:
+           IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+               N4OGW_RadioTwo_BandMap.SetTXMode;
+
+        END;  { of CASE ActiveRadio }
+
     IF CWEnable AND CWEnabled THEN
         BEGIN
         ActiveKeyer.AddStringToBuffer (Msg, Tone);
@@ -199,7 +212,23 @@ PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
 FUNCTION CWStillBeingSent: BOOLEAN;
 
     BEGIN
-    CWStillBeingSent := ActiveKeyer.CWStillBeingSent;
+    IF ActiveKeyer.CWStillBeingSent THEN
+        CWStillBeingSent := True
+    ELSE
+        BEGIN
+        CWStillBeingSent := False;
+
+        CASE ActiveRadio OF
+            RadioOne:
+                IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                    N4OGW_RadioOne_BandMap.SetRXMode;
+
+            RadioTwo:
+                IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                    N4OGW_RadioTwo_BandMap.SetRXMode;
+
+            END;  { of CASE ActiveRadio }
+        END;
     END;
 
 FUNCTION DeleteLastCharacter: BOOLEAN;
@@ -213,8 +242,8 @@ FUNCTION DeleteLastCharacter: BOOLEAN;
 PROCEDURE FlushCWBufferAndClearPTT;
 
     BEGIN
-    ActiveKeyer.PTTUnForce;
     ActiveKeyer.FlushCWBuffer;
+    ActiveKeyer.PTTUnForce;      { Just in case it was forced on }
 
     { Legacy stuff }
 
@@ -378,6 +407,18 @@ VAR CharPointer: INTEGER;
     BEGIN
     IF ActiveMode = CW THEN
         BEGIN
+        CASE ActiveRadio OF
+            RadioOne:
+                IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                    N4OGW_RadioOne_BandMap.SetTXMode;
+
+            RadioTwo:
+                IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                    N4OGW_RadioTwo_BandMap.SetTXMode;
+
+            END;  { of CASE ActiveRadio }
+
+
         IF CWEnable AND CWEnabled THEN
             BEGIN
             ActiveKeyer.AddStringToBuffer (MSG, CWTone);
@@ -405,8 +446,34 @@ VAR CharPointer: INTEGER;
 
         RTTYReceiveCharBuffer.AddEntry (Ord (CarriageReturn));
         RTTYReceiveCharBuffer.AddEntry (Ord (LineFeed));
+        Exit;
         END;
 
+    { K3/K4 stuff }
+
+    IF ActiveMode = Digital THEN
+        BEGIN
+        IF ActiveRadio = RadioOne THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                IF MSG <> '' THEN
+                    BEGIN
+                    WHILE Pos ('_', MSG) > 0 DO
+                        MSG [Pos ('_', MSG)] := ' ';
+
+                    rig1.directcommand ('KY ' + MSG + '|;');
+                    END;
+
+        IF ActiveRadio = RadioTwo THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                IF MSG <> '' THEN
+                    BEGIN
+                    WHILE Pos ('_', MSG) > 0 DO
+                        MSG [Pos ('_', MSG)] := ' ';
+
+                    rig2.directcommand ('KY ' + MSG + '|;');
+                    END;
+
+        END;
     END;
 
 PROCEDURE SetSpeed (Speed: INTEGER);
@@ -550,6 +617,8 @@ VAR Key: CHAR;
 
         UpdateTimeAndRateDisplays (True, False);
 
+        { Send a character if the buffer is empty in the keyer }
+
         IF ActiveKeyer.BufferEmpty THEN
             IF BufferStart <> BufferEnd THEN
                 BEGIN
@@ -574,6 +643,8 @@ millisleep;
             CASE Key OF
                 CarriageReturn:
                     BEGIN
+                    { Send the rest of the characters in the buffer to the keyer }
+
                     WHILE BufferStart <> BufferEnd DO
                         BEGIN
                         ActiveKeyer.AddCharacterToBuffer (Buffer [BufferStart]);
@@ -581,8 +652,13 @@ millisleep;
                         IF BufferStart = 256 THEN BufferStart := 0;
                         END;
 
+                    { Remove PTT forced on }
+
                     ActiveKeyer.PTTUnForce;
                     RemoveAndRestorePreviousWindow;
+
+                    { For debug purposes only }
+
                     if so2r_l then so2r_i.setlatch(latchsave);
                     Exit;
                     END;
@@ -1330,7 +1406,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                  AppendConfigFile ('EX MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
 
                              Digital:
-                                 AppendConfigFile ('EX DIGIGAL MEMORY' + KeyId (FunctionKey) + ' = ' + TempString);
+                                 AppendConfigFile ('EX DIGITAL MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
 
                              END;  { of CASE ActiveMode }
                          END;

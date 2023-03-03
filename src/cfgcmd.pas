@@ -29,7 +29,7 @@ INTERFACE
 USES SlowTree, Tree, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
      LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt, K1EANet,
-     communication,linuxsound;
+     N1MM, communication, linuxsound, N4OGW, LogUDP;
 
 
     FUNCTION  ProcessConfigInstruction (FileString: STRING; VAR FirstCommand: BOOLEAN): BOOLEAN;
@@ -202,6 +202,13 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'AUTO QSY REQUEST' THEN
+        BEGIN
+        AutoQSYRequestEnable := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
     IF ID = 'AUTO RETURN TO CQ MODE' THEN
         BEGIN
         AutoReturnToCQMode := UpCase (CMD [1]) = 'T';
@@ -212,6 +219,13 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'AUTO S&P ENABLE' THEN
         BEGIN
         AutoSAPEnable := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'AUTO PARTIAL CALL FETCH' THEN
+        BEGIN
+        AutoPartialCallFetch := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions1 := True;
         Exit;
         END;
@@ -1242,8 +1256,6 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
-
-
     IF StringHas (ID, 'EX DIGITAL MEMORY ALTF') THEN
         BEGIN
         ProcessConfigInstructions1 := True;
@@ -2181,6 +2193,65 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'N1MM UDP PORT' THEN
+        BEGIN
+        Val (Cmd, N1MM_UDP_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW FREQUENCY CONTROL' THEN
+        BEGIN
+        CMD := UpperCase (CMD);
+        ProcessConfigInstructions2 := True;
+        IF StringHas (CMD, 'VFOA') THEN BEGIN N4OGW_Frequency_Control := N4OGW_FC_VFOA; Exit; END;
+        IF StringHas (CMD, 'VFOB') THEN BEGIN N4OGW_Frequency_Control := N4OGW_FC_VFOB; Exit; END;
+        IF StringHas (CMD, 'AUTO') THEN BEGIN N4OGW_Frequency_Control := N4OGW_FC_Auto; Exit; END;
+        ProcessConfigInstructions2 := False;
+        END;
+
+    IF ID = 'N4OGW RADIO ONE BANDMAP IP' THEN
+        BEGIN
+        N4OGW_RadioOne_BandMap_IP := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW RADIO TWO BANDMAP IP' THEN
+        BEGIN
+        N4OGW_RadioTwo_BandMap_IP := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW RADIO ONE BANDMAP PORT' THEN
+        BEGIN
+        Val (Cmd, N4OGW_RadioOne_BandMap_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW RADIO TWO BANDMAP PORT' THEN
+        BEGIN
+        Val (Cmd, N4OGW_RadioTwo_BandMap_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW RADIO ONE BANDMAP UDP PORT' THEN
+        BEGIN
+        Val (Cmd, N4OGW_RadioOne_BandMap_UDP_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'N4OGW RADIO TWO BANDMAP UDP PORT' THEN
+        BEGIN
+        Val (Cmd, N4OGW_RadioTwo_BandMap_UDP_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
     IF ID = 'NAME FLAG ENABLE' THEN
         BEGIN
         NameFlagEnable := Upcase (CMD [1]) = 'T';
@@ -2608,6 +2679,21 @@ VAR xResult,tempint: INTEGER;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
+
+    IF ID = 'QSO UDP IP' THEN
+        BEGIN
+        QSO_UDP_IP := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'QSO UDP PORT' THEN
+        BEGIN
+        Val (Cmd, QSO_UDP_Port, xResult);
+        ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
 
     IF ID = 'QSX ENABLE' THEN
         BEGIN
@@ -3978,7 +4064,15 @@ VAR xResult: INTEGER;
         Exit;
         END;
 
-
+    IF ID = 'TWO VFO MODE' THEN
+        BEGIN
+        IF UpCase (CMD [1]) = 'T' THEN
+            TwoVFOState := TwoVFOIdle
+        ELSE
+            TwoVFOState := TwoVFOsDisabled;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
 
     IF UpperCase (ID) = 'UPDATE RESTART FILE ENABLE' THEN
         BEGIN
@@ -4172,7 +4266,6 @@ VAR Count: INTEGER;
 
     IF ID = '' THEN ProcessConfigInstruction := True;
     END;
-
 
 
     BEGIN

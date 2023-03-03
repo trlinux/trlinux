@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, LogDVP, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, K1EANet;
+     SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, K1EANet, N4OGW;
 
 PROCEDURE DisplayStatus (FirstEntryDisplayed: MenuEntryType; ActiveEntry: MenuEntryType);
 FUNCTION  GetActiveLineFromEntryString (EntryString: Str80): MenuEntryType;
@@ -98,6 +98,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       ADE: AutoDupeEnableCQ       := NOT AutoDupeEnableCQ;
       ADS: AutoDupeEnableSAndP    := NOT AutoDupeEnableSAndP;
 
+      APF: AutoPartialCallFetch   := NOT AutoPartialCallFetch;
+
       AQI: BEGIN
            Inc (AutoQSLInterval);
            IF AutoQSLInterval > 6 THEN
@@ -107,7 +109,9 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            END;
 
       AQD: AutoQSONumberDecrement := NOT AutoQSONumberDecrement;
+      AQR: AutoQSYRequestEnable   := NOT AutoQSYRequestEnable;
       ASP: AutoSAPEnable          := NOT AutoSAPEnable;
+
       ASR: BEGIN {KK1L: 6.72}
            TempInt := QuickEditInteger ('Enter new Auto SAP Enable sensitivity in Hz/sec) : ', 5);
            IF (TempInt > 9) AND (TempInt < 10001)THEN
@@ -342,7 +346,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       FSE: FloppyFileSaveName := QuickEditResponse ('Enter new floppy file save name : ', 20);
 
-      FSM: CASE FootSwitchMode OF
+      FSM: BEGIN
+           CASE FootSwitchMode OF
                FootSwitchDisabled:                 FootSwitchMode := Normal;
                Normal:                             FootSwitchMode := FootSwitchF1;
                FootSwitchF1:                       FootSwitchMode := FootSwitchLastCQFreq;
@@ -367,6 +372,23 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                     ActiveKeyer.setCwGrant(false);
                   End;
                END;
+
+           IF FootSwitchMode <> PreviousFootSwitchMode THEN
+               BEGIN
+               IF FootSwitchMode = Normal THEN
+                   BEGIN
+                   ActiveKeyer.LetFootSwitchControlPTT;  { This does nothing for YCCC }
+
+                   IF ActiveKeyer = ArdKeyer THEN
+                       ArdKeyer.LetFootSwitchControlPTT;
+                   END
+               ELSE
+                   IF ActiveKeyer = ArdKeyer THEN
+                       ArdKeyer.ClearFootSwitchControlPTT;
+
+               PreviousFootSwitchMode := FootSwitchMode;
+               END;
+           END;
 
       FA1: BEGIN
            TempLongInt := QuickEditInteger ('Enter radio 1 frequency adder : ', 11);
@@ -549,6 +571,13 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       MUM: MultiUpdateMultDisplay := NOT MultiUpdateMultDisplay;
       MBA: MultipleBandsEnabled   := NOT MultipleBandsEnabled;
       MMD: MultipleModesEnabled   := NOT MultipleModesEnabled;
+
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: N4OGW_Frequency_Control := N4OGW_FC_VFOB;
+               N4OGW_FC_VFOB: N4OGW_Frequency_Control := N4OGW_FC_AUTO;
+               N4OGW_FC_AUTO: N4OGW_Frequency_Control := N4OGW_FC_VFOA;
+               END;  { of CASE }
+
       NFE: NameFlagEnable         := NOT NameFlagEnable;
 
       NEQ: BEGIN
@@ -908,6 +937,11 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            ELSE
                TwoRadioState := TwoRadiosDisabled;
 
+      TVM: IF TwoVFOState = TwoVFOsDisabled THEN
+               TwoVFOState := TwoVFOIdle
+           ELSE
+               TwoVFOState := TwoVFOsDisabled;
+
       URF: UpdateRestartFileEnable := NOT UpdateRestartFileEnable;
 
       UIS: BEGIN
@@ -980,8 +1014,10 @@ VAR FileWrite: TEXT;
       ADP: WriteLn (FileWrite, AutoDisplayDupeQSO);
       ADE: WriteLn (FileWrite, AutoDupeEnableCQ);
       ADS: WriteLn (FileWrite, AutoDupeEnableSAndP);
+      APF: WriteLn (FileWrite, AutoPartialCallFetch);
       AQI: WriteLn (FileWrite, AutoQSLInterval);
       AQD: WriteLn (FileWrite, AutoQSONumberDecrement);
+      AQR: WriteLn (FileWrite, AutoQSYRequestEnable);
       ASP: WriteLn (FileWrite, AutoSAPEnable);
       ASR: WriteLn (FileWrite, AutoSAPEnableRate); {KK1L: 6.72}
       ARC: WriteLn (FileWrite, AutoReturnToCQMode);
@@ -1150,6 +1186,12 @@ VAR FileWrite: TEXT;
       MBA: WriteLn (FileWrite, MultipleBandsEnabled);
       MMD: WriteLn (FileWrite, MultipleModesEnabled);
 
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: WriteLn (FileWrite, 'VFOA');
+               N4OGW_FC_VFOB: WriteLn (FileWrite, 'VFOB');
+               N4OGW_FC_AUTO: WriteLn (FileWrite, 'AUTO');
+               END;  { of CASE }
+
       NFE: WriteLn (FileWrite, NameFlagEnable);
       NLQ: WriteLn (FileWrite, NoLog);
       NPP: WriteLn (FileWrite, NoPollDuringPTT);
@@ -1294,6 +1336,11 @@ VAR FileWrite: TEXT;
            ELSE
                WriteLn (FileWrite, 'FALSE');
 
+      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
+               WriteLn (FileWrite, 'TRUE')
+           ELSE
+               WriteLn (FileWrite, 'FALSE');
+
       URF: WriteLn (FileWrite, UpdateRestartFileEnable);
 
       UIS: CASE UserInfoShown OF
@@ -1349,9 +1396,10 @@ VAR TempString: Str40;
       ADP: IF AutoDisplayDupeQSO THEN TempString := 'TRUE';
       ADE: IF AutoDupeEnableCQ THEN TempString := 'TRUE';
       ADS: IF AutoDupeEnableSAndP THEN TempString := 'TRUE';
+      APF: IF AutoPartialCallFetch THEN TempString := 'TRUE';
       AQI: Str (AutoQSLInterval, TempString);
-
       AQD: IF AutoQSONumberDecrement THEN TempString := 'TRUE';
+      AQR: IF AutoQSYRequestEnable THEN TempString := 'TRUE';
       ASP: IF AutoSAPEnable THEN TempString := 'TRUE';
       ASR: Str (AutoSAPEnableRate, TempString); {KK1L: 6.72}
       ASC: Str (AutoSendCharacterCount, TempString);
@@ -1516,6 +1564,13 @@ VAR TempString: Str40;
       MFD: TempString := MyFDClass;
       MGR: TempString := MyGrid;
       MIO: TempString := MyIOTA;
+
+      NFC: CASE N4OGW_Frequency_Control OF
+               N4OGW_FC_VFOA: TempString := 'VFOA';
+               N4OGW_FC_VFOB: TempString := 'VFOB';
+               N4OGW_FC_AUTO: TempString := 'AUTO';
+               END;  { of CASE }
+
       NFE: IF NameFlagEnable THEN TempString := 'TRUE';
       NLQ: IF NoLog THEN TempString := 'TRUE';
       NPP: IF NoPollDuringPTT THEN TempString := 'TRUE';
@@ -1644,6 +1699,8 @@ VAR TempString: Str40;
       TWD: IF ActiveKeyer.GetTuneWithDits THEN TempString := 'TRUE';
 
       TRM: IF TwoRadioState <> TwoRadiosDisabled THEN TempString := 'TRUE';
+
+      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN TempString := 'TRUE';
 
       URF: IF UpdateRestartFileEnable THEN TempString := 'TRUE';
 

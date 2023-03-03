@@ -130,6 +130,8 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
     SCPIndexArrayPtr     = ^SCPIndexArrayType;
     BytesWrittenArrayPtr = ^SCPIndexArrayType;
 
+    { The CallDatabase object is everything to do with the TRMASTER.DTA database }
+
     CallDatabase = OBJECT
         ActiveASCIIFileName: Str80;      { For ASCII file }
         ActiveFilename:      Str80;      { Database filename }
@@ -159,6 +161,7 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
         InitialPartialList: PartialCallListEntryPtr;
 
         LastCallRecord: DataBaseEntryRecord;
+
         LastPartialCall: CallString;
         LastPartialList: PartialCallListEntryPtr;
 
@@ -260,11 +263,19 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
 
 VAR CD: CallDatabase;
 
+    AutoPartialCallFetch: BOOLEAN;
+
     CallsAlreadySaved: CallsAlreadySavedArrayPtr;
+
+    FirstPartialCall: CallString;   { Not SCP - these come from the dupesheet/initial exchanges }
+    FirstSCPCall: CallString;       { From TRMASTER.DTA }
 
     NumberCallsAlreadySaved: INTEGER;
 
-    PossibleCallList: PossibleCallRecord;
+    NumberPartialCalls: INTEGER;    { Not SCP - these come from dupesheet/initial exchanges }
+    NumberSCPCalls: INTEGER;        { From TRMASTER.DAT }
+
+    PossibleCallList: PossibleCallRecord;  { Used for the Classic UI only }
 
     FUNCTION  GetRandomLetter: CHAR;
     FUNCTION  GetRandomNumber: CHAR;
@@ -2247,27 +2258,31 @@ VAR Directory: Str80;
         IF NOT FileExists (ActiveFileName) THEN
             BEGIN
             Directory := FindDirectory (ActiveFileName);
-            IF Directory = FindDirectory('trlog') then
-             BEGIN
-               infilename := Directory + DirectorySeparator + ActiveFileName;
-               Directory := GetEnv('HOME')+DirectorySeparator + '.trlog';
-               IF NOT DirectoryExists(Directory) then
-               BEGIN
-                  IF NOT CreateDir(Directory) then
-                     WriteLn('Failed to create $HOME/.trlog');
-               END;
-               outfilename := Directory + DirectorySeparator + ActiveFileName;
-               assign(infile,infilename);
-               reset(infile,1);
-               assign(outfile,outfilename);
-               rewrite(outfile,1);
-               repeat
-                   blockread(infile,buf,sizeof(buf),numread);
-                   blockwrite(outfile,buf,numread,numwritten);
-               until (numread = 0) or (numwritten <> numread);
-               close(infile);
-               close(outfile);
-             END;
+
+            IF Directory = FindDirectory ('trlog') THEN
+                BEGIN
+                infilename := Directory + DirectorySeparator + ActiveFileName;
+
+                Directory := GetEnv ('HOME') + DirectorySeparator + '.trlog';
+
+                IF NOT DirectoryExists (Directory) then
+                    BEGIN
+                    IF NOT CreateDir(Directory) then
+                        WriteLn('Failed to create $HOME/.trlog');
+                    END;
+
+                  outfilename := Directory + DirectorySeparator + ActiveFileName;
+                  assign(infile,infilename);
+                  reset(infile,1);
+                  assign(outfile,outfilename);
+                  rewrite(outfile,1);
+                  repeat
+                      blockread(infile,buf,sizeof(buf),numread);
+                      blockwrite(outfile,buf,numread,numwritten);
+                  until (numread = 0) or (numwritten <> numread);
+                  close(infile);
+                  close(outfile);
+                END;
 
             IF Directory = '' THEN
                 BEGIN
@@ -2281,19 +2296,18 @@ VAR Directory: Str80;
                 END;
             END;
 
-        DosError := 0;  { Seems to be necessary in some cases as the
-                          value will be 18 - indicating "no more files"
-                          which might be because of the FindFirst that
-                          was executed.  Doesn't seem to get reset by
-                          the next two statements...  weird. }
+            DosError := 0;  { Seems to be necessary in some cases as the
+                              value will be 18 - indicating "no more files"
+                              which might be because of the FindFirst that
+                              was executed.  Doesn't seem to get reset by
+                              the next two statements...  weird. }
 
-        Assign (TRMasterFileRead, ActiveFileName);
-        Reset (TRMasterFileRead, 1);
+            Assign (TRMasterFileRead, ActiveFileName);
+            Reset (TRMasterFileRead, 1);
 
         IF DosError = 0 THEN
             BEGIN
             DTAFileSize := FileSize (TRMasterFileRead);
-
             New (SCPIndexArray);
             BlockRead (TRMasterFileRead, SCPIndexArray^, SizeOf (SCPIndexArray^), xResult);
             BlockRead (TRMasterFileRead, SCPEndOfFile,   SizeOf (SCPEndOfFile),   xResult);
@@ -2302,7 +2316,6 @@ VAR Directory: Str80;
             IndexArrayAllocated := True;
             END;
         END;
-
     END;
 
 
@@ -4379,6 +4392,9 @@ VAR FileRead: FILE;
 
     BEGIN
     ClearScreenAndTitle ('TRMASTER DATABASE STATISTICS');
+    WriteLn;
+    WriteLn ('ActiveFileName = ', ActiveFileName);
+    WriteLn;
 
     Write ('Computing totals for cell AA');
 

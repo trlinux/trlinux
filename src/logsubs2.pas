@@ -74,6 +74,8 @@ VAR TempStr1, TempStr2, TempString: Str80;
         END;
     END;
 
+
+
 PROCEDURE SetUpAltDDupeCheck (Call: CallString; AddToBandMap: BOOLEAN);
 
 { This procedure will setup the AltD DupeInfo window for the callsign passed
@@ -416,40 +418,9 @@ VAR Freq: LONGINT;
 
         SendMultiMessage ('G' + K1EAStationId + ' ' + TempString);
         END;
-
-{   Disabled in 6.46
-
-    IF TakingABreak AND ((Command = 'TIMEON') OR (Command = 'ON')) THEN
-        BEGIN
-        ThisBreak := ElaspedMinutes (OffTimeStart);
-
-        TotalOffTime := TotalOffTime + ThisBreak;
-        TakingABreak := False;
-
-        SaveSetAndClearActiveWindow (QuickCommandWindow);
-        Write ('Total off time is now = ', MinutesToTimeString (TotalOffTime), ' minutes');
-        ReminderPostedCount := 60;
-        RestorePreviousWindow;
-
-        TempString := '; Break finished at ' + GetFullTimeString +
-                      '  This break = ' + MinutesToTimeString (ThisBreak) +
-                      '  Total off time = ' + MinutesToTimeString (TotalOffTime);
-
-        PushLogStringIntoEditableLogAndLogPopedQSO (TempString, True);
-        END;
-
-    IF (NOT TakingABreak) AND ((Command = 'TIMEOFF') OR (Command = 'OFF')) THEN
-        BEGIN
-        MarkTime (OffTimeStart);
-        TakingABreak := True;
-        LastDisplayedBreakTime := -1;
-        TempString := '; Break started at ' + GetFullTimeString;
-        PushLogStringIntoEditableLogAndLogPopedQSO (TempString, True);
-        END;
-}
     END;
 
-
+
 
 PROCEDURE MoveEditableLogIntoLogFile;
 
@@ -914,6 +885,7 @@ VAR Frequency: LONGINT;
             IF ActiveMultiPort <> nil THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
+            IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
             millisleep;
         UNTIL ElaspedSec100 (RememberTime) >= 50;
 
@@ -935,6 +907,7 @@ VAR Frequency: LONGINT;
         BEGIN
         StationInformationCall := '';
         ShowStationInformation (CallWindowString);
+
         DisplayGridSquareStatus (CallWindowString);
 
         IF BandMapEnable THEN
@@ -1255,7 +1228,7 @@ VAR Key: CHAR;
         IF ActiveMultiPort <> nil THEN CheckMultiState;
 
         UpdateTimeAndRateDisplays (True, True);
-
+        IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
 
         IF NewKeyPressed THEN
             BEGIN
@@ -1881,6 +1854,7 @@ VAR CQMemory, SendChar: CHAR;
                 {KK1L: 6.72 NOTE Timing delays can occur if there are radio communcations problems due to    }
                 {                various timeouts, etc in the polling called from UpdateTimeAndRateDisplays. }
                 UpdateTimeAndRateDisplays (True, True);
+                IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
 
                 IF ActiveMultiPort <> nil THEN CheckMultiState;
 
@@ -1980,7 +1954,7 @@ VAR Time: INTEGER;
     AutoCQResume (False);
     END;
 
-
+
 
 PROCEDURE ShowPartialCallMults (WindowString: Str20);
 
@@ -2042,7 +2016,7 @@ VAR TestString: Str20;
     VisibleLog.ShowMultiplierStatus (WindowString);
     END;
 
-
+
 
 PROCEDURE CheckEverything (VAR KeyChar: CHAR; VAR WindowString: Str80);
 
@@ -2050,8 +2024,35 @@ VAR Result: INTEGER;
     BandMapInitialExchange: Str20;
     TimeOut: INTEGER;
     PacketChar: CHAR;
+    N4OGW_Command: STRING;
 
     BEGIN
+    { Here is where we take care of some N4OGW bandmap stuff. }
+
+    IF (N4OGW_RadioOne_BandMap_IP <> '') THEN
+        BEGIN
+        IF (N4OGW_RadioOne_BandMap.TXMode) THEN CWStillBeingSent;  { clears TX flag }
+
+        { Need to look for commands from both instances just in case there is only one }
+
+        WHILE N4OGW_RadioOne_BandMap.QTC_Count > 0 DO
+            BEGIN
+            N4OGW_Command := N4OGW_RadioOne_BandMap.GetNextQTC;
+            ProcessN4OGWCommand (N4OGW_Command);
+            END;
+        END;
+
+    IF (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+        BEGIN
+        IF (N4OGW_RadioTwo_BandMap.TXMode) THEN CWStillBeingSent;  { clears TX flag }
+
+        WHILE N4OGW_RadioTwo_BandMap.QTC_Count > 0 DO
+            BEGIN
+            N4OGW_Command := N4OGW_RadioTwo_BandMap.GetNextQTC;
+            ProcessN4OGWCommand (N4OGW_Command);
+            END;
+        END;
+
     IF ActiveMultiPort <> nil THEN CheckMultiState;
 
     IF ActiveRTTYPort <> nil THEN CheckRTTY;
@@ -2123,6 +2124,7 @@ VAR Result: INTEGER;
             IF ActiveMultiPort <> nil THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
+            IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
         UNTIL (NOT CWStillBeingSent and  not dvpmessageplaying) OR NewKeyPressed;
 
         IF NewKeyPressed THEN
@@ -2178,7 +2180,7 @@ VAR Result: INTEGER;
     { Do all the right things with the new callsign }
 
     IF (ActiveWindow = CallWindow) AND PartialCallEnable THEN
-        IF Sheet.TwoLetterCrunchProcess (WindowString) THEN
+        IF Sheet.TwoLetterCrunchProcess (WindowString, PossibleCallList) THEN
              BEGIN
              VisibleLog.GeneratePartialCallList (WindowString,
                                                  ActiveBand,
@@ -2350,13 +2352,16 @@ VAR Result: INTEGER;
                             BEGIN
                             SaveSetAndClearActiveWindow (DupeInfoWindow);
                             {KK1L: 6.73 add condition to make auto ALT-D an option. Added TuneDupeCheckEnable}
+
                             IF (OpMode = CQOpMode) THEN
                                 BEGIN
                                 IF ModeMemory[InactiveRadio] = CW THEN
                                     WriteLn (BandMapBlinkingCall + ' OK!! at ' + SpeedString + ' WPM')
                                 ELSE
                                     WriteLn (BandMapBlinkingCall + ' OK!!');
+
                                 DupeInfoCallPrompt := BandMapBlinkingCall;
+
                                 IF TuneDupeCheckEnable THEN
                                     BEGIN
                                     Write ('Space bar for ', BandString [BandMapBand], ModeString [BandMapMode], ' QSO');
@@ -2367,6 +2372,7 @@ VAR Result: INTEGER;
                             ELSE
                                 BEGIN
                                 DupeInfoCallPrompt := BandMapBlinkingCall;
+
                                 IF TuneDupeCheckEnable THEN
                                     BEGIN
                                     WriteLn (BandMapBlinkingCall + ' OK!!          ');
@@ -2377,19 +2383,12 @@ VAR Result: INTEGER;
                             VisibleLog.ShowQSOStatus (BandMapBlinkingCall);
                             VisibleLog.ShowMultiplierStatus (BandMapBlinkingCall);
                             RestorePreviousWindow;
-
-                            {SaveSetAndClearActiveWindow (AltCallWindow);  }
-                            {Write (BandMapBlinkingCall, ' Call Ready!');  }
-                            {DupeInfoCall := BandMapBlinkingCall;          }
-                            {RestorePreviousWindow;                        }
                             END;
                         END;
                     END;
 
-{  Moved this down 7 lines because it would over-write info for CQ QSO in
-   progress.
-
-                ShowStationInformation (BandMapBlinkingCall); }
+                { The big IF below is not working right because OkayToPutUpBandMap is often false
+                  when I think it should be true }
 
                 IF (ActiveWindow = CallWindow) AND
                    (OpMode = SearchAndPounceOpMode) AND
@@ -2401,16 +2400,17 @@ VAR Result: INTEGER;
                        { Moved this from up 7 lines in 5.88 }
 
                        ShowStationInformation (BandMapBlinkingCall);
-
                        WindowString := BandMapBlinkingCall;
                        ClrScr;
-                       Write (' ' + WindowString + '  ' + BandMapInitialExchange);
+
+                       { We write the initial exchange for reference - even though it really is
+                         not there.   }
+
+                       { So - in Dec 2022, I am sitting here wondering why there is a space in
+                         front of the callsign when doing this.  Decided to remove it }
+
+                       Write (WindowString + '  ' + BandMapInitialExchange);
                        GoToXY (Length (WindowString) + 1, WhereY);
-
-                       { Why is this? - Removed in 6.44 }
-
-                       { RestorePreviousWindow;  }
-
                        BandMapEntryInCallWindow := True;
                        END;
                 END
@@ -2479,11 +2479,15 @@ VAR Result: INTEGER;
             END;
 
     UpdateTimeAndRateDisplays (True, True); {KK1L: 6.72 Moved here to speed up SCP and other things}
+    IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
 
-    IF RadioOnTheMove[ActiveRadio] THEN {KK1L: 6.73 To fix call popping up after already working them.}
-        OkayToPutUpBandMapCall := True
+    IF RadioOnTheMove [ActiveRadio] THEN {KK1L: 6.73 To fix call popping up after already working them.}
+        OkayToPutUpBandMapCall := True;
+
+    { KK1L had this - but once I am on the move - I don't think I ever want to set it back to
+      false
     ELSE
-        OkayToPutUpBandMapCall := False;
+        OkayToPutUpBandMapCall := False; }
 
     END;
 
@@ -2975,6 +2979,8 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
     IF (ControlBMemory <> '') OR (OnDeckCall <> '') THEN
         BEGIN
+        QuickDisplay ('Found a callsign to use');
+
         ClrScr;
         WindowString := ControlBMemory + OnDeckCall;
 
@@ -2995,19 +3001,21 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
         ControlBMemory := '';
         OnDeckCall := '';
+
+        { How does anyone know to process this call?  I don't know - not sure I care }
         END;
 
     REPEAT
-        IF SpecialCommand = SendF1Message THEN
+        IF SpecialCommand = SendF1Message THEN  { Someone pressed ENTER in S&P with nothing in either window }
             BEGIN
-            {KK1L: We get in here when hitting enter from S&P with nothing in either window!}
+            QuickDisplay ('Found special command to send F1 message');
+
             InactiveRigCallingCQ := False;
             SetUpToSendOnActiveRadio;
 
             IF MessageEnable AND NOT ((CWTone = 0) AND Debug) THEN
                 SendFunctionKeyMessage (F1, CQOpMode);
 
-            {KK1L: 6.68 Set LastCQ stuff when calling CQ by the enter key with no call entered}
             IF FrequencyDisplayed THEN
                 BEGIN
                 LastCQFrequency := DisplayedFrequency;
@@ -3021,12 +3029,17 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
         CheckForRemovedDupeSheetWindow;
 
+        { Dec-2022 This might be something we need to put back in }
+
         {IF ((ActiveWindow = CallWindow) AND (WindowString = '')) OR
            ((ActiveWindow = ExchangeWindow) AND (CallWindowString = '')) THEN
                OkayToPutUpBandMapCall := True;} {KK1L: 6.73 To fix call popping up after working them.}
 
         IF (ActiveMultiPort <> nil) AND (MultiInfoMessage <> '') THEN
             MarkTime (MultiInfoMessageTimeout);
+
+        { We now go into a loop waiting for a key to be pressed.  We need to give
+          oxygen to some things so that they work while waiting }
 
         REPEAT
             IF (ActiveMultiPort <> nil) AND (MultiInfoMessage <> '') THEN
@@ -3037,7 +3050,9 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         MarkTime (MultiInfoMessageTimeout);
                         END;
 
-            CheckEverything (KeyChar, WindowString); {KK1L: NOTE UpdateTimeAndRateDisplay, polling, etc}
+            { CheckEverything gives oxygen to many things - time/rate display, polling, etc }
+
+            CheckEverything (KeyChar, WindowString);
 
             { Okay - this is a bit of a hack - but I am not smart enough to figure
               out how Footsw worked }
@@ -3054,66 +3069,57 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                     FootSwitchPressed := Footsw.getDebouncedState;
                 END;
 
+          { I was having issues with the F1 CQ message always sending two C's at the
+            start (with ArdKeyer) - and decided I needed to put a "one shot" on the leading
+            edge of the PTT signal, so I would only execute whatever the function was once
+            when the footswitch was pressed.  }
+
+            IF FootSwitchPressed THEN
+                BEGIN
+                IF FootSwitchPressedBefore THEN
+                    FootSwitchPressed := False
+                ELSE
+                    FootSwitchPressedBefore := True;
+                END
+            ELSE
+                FootSwitchPressedBefore := False;
+
+            { Deal with foot switch input }
+
             IF FootSwitchPressed THEN
                 BEGIN
                 CASE FootSwitchMode OF
 
                     FootSwitchF1:
-                        BEGIN
                         IF OpMode = CQOpMode THEN
                             SendFunctionKeyMessage (F1, CQOpMode)
                         ELSE
                             ProcessExchangeFunctionKey (F1);
 
-                        FootSwitchPressed := False;
-                        END;
-
                     FootSwitchControlEnter:
                         BEGIN
-                        FootSwitchPressed := False;
                         BeSilent := True;
                         KeyChar := CarriageReturn;
                         Exit;
                         END;
 
-                    FootSwitchDisabled:
-                        FootSwitchPressed := False;
-
                     FootSwitchLastCQFreq:
-                        BEGIN
                         GoToLastCQFrequency;
-                        FootSwitchPressed := False;
-                        END;
 
                     FootSwitchNextBandMap:
-                        BEGIN
                         GoToNextBandMapFrequency;
-                        FootSwitchPressed := False;
-                        END;
 
                     FootSwitchNextMultBandMap: {KK1L: 6.68}
-                        BEGIN
                         GoToNextMultBandMapFrequency;
-                        FootSwitchPressed := False;
-                        END;
 
                     FootSwitchNextDisplayedBandMap: {KK1L: 6.64}
-                        BEGIN
                         GoToNextDisplayedBandMapFrequency;
-                        FootSwitchPressed := False;
-                        END;
 
                     FootSwitchNextMultDisplayedBandMap: {KK1L: 6.68}
-                        BEGIN
                         GoToNextMultDisplayedBandMapFrequency;
-                        FootSwitchPressed := False;
-                        END;
 
                     FootSwitchDupeCheck:
-                        BEGIN
                         DupeCheckOnInactiveRadio;
-                        FootSwitchPressed := False;
-                        END;
 
                     StartSending:
                         IF ActiveMode = CW THEN
@@ -3125,24 +3131,34 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                     SwapRadio:
                         BEGIN
                         SwapRadios;
-                        FootSwitchPressed := False;
                         Str (SpeedMemory[InactiveRadio], SpeedString); {KK1L: 6.73 Used to use a variable CheckSpeed}
                         END;
 
                     Normal:
-                        BEGIN
                         IF TwoRadioState <> TwoRadiosDisabled THEN
                             CheckTwoRadioState (FootswitchWasPressed);
 
-                        FootSwitchPressed := False;
+                    QSONormal:
+                        BEGIN
+                        KeyChar := CarriageReturn;
+                        Exit;
                         END;
-                    END;
 
-                END;
+                    QSOQuick:
+                        BEGIN
+                        IF LookingForCQExchange THEN
+                            KeyChar := QuickQSLKey1
+                        ELSE
+                            KeyChar := CarriageReturn;
+                        Exit;
+                        END;
 
-            {IF (AutoSAPEnable) AND (OpMode = CQOpMode) THEN                    }
-            {    IF ((ActiveRadio = RadioOne) AND RadioOnTheMove[RadioOne]) OR  }
-            {       ((ActiveRadio = RadioTwo) AND RadioOnTheMove[RadioTwo]) THEN}
+                    END;  { of case FootswitchMode }
+
+                END; { of FootSwitchPressed }
+
+            { Moving a radio can be the same as pressing the TAB Key }
+
             IF (AutoSAPEnable) AND (OpMode = CQOpMode) THEN
                 IF (RadioMovingInBandMode[ActiveRadio]) THEN
                     BEGIN
@@ -3150,29 +3166,13 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                     Exit;
                     END;
 
-            Wait (6);
+            Wait (6);  { Hmm - I have no idea why }
+
+            { This seems to be some kind of left over debug thing - but guess no harm }
 
             IF (ParamCount > 0) AND (ParamStr (1) = 'EXIT') THEN ExitProgram;
 
-        UNTIL NewKeyPressed OR ReadInLog OR Debug OR FootSwitchPressed;
-
-        IF FootSwitchPressed THEN
-            BEGIN
-            CASE FootSwitchMode OF
-                QSONormal: BEGIN
-                           KeyChar := CarriageReturn;
-                           Exit;
-                           END;
-
-                QSOQuick:  BEGIN
-                           IF LookingForCQExchange THEN
-                               KeyChar := QuickQSLKey1
-                           ELSE
-                               KeyChar := CarriageReturn;
-                           Exit;
-                           END;
-                END;
-            END;
+        UNTIL NewKeyPressed OR ReadInLog OR Debug;
 
         IF NOT (ReadInLog OR Debug) THEN
             BEGIN
@@ -3188,10 +3188,16 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
         CursorPosition := WhereX;
 
+        { If not a normal character and if we are in the exchange window, we set InitialExchangePutUp
+          to FALSE.  Why?  I don't know at the moment }
+
         IF NOT (((KeyChar >= '0') AND (KeyChar <= '9')) OR
                 ((KeyChar >= 'A') AND (KeyChar <= 'Z'))) THEN
                    IF ActiveWindow = ExchangeWindow THEN
                        InitialExchangePutUp := False;
+
+        { If somoene has pressed the start sending now key - and we have some callsign to send, then
+          we exit and tell the program to stat sending }
 
         IF (OpMode = CQOpMode) AND (ActiveMode = CW) THEN
             IF (ActiveWindow = CallWindow) THEN
@@ -3199,7 +3205,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                     IF KeyChar = StartSendingNowKey THEN
                         Exit;
 
-{ Add attempt to show domestic multiplier status as it is entered in }
+        { Attempt to show domestic multiplier status as it is entered into exchange window }
 
         IF (ActiveWindow = ExchangeWindow) AND (Length (WindowString) >= 2) AND DoingDomesticMults THEN
             BEGIN
@@ -3211,54 +3217,54 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                 VisibleLog.ShowDomesticMultiplierStatus (TempExchange.DomesticQTH);
             END;
 
+        { Now we are going to look at what key was pressed finally }
+
         CASE KeyChar OF
 
-          '"': BEGIN
-               RITEnable := False;
-               ClearRIT;
+          '"':
+              IF ActiveMultiPort <> nil THEN
+                  BEGIN
+                  RITEnable := False;
+                  ClearRIT;
+                  TempString := QuickEditResponse ('Enter (BAND MESSAGE) : ', 50);
+                  GetRidOfPrecedingSpaces (TempString);
 
-               IF ActiveMultiPort <> nil THEN
-                   BEGIN
-                   TempString := QuickEditResponse ('Enter (BAND MESSAGE) : ', 50);
-                   GetRidOfPrecedingSpaces (TempString);
+                  IF (TempString <> '') AND (TempString <> EscapeKey) THEN
+                      BEGIN
+                      FirstString := UpperCase (PrecedingString (TempString, ' '));
 
-                   IF (TempString <> '') AND (TempString <> EscapeKey) THEN
-                       BEGIN
-                       FirstString := UpperCase (PrecedingString (TempString, ' '));
+                      Dest := $FF;
 
-                       Dest := $FF;
+                      IF FirstString = '160' THEN Dest := MultiBandAddressArray [Band160];
+                      IF FirstString =  '80' THEN Dest := MultiBandAddressArray [Band80];
+                      IF FirstString =  '40' THEN Dest := MultiBandAddressArray [Band40];
+                      IF FirstString =  '30' THEN Dest := MultiBandAddressArray [Band30];
+                      IF FirstString =  '20' THEN Dest := MultiBandAddressArray [Band20];
+                      IF FirstString =  '17' THEN Dest := MultiBandAddressArray [Band17];
+                      IF FirstString =  '15' THEN Dest := MultiBandAddressArray [Band15];
+                      IF FirstString =  '12' THEN Dest := MultiBandAddressArray [Band12];
+                      IF FirstString =  '10' THEN Dest := MultiBandAddressArray [Band10];
+                      IF FirstString =   '6' THEN Dest := MultiBandAddressArray [Band6];
+                      IF FirstString =   '2' THEN Dest := MultiBandAddressArray [Band2];
+                      IF FirstString = '222' THEN Dest := MultiBandAddressArray [Band222];
+                      IF FirstString = '432' THEN Dest := MultiBandAddressArray [Band432];
+                      IF FirstString = '902' THEN Dest := MultiBandAddressArray [Band902];
+                      IF FirstString = '1GH' THEN Dest := MultiBandAddressArray [Band1296];
+                      IF FirstString = '2GH' THEN Dest := MultiBandAddressArray [Band2304];
 
-                       IF FirstString = '160' THEN Dest := MultiBandAddressArray [Band160];
-                       IF FirstString =  '80' THEN Dest := MultiBandAddressArray [Band80];
-                       IF FirstString =  '40' THEN Dest := MultiBandAddressArray [Band40];
-                       IF FirstString =  '30' THEN Dest := MultiBandAddressArray [Band30];
-                       IF FirstString =  '20' THEN Dest := MultiBandAddressArray [Band20];
-                       IF FirstString =  '17' THEN Dest := MultiBandAddressArray [Band17];
-                       IF FirstString =  '15' THEN Dest := MultiBandAddressArray [Band15];
-                       IF FirstString =  '12' THEN Dest := MultiBandAddressArray [Band12];
-                       IF FirstString =  '10' THEN Dest := MultiBandAddressArray [Band10];
-                       IF FirstString =   '6' THEN Dest := MultiBandAddressArray [Band6];
-                       IF FirstString =   '2' THEN Dest := MultiBandAddressArray [Band2];
-                       IF FirstString = '222' THEN Dest := MultiBandAddressArray [Band222];
-                       IF FirstString = '432' THEN Dest := MultiBandAddressArray [Band432];
-                       IF FirstString = '902' THEN Dest := MultiBandAddressArray [Band902];
-                       IF FirstString = '1GH' THEN Dest := MultiBandAddressArray [Band1296];
-                       IF FirstString = '2GH' THEN Dest := MultiBandAddressArray [Band2304];
+                      IF Dest <> $FF THEN RemoveFirstString (TempString);
 
-                       IF Dest <> $FF THEN RemoveFirstString (TempString);
+                      IF K1EANetworkEnable THEN
+                          SendMultiMessage ('T' + K1EAStationID + '0 ' + TempString)
+                      ELSE
+                          SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                            Dest,
+                                            MultiTalkMessage,
+                                            TempString);
+                      END;
 
-                       IF K1EANetworkEnable THEN
-                           SendMultiMessage ('T' + K1EAStationID + '0 ' + TempString)
-                       ELSE
-                           SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                             Dest,
-                                             MultiTalkMessage,
-                                             TempString);
-                       END;
-                   END;
-
-               RITEnable := True;
-               END;
+                  RITEnable := True;
+                  END; { of CASE " }
 
           EscapeKey:
               BEGIN
@@ -3266,8 +3272,8 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
               //quick and dirty escape kills rtty -- also backs up one step, but
               //that's why it's dirty
 
-              if ((ActiveMode = Digital) and (ActiveRttyPort <> nil)) then
-                  activerttyport.putchar(chr(27));
+              IF ((ActiveMode = Digital) and (ActiveRttyPort <> nil)) then
+                  ActiveRTTYPort.putchar(chr(27));
 
               {KK1L: 6.73 For SO2R will force redisplay SO2R info for BandMapBlinkinCall}
 
@@ -3332,9 +3338,10 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                           WindowString := '';
                           ClrScr;
+                          OkayToPutUpBandMapCall := False;
                           NameCallsignPutUp := '';
                           END;
-                  END;
+              END;  { of case ESCAPE Key }
 
           ControlA:
               IF CursorPosition > 1 THEN
@@ -3397,9 +3404,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                           END;
 
           ControlJ:
-             if not ctrlenter then
-//              IF Port [$60] = $24 THEN  { Control-J, not ControlEnter }
-//  if true then
+              if not ctrlenter then
                   BEGIN
                   ProcessConfigurationInput;
                   RemoveWindow (QuickCommandWindow);
@@ -3477,7 +3482,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   END;
 
           ControlK: BEGIN
-                    {KK1L: 6.72 Made the text a little more clear}
                     TempString := QuickEditResponse ('Do you really want to clear the dupesheet? (Spell Y E S/NO ) : ', 3);
 
                     IF UpperCase (TempString) = 'YES' THEN
@@ -3730,11 +3734,11 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
           ControlRightBracket:
               DisplayCT1BOHData;
 
-          CarriageReturn:  {KK1L: note: This is where I can trap commands from the call window!}
-
+          CarriageReturn:  { Could be Control-Enter or just Enter }
+              BEGIN
               if ctrlenter then     { comes from XKB unit }
                   BEGIN
-                  {KK1L: 6.73 Added this block to use ControlEnter to program Inactive Radio frequency}
+                  { See if this is a frequency command for the inactive radio }
 
                   VFOString := WindowString;
                   Delete (VFOString, 1, Length (VFOString)-1); {KK1L: 6.73 Get last character as VFO to set}
@@ -3751,60 +3755,60 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   IF (StringIsAllNumbersOrDecimal (WindowString)) AND
                      (ActiveWindow = CallWindow) AND
                      (Length (WindowString) >= 3) THEN
-                         BEGIN
-                         IF Length (WindowString) = 3 THEN
-                             BEGIN
-                             CASE BandMemory[InactiveRadio] OF
-                                 Band160: TempString := '1'   + WindowString;
-                                 Band80:  TempString := '3'   + WindowString;
-                                 Band40:  TempString := '7'   + WindowString;
-                                 Band30:  TempString := '10'  + WindowString;
-                                 Band20:  TempString := '14'  + WindowString;
-                                 Band17:  TempString := '18'  + WindowString;
-                                 Band15:  TempString := '21'  + WindowString;
-                                 Band12:  TempString := '24'  + WindowString;
-                                 Band10:  TempString := '28'  + WindowString;
-                                 Band6:   TempString := '50'  + WindowString;
-                                 ELSE     TempString := '144' + WindowString;
-                                 END;
-                             END
-                         ELSE
-                             TempString := WindowString;
-
-                         IF StringHas (TempString, '.') THEN
-                             BEGIN
-                             Val (TempString, RealFreq, xResult);
-                             Freq := Round (RealFreq * 1000.0);
-                             END
-                         ELSE
-                             Val (TempString + '000', Freq, xResult);
-
-                         TempMode := ModeMemory[InactiveRadio];
-
-                         IF xResult = 0 THEN
-                             BEGIN
-                             PutRadioOutOfSplit(InactiveRadio);
-                             SetRadioFreq (InactiveRadio, Freq, TempMode, VFOChar); {KK1L: 6.73}
-                             END;
-
-                         CalculateBandMode (Freq, TempBand, TempMode);
-
-                         BandMemory [InactiveRadio] := TempBand; {KK1L: 6.73 NOTE calculated above}
-
-                         WindowString := '';
-                         ClrScr;
-                         END
-
-                  ELSE           {KK1L: 6.73 This is what used to be here}
                       BEGIN
-                      BeSilent := True;
-                      KeyChar := CarriageReturn;
-                      Exit;
+                      IF Length (WindowString) = 3 THEN
+                          BEGIN
+                          CASE BandMemory[InactiveRadio] OF
+                              Band160: TempString := '1'   + WindowString;
+                              Band80:  TempString := '3'   + WindowString;
+                              Band40:  TempString := '7'   + WindowString;
+                              Band30:  TempString := '10'  + WindowString;
+                              Band20:  TempString := '14'  + WindowString;
+                              Band17:  TempString := '18'  + WindowString;
+                              Band15:  TempString := '21'  + WindowString;
+                              Band12:  TempString := '24'  + WindowString;
+                              Band10:  TempString := '28'  + WindowString;
+                              Band6:   TempString := '50'  + WindowString;
+                              ELSE     TempString := '144' + WindowString;
+                              END;
+                          END
+                      ELSE
+                          TempString := WindowString;
+
+                      IF StringHas (TempString, '.') THEN
+                          BEGIN
+                          Val (TempString, RealFreq, xResult);
+                          Freq := Round (RealFreq * 1000.0);
+                          END
+                      ELSE
+                          Val (TempString + '000', Freq, xResult);
+
+                      TempMode := ModeMemory[InactiveRadio];
+
+                      IF xResult = 0 THEN
+                          BEGIN
+                          PutRadioOutOfSplit(InactiveRadio);
+                          SetRadioFreq (InactiveRadio, Freq, TempMode, VFOChar); {KK1L: 6.73}
+                          END;
+
+                      CalculateBandMode (Freq, TempBand, TempMode);
+
+                      BandMemory [InactiveRadio] := TempBand; {KK1L: 6.73 NOTE calculated above}
+
+                      WindowString := '';
+                      ClrScr;
+                      Continue;  { Instead of using a bunch of ELSE's we can just continue the loop }
                       END;
 
-                  end  // of controlEnter
-          else
-              BEGIN      //open 1 - not control enter
+                  { Normal Control-Enter function - log QSO without sending anything }
+
+                  BeSilent := True;
+                  KeyChar := CarriageReturn;
+                  Exit;
+                  END;  { end of ControlEnter Case }
+
+              { Normal Carriage Return }
+
               BeSilent := False;
 
               IF WindowString = 'DEBUG' THEN
@@ -3823,7 +3827,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
               Delete (TempString, Length (TempString), 1);  {KK1L: 6.73 Remove last character}
 
               IF ((VFOString = 'A') OR (VFOString = 'B')) AND
-                 (StringIsAllNumbersOrDecimal (TempString)) THEN {KK1L: 6.73 Strip VFO char from end}
+                  (StringIsAllNumbersOrDecimal (TempString)) THEN {KK1L: 6.73 Strip VFO char from end}
                   WindowString := TempString {KK1L: 6.73 Remove last character}
               ELSE
                   VFOChar := 'A'; {KK1L: 6.73 Assume setting A VFO}
@@ -3869,9 +3873,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                       END;
 
                   TempMode := ActiveMode;
-
                   CalculateBandMode (Freq, TempBand, TempMode);
-
                   ActiveBand := TempBand;
 
                   IF ActiveRadio = RadioOne THEN
@@ -3882,27 +3884,28 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   DisplayBandMode (ActiveBand, ActiveMode, False);
                   WindowString := '';
                   ClrScr;
-                  END
-              ELSE
-                  IF (Copy (WindowString, 1, 1) = '\') AND
-                     (ActiveWindow = CallWindow) THEN          { Added in 6.61 }
-                      BEGIN
-                      ProcessCallWindowCommand (WindowString); {KK1L: note: maybe commands would go in this proc?}
-                      ClrScr;
-                      WindowString := '';
-                      END
-                  ELSE
+                  Continue;
+                  END;
 
-                      { This is pretty hidden - but what is happening is that all special cases
-                        or hitting RETURN have been dealt with - so here is the "boring" case
-                        of hitting return like when you are trying to log a QSO }
+              { Not a frequency command  - still doing Enter Case - is this a window command? }
 
-                      Exit;
+              IF (Copy (WindowString, 1, 1) = '\') AND (ActiveWindow = CallWindow) THEN  { Added in 6.61 }
+                  BEGIN
+                  ProcessCallWindowCommand (WindowString);
+                  ClrScr;
+                  WindowString := '';
+                  Continue;
+                  END;
 
-              END; //close 1
+              { All special cases of hitting RETURN have been dealt with - so here is the "boring" case
+                of hitting return like when you are trying to log a QSO. We don't do that down here - so
+                we exit to whomever called us with Enter as the KeyChar and they get to decide what to
+                do about it. }
 
+              Exit;
+              END; { of enter and control-enter case }
 
-          NullKey:
+          NullKey:    { Extended keys }
               BEGIN
               ExtendedKeyChar := NewReadKey;
 
@@ -4393,7 +4396,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   ELSE Exit;
                   END;  { of case }
-              END;
+              END;  { of null Key case }
 
           TabKey: Exit;
 
@@ -4410,8 +4413,8 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                 ShowPartialCallMults (WindowString);
                 END;
 
-
-         '-': BEGIN
+          '-':
+              BEGIN
               Freq := QuickEditFreq ('Enter transmit frequency (kiloHertz) : ', 10);
 
               {KK1L: 6.73 -1 means ESC or null, otherwise if negative then CTRL-Enter used to enter.}
@@ -4437,222 +4440,257 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   PutRadioIntoSplit (RadioToSet); {KK1L: 6.73}
                   SplitFreq := Freq;
                   END;
-              END;
+              END; { of dash case }
+
+           { We are still in the CASE statement of KeyChar - but have not found any key that we
+             can process.  Some keys are not constants, so they could not be in the CASE statement,
+             so we need to look at them before doing much else.  In all cases,  you should either
+             exit if the key needs to be processed by the calling procedure - or a continue so that
+             we go back into the loop of waiting for a keystroke }
+
+          ELSE        { of case KeyChar }
+              BEGIN
+              IF (KeyChar = QuickQSLKey1) OR
+                 (KeyChar = QuickQSLKey2) OR
+                 (KeyChar = TailEndKey) THEN
+                     BEGIN
+                     BeSilent := False;
+                     Exit;
+                     END;
+
+              IF KeyChar = PossibleCallRightKey THEN
+                  BEGIN
+                  PossibleCallCursorRight;
+                  Continue;
+                  END;
+
+              IF KeyChar = PossibleCallLeftKey THEN
+                  BEGIN
+                  PossibleCallCursorLeft;
+                  Continue;
+                  END;
+
+              IF KeyChar = PossibleCallAcceptKey THEN
+                  BEGIN
+                  IF ActiveWindow = CallWindow THEN
+                      BEGIN
+                      WITH PossibleCallList DO
+                          IF NumberPossibleCalls > 0 THEN
+                              BEGIN
+                              WindowString := List [CursorPosition].Call;
+                              ClrScr;
+                              Write (WindowString);
+                              END;
+                      END
+                  ELSE
+                      BEGIN
+                      WITH PossibleCallList DO
+                          IF NumberPossibleCalls > 0 THEN
+                              BEGIN
+                              RestorePreviousWindow;
+                              ClrScr;
+                              CallWindowString := List [CursorPosition].Call;
+                              Write (CallWindowString);
+                              SaveAndSetActiveWindow (ExchangeWindow);
+                              END;
+                      END;
+                  Continue;
+                  END;
+
+              { A space bar in the call window is a request for a dupe check }
+
+              IF ((KeyChar = SpaceBar) AND ((ActiveWindow = CallWindow) OR (WindowString = ''))) THEN
+                  BEGIN
+                  RemoveWindow (PossibleCallWindow);
+                  RemoveWindow (NameSentWindow);
+                  RemoveWindow (QTCNumberWindow);
+                  Exit;
+                  END;
+
+              IF (KeyChar = PacketSpotKey) AND (ActivePacketPort <> nil) OR (ActiveMultiPort <> nil) THEN
+                  IF NOT PacketSpotDisable THEN
+                      BEGIN
+                      IF ActiveWindow = CallWindow THEN
+                          PacketSpotCall := WindowString
+                      ELSE
+                          PacketSpotCall := CallWindowString;
+
+                     IF PacketSpotCall = '' THEN PacketSpotCall := VisibleLog.LastCallsign;
+
+                     IF ActiveRadio = RadioOne THEN
+                         TempFreq := StableRadio1Freq
+                     ELSE
+                         TempFreq := StableRadio2Freq;
+
+                     IF TempFreq = 0 THEN
+                         BEGIN
+                         TempFreq := QuickEditFreq ('Enter spot frequency for ' + PacketSpotCall + ' : ', 10);
+                         IF TempFreq <= 0 THEN Continue;
+                         END;
+
+                     CreateAndSendPacketSpot (PacketSpotCall, TempFreq);
+                     Continue;
+                     END;
+
+              IF (KeyChar = 'I') AND (ActiveWindow = ExchangeWindow) AND (ActiveExchange = RSTQSONumberExchange) AND (StringIsAllNumbers (WindowString)) THEN
+                  BEGIN
+                  NumberString := GetLastString (WindowString);
+                  Val (NumberString, Number, xResult);
+
+                  IF xResult = 0 THEN
+                      BEGIN
+                      Inc (Number);
+                      Str (Number, NumberString);
+                      RemoveLastString (WindowString);
+                      GetRidOfPostcedingSpaces (WindowString);
+                      IF WindowString <> '' THEN
+                          WindowString := WindowString + ' ' + NumberString
+                      ELSE
+                          WindowString := NumberString;
+
+                      ClrScr;
+                      Write (WindowString);
+                      Continue;
+                      END;
+                  END;
+
+                { We have dealt with all of the special cases where a key would need to create an action.
+                  So - we are likely left with the case that the key is actual input that needs to be added
+                  to the appropriate string in the appropriate place }
+
+                { Let's first make sure that the key is a valid key for whichever window is active }
+
+              IF (
+                  ((KeyChar >= '0') AND (KeyChar <= '9')) OR
+                  ((KeyChar >= 'A') AND (KeyChar <= 'Z')) OR
+                  (KeyChar = ' ') OR
+                  (KeyChar = '/') OR
+
+                  { weird cases }
+
+                  ((ActiveWindow = CallWindow) AND (KeyChar = '?')) OR
+
+                  { Really weird cases }
+
+                  ((KeyChar = '\') AND (WindowString = '') AND (ActiveWindow = CallWindow)) OR
+
+                  { totally bizarre cases }
+
+                  ((ActiveWindow = CallWindow) AND (KeyChar = '.') AND StringIsAllNumbersOrDecimal (WindowString)) OR
+                  ((ActiveWindow = ExchangeWindow) AND (KeyChar IN AccentedChars))
+                 ) THEN
+
+                  BEGIN  { We are going to add this character to the string }
+
+                  {KK1L: 6.68 Added the OR JustLoadingBandMapWithNoRadio to prevent having to ESC to clear the call}
+                  {           window after being asked for the frequency when loading the band map by S&P with no }
+                  {           radio interface. Originally added for WRTC 2002 radio B rules.}
 
 
-          ELSE        { of case }
-            BEGIN
-            IF KeyChar = SpaceBar THEN
-                IF (ActiveWindow = CallWindow) OR (WindowString = '') THEN
-                    BEGIN
-                    RemoveWindow (PossibleCallWindow);
-                    RemoveWindow (NameSentWindow);
-                    RemoveWindow (QTCNumberWindow);
-                    Exit;
-                    END;
+                  { See if we need to overwrite whatever garbage the band map put into the window }
 
-            IF KeyChar = PacketSpotKey THEN
-                IF (ActivePacketPort <> nil) OR (ActiveMultiPort <> nil) THEN
-                    IF NOT PacketSpotDisable THEN
-                        BEGIN
-                        IF ActiveWindow = CallWindow THEN
-                            PacketSpotCall := WindowString
-                        ELSE
-                            PacketSpotCall := CallWindowString;
+                  IF ((ActiveWindow = CallWindow) AND (BandMapEntryInCallWindow OR JustLoadingBandMapWithNoRadio)) THEN
+                      BEGIN
+                      ClrScr;
+                      WindowString := KeyChar;
+                      Write (WindowString);
 
-                        IF PacketSpotCall = '' THEN PacketSpotCall := VisibleLog.LastCallsign;
+                      BandMapEntryInCallWindow := False;
+                      JustLoadingBandMapWithNoRadio := False; {KK1L: 6.68}
+                      OkayToPutUpBandMapCall := False;        {KK1L: 6.73 To fix call popping up after working them.}
+                      Continue;
+                      END;
 
-                        IF ActiveRadio = RadioOne THEN
-                            TempFreq := StableRadio1Freq
-                        ELSE
-                            TempFreq := StableRadio2Freq;
+                  { Maybe we need to overwrite the intiial exchange }
 
-                        IF TempFreq = 0 THEN
-                            BEGIN
-                            TempFreq := QuickEditFreq ('Enter spot frequency for ' + PacketSpotCall + ' : ', 10);
-                            IF TempFreq <= 0 THEN Continue;
-                            END;
+                  IF InitialExchangePutUp AND (ActiveWindow = ExchangeWindow) THEN {KK1L: 6.73 NOTE Single char clears window}
+                      BEGIN
+                      WindowString := KeyChar;
+                      ClrScr;
+                      Write (WindowString);
+                      InitialExchangePutUp := False;
+                      Continue;
+                      END;
 
-                        CreateAndSendPacketSpot (PacketSpotCall, TempFreq);
-                        END;
+                  { I have no clue  KK1L: 6.72 NOTE This is where I can add the auto Alt-Z stuff}
 
-            IF (KeyChar = 'I') AND (ActiveWindow = ExchangeWindow) AND
-               (ActiveExchange = RSTQSONumberExchange) AND
-               (StringIsAllNumbers (WindowString)) THEN
-                   BEGIN { not null }
-                   NumberString := GetLastString (WindowString);
-                   Val (NumberString, Number, xResult);
-                   IF xResult = 0 THEN
-                       BEGIN
-                       Inc (Number);
-                       Str (Number, NumberString);
-                       RemoveLastString (WindowString);
-                       GetRidOfPostcedingSpaces (WindowString);
-                       IF WindowString <> '' THEN
-                           WindowString := WindowString + ' ' + NumberString
-                       ELSE
-                           WindowString := NumberString;
+                 IF Length (WindowString) < SizeOf (WindowString) - 5 THEN
+                      BEGIN
+                      { Added overwrite of ? character in 6.22 }
 
-                       ClrScr;
-                       Write (WindowString);
-                       Continue;
-                       END;
-                   END;
+                      IF InsertMode AND (CursorPosition <= Length (WindowString)) AND (WindowString [WhereX] <> '?') THEN
+                          BEGIN
+                          InsertCursorPosition := CursorPosition;
 
-            {KK1L: note: This is where "normal" characters are processed in the call window}
-            IF (KeyChar = ' ') OR (KeyChar = '/') OR
-               ((KeyChar = '\') AND (WindowString = '') AND (ActiveWindow = CallWindow)) OR
-               ((KeyChar >= '0') AND (KeyChar <= '9')) OR
-               ((KeyChar >= 'A') AND (KeyChar <= 'Z')) OR
-               ((ActiveWindow = CallWindow) AND (KeyChar = '?')) OR
-               ((ActiveWindow = CallWindow) AND (KeyChar = '.') AND StringIsAllNumbersOrDecimal (WindowString)) OR
-               ((ActiveWindow = ExchangeWindow) AND (KeyChar IN AccentedChars)) THEN
-               {KK1L: 6.72 Added check for accented characters for the Swedes, etc.}
-                BEGIN
-                {KK1L: 6.68 Added the OR JustLoadingBandMapWithNoRadio to prevent having to ESC to clear the call}
-                {           window after being asked for the frequency when loading the band map by S&P with no }
-                {           radio interface. Originally added for WRTC 2002 radio B rules.}
-                IF (ActiveWindow = CallWindow) AND (BandMapEntryInCallWindow OR JustLoadingBandMapWithNoRadio) THEN
-                {KK1L: note: this is where the call window gets cleared when you type a character and the the call}
-                {            had been put there by tuning with the band map enabled.}
-                    BEGIN
-                    WindowString := '';
-                    ClrScr;
-                    BandMapEntryInCallWindow := False;
-                    {OkayToPutUpBandMapCall := False;}  {KK1L: 6.73 To fix call popping up after working them.}
-                    JustLoadingBandMapWithNoRadio := False; {KK1L: 6.68}
-                    END;
+                          IF CursorPosition > 1 THEN
+                              BEGIN
+                              TempString := Copy (WindowString, 1, CursorPosition - 1) +
+                                            KeyChar +
+                                            Copy (WindowString, CursorPosition, Length (WindowString) - CursorPosition + 1);
+                              END
+                          ELSE
+                              TempString := KeyChar + WindowString;
 
-                IF InitialExchangePutUp AND (ActiveWindow = ExchangeWindow) THEN {KK1L: 6.73 NOTE Single char clears window}
-                    BEGIN
-                    WindowString := KeyChar;
-                    ClrScr;
-                    Write (WindowString);
-                    InitialExchangePutUp := False;
-                    END
-                ELSE
-                    {KK1L: 6.72 NOTE This is where I can add the auto Alt-Z stuff}
-                    IF Length (WindowString) < SizeOf (WindowString) - 5 THEN
-                        BEGIN
-                        { Added overwrite of ? character in 6.22 }
+                          WindowString := TempString;
+                          ClrScr;
+                          Write (WindowString);
+                          GoToXY (InsertCursorPosition + 1, WhereY);
+                          END
+                      ELSE
+                          IF CursorPosition <= Length (WindowString) THEN
+                              BEGIN
+                              WindowString [CursorPosition] := KeyChar;
+                              Write (KeyChar);
+                              END
+                           ELSE
+                              BEGIN
+                              WindowString := WindowString + KeyChar;
+                              Write (KeyChar);
 
+                              IF (ActiveMode = CW) AND (OpMode = CQOpMode) AND
+                                  AutoSendEnable AND
+                                  (AutoSendCharacterCount = Length (WindowString)) AND
+                                  (NOT (Copy (WindowString, 1, 3) = '2BS')) AND
+                                  (NOT StringIsAllNumbersOrDecimal (WindowString)) AND
+ {                                 (NOT (Copy (WindowString, 1, 1) = '\')) THEN 6.44  }
+                                  (NOT StringHas (WindowString, '/')) THEN
+                                      IF NOT CallAlreadySent THEN
+                                          BEGIN
+                                          KeyChar := StartSendingNowKey;
+                                          Exit;
+                                          END;
+                              END;
 
-                        IF InsertMode AND (CursorPosition <= Length (WindowString)) AND (WindowString [WhereX] <> '?') THEN
-                            BEGIN
-                            InsertCursorPosition := CursorPosition;
+                      ShowPartialCallMults (WindowString);
 
-                            IF CursorPosition > 1 THEN
-                                BEGIN
-                                TempString := Copy (WindowString, 1, CursorPosition - 1) +
-                                              KeyChar +
-                                              Copy (WindowString, CursorPosition, Length (WindowString) - CursorPosition + 1);
-                                END
-                            ELSE
-                                TempString := KeyChar + WindowString;
+                      IF (ActiveWindow = CallWindow) AND (Length (WindowString) = 1) AND InactiveRigCallingCQ THEN
+                          BEGIN
+                          SwapRadios;
+                          SetUpToSendOnActiveRadio;
+                          InactiveRigCallingCQ := False;
 
-                            WindowString := TempString;
+                          IF (OpMode = SearchAndPounceOpMode) THEN ControlBMemory := KeyChar;
 
-                            ClrScr;
-                            Write (WindowString);
-                            GoToXY (InsertCursorPosition + 1, WhereY);
-                            END
-                        ELSE
-                            IF CursorPosition <= Length (WindowString) THEN
-                                BEGIN
-                                WindowString [CursorPosition] := KeyChar;
-                                Write (KeyChar);
-                                END
-                            ELSE
-                                BEGIN
-                                WindowString := WindowString + KeyChar;
-                                Write (KeyChar);
+                          KeyChar := ControlB;
+                          Exit;
+                          END;
+                      END;
 
-                                IF (ActiveMode = CW) AND (OpMode = CQOpMode) AND
-                                   AutoSendEnable AND
-                                   (AutoSendCharacterCount = Length (WindowString)) AND
-                                   (NOT StringIsAllNumbersOrDecimal (WindowString)) AND
-{                                  (NOT (Copy (WindowString, 1, 1) = '\')) THEN 6.44  }
-                                   (NOT StringHas (WindowString, '/')) THEN
-                                       IF NOT CallAlreadySent THEN
-                                           BEGIN
-                                           KeyChar := StartSendingNowKey;
-                                           Exit;
-                                           END;
-                                END;
+                  { To show domestic multiplier status as it is entered in }
 
-                        ShowPartialCallMults (WindowString);
+                  IF (ActiveWindow = ExchangeWindow) AND DoingDomesticMults THEN
+                      BEGIN
+                      TempExchange.QTHString := GetLastString (WindowString);
 
-                        IF (ActiveWindow = CallWindow) AND
-                           (Length (WindowString) = 1) AND
-                           InactiveRigCallingCQ THEN
-                               BEGIN
-                               SwapRadios;
-                               SetUpToSendOnActiveRadio;
-                               InactiveRigCallingCQ := False;
+                      IF DoingDomesticMults AND FoundDomesticQTH (TempExchange) THEN
+                          VisibleLog.ShowDomesticMultiplierStatus (TempExchange.DomesticQTH);
+                      END;
 
-                               IF (OpMode = SearchAndPounceOpMode) THEN ControlBMemory := KeyChar;
+                  END;  { of valid key for active window }
 
-                               KeyChar := ControlB;
-                               Exit;
-                               END;
-                        END;
+              END;  { of the ELSE from KeyChar CASE }
 
-                { To show domestic multiplier status as it is entered in }
-
-                IF (ActiveWindow = ExchangeWindow) AND DoingDomesticMults THEN
-                    BEGIN
-                    TempExchange.QTHString := GetLastString (WindowString);
-
-                    IF DoingDomesticMults AND FoundDomesticQTH (TempExchange) THEN
-                        VisibleLog.ShowDomesticMultiplierStatus (TempExchange.DomesticQTH);
-                    END;
-
-                END
-            ELSE
-                BEGIN
-                IF (KeyChar = QuickQSLKey1) OR
-                   (KeyChar = QuickQSLKey2) OR
-                   (KeyChar = TailEndKey) THEN
-                       BEGIN
-                       BeSilent := False;
-                       Exit;
-                       END;
-
-                IF KeyChar = PossibleCallRightKey THEN
-                       PossibleCallCursorRight;
-
-                IF KeyChar = PossibleCallLeftKey THEN
-                       PossibleCallCursorLeft;
-
-                IF KeyChar = PossibleCallAcceptKey THEN
-                    BEGIN
-                    IF ActiveWindow = CallWindow THEN
-                        BEGIN
-                        WITH PossibleCallList DO
-                            IF NumberPossibleCalls > 0 THEN
-                                BEGIN
-                                WindowString := List [CursorPosition].Call;
-                                ClrScr;
-                                Write (WindowString);
-                                END;
-                        END
-                    ELSE
-                        BEGIN
-                        WITH PossibleCallList DO
-                            IF NumberPossibleCalls > 0 THEN
-                                BEGIN
-                                RestorePreviousWindow;
-                                ClrScr;
-                                CallWindowString := List [CursorPosition].Call;
-                                Write (CallWindowString);
-                                SaveAndSetActiveWindow (ExchangeWindow);
-                                END;
-                        END;
-                    END;
-                END;
-            END;
-
-          END;  { of case }
+          END;  { of case KeyChar }
     UNTIL False;
     END;
 
@@ -4662,11 +4700,10 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
 
 { This procedure is used when a function key has been pressed when the
   exchange menu is up (either CQ or pounce).  A function key will send
-  the memory that is assigned to that key in the CQ exchange mode. }
+  the memory that is assigned to that key in the exchange mode. }
 
     BEGIN
     SetUpToSendOnActiveRadio;
-
     SetSpeed (DisplayedCodeSpeed);
 
     IF ActiveMode <> CW THEN
@@ -4709,12 +4746,7 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                         END
                     ELSE
                         IF ActiveMode = Digital THEN
-                            BEGIN
-
-                            { REALLY??? }
-
-                            SendStringAndStop (MyCall + ' ' + MyCall + ' ' + MyCall);
-                            END
+                            SendCrypticDigitalString (GetEXMemoryString (Digital, F1))
                         ELSE
                             SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
 
@@ -4786,7 +4818,8 @@ VAR LogString: Str80;
     Address: INTEGER;
 
     BEGIN
-    IF Trace THEN Write ('!');
+    RXData.TimeSeconds := GetTimeSeconds;    { Add seconds for better resolution for those who want it }
+    RXData.Radio := ActiveRadio;
 
     VisibleDupeSheetChanged := True;
 
@@ -4817,8 +4850,6 @@ VAR LogString: Str80;
     IF NOT DDX (VerifyContact) THEN RXData.QSOPoints := 0;
 
     IF NOT TailEnding THEN RemoveWindow (PossibleCallWindow);
-
-    IF Trace THEN Write ('@');
 
     IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) OR
        ((ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) AND (NumberGridSquaresInList > 0)) THEN
@@ -4934,11 +4965,19 @@ VAR LogString: Str80;
             BandUp;
 
     IF BandMapEnable THEN
-      BEGIN
-      UpdateBandMapMultiplierStatus;
-      {KK1L: 6.64 Need to change dupe status for this contact as well}
-      UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
-      END;
+        BEGIN
+        UpdateBandMapMultiplierStatus;
+        {KK1L: 6.64 Need to change dupe status for this contact as well}
+        UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
+        END;
+
+    { New for Jan 2023 - send QSO data to UDP port }
+
+    IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
+        BEGIN
+        RXData.Date := GetFullDateString;
+        SendQSOToUDPPort (RXData);
+        END;
     END;
 
 
@@ -5336,10 +5375,7 @@ ControlEnterCommand1:
                                    ELSE
                                        IF ActiveMode = Digital THEN
                                            BEGIN
-
-                                           { REALLY??? }
-
-                                           SendStringAndStop (MyCall + ' ' + MyCall);
+                                           SendCrypticDigitalString (GetEXMemoryString (Digital, F1));
                                            END
                                        ELSE
                                            BEGIN
@@ -5410,10 +5446,12 @@ ControlEnterCommand1:
                         ELSE
                             IF MessageEnable AND (NOT ExchangeHasBeenSent) AND (NOT BeSilent) AND MessageEnable THEN
                                 BEGIN
-                                IF ActiveMode = CW THEN
-                                    SendCrypticMessage (SearchAndPounceExchange)
-                                ELSE
-                                    SendCrypticMessage (SearchAndPouncePhoneExchange);
+                                CASE ActiveMode OF
+                                    CW:      SendCrypticMessage (SearchAndPounceExchange);
+                                    Phone:   SendCrypticMessage (SearchAndPouncePhoneExchange);
+                                    Digital: SendCrypticDigitalString (GetEXMemoryString (Digital, F2));
+                                    END;
+
                                 ExchangeHasBeenSent := True;
                                 END;
 
@@ -5655,10 +5693,11 @@ ControlEnterCommand2:
                         IF NOT ExchangeHasBeenSent THEN
                             BEGIN
                             IF MessageEnable AND NOT BeSilent THEN
-                                IF ActiveMode <> Phone THEN
-                                    SendCrypticMessage (SearchAndPounceExchange)
-                                ELSE
-                                    SendCrypticMessage (SearchAndPouncePhoneExchange);
+                                CASE ActiveMode OF
+                                    CW:      SendCrypticMessage (SearchAndPounceExchange);
+                                    Phone:   SendCrypticMessage (SearchAndPouncePhoneExchange);
+                                    Digital: SendCrypticDigitalString (GetEXMemoryString (Digital, F2));
+                                    END;
 
                             ExchangeHasBeenSent := True;
                             END;
@@ -6022,7 +6061,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 Write (TempKey);
 
                                 IF PartialCallEnable THEN
-                                    IF Sheet.TwoLetterCrunchProcess (CallWindowString) THEN
+                                    IF Sheet.TwoLetterCrunchProcess (CallWindowString, PossibleCallList) THEN
                                         BEGIN
                                         VisibleLog.GeneratePartialCallList (CallWindowString,
                                                         ActiveBand,
@@ -6101,6 +6140,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 END;
 
             SpaceBar:
+                BEGIN
+                { We are using Alt-D to check a call on the other radio and want to go call them now }
+
                 IF (AltDDupeCheckDisplayedCall <> '') AND (CallWindowString = '') THEN
                     BEGIN
                     FlushCWBufferAndClearPTT;
@@ -6180,69 +6222,93 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                             ResetSavedWindowListAndPutUpCallWindow;
                             END;
                         END;
-                    END
+                    Continue;
+                    END;
 
-{ Still a SpaceBar, but not doing AltDDupeCheckCall }
+                { We have the SO2V feature enabled - and if the call window is empty - we want to swap
+                  VFOs and go into S&P mode for one QSO }
 
-                ELSE
-                    IF (CallWindowString = '') OR NOT SpaceBarDupeCheckEnable THEN
+                IF (TwoVFOState <> TwoVFOsDisabled) AND (CallWindowString = '') THEN
+                    BEGIN
+                    SwapVFOs;
+
+                    TwoVFOState := TwoVFOSwapped;
+
+                    REPEAT
+                        PutUpExchangeWindow;
+                        DisplayNextQSONumber (QSONumberForThisQSO);
+                        ClearContestExchange (ReceivedData);
+                        ExchangeHasBeenSent := False;
+                    UNTIL NOT SearchAndPounce;
+
+                    SwapVFOs;
+
+                    TwoVFOState := TwoVFOIdle;
+                    Continue;
+                    END;
+
+                { Go into S&P mode and send my callsign }
+
+                IF (CallWindowString = '') OR NOT SpaceBarDupeCheckEnable THEN
+                    BEGIN
+                    IF CWStillBeingSent THEN FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
+
+                    SetUpToSendOnActiveRadio;
+
+                    InactiveRigCallingCQ := False;
+
+                    IF MessageEnable THEN
                         BEGIN
-                        IF CWStillBeingSent THEN FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
-
-                        SetUpToSendOnActiveRadio;
-
-                        InactiveRigCallingCQ := False;
-
-                        IF MessageEnable THEN
+                        IF ActiveMode = CW THEN
                             BEGIN
-                            IF ActiveMode = CW THEN
-                                BEGIN
-                                IF DEEnable THEN
-                                    SendStringAndStop ('DE ' + MyCall)
-                                ELSE
-                                    SendStringAndStop (MyCall);
-                                END
+                            IF DEEnable THEN
+                                SendStringAndStop ('DE ' + MyCall)
                             ELSE
-                                IF ActiveMode = Digital THEN
-                                    { REALLY?  }
-                                    SendStringAndStop (MyCall + ' ' + MyCALL)
-                                ELSE
-                                    SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
-                            END;
+                                SendStringAndStop (MyCall);
+                            END
+                        ELSE
+                            IF ActiveMode = Digital THEN
+                                SendCrypticDigitalString (GetEXMemoryString (Digital, F1))
+                            ELSE
+                                SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
+                        END;
 
-                        KeyStamp (F1);
+                    KeyStamp (F1);
 
-                        REPEAT
-                            PutUpExchangeWindow;
+                    REPEAT
+                        PutUpExchangeWindow;
 
-                            DisplayNextQSONumber (QSONumberForThisQSO);
-
-                            ClearContestExchange (ReceivedData);
-                            ExchangeHasBeenSent := False;
-                        UNTIL NOT SearchAndPounce;
+                        DisplayNextQSONumber (QSONumberForThisQSO);
 
                         ClearContestExchange (ReceivedData);
+                        ExchangeHasBeenSent := False;
+                    UNTIL NOT SearchAndPounce;
 
-                        IF ActiveRadio = RadioOne THEN
-                            CQRITEnabled := (Radio1Type = TS850) OR (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4)
-                        ELSE
-                            CQRITEnabled := (Radio2Type = TS850) OR (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4);
+                    ClearContestExchange (ReceivedData);
 
-
-                        RemoveWindow (ExchangeWindow);
-
-                        DisplayAutoSendCharacterCount;
-
-                        EscapeDeletedCallEntry := CallWindowString;
-
-                        IF CallWindowString = '' THEN
-                            ResetSavedWindowListAndPutUpCallWindow;
-                        END
+                    IF ActiveRadio = RadioOne THEN
+                        CQRITEnabled := (Radio1Type = TS850) OR (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4)
                     ELSE
-                        BEGIN
-                        IF WindowDupeCheck THEN RemoveWindow (ExchangeWindow);
-                        RestorePreviousWindow;
-                        END;
+                        CQRITEnabled := (Radio2Type = TS850) OR (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4);
+
+
+                    RemoveWindow (ExchangeWindow);
+
+                    DisplayAutoSendCharacterCount;
+
+                    EscapeDeletedCallEntry := CallWindowString;
+
+                    IF CallWindowString = '' THEN
+                        ResetSavedWindowListAndPutUpCallWindow;
+
+                    Continue;
+                    END;
+
+                { No special function - do a dupe check }
+
+                IF WindowDupeCheck THEN RemoveWindow (ExchangeWindow);
+                RestorePreviousWindow;
+                END;
 
             TabKey, ControlU:
                 BEGIN
@@ -6406,6 +6472,14 @@ VAR Key, TempKey, ExtendedKey : CHAR;
             CarriageReturn:
                 IF Length (CallWindowString) > 1 THEN
                     BEGIN
+                    IF AutoPartialCallFetch AND (Length (CallWindowString) = 3) THEN
+                        IF PossibleCallList.NumberPossibleCalls = 1 THEN
+                            BEGIN
+                            ClrScr;
+                            Write (PossibleCallList.List [0].Call);
+                            CallWindowString := PossibleCallList.List [0].Call;;
+                            END;
+
                     CallsignICameBackTo := CallWindowString;
                     Exit;
                     END
@@ -6880,7 +6954,6 @@ VAR MTotals: MultTotalArrayType;
 
         Packet.PushPacketSpot (DXSpot);
 
-
         WITH DXSpot DO
             BEGIN
             Call := 'SM4CAN';
@@ -7041,8 +7114,8 @@ VAR MTotals: MultTotalArrayType;
             CallAlreadySent := True;
             END;
 
-        IF (ActiveMode = Digital) AND (NOT CallAlreadySent) THEN
-            StartRTTYTransmission (CallsignICameBackTo + ' ');
+        { We used to start a RTTY tranmission here - but now we use the function key
+          memory and send it during AddOnCQExchange }
 
         { Not sure why this is here - if it is real - then we should not
           pretend to be about to send an exchange ? }
@@ -7117,6 +7190,7 @@ VAR MTotals: MultTotalArrayType;
                     REPEAT
                         IF ActiveMultiPort <> nil THEN CheckMultiState;
                         UpdateTimeAndRateDisplays (True, True);
+                        IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
                         Packet.CheckPacket;
                     UNTIL ElaspedSec100 (RememberTime) >= 30;
 

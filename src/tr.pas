@@ -1,4 +1,5 @@
 //
+//
 //Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015.
 //
 //This file is part of TR log for linux.
@@ -27,6 +28,189 @@ PROGRAM ContestLoggingProgram;
 
 {  CHANGE LOG
 
+???? - When a callsign is in the call window from a QSY using the N4OGW bandmap and
+       you want to edit the call - ESCAPE will clear the whole entry - but backspace
+       does nothing.  Maybe you can make backspace also clear the whole entry - or
+       perhaps start editing the call (and get rid of the initial exchange stuff).
+
+     - When you click on a spot then enter the call and it is a dupe - it disappears
+       which is different behavior than if you do it just tuning to a frequency .
+
+     - Although when working someone in S&P - after you are done - the call is gone
+
+     - When using footswitch to send CQ message, I get a VOX warning which I do
+       not get from pressing F1.
+
+02-Mar-2023
+
+   - Note there is a new Arduino release - SO2RMini_2023_Feb_28.  This has a PTT
+     fix and code added by N4OGW to suuport integration of the SO2R Mini with the
+     TRLog firmware for his so2sdr program.
+
+   - Added some support for some of the typical multi-multi contests to the new
+     N1MM_UDP_PORT function.  There are still lots of exchanges that will not be
+     parsed correctly.  Also - currently, there is no validity check on the data
+     before attempting to log the QSO.  Also - none of it is tested yet.
+
+28-Feb-2023
+
+   - Added N1MM_UDP_PORT config command which will accept "industry standard" QSO
+     records and log them.
+
+24-Feb-2023
+
+  - Added indication of the band/mode for the reminaing multiplier display.
+  - Updated remaining country list to include PJ4 and PJ5.  Removed four
+    rarer countries from both remaining country lists to make room.
+
+23-Feb-2023
+
+ - AUTO SCP CALL FETCH feature implemented (default FALSE - available on ControlJ menu)
+   When TRUE - if you have entered three letters and they resolve so that only one SCP
+   call is shown - pressing RETURN will use that SCP call.  Works in both classic and
+   TBSIQ.
+
+11-Jan-2023
+
+ - Made some minor tweaks to the QSO UDP record so that K3IT's Qsorder program will be happy
+   with our UDP packets including SO2R support.
+
+08-Jan-2023
+
+ - Changed default of BANDMAP ALL MODES to TRUE to get around weird bug I was
+   having during an RTTY contest.
+
+07-Jan-2023
+
+ - Fixed RTTY messages being saved incorrectly into CFG file.
+
+06-Jan-2023
+
+ - Added UDP export of QSO information.  New LOGCFG commands:
+
+     QSO UDP IP = 192.168.0.100
+     QSO UDP PORT = 10009
+
+   Many data fields are being parsed, but some are not yet fully engaged (like frequency information).
+   However, there should be enough information there for the basic information of the QSO.
+
+
+27-Dec-2022
+
+ - Expanded the N4OGW commands to support two radios:
+
+    N4OGW RADIO ONE BANDMAP IP        defauly is blank string (Use 127.0.0.1 for local running bandmap )
+    N4OGW RADIO ONE BANDMAP PORT      default is zero
+    N4OGW RADIO ONE BANDMAP UDP PORT  default is 45454
+    N4OGW RADIO TWO BANDMAP IP        default is blank string (Use 127.0.0.1 for local running bandmap )
+    N4OGW RADIO TWO BANDMAP PORT      default is zero
+    N4OGW RADIO TWO BANDMAP UDP PORT  default is 45454
+
+    When using two band maps - TR will send any spotted call to both bandmaps.
+    When a call is deleted - it will also be deleted in both bandmaps.
+
+    Really - the only time the two are handled distinctly is when they generate a frequency command
+    from a mouse click and it needs to be routed to the proper radio.  However, we can get extra
+    bonus points for being careful when we get a delete command and only removing the specific
+    frequency for that callsign.  Note that this will generate a non-specific-frequency delete
+    command to N4OGW which will remove the call from all frequencies on his bandmap.  This could
+    perhaps be worked around by detecing this condition in TR Log and then sending a new spot to
+    N4OGW for the instances of the call that should stay displayed.
+
+    The two bandmaps can likely share the same UDP port number for sending data back to the logging
+    program.  There is a RadioNr field in the packet that will make it clear which radio should
+    respond to the command.
+
+25-Dec-2022
+
+  - Fixed QSOs this hour display - was stuck at zero.
+
+  - Added display of working directory for TRMaster file to both Control-J and
+    the Statistics display in POST (function Z at the TRMASTER menu).  The default
+    location appears to be .trlog in the users home directory.
+
+24-Dec-2022
+
+  - Added Control-Q to CW message - will send integer kHz of the other radio's
+    frequency.  It will also generate a note in the log indicating who was asked
+    to go where.
+
+23-Dec-2022
+
+  - When a band map entry times out (over 60 minutes) it will also get deleted in the
+    N4OGW bandmap as well.  Pretty sure this will delete any instance of that call regardless
+    of the band however.
+
+20-Dec-2022
+
+  - Did some work to simplify the WindowEditor routine.
+  - Fixed bug where I coudln't overwrite a band map displayed callsign by typing over it
+
+17-Dec-2022
+
+  - Added TWO VFO MODE (control-J) which when enabled will process a space bar at an empty
+    call window in CQ mode to swap the A and B VFOs and put you into S&P mode.  Once out of
+    S&P mode - you are back on your CQ frequency.  This currently only works with Kenwood
+    and Elecraft radios.
+
+11-Dec-2022
+
+   - Some rough edges with bandmap blinking call resolved.  Seems to work great with the
+     N4OGW bandmap now.  Made calls from the N4OGW bandmap go to VFO A for now.  Not sure
+     how things will work with the second VFO or even a different rig ATM
+
+10-Dec-2022
+
+   - N4OGW bandmap interface is now feature complete.  Will need some adjustement of the
+     color coding to make it look better.  Some features not yet supported in 2BSIQ.
+
+05-Dec-2022
+
+   - Added support for N4OGW so2r-bandmap.  Use N4OGW BAND MAP IP and N4OGW BAND MAP PORT
+     in your config file to enable.
+
+03-Dec-2022
+
+   - Fixed CQ with footswitch restarting message as footswitch still pressed
+
+29-Nov-2022
+
+   - Fixed new bug where exiting F10 (sending keyboard CW) left PTT hanging that
+     was introduced with the SO2R mini on 28-Nov-2022.
+
+28-Nov-2022
+
+  - Changed SO2R Mini CW character command from ^ to ; (semi-colon)
+  - Changed SO2R Mini version to TRCW V4
+  - Changed SO2R Mini to not drop PTT when seeing PTT unforce command when more chars to be sent.
+  - Had a few places where I had removed PTT unforce from classic interface that could be put back.
+  - Added support for ^ half space to SO2R Mini
+
+03-Nov-2022
+
+  - There is an issue with using the SO2R Mini with the ^ character in CW messages.
+    Previously, using a ^ in a CW message would produce a half space.  For the SO2R
+    Mini, this is a prefix for a command - which will be the next character in the
+    message.  Here are the valid SO2R mini commands:
+
+    ^D - Long Dash
+    ^F - Speed up CW by 2 WPM
+    ^H - Half dit space
+    ^I - Switch headphones to inactive radio
+    ^J - Switch headphones to active radio
+    ^S - Slow down CW by 2 WPM
+    ^X - Switch headphones to Radio 1
+    ^Y - Switch headphones to Radio 2
+    ^Z - Switch headphones to Stereo
+
+    Also - I found a bug with the implmentation of the ^H command in the SO2R Mini
+    firmware that has been fixed with release dated Nov 3, 2022.
+
+02-Nov-2022
+
+  - With the SO2R mini, the weight display in the ControlJ menu was being divided
+    by 128 instead of 100 - and thus was displaying wrong.  If you entered a new
+    weight, it was being processed correctly - but still displayed wrong.
 
 17-Oct-2022
 
@@ -53,8 +237,8 @@ PROGRAM ContestLoggingProgram;
    Note - for most of the messages - we use the CW messages to create strings to
    send to the K3/K4 radios.  However, there are some issues with using the EXCHANGE
    CW memories since F1 gets hardwired to send the callsign - not an actual memory.
-   So - we support EX DIGITAL MEMORY are a prefix for the function key memories and
-   use these with in digigal mode.
+   So - we support EX DIGITAL MEMORY as a prefix for the function key memories and
+   use these with in digital mode instead of MY CALL and CQ EXCHANGE.
 
  - Fixed Cabrillo output for CQ WW RTTY to show DX instead of country ID
 
@@ -3478,8 +3662,11 @@ Uses
      LogProm,
      LogSCP,
      LogStuff,
+     LogUDP,
      LogWAE,
      LogWind,
+     N1MM,
+     N4OGW,
      Printer,
      TwoBSIQ,
      trCrt,

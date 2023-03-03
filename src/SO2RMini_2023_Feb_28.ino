@@ -12,6 +12,30 @@
 
 // 14-May-2022 Improved footswitch code and got it back into the Timer loop.
 
+// 28-Nov-2022 Changed CW command character from ^ to ; (semi-colon)
+// 28-Nov-2022 Changed version to TRCW V4
+// 28-Nov-2022 Added support for CW character ^ as half space.
+// 28-Nov-2022 Changed PTT Unforce so that is there are characters in the buffer, PTT stays on
+// 28-Nov-2022 Fixed bug where any PTT command would turn it off instantly.
+
+// 29-Nov-2022 Cleared PTT if things were idle and PTTForceOn goes away
+
+// 27-Feb-2023 Likely fixed bug introduced on 29-Nov where there was a glitch in the PTT signal with footswitch
+// 27-Feb-2023 Also fixed bug where footswitch was always enabled due to bad use of logic symbol
+
+// 28-Feb-2023 Received update from N4OGW which is now adopted as the source
+
+// Folded in N4OGW PTT feedback mechanism. 
+
+// Uncomment next line to enable N4OGW PTT status updates
+
+//#define SEND_STATUS_BYTES
+#ifdef SEND_STATUS_BYTES
+const unsigned char sending1=0x01;
+const unsigned char sending2=0x02;
+const unsigned char not_sending=0x00;
+#endif
+
 // SO2R Mini pin assignments
 
 const int radioTwoPTTOutput = 2;
@@ -100,6 +124,9 @@ boolean DahMemory = false;
 boolean PaddleActive = false;
 boolean WaitingForCWCommand = false;
 
+int FootswitchPressedCount = 0;
+int FootswitchNotPressedCount = 0;
+
 boolean IsolatedDitContactFound = false;
 boolean IsolatedDahContactFound = false;
 
@@ -114,7 +141,15 @@ int PTTHoldTimePaddle = 10;              // PTT hold time after paddle CW in dit
 int PTTTurnOffTime;                      // This gets set either to PTTHoldTimeComputer or PTTHoldTimePaddlle at the start of CW
 int PTTState = 0;                        // Used to let everyone know if the PTT is "asserted" or not (regardkess of PTTIEnable)
 boolean PTTAssertedByFootswitch = false; // PTT is being asserted by footswitch
+
 boolean FootswitchPressedBefore = false; // Used for debouncing
+
+int FSReading1 = 0;
+int FSReading2 = 0;
+int FSReading3 = 0;
+int FSReading4 = 0;
+int FSReading5 = 0;
+int FSsum = 0;
 
 boolean DebouncedFootswitchPressed = false; 
 
@@ -281,12 +316,18 @@ void TurnOnPTT ()
       {
         digitalWrite (radioTwoPTTOutput, LOW);
         if (PTTOutputEnable) { digitalWrite (radioOnePTTOutput, HIGH); }
+#ifdef SEND_STATUS_BYTES
+        Serial.write(sending1);
+#endif        
         break;
       }
     case 2:
       {
         digitalWrite (radioOnePTTOutput, LOW);
         if (PTTOutputEnable) digitalWrite (radioTwoPTTOutput, HIGH);
+#ifdef SEND_STATUS_BYTES
+        Serial.write(sending2);
+#endif        
         break;
       }
   }
@@ -302,6 +343,10 @@ void TurnOffPTT ()
   digitalWrite (radioTwoPTTOutput, LOW);
   CountsSinceLastCW = 0;
   CWSpeed = ComputerCWSpeed;  // In case someone messed it up with speed-up/dn
+#ifdef SEND_STATUS_BYTES
+  Serial.write(not_sending);
+#endif
+
 }
 
 void TurnOnCW ()
@@ -344,15 +389,15 @@ void ExecuteCWCommand (char CWCommand)
 
 // Here is a list of the supported commands:
 //
-// ^D - Long dah
-// ^F - Speed up CW Speed 2 WPM
-// ^H - Half dit space
-// ^I - Switch headphones to inactive radio
-// ^J - Switch headphones to active radio
-// ^S - Slow CW Speed 2 WPM
-// ^X - Switch headphones to R1
-// ^Y - Switch headphones to R2
-// ^Z - Put headphones in stereo
+// ;D - Long dah
+// ;F - Speed up CW Speed 2 WPM
+// ;H - Half dit space
+// ;I - Switch headphones to inactive radio
+// ;J - Switch headphones to active radio
+// ;S - Slow CW Speed 2 WPM
+// ;X - Switch headphones to R1
+// ;Y - Switch headphones to R2
+// ;Z - Put headphones in stereo
 
 {
   // make sure any commands are in lower case so they match cases
@@ -368,7 +413,7 @@ void ExecuteCWCommand (char CWCommand)
     case 'h': 
     {
       CWBuffer.CWBufferArray[CWBuffer.Head].Data = 0;
-      CWBuffer.CWBufferArray[CWBuffer.Head].Time = 15;
+      CWBuffer.CWBufferArray[CWBuffer.Head].Time = 1.5 * DitLength;
       CWBuffer.Head++;
       if (CWBuffer.Head >= CWBufferSize) CWBuffer.Head = 0;
       break; 
@@ -435,19 +480,19 @@ void CueUpNextCharacter()
 //
 // We also allow for some commands to be embedded in the CW message - these will be detected
 // here and whatever actions need to be taken will be taken.  These commands are all two byte
-// sequences where the first letter is the ^ 
+// sequences where the first letter is the ;
 //
 // Here is a list of the supported commands:
 //
-// ^D - Long dah
-// ^F - Speed up CW Speed 2 WPM
-// ^H - Half dit space
-// ^I - Switch headphones to inactive radio
-// ^J - Switch headphones to active radio
-// ^S - Slow CW Speed 2 WPM
-// ^X - Switch headphones to R1
-// ^Y - Switch headphones to R2
-// ^Z - Put headphones in stereo
+// ;D - Long dah
+// ;F - Speed up CW Speed 2 WPM
+// ;H - Half dit space (note that a ^ all be itself can also be used for this }
+// ;I - Switch headphones to inactive radio
+// ;J - Switch headphones to active radio
+// ;S - Slow CW Speed 2 WPM
+// ;X - Switch headphones to R1
+// ;Y - Switch headphones to R2
+// ;Z - Put headphones in stereo
 //
  
 {
@@ -465,7 +510,7 @@ void CueUpNextCharacter()
       return;
     }
     
-    if (CharToSend == '^')   // ^ indicates this is a CW command - need a second byte
+    if (CharToSend == ';')   // ^ indicates this is a CW command - need a second byte
     {      
       if (CharacterBuffer.Head != CharacterBuffer.Tail)  // we have a command character on the buffer
       {    
@@ -585,6 +630,14 @@ void CWSendingEngine()
       }
 
       // Still idle - nothing to do   
+
+      // Let's make sure the PTT is off if it isn't forced on
+
+      if ((!PTTForceOn) & (!PTTAssertedByFootswitch))     
+      {
+        digitalWrite (radioTwoPTTOutput, LOW);
+        digitalWrite (radioOnePTTOutput, LOW);
+      }
   
       break;
     }            // End of CWS_Idle case
@@ -848,6 +901,22 @@ void SendMorseCharacter (char morsechar)
                  if (CWBuffer.Head >= CWBufferSize) CWBuffer.Head = 0;
                  break; 
                  }
+
+      case '_':  {
+                 CWBuffer.CWBufferArray[CWBuffer.Head].Data = 0;
+                 CWBuffer.CWBufferArray[CWBuffer.Head].Time = 3 * DitLength;
+                 CWBuffer.Head++;            
+                 if (CWBuffer.Head >= CWBufferSize) CWBuffer.Head = 0;
+                 break; 
+                 }
+
+       case '^': {
+                 CWBuffer.CWBufferArray[CWBuffer.Head].Data = 0;
+                 CWBuffer.CWBufferArray[CWBuffer.Head].Time = 1.5 * DitLength;
+                 CWBuffer.Head++;            
+                 if (CWBuffer.Head >= CWBufferSize) CWBuffer.Head = 0;
+                 break; 
+                 }
            
       case '.': { Dit(); Dah(); Dit(); Dah(); Dit(); Dah(); break; }
       case ',': { Dah(); Dah(); Dit(); Dit(); Dah(); Dah(); break; }
@@ -1037,7 +1106,7 @@ void ProcessHostSerialCharacter (int hostchar)
 
         case 0x0A: // PTT forced on
           {
-            PTTForceOn = hostchar;   // We will let the timer interupt take care of actually doing it
+            PTTForceOn = hostchar;   // We will let the timer interupt take care of actually doing it            
             break;
           }
 
@@ -1129,7 +1198,7 @@ void ProcessHostSerialCharacter (int hostchar)
       }
       CWSpeed = ComputerCWSpeed;
 
-      // I used to do this - but it was causing the PTT to come on for things like ^Y      
+      // I used to do this - but it was causing the PTT to come on for things like ;Y      
       // TurnOnPTT ();   // Need to get PTT turned on ASAP 
       return;
     }
@@ -1141,12 +1210,19 @@ void ProcessHostSerialCharacter (int hostchar)
         case 0:      // ignored
           {
             HostCommand = 0;
+
+            CharacterBuffer.CharacterBufferArray [CharacterBuffer.Head] = '4';
+            CharacterBuffer.Head++;
+            if (CharacterBuffer.Head >= CharacterBufferSize)
+            {
+              CharacterBuffer.Head = 0;
+            }
             break;
           }
 
         case 0x01:   // send version back to host - we assume the host is listening for this
           {
-            Serial.print ("TRCW V3");
+            Serial.print ("TRCW V4");
             break;
           }
 
@@ -1263,75 +1339,111 @@ void ProcessHostSerialCharacter (int hostchar)
     }
   }
 
-void CheckOnFootswitch () 
+void CheckOnFootswitch ()
 
 // Expected to get called once a millisecond
 
 {
-  if (FootswitchMode == 1)  // Control PTT directorly
+
+  // First - we deal with the case where the footswitch is actually controlling the
+  // PTT output for the selected radio.  We will only do this if someone has not set
+  // PTTForceOn to be TRUE.
+
+  if (!PTTForceOn)
   {
-  if (digitalRead (pttInput) == LOW)  // footswitch pressed
+    if (FootswitchMode == 1) 
     {
-      switch ( RadioSelect )
+    if (digitalRead (pttInput) == LOW)  // footswitch pressed
       {
-        case 1:
-          {
-            digitalWrite (radioTwoPTTOutput, LOW);
-            digitalWrite (radioOnePTTOutput, HIGH);
-            break;
-          }
-        case 2:
-          {
-            digitalWrite (radioOnePTTOutput, LOW);
-            digitalWrite (radioTwoPTTOutput, HIGH);
-            break;
-          }
-      }  // end of switch
-      
-      PTTAssertedByFootswitch = true;
-      
+        switch ( RadioSelect )
+        {
+          case 1:
+            {
+              digitalWrite (radioTwoPTTOutput, LOW);
+              digitalWrite (radioOnePTTOutput, HIGH);
+              #ifdef SEND_STATUS_BYTES
+              Serial.write(sending1);
+              #endif
+              break;
+            }
+          case 2:
+            {
+              digitalWrite (radioOnePTTOutput, LOW);
+              digitalWrite (radioTwoPTTOutput, HIGH);
+              #ifdef SEND_STATUS_BYTES
+              Serial.write(sending2);
+              #endif
+              break;
+            }
+        }  // end of switch
+        
+        PTTAssertedByFootswitch = true;
+        
+      }
+  
+    else   // footswitch is not pressed
+      {
+        if (PTTAssertedByFootswitch) 
+        {
+          if (PTTState == 0) TurnOffPTT ();
+          PTTAssertedByFootswitch = false;
+        }
+        
+        // We might have the PTT asserted from the footswitch and PTTState is active
+        // but PTTOutputEnable is false - thus meaning we need to turn off the port
+  
+        if ((PTTState == 1) and (PTTOutputEnable == 0)) 
+        {
+          TurnOffPTT ();
+        }
+        
+      }
     }
-
-  else   // footswitch is not pressed
+  }
+  
+  if (PTTForceOn)       // Someone wants the PTT on no matter what 
+  {
+    switch ( RadioSelect )
     {
-      if (PTTAssertedByFootswitch) 
-      {
-        if (PTTState == 0) TurnOffPTT ();
-        PTTAssertedByFootswitch = false;
-      }
-      
-      // We might have the PTT asserted from the footswitch and PTTState is active
-      // but PTTOutputEnable is false - thus meaning we need to turn off the port
-
-      if ((PTTState == 1) and (PTTOutputEnable == 0)) 
-      {
-        TurnOffPTT ();
-      }
-      
-    }
-    
-  }  // End of dealing with controlling the PTT - now let's update the debounced footswitch status
-
+      case 1:
+        {
+          digitalWrite (radioTwoPTTOutput, LOW);
+          digitalWrite (radioOnePTTOutput, HIGH);
+          #ifdef SEND_STATUS_BYTES
+          Serial.write(sending1);
+          #endif
+          break;
+        }
+      case 2:
+        {
+          digitalWrite (radioOnePTTOutput, LOW);
+          digitalWrite (radioTwoPTTOutput, HIGH);
+          #ifdef SEND_STATUS_BYTES
+          Serial.write(sending2);
+          #endif
+          break;
+        }
+    }                   
+  }  
+  
+  // End of dealing with controlling the PTT - now let's update the debounced footswitch status
   // I know - it's kind of lazy to not remember what we read for the PTT - but it costs nothing to do it again
 
-  if (digitalRead (pttInput) == LOW)  // foot switch pressed
-  {
-    if (FootswitchPressedBefore) 
-    {
-      DebouncedFootswitchPressed = true;
-    }
-  
-  FootswitchPressedBefore = true;
-  }
-  else  // not pressed
-  {
-    if (!FootswitchPressedBefore) 
-    {
-      DebouncedFootswitchPressed = false;    
-    }
-  FootswitchPressedBefore = false;  
-  }
+  // We used five readings in a row that are consisten to assert the footswitch
+  // Shift the readings by one
+
+  FSReading5 = FSReading4;
+  FSReading4 = FSReading3;
+  FSReading3 = FSReading2;
+  FSReading2 = FSReading1;
+  FSReading1 = digitalRead (pttInput);
+
+  FSsum = FSReading5 + FSReading4 + FSReading3 + FSReading2 + FSReading1;
+
+  DebouncedFootswitchPressed = (FSsum == 0);
+
 }
+
 
 void TimerInterrupt ()
 

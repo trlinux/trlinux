@@ -74,14 +74,17 @@ VAR
     PROCEDURE ShowKeyCodes;
     PROCEDURE StartUpHelp;
     PROCEDURE SunriseSunset;
+    PROCEDURE TcpTest;
     PROCEDURE TellMeMyGrid;
+    PROCEDURE UDPSend;
+    PROCEDURE UDPRX;
     PROCEDURE UUDecode;
     PROCEDURE ViewLogFile;
     PROCEDURE ViewRadioDebug;
 
 IMPLEMENTATION
 
-Uses LogCfg,memlinux,communication,keycode,beep,radio,portname,timer;
+Uses LogCfg,memlinux,communication,keycode,beep,radio,portname,timer, Sockets, UnixType, BaseUnix;
 
 CONST
     PageBufferSize = BigWIndowRX * (BigWindowRY - BigWindowLY + 2);
@@ -102,8 +105,258 @@ VAR
     NumberBuffers:   INTEGER;
     TextBuffer:      ARRAY [0..MaxBuffers - 1] OF PageBufferPointer;
 
+    UDPReceiveBuffer: ARRAY [0..4095] OF Char;
+
 function serialaddress(i: integer):integer;cdecl;external;
 function paralleladdress(i: integer):integer;cdecl;external;
+
+
+
+FUNCTION SendN4OGWBandMapCall (VAR Socket: LONGINT; Call: CallString; FrequencyString: STRING): BOOLEAN;
+
+VAR BytesSent: INTEGER;
+    SendString: STRING;
+
+    BEGIN
+
+    { Build command string }
+
+    SendString := 'a ';  { a = add call to bandmap - we leave the length blank for now }
+
+    SendString := SendString + Call + ',' + FrequencyString + ',' + Chr ($FF) + Chr (0) + Chr ($FF) +
+                                                                    Chr (1) + Chr (0) + Chr (1) + Chr (1);
+
+    SendString [2] := Chr (Length (SendString) - 2);
+
+    BytesSent := fpsend (Socket, @SendString [1], Length (SendString), 0);
+
+    IF BytesSent <> Length (SendString) THEN
+        BEGIN
+        WriteLn ('Send error!!');
+        WaitForKeyPressed;
+        SendN4OGWBandMapCall := False;
+        Exit;
+        END;
+
+    SendN4OGWBandMapCall := True;
+    END;
+
+
+
+FUNCTION SendRTLTCPData (VAR Socket: LONGINT; SendData: STRING): BOOLEAN;
+
+{ Much like SendTCPData - but will interpret the first character as the command,
+  insert a length byte and if SendData has data - send that }
+
+VAR BytesSent: INTEGER;
+    SendString: STRING;
+
+    BEGIN
+    IF SendData = '' THEN Exit;
+
+    SendString := SendData [1];
+
+    Delete (SendData, 1, 1);
+
+    SendString := SendString + Chr (Length (SendData)) + SendData;
+
+    BytesSent := fpsend (Socket, @SendString [1], Length (SendString), 0);
+
+    IF BytesSent <> Length (SendString) THEN
+        BEGIN
+        WriteLn ('Send error!!  Unable to send ', SendData);
+        WaitForKeyPressed;
+        SendRTLTCPData := False;
+        Exit;
+        END;
+
+    SendRTLTCPData := True;
+    END;
+
+
+FUNCTION SendTCPData (VAR Socket: LONGINT; SendData: STRING): BOOLEAN;
+
+VAR BytesSent: INTEGER;
+
+    BEGIN
+    BytesSent := fpsend (Socket, @SendData [1], Length (SendData), 0);
+
+    IF BytesSent <> Length (SendData) THEN
+        BEGIN
+        WriteLn ('Send error!!  Unable to send ', SendData);
+        WaitForKeyPressed;
+        SendTCPData := False;
+        Exit;
+        END;
+
+    SendTCPData := BytesSent = Length (SendData);
+    END;
+
+
+FUNCTION OpenTCPPort (VAR Socket: LONGINT; IPAddress: STRING; PortNumber: LONGINT): BOOLEAN;
+
+VAR SocketAddr: TINetSockAddr;
+    ConnectResult: INTEGER;
+
+    BEGIN
+    Socket := fpSocket (AF_INET, SOCK_STREAM, 0);  { TCP port }
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (PortNumber);
+    SocketAddr.sin_addr := StrToNetAddr (IPAddress);
+
+    ConnectResult := fpConnect (Socket, @SocketAddr, SizeOf (SocketAddr));
+
+    IF ConnectResult <> 0 THEN
+        BEGIN
+        WriteLn ('Unable to connect to port ', PortNumber);
+        WaitForKeyPressed;
+        OpenTCPPort := False;
+        Exit;
+        END;
+
+    OpenTCPPort := ConnectResult = 0;
+    END;
+
+
+
+
+PROCEDURE SendStringToN4OGW (SocketAddress: LONGINT; SendString: STRING);
+
+    BEGIN
+    fpsend (SocketAddress, @SendString [1], Length (SendString), 0);
+    END;
+
+
+PROCEDURE SetCenterFrequency (SocketAddress: LONGINT; FrequencyString: STRING);
+
+{ Sets the displayed center frequency of the N4OGW bandmap }
+
+VAR SendString: STRING;
+
+    BEGIN
+    SendString := 'f' + Chr (Length (FrequencyString)) + FrequencyString;
+    SendStringToN4OGW (SocketAddress, SendString);
+    END;
+
+
+
+PROCEDURE ListenToUDP;
+
+VAR
+   SocketAddr	     : TINetSockAddr;
+   Socket : LONGINT;
+   rc		     : INTEGER;
+   FDS		     : Tfdset;
+   msg		     : string[255];
+   i		     : INTEGER;
+
+BEGIN
+   Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+   if (Socket = -1) then
+      WriteLn('Error from socket');
+
+   SocketAddr.sin_family := AF_INET;
+   SocketAddr.sin_port := htons (45454);
+   SocketAddr.sin_addr.s_addr :=  INADDR_ANY;
+
+   rc := fpBind (Socket, @SocketAddr, sizeof(SocketAddr));
+
+   if rc <> 0 then
+      WriteLn('Error from fpBind');
+
+   WriteLn ('going to listen');
+
+   for i := 1 to 10 do
+      begin
+         Write (i, ' ');
+         REPEAT
+             Fpfd_zero (FDS);
+             FpFd_set(Socket,FDS);
+             rc := fpSelect(Socket+1,@FDS,nil,nil,0);
+
+             if (rc = -1) then
+                WriteLn('Error from fpSelect');
+         UNTIL Fpfd_isset (Socket,FDS) > 0;
+
+      	 rc := fprecv(Socket, @msg[1], 255, 0);
+         if rc = -1 then
+	    begin
+	    WriteLn('Error from fpRecv');
+	       break;
+	    end;
+	 WriteLn('Msg length=',rc);
+	 SetLength(msg, rc);
+	 WriteLn(msg);
+
+         if KeyPressed THEN
+             BEGIN
+             ReadKey;
+
+             WriteLn ('paused');
+
+             REPEAT UNTIL KeyPRessed;
+             ReadKey;
+             END;
+
+      end;
+
+    END;
+
+
+
+PROCEDURE TcpTest;
+
+VAR IPAddress: Str20;
+    Port: LONGINT;
+    FrequencyString, Callsign: STRING;
+    SocketAddress: LONGINT;
+    Key: CHAR;
+
+    BEGIN
+    ClearScreenAndTitle ('RTL TCP TESTING');
+    WriteLn;
+
+    IPAddress := GetResponse ('Enter IP address : ');
+    Port := GetValue ('Enter Port : ');
+
+    IF NOT OpenTCPPort (SocketAddress, IPAddress, Port) THEN
+        BEGIN
+        WriteLn ('Unable to open port ', Port);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    REPEAT
+       WriteLn ('a - mark callsign on bandmap');
+       WriteLn ('f - set center frequency of bandmap');
+       WriteLn ('l - listen to UDP');
+       WriteLn ('x - Exit');
+
+       Key := UpCase (GetKey ('Enter command : '));
+       IF (Key = EscapeKey) OR (Key = 'X') THEN Exit;
+
+       CASE Key OF
+           'A': BEGIN
+                CallSign := GetResponse ('Enter callsign : ');
+                FrequencyString := GetResponse ('Enter Frequency : ');
+                SendN4OGWBandMapCall (SocketAddress, Callsign, FrequencyString);
+                END;
+
+           'F': BEGIN
+                FrequencyString := GetResponse ('Enter center frequency : ');
+                SetCenterFrequency (SocketAddress, FrequencyString);
+                END;
+
+           'L': BEGIN
+                ListenToUDP;
+                END;
+
+           END;  { of case Key }
+
+    UNTIL False;
+    END;
 
 
 
@@ -3076,15 +3329,13 @@ PROCEDURE StartUpHelp;
     TextColor (Cyan);
     WriteLn ('Legal commands include the following (see manual for details) : ');
     WriteLn;
-    WriteLn ('B64Decode           BandMap             Coax                Debug');
-    WriteLn ('Distance            FindFile            FootSwitchDebug     Grid');
-    WriteLn ('Help                HexConvert          HexDump             IOPort');
-    WriteLn ('HP                  LC                  LoopBack            NetDebug');
-    WriteLn ('New                 Packet              PacketFile          PacketInputFile');
-    WriteLn ('Port                PacketSimulate      PassThrough         PortToFile');
-    WriteLn ('RadioDebug          Read                Sun                 TalkDebug');
-    WriteLn ('Trace               UUDecode            UnixTime            ViewRadioDebug');
-    WriteLn ('KeyerDebug          NoStdcfg');
+    WriteLn ('B64Decode BandMap Coax Debug Distance FindFile FootSwitchDebug');
+    WriteLn ('Grid Help HexConvert HexDump IOPort HP KeyerDebug LC LoopBack');
+    WriteLn ('NetDebug New NoStdCfg Packet PacketFile PacketInputFile PacketSimulate');
+    WriteLn ('PassThrough Port RadioDebug Read Sun TalkDebug Trace UDPSend UDPRx');
+    WriteLn ('UnixTime UUDecode ViewRadioDebug');
+    WriteLn;
+    WriteLn ('Some of these might be legacy DOS commands and are not functional');
     WriteLn;
     END;
 
@@ -3232,6 +3483,96 @@ VAR Password: Str40;
     WaitForKeyPressed;
 
     PacketMessMode := True;
+    END;
+
+
+
+PROCEDURE UDPSend;
+
+VAR TempString, IPAddress: STRING;
+    Port: LONGINT;
+    Socket: LONGINT;
+
+    BEGIN
+    IPAddress := GetREsponse ('Enter IP Address (none to abort) : ');
+    IF IPAddress = '' THEN Halt;
+    Port := GetValue ('Enter port number (zero to abort) : ');
+    IF Port = 0 THEN Halt;
+
+    IF OpenUDPPortForOutput (IPAddress, Port, Socket) THEN
+        WriteLn ('Port open.  Socket = ', Socket)
+    ELSE
+        BEGIN
+        WriteLn ('Port not open');
+        WaitForKeyPressed;
+        Halt;
+        END;
+
+    REPEAT
+        TempString := GetResponse ('Enter text to send (none to exit) : ');
+        IF TempString = '' THEN Halt;
+        FPSend (Socket, @TempString [1], Length (TempString), 0);
+    UNTIL False;
+    END;
+
+
+
+PROCEDURE UDPRX;
+
+VAR Port: LONGINT;
+    SocketAddr: TINetSockAddr;
+    Socket: LONGINT;
+    BytesRead: INTEGER;
+    FDS: Tfdset;
+    ConnectResult: INTEGER;
+    Index: INTEGER;
+
+    BEGIN
+    Port := GetValue ('Enter port number (zero to abort) : ');
+    IF Port = 0 THEN Halt;
+
+    Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    WriteLn ('Socket = ', Socket);
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (Port);
+    SocketAddr.sin_addr.s_addr := INADDR_ANY;  { No IP address filter }
+
+    ConnectResult := fpBind (Socket, @SocketAddr, SizeOf (SocketAddr));
+
+    IF ConnectResult <> 0 THEN
+        BEGIN
+        WriteLn ('Unable to bind to UDP port ', Port);
+        Halt;
+        END;
+
+    WriteLn ('Listening to port ', Port, '.  Press ESCAPE key to exit');
+
+    REPEAT
+        { Check to see if something has come in the port }
+
+        fpFd_zero (FDS);
+        fpFd_set (Socket, FDS);
+        fpSelect (Socket+1, @FDS, nil, nil, 0);
+
+        IF fpFd_IsSet (Socket, FDS) <> 0 THEN   { We have data }
+            BEGIN
+            BytesRead := fpRecv (Socket, @UDPReceiveBuffer, 4095, 0);
+
+            IF BytesRead > 0 THEN
+                BEGIN
+                FOR Index := 0 TO BytesRead - 1 DO
+                    Write (UDPReceiveBuffer [Index]);
+                WriteLn;
+                END;
+            END;
+
+        { Check to see if ESCAPE Key pressed }
+
+        IF KeyPressed THEN
+            IF ReadKey = EscapeKey THEN Halt;
+    UNTIL False;
     END;
 
 

@@ -15,7 +15,7 @@
 //
 //You should have received a copy of the GNU General
 //    Public License along with TR log for linux.  If not, see
-//<http://www.gnu.org/licenses/>.
+//<http://www.gnu.org/licenses/>.                                                         w
 //
 
 UNIT LogWind;
@@ -25,8 +25,8 @@ UNIT LogWind;
 
 INTERFACE
 
-Uses LogGrid, LogDom, LogK1EA, SlowTree, Tree, trCrt, Dos, LogSCP,
-     ZoneCont, Country9, datetimec, radio;
+USES LogGrid, LogDom, LogK1EA, SlowTree, Tree, trCrt, Dos, LogSCP,
+     ZoneCont, Country9, datetimec, radio, N4OGW;
 
 CONST
     PendingQTCArraySize = 600;
@@ -116,6 +116,10 @@ TYPE
                       StationCalled,
                       SendingExchange);
 
+
+    TwoVFOStates = (TwoVFOsDisabled,
+                    TwoVFOIdle,
+                    TwoVFOSwapped);
 
     BandMapEntry = RECORD
         Call:       EightBytes;
@@ -702,6 +706,7 @@ VAR
     MyState:              Str10;  {KK1L: 6.67 Was Str20}
     MyZone:               ZoneMultiplierString;
 
+    N1MM_UDP_Port: LONGINT;
     NextQSONumberToGiveOut: INTEGER;
     NextQTCToBeAdded:   INTEGER;
     NextQTCToBeSent:    INTEGER;
@@ -829,8 +834,9 @@ VAR
     TotalLastSixty: INTEGER;
     TotalScoreMessages:     ARRAY [0..10] OF TotalScoreMessageRecord;
     TRFree:                 BOOLEAN;
-    TwoRadioState:          TwoRadioStates;
     TuneDupeCheckEnable:    BOOLEAN; {KK1L: 6.73}
+    TwoRadioState:          TwoRadioStates;
+    TwoVFOState:            TwoVFOStates;
 
     UnknownCountryFileEnable: BOOLEAN;
     UnknownCountryFileName:   Str80;
@@ -877,6 +883,7 @@ VAR
   PROCEDURE DecrementBandMapTimes;
   PROCEDURE DecrementQTCCount (Call: CallString; Count: INTEGER);
 
+  PROCEDURE DeleteBandMapCall (Call: Callstring);
   PROCEDURE DeleteBandMapEntry (VAR Entry: BandMapEntryPointer);
 
   PROCEDURE DisplayAutoSendCharacterCount;
@@ -909,7 +916,8 @@ VAR
   PROCEDURE DisplayRate (Rate: INTEGER);
 
   PROCEDURE DisplayRemainingMults (RemainingMults: RemainingMultListPointer;
-                                   RemMultDisplay: RemainingMultiplierType);
+                                   RemMultDisplay: RemainingMultiplierType;
+                                   Band: BandType; Mode: ModeType);
 
   PROCEDURE DisplayTotalScore (Score: LONGINT);
   PROCEDURE DisplayUserInfo (Call: CallString);
@@ -1278,10 +1286,11 @@ PROCEDURE DisplayFrequency (Freq: LONGINT; Radio: RadioType); {KK1L: 6.73 Added 
 VAR TempFreq: REAL;
 
     BEGIN
-    IF (Freq = LastDisplayedFreq[RadioOne]) AND (Radio = RadioOne) THEN Exit; {KK1L: 6.73 Added Radio}
-    IF (Freq = LastDisplayedFreq[RadioTwo]) AND (Radio = RadioTwo) THEN Exit; {KK1L: 6.73}
+    IF (Freq = LastDisplayedFreq [RadioOne]) AND (Radio = RadioOne) THEN Exit; {KK1L: 6.73 Added Radio}
+    IF (Freq = LastDisplayedFreq [RadioTwo]) AND (Radio = RadioTwo) THEN Exit; {KK1L: 6.73}
 
-    {KK1L: 6.73 Added Radio=ActiveRadio. Keeps freq correct when logging with LogFrequencyEnable}
+    { KK1L: 6.73 Added Radio=ActiveRadio. Keeps freq correct when logging with LogFrequencyEnable }
+
     IF (Freq <> 0) AND (Radio = ActiveRadio) THEN DisplayedFrequency := Freq;
 
     CASE Radio OF  {KK1L: 6.73}
@@ -2617,7 +2626,10 @@ VAR PossibleCall: INTEGER;
                 CharacterPosition := CharacterPosition + Length (Call) + 2;
                 END
             ELSE
+                BEGIN
                 PossibleCalls.NumberPossibleCalls := PossibleCall;
+                Break;  { I think this should be here }
+                END;
             END;
         END
     ELSE
@@ -3032,7 +3044,8 @@ PROCEDURE ActivateExchangeWindow;
 
 
 PROCEDURE DisplayRemainingMults (RemainingMults: RemainingMultListPointer;
-                                 RemMultDisplay: RemainingMultiplierType);
+                                 RemMultDisplay: RemainingMultiplierType;
+                                 Band: BandType; Mode: ModeType);
 
 
 VAR TempString: Str80;
@@ -3041,6 +3054,22 @@ VAR TempString: Str80;
 
     BEGIN
     SaveSetAndClearActiveWindow (RemainingMultsWindow);
+
+    IF Band <> All THEN
+        BEGIN
+        TempString := BandString [Band];
+        GetRidOfPrecedingSpaces (TempString);
+        Write (TempString);
+        END;
+
+    IF Mode <> Both THEN
+        BEGIN
+        TempString := ModeString [Mode];
+        GetRidOfPostcedingSpaces (TempString);
+        Write (TempString);
+        END;
+
+    IF WhereX > 1 THEN Write (':');
 
     CleanSweep := RemainingMultDisplayMode = Erase;
 
@@ -3139,7 +3168,6 @@ VAR TempString: Str80;
 
                     END;
 
-
                 TextColor (SelectedColors.RemainingMultsWindowColor);
 
                 IF (WhereX > 1) AND (WhereX < Lo (WindMax)) THEN
@@ -3160,12 +3188,12 @@ VAR TempString: Str80;
     RestorePreviousWindow;
     END;
 
-
-
+
 
 PROCEDURE DecrementBandMapTimes;
 
-{ Decrements all times by one.  Any that were at zero get deleted. }
+{ Call this once a minute.  Decrements all times by one.  Any that were at
+  zero get deleted.  This does not actually display the updated band map }
 
 VAR BandMapEntryRecord, PreviousBandMapEntryRecord: BandMapEntryPointer;
     MinutesLeft: BYTE;
@@ -3186,6 +3214,14 @@ VAR BandMapEntryRecord, PreviousBandMapEntryRecord: BandMapEntryPointer;
 
                     IF MinutesLeft = 0 THEN   { Time to die }
                         BEGIN
+                        { Let's delete it from the N4OGW band maps if running }
+
+                        IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                            N4OGW_RadioOne_BandMap.DeleteCallsign (BigExpandedString (BandMapEntryRecord^.Call));
+
+                        IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                            N4OGW_RadioTwo_BandMap.DeleteCallsign (BigExpandedString (BandMapEntryRecord^.Call));
+
                         IF PreviousBandMapEntryRecord = nil THEN { This is the first one in list }
                             BEGIN
                             BandMapFirstEntryList [Band, Mode] := BandMapEntryRecord^.NextEntry;
@@ -3206,6 +3242,7 @@ VAR BandMapEntryRecord, PreviousBandMapEntryRecord: BandMapEntryPointer;
                         { We want to process the next band map entry next }
 
                         BandMapEntryRecord := PreviousBandMapEntryRecord^.NextEntry;
+
                         Continue;
                         END;
 
@@ -3257,28 +3294,68 @@ PROCEDURE UpdateTimeAndRateDisplays (ShowTime: BOOLEAN; DoRadios: BOOLEAN);
 LABEL IgnoreRadioOneFreq, IgnoreRadioTwoFreq;
 
 VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
-    Hour, Minute, Second, Hundredths: WORD;
     AlarmInteger, RecordNumber, IntegerTime, RateMinute: INTEGER;
     Freq: LONGINT;   { From the radio }
     Band: BandType;  { From the radio }
     Mode: ModeType;  { From the radio }
+    Temp1, Temp2, Temp3: String[5];
+    Hours, Minutes, Seconds: WORD;
+    I: INTEGER;
 
     BEGIN
+    { It hurt my head less if I just went and got a snapspot of the time once
+      instead of calling different routines in TREE.PAS to get it in different
+      formats }
+
+    MilliSleep;
+    GetTime (Hours, Minutes, Seconds, LastSecond100);
+
+    { We are creating the Full Time String that uses the format 23:42:32.  This
+      code comes from TREE.PAS }
+
+    I := Hours;
+
+    IF HourOffset <> 0 THEN
+        BEGIN
+        I := I + HourOffset;
+        IF I > 23 THEN I := I - 24;
+        IF I < 0  THEN I := I + 24;
+        END;
+
+    Str (I,       Temp1);
+    Str (Minutes, Temp2);
+    Str (Seconds, Temp3);
+
+    IF Length (Temp1) < 2 THEN Temp1 := '0' + Temp1;
+    IF Length (Temp2) < 2 THEN Temp2 := '0' + Temp2;
+    IF Length (Temp3) < 2 THEN Temp3 := '0' + Temp3;
+
+    { Added # as a debug indicator of the status of BandMapEntryInCallWindow }
+
+{    IF BandMapEntryInCallWindow THEN
+        FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3 + '#'
+    ELSE}
+        FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3;
+
+    { We can create TimeString easily now - which looks like 23:42.  Don't forget HourString }
+
+    TimeString := Temp1 + ':' + Temp2;
+    HourString := Temp1;
+
+    { If the N4OGW bandmap is active - it is good to give it oxygen }
+
+    IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+        N4OGW_RadioOne_BandMap.Heartbeat;
+
+    IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+        N4OGW_RadioTwo_BandMap.Heartbeat;
+
     { In 2022 - I am not sure I understand why ShowTime is required in order
       to do radios.  The only time I seem to call this with ShowTime = False
       is when I am in LogHelp and DoRadios is also False }
 
     IF ShowTime THEN
         BEGIN
-        FullTimeString := GetFullTimeString;
-
-        MILLISLEEP; //KS try again
-
-        GetTime (Hour, Minute, Second, Hundredths); {KK1L: 6.71a}
-        LastSecond100 := Hundredths;                {KK1L: 6.71a}
-
-        { Check to see if we have an interfaced radio to look at }
-
         IF NOT PollRadioOne THEN
             DisplayFrequency (0, RadioOne);
 
@@ -3286,8 +3363,13 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
             BEGIN
             IF GetRadioParameters (RadioOne, '', Freq, Band, Mode, TRUE, False) THEN
                 BEGIN
+                { Send to the radio one N4OGW bandmap if enabled }
+
+                IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                    N4OGW_RadioOne_BandMap.SetCenterFrequency (Freq);
+
                 IF (Abs (Freq - SplitFreq) <= 1000) THEN   { Why? }
-                       GoTo IgnoreRadioOneFreq;
+                    GoTo IgnoreRadioOneFreq;
 
                 RadioOnTheMove [RadioOne] := ((PreviousRadioOneFreq <> 0) AND
                                              (Abs (PreviousRadioOneFreq - Freq) > (Rig1FreqPollRate * AutoSAPEnableRate div 1000))) OR
@@ -3394,6 +3476,10 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
             BEGIN
             IF GetRadioParameters (RadioTwo, '', Freq, Band, Mode, TRUE, False) THEN
                 BEGIN
+                { Send to the radio two N4OGW bandmap if enabled }
+
+                IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                    N4OGW_RadioTwo_BandMap.SetCenterFrequency (Freq);
 
                 IF (Abs (Freq - SplitFreq) <= 1000) THEN
                        GoTo IgnoreRadioTwoFreq;
@@ -3493,215 +3579,221 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
                 DisplayFrequency (0, RadioTwo); {KK1L: 6.73 Added Radio}
 
     IgnoreRadioTwoFreq:
-
             END;
+        END;  { of IF ShowTime }
 
-        IF FullTimeString = LastFullTimeString THEN Exit;
+    { We are now going to leave if a new second hasn't ticked up }
 
-        { We are only here once a second now }
+    IF LastFullTimeString = FullTimeString THEN Exit;
 
-        LastFullTimeString := FullTimeString;
+    { We are now executing code only once a calendar second }
 
-        IF ReminderPostedCount > 0 THEN Dec (ReminderPostedCount);
+    LastFullTimeString := FullTimeString;
 
-        SaveAndSetActiveWindow (TotalWindow);
-        Write (' ' + FullTimeString);
+    { This used to be in the DoRadio block above - but moved it here in 2022 }
 
-        IF TenMinuteRule <> NoTenMinuteRule THEN
-            BEGIN
-            GoToXY (1, 2);
-            Write ('  ', ElaspedTimeString (TenMinuteTime.Time));
-            END;
+    IF ReminderPostedCount > 0 THEN Dec (ReminderPostedCount);
 
-        RestorePreviousWindow;
+    SaveAndSetActiveWindow (TotalWindow);
+    Write (' ' + FullTimeString);
+
+    IF TenMinuteRule <> NoTenMinuteRule THEN
+        BEGIN
+        GoToXY (1, 2);
+        Write ('  ', ElaspedTimeString (TenMinuteTime.Time));
         END;
 
-    TimeString := GetTimeString;
-    HourString := PrecedingString (TimeString, ':');
+    RestorePreviousWindow;
 
-    IF TimeString <> LastDisplayedTime THEN  { See if new minute }
+    { Has a new minute come up ?  If not - we are done }
+
+    IF LastDisplayedTime = TimeString THEN Exit;
+    LastDisplayedTime := TimeString;
+
+    { We are now executing things only once a minute }
+
+    Inc (MinutesSinceLastBMUpdate);
+
+    IF (ActiveBand >= Band160) AND (ActiveBand <= Band10) THEN
+        Inc (TimeSpentByBand [ActiveBand]);
+
+    AutoTimeQSOCount := 0;
+
+    {KK1L: 6.65 Added this check to allow for > 63 minute BM decay}
+
+    IF MinutesSinceLastBMUpdate >= BandMapDecayMultiplier THEN
         BEGIN
-        LastDisplayedTime := TimeString;
-        Inc(MinutesSinceLastBMUpdate); {KK1L: 6.65}
+        MinutesSinceLastBMUpdate := 0;
+        DecrementBandMapTimes;
+        IF BandMapEnable THEN DisplayBandMap;
+        END;
 
-        IF (ActiveBand >= Band160) AND (ActiveBand <= Band10) THEN
-            Inc (TimeSpentByBand [ActiveBand]);
+    SaveSetAndClearActiveWindow (ClockWindow);
+    Write (TimeString);
+    RestorePreviousWindow;
 
-        AutoTimeQSOCount := 0;
+    DateString := GetDateString;
 
-        {KK1L: 6.65 Added this check to allow for > 63 minute BM decay}
-        IF MinutesSinceLastBMUpdate >= BandMapDecayMultiplier THEN
-            BEGIN
-            MinutesSinceLastBMUpdate := 0;
-            DecrementBandMapTimes;
-            IF BandMapEnable THEN DisplayBandMap;
-            END;
-
-        SaveSetAndClearActiveWindow (ClockWindow);
-        Write (TimeString);
+    IF DateString <> LastDisplayedDate THEN
+        BEGIN
+        SaveSetAndClearActiveWindow (DateWindow);
+        Write (DateString);
         RestorePreviousWindow;
+        LastDisplayedDate := DateString;
+        END;
 
-        DateString := GetDateString;
+    IF NumberReminderRecords > 0 THEN
+        BEGIN
+        IntegerTime := GetIntegerTime;
+        DayString   := UpperCase (GetDayString);
+        DateString  := UpperCase (DateString);
 
-        IF DateString <> LastDisplayedDate THEN
+//      FOR RecordNumber := 0 TO NumberReminderRecords - 1 DO
+        RecordNumber := -1;
+        while ((RecordNumber + 1) <= NumberReminderRecords - 1) do
+        begin
+            inc(RecordNumber);
+            IF Reminders^ [RecordNumber].Time = IntegerTime THEN
+                IF (Reminders^ [RecordNumber].DateString = DateString) OR
+                   (Reminders^ [RecordNumber].DayString  = DayString) OR
+                   (Reminders^ [RecordNumber].DayString = 'ALL') THEN
+                       BEGIN
+                       SaveSetAndClearActiveWindow (QuickCommandWindow);
+                       SetColor (SelectedColors.AlarmWindowColor);
+                       SetBackground (SelectedColors.AlarmWindowBackground);
+                       ClrScr;
+                       Write (Reminders^ [RecordNumber].Message);
+                       IF Reminders^ [RecordNumber].Alarm THEN
+                           WakeUp
+                       ELSE
+                           Congrats;
+                       RestorePreviousWindow;
+                       RecordNumber := NumberReminderRecords - 1;
+                       ReminderPostedCount := 60;
+                       END;
+        end;
+        END;
+
+    IF AlarmSet THEN
+        BEGIN
+        AlarmInteger := AlarmHour * 100 + AlarmMinute;
+
+        IF AlarmInteger = GetIntegerTime THEN
             BEGIN
-            SaveSetAndClearActiveWindow (DateWindow);
-            Write (DateString);
-            RestorePreviousWindow;
-            LastDisplayedDate := DateString;
-            END;
+            WakeUp;
+            AlarmMinute := AlarmMinute + 4;
 
-        IF NumberReminderRecords > 0 THEN
-            BEGIN
-            IntegerTime := GetIntegerTime;
-            DayString   := UpperCase (GetDayString);
-            DateString  := UpperCase (DateString);
-
-//            FOR RecordNumber := 0 TO NumberReminderRecords - 1 DO
-            RecordNumber := -1;
-            while ((RecordNumber + 1) <= NumberReminderRecords - 1) do
-            begin
-                inc(RecordNumber);
-                IF Reminders^ [RecordNumber].Time = IntegerTime THEN
-                    IF (Reminders^ [RecordNumber].DateString = DateString) OR
-                       (Reminders^ [RecordNumber].DayString  = DayString) OR
-                       (Reminders^ [RecordNumber].DayString = 'ALL') THEN
-                           BEGIN
-                           SaveSetAndClearActiveWindow (QuickCommandWindow);
-                           SetColor (SelectedColors.AlarmWindowColor);
-                           SetBackground (SelectedColors.AlarmWindowBackground);
-                           ClrScr;
-                           Write (Reminders^ [RecordNumber].Message);
-                           IF Reminders^ [RecordNumber].Alarm THEN
-                               WakeUp
-                           ELSE
-                               Congrats;
-                           RestorePreviousWindow;
-                           RecordNumber := NumberReminderRecords - 1;
-                           ReminderPostedCount := 60;
-                           END;
-            end;
-            END;
-
-        IF AlarmSet THEN
-            BEGIN
-            AlarmInteger := AlarmHour * 100 + AlarmMinute;
-
-            IF AlarmInteger = GetIntegerTime THEN
+            IF AlarmMinute > 59 THEN
                 BEGIN
-                WakeUp;
-                AlarmMinute := AlarmMinute + 4;
-
-                IF AlarmMinute > 59 THEN
-                    BEGIN
-                    AlarmMinute := AlarmMinute - 60;
-                    AlarmHour := AlarmHour + 1;
-                    IF AlarmHour > 23 THEN
-                        AlarmHour := AlarmHour - 24;
-                    END;
+                AlarmMinute := AlarmMinute - 60;
+                AlarmHour := AlarmHour + 1;
+                IF AlarmHour > 23 THEN
+                    AlarmHour := AlarmHour - 24;
                 END;
+            END;
 
-            IF (Hour = AlarmHour) AND (Minute = AlarmMinute) THEN
+        IF (Hours = AlarmHour) AND (Minutes = AlarmMinute) THEN
+            BEGIN
+            WakeUp;
+            AlarmMinute := AlarmMinute + 4;
+
+            IF AlarmMinute > 59 THEN
                 BEGIN
-                WakeUp;
-                AlarmMinute := AlarmMinute + 4;
-
-                IF AlarmMinute > 59 THEN
-                    BEGIN
-                    AlarmMinute := AlarmMinute - 60;
-                    AlarmHour := AlarmHour + 1;
-                    IF AlarmHour > 23 THEN
-                        AlarmHour := AlarmHour - 24;
-                    END;
+                AlarmMinute := AlarmMinute - 60;
+                AlarmHour := AlarmHour + 1;
+                IF AlarmHour > 23 THEN
+                    AlarmHour := AlarmHour - 24;
                 END;
             END;
+        END;
 
-        IF (NumberContactsThisMinute = 0) AND (WakeUpTimeOut > 0) THEN
-            BEGIN
-            Inc (WakeUpCount);
-            IF (WakeUpCount >= WakeUpTimeOut) AND NOT AlarmSet THEN WakeUp;
-            END
-        ELSE
-            WakeUpCount := 0;
+    IF (NumberContactsThisMinute = 0) AND (WakeUpTimeOut > 0) THEN
+        BEGIN
+        Inc (WakeUpCount);
+        IF (WakeUpCount >= WakeUpTimeOut) AND NOT AlarmSet THEN WakeUp;
+        END
+    ELSE
+        WakeUpCount := 0;
 
-        { Fix up the rate array. First, shuffle the minutes }
+    { Fix up the rate array. First, shuffle the minutes }
 
-        FOR RateMinute := 60 DOWNTO 2 DO
-            BEGIN
-            RateMinuteArray [RateMinute].QSOs   := RateMinuteArray [RateMinute - 1].QSOs;
-            RateMinuteArray [RateMinute].Points := RateMinuteArray [RateMinute - 1].Points;
-            END;
+    FOR RateMinute := 60 DOWNTO 2 DO
+        BEGIN
+        RateMinuteArray [RateMinute].QSOs   := RateMinuteArray [RateMinute - 1].QSOs;
+        RateMinuteArray [RateMinute].Points := RateMinuteArray [RateMinute - 1].Points;
+        END;
 
-        { Put new values on top }
+    { Put new values on top }
 
-        RateMinuteArray [1].QSOs   := NumberContactsThisMinute;
-        RateMinuteArray [1].Points := NumberQSOPointsThisMinute;
+    RateMinuteArray [1].QSOs   := NumberContactsThisMinute;
+    RateMinuteArray [1].Points := NumberQSOPointsThisMinute;
 
-        { Compute rate = # QSOs or points in last 10 minutes }
+    { Compute rate = # QSOs or points in last 10 minutes }
 
-        Rate := 0;
+    Rate := 0;
 
-        FOR RateMinute := 1 TO 10 DO
-            CASE RateDisplay OF
-                QSOs:   Rate := Rate + RateMinuteArray [RateMinute].QSOs;
-                Points: Rate := Rate + RateMinuteArray [RateMinute].Points;
-                END;
-
-        { Compute last sixty minute totals }
-
-        TotalLastSixty := 0;
-
-        FOR RateMinute := 1 TO 60 DO
-            CASE RateDisplay OF
-                QSOs:   TotalLastSixty := TotalLastSixty + RateMinuteArray [RateMinute].QSOs;
-                Points: TotalLastSixty := TotalLastSixty + RateMinuteArray [RateMinute].Points;
-                END;
-
+    FOR RateMinute := 1 TO 10 DO
         CASE RateDisplay OF
-            QSOs:   TotalThisHour := TotalThisHour + NumberContactsThisMinute;
-            Points: TotalThisHour := TotalThisHour + NumberQSOPointsThisMinute;
+            QSOs:   Rate := Rate + RateMinuteArray [RateMinute].QSOs;
+            Points: Rate := Rate + RateMinuteArray [RateMinute].Points;
             END;
 
-        { Zero out minute totals }
+    { Compute last sixty minute totals }
 
-        NumberContactsThisMinute  := 0;
-        NumberQSOPointsThisMinute := 0;
+    TotalLastSixty := 0;
 
-        { Compute rate }
+    FOR RateMinute := 1 TO 60 DO
+        CASE RateDisplay OF
+            QSOs:   TotalLastSixty := TotalLastSixty + RateMinuteArray [RateMinute].QSOs;
+            Points: TotalLastSixty := TotalLastSixty + RateMinuteArray [RateMinute].Points;
+            END;
 
-        IF NumberMinutesProgramRunning >= 10 THEN
-            Rate := Rate * 6
+    CASE RateDisplay OF
+        QSOs:   TotalThisHour := TotalThisHour + NumberContactsThisMinute;
+        Points: TotalThisHour := TotalThisHour + NumberQSOPointsThisMinute;
+        END;
+
+    { Zero out minute totals }
+
+    NumberContactsThisMinute  := 0;
+    NumberQSOPointsThisMinute := 0;
+
+    { Compute rate }
+
+    IF NumberMinutesProgramRunning >= 10 THEN
+        Rate := Rate * 6
+    ELSE
+        BEGIN
+        Inc (NumberMinutesProgramRunning);
+        IF NumberMinutesProgramRunning > 0 THEN
+
+           { Runtime 215 at next line - added ()'s to fix }
+
+            Rate := Round (Rate * (60 / NumberMinutesProgramRunning))
         ELSE
+            Rate := 0;
+        END;
+
+    { LastDisplayedHour is a null string initially }
+
+    IF HourString <> LastDisplayedHour THEN
+        BEGIN
+        TotalThisHour := 0;
+        BandChangesThisHour := 0;
+        LastDisplayedHour := HourString;
+        END;
+
+    DisplayRate (Rate);
+
+    IF (ActivePacketPort <> nil ) AND (PacketReturnPerMinute <> 0) THEN
+        BEGIN
+        Dec (PacketReturnCount);
+
+        IF PacketReturnCount = 0 THEN
             BEGIN
-            Inc (NumberMinutesProgramRunning);
-            IF NumberMinutesProgramRunning > 0 THEN
-
-               { Runtime 215 at next line - added ()'s to fix }
-
-                Rate := Round (Rate * (60 / NumberMinutesProgramRunning))
-            ELSE
-                Rate := 0;
-            END;
-
-        IF HourString <> LastDisplayedHour THEN
-            BEGIN
-            TotalThisHour := 0;
-            BandChangesThisHour := 0;
-            LastDisplayedHour := HourString;
-            END;
-
-        DisplayRate (Rate);
-
-        IF (ActivePacketPort <> nil ) AND (PacketReturnPerMinute <> 0) THEN
-            BEGIN
-            Dec (PacketReturnCount);
-
-            IF PacketReturnCount = 0 THEN
-                BEGIN
-                SendPacketMessage (CarriageReturn);
-                QuickDisplay ('Carriage return sent to packet port.  (per PACKET RETURN PER MINUTE)');
-                PacketReturnCount := PacketReturnPerMinute;
-                END;
+            SendPacketMessage (CarriageReturn);
+            QuickDisplay ('Carriage return sent to packet port.  (per PACKET RETURN PER MINUTE)');
+            PacketReturnCount := PacketReturnPerMinute;
             END;
         END;
     END;
@@ -3807,7 +3899,19 @@ PROCEDURE DisplayAutoSendCharacterCount;
     END;
 
 
+PROCEDURE DeleteBandMapCall (Call: Callstring);
 
+{ At some point, this should also delete the call from the TR Log bandmap? }
+
+    BEGIN
+    IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+        N4OGW_RadioOne_BandMap.DeleteCallsign (Call);
+
+    IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+        N4OGW_RadioTwo_BandMap.DeleteCallsign (Call);
+    END;
+
+
 
 PROCEDURE DeleteBandMapEntry (VAR Entry: BandMapEntryPointer);
 
@@ -4353,6 +4457,70 @@ VAR Call: CallString;
     DisplayBandMap;
     END;
 
+
+
+PROCEDURE RemoveCallFromBandMapLinkedList (Call: CallString; Band: BandType; Mode: ModeType);
+
+{ In an effort to make the band map code cleaner, in December 2022, I added
+  this routine which will remove any band map records that match the Call
+  on the band/mode specified.  This will hopefully clean up the band map
+  code somewhere so it can be easier to work with }
+
+VAR ActiveEntry, PreviousEntry: BandMapEntryPointer;
+    N4OGW_Notified: BOOLEAN;  { Only does it once }
+
+    BEGIN
+    IF BandMapFirstEntryList [Band, Mode] = nil THEN Exit;
+
+    ActiveEntry := BandMapFirstEntryList [Band, Mode];
+    PreviousEntry := nil;
+
+    N4OGW_Notified := False;
+
+    WHILE ActiveEntry <> nil DO
+        BEGIN
+        IF BigExpandedString (ActiveEntry^.Call) = Call THEN  { Delete this record }
+            BEGIN
+            IF PreviousEntry = nil THEN  { This is the first entry in the list }
+                BEGIN
+                BandMapFirstEntryList [Band, Mode] := ActiveEntry^.NextEntry;
+                Dispose (ActiveEntry);
+                ActiveEntry := BandMapFirstEntryList [Band, Mode];
+                END
+            ELSE
+                BEGIN  { Previous record is valid }
+                PreviousEntry^.NextEntry := ActiveEntry^.NextEntry;  { this could be nil }
+                Dispose (ActiveEntry);
+                ActiveEntry := PreviousEntry^.NextEntry;
+                END;
+
+            IF NOT N4OGW_Notified THEN
+                BEGIN
+                IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                    BEGIN
+                    N4OGW_RadioOne_BandMap.DeleteCallsign (Call);
+                    N4OGW_RadioOne_BandMap.WriteToDebugFile ('N4OGW Radio One notified of a removal');
+                    END;
+
+                IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                    BEGIN
+                    N4OGW_RadioTwo_BandMap.DeleteCallsign (Call);
+                    N4OGW_RadioTwo_BandMap.WriteToDebugFile ('N4OGW Radio Two notified of a removal');
+                    END;
+
+                { I assume N4OGW will remove all instances of the call }
+                N4OGW_Notified := True;
+                END;
+
+            Continue;  { We have already setup things for the next test }
+            END;
+
+        PreviousEntry := ActiveEntry;
+        ActiveEntry := ActiveEntry^.NextEntry;
+        END;
+    END;
+
+
 
 PROCEDURE AddBandMapEntry (Call: CallString;
                            Frequency: LONGINT;
@@ -4369,18 +4537,36 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
     StatusByte: BYTE;
     QSXOffset: LONGINT; {KK1L: 6.64 Tried INTEGER, but no joy.}
     CompressedCall: EightBytes;
-    EntryAdded: BOOLEAN;
     Band: BandType;
 
     BEGIN
-    IF NOT BandMapEnable THEN Exit;
+    IF NOT BandMapEnable THEN
+        BEGIN
+        { Send to N4OGW bandmap if it is enabled }
+
+        IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+            N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+        IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+            N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+        Exit;
+        END;
 
     { The band map seemed to be crashing with SHF frequencies }
 
     IF Frequency > 150000000 THEN Exit;
     IF Frequency < 10 THEN Exit;
 
-    BigCompressFormat (Call, CompressedCall);
+    GetBandMapBandModeFromFrequency (Frequency, Band, Mode);
+    IF Band = NoBand THEN Exit;
+
+    { We are going to remove any instances of this call in the current
+      band/mode bandmap. This is new in 2022 to makes things more simple }
+
+    RemoveCallFromBandMapLinkedList (Call, Band, Mode);
+
+    BigCompressFormat (Call, CompressedCall);  { Remember when memory was an issue? }
 
     { Fix up status byte }
 
@@ -4402,10 +4588,6 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
         ELSE
             QSXOffset := 0;   { Unexpected result }
 
-    GetBandMapBandModeFromFrequency (Frequency, Band, Mode);
-
-    IF Band = NoBand THEN Exit;
-
     { See if the list of entries for this band mode is empty }
 
     IF BandMapFirstEntryList [Band, Mode] = nil THEN   { Nothing in bandmap yet }
@@ -4416,6 +4598,15 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
         BandMapFirstEntryList [Band, Mode]^.QSXOffset  := QSXOffset;
         BandMapFirstEntryList [Band, Mode]^.StatusByte := StatusByte;
         BandMapFirstEntryList [Band, Mode]^.NextEntry  := nil;
+
+        { Send to N4OGW bandmaps }
+
+        IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+            N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+        IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+            N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
         Exit;
         END;
 
@@ -4423,7 +4614,7 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
       through the list }
 
     LastBandMapEntryRecord := nil;
-    BandMapEntryRecord     := BandMapFirstEntryList [Band, Mode];
+    BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];
 
     { Search through the bandmap to find the right place for this entry.
       We keep the frequencies in order, so we need to step through the
@@ -4431,174 +4622,52 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
       the one being added.  We squeeze this new entry in before that one,
       but check to see if the frequency is nearly the same first. }
 
-    EntryAdded := False;
-
     WHIlE BandMapEntryRecord <> nil DO
         BEGIN
-
-        { See if the frequency is nearly the same - and if so, we will
-          use this record. }
-
         IF Abs (Frequency - BandMapEntryRecord^.Frequency) <= BandMapGuardBand THEN
             BEGIN
-            IF EntryAdded THEN  { Already added it - so delete this one }
-                BEGIN
+            { Remove old call from the N4OGW band maps and send the new one }
 
-                { We should not be able to be here without
-                  LastBandMapEntryRecord being setup to something...
+            IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                IF BigExpandedString (BandMapEntryRecord^.Call) <> Call THEN
+                    BEGIN
+                    N4OGW_RadioOne_BandMap.DeleteCallsign (BandMapExpandedString (BandMapEntryRecord^.Call));
+                    N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+                    END;
 
-                  We are going to set the .NextEntry pointer of the
-                  previous record to point to the NextEntry as indicated
-                  in the .NextEntry value of the current record }
-
-                LastBandMapEntryRecord^.NextEntry := BandMapEntryRecord^.NextEntry;
-                TempBandMapEntryRecord := BandMapEntryRecord^.NextEntry;
-
-                { Delete the current record. Runtime 204 here? }
-
-                { Runtime 204 here when SPACE entered for frequency }
-
-                Dispose (BandMapEntryRecord);
-
-                { Setup current entry with this next entry.
-                  LastBandMapEntryRecord is fine the way it is }
-
-                BandMapEntryRecord := LastBandMapEntryRecord^.NextEntry;
-                Continue;
-                END;
-
-            { Entry not yet added - take over this record }
+            IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                IF BigExpandedString (BandMapEntryRecord^.Call) <> Call THEN
+                    BEGIN
+                    N4OGW_RadioTwo_BandMap.DeleteCallsign (BandMapExpandedString (BandMapEntryRecord^.Call));
+                    N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+                    END;
 
             BandMapEntryRecord^.Call       := CompressedCall;
             BandMapEntryRecord^.Frequency  := Frequency;
             BandMapEntryRecord^.QSXOffset  := QSXOffset;
             BandMapEntryRecord^.StatusByte := StatusByte;
-            EntryAdded := True;
 
-            { Setup to examine next record and then continue }
+            { We are now done - there are no instances of the same call further in the
+              band map now that we removed all of them earlier.  Since we took over an
+              existing band map entry - we will assume there isn't another one just
+              above it that is too close }
 
-            LastBandMapEntryRecord := BandMapEntryRecord;
-            BandMapEntryRecord     := BandMapEntryRecord^.NextEntry;
-            Continue;
+            Exit;  { is a wonderful thing }
             END;
 
-        IF BigCompressedCallsAreEqual (CompressedCall, BandMapEntryRecord^.Call) THEN
-            BEGIN
-            { We have found the same call in the band map.  If the frequency
-              was close enough - we would have already used it.  Therefore,
-              we can probably delete this call. }
-
-            { However, we need to check for the special case that this is the
-              first entry in the list - and therefore wouldn't have been
-              added yet }
-
-            IF LastBandMapEntryRecord = nil THEN  { This is the 1st entry }
-                BEGIN
-
-                { New for 6.50 - if there are no other entries - just use
-                  this one again }
-
-                IF BandMapEntryRecord^.NextEntry = nil THEN  { no next entry }
-                    BEGIN
-                    BandMapEntryRecord^.Call       := CompressedCall;
-                    BandMapEntryRecord^.Frequency  := Frequency;
-                    BandMapEntryRecord^.QSXOffset  := QSXOffset;
-                    BandMapEntryRecord^.StatusByte := StatusByte;
-                    Exit;
-                    END;
-
-                { New for 6.50 - if the frequency is less than the next
-                  bandmap entries, we should also just use this one }
-
-
-                IF Frequency < BandMapEntryRecord^.Frequency THEN
-                    BEGIN
-                    BandMapEntryRecord^.Call       := CompressedCall;
-                    BandMapEntryRecord^.Frequency  := Frequency;
-                    BandMapEntryRecord^.QSXOffset  := QSXOffset;
-                    BandMapEntryRecord^.StatusByte := StatusByte;
-                    Exit;
-                    END;
-
-                { Okay - we have found a record with the same call, but we
-                  can't leave it here because the frequency indicates that
-                  it should be furthur in the list somewhere.
-
-                  Delete the active record and do the splice so the list
-                  still works.  This is a unique way of deleting an entry
-                  as we have to worry about the BandMapFirstEntry entry. }
-
-                BandMapFirstEntryList [Band, Mode] := BandMapEntryRecord^.NextEntry;
-                TempBandMapEntryRecord := BandMapEntryRecord^.NextEntry;
-                Dispose (BandMapEntryRecord);
-
-                BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];
-                Continue;
-                END;
-
-            { Found an entry with the same callsign - it isn't the first
-              entry of the list.  The frequencies aren't close enough that
-              we would have already used this record. }
-
-            { New in 6.50 - See if the frequency is still less than the
-              next entry - or perhaps that the next entry does not exist.
-              In either case, we can still use this record. }
-
-            { See if there are no other entries }
-
-            IF NOT EntryAdded THEN
-                BEGIN
-                IF BandMapEntryRecord^.NextEntry = nil THEN
-                    BEGIN
-                    BandMapEntryRecord^.Call       := CompressedCall;
-                    BandMapEntryRecord^.Frequency  := Frequency;
-                    BandMapEntryRecord^.QSXOffset  := QSXOffset;
-                    BandMapEntryRecord^.StatusByte := StatusByte;
-                    Exit;
-                    END;
-
-            { See if the frequency is less than the next entry }
-
-
-
-                IF Frequency < BandMapEntryRecord^.Frequency THEN
-                    BEGIN
-                    BandMapEntryRecord^.Call       := CompressedCall;
-                    BandMapEntryRecord^.Frequency  := Frequency;
-                    BandMapEntryRecord^.QSXOffset  := QSXOffset;
-                    BandMapEntryRecord^.StatusByte := StatusByte;
-                    Exit;
-                    END;
-                END;
-
-            { Okay - we can't use this record, so we will delete it and
-              splice the pointers. }
-
-            LastBandMapEntryRecord^.NextEntry := BandMapEntryRecord^.NextEntry;
-            TempBandMapEntryRecord := BandMapEntryRecord^.NextEntry;
-
-            Dispose (BandMapEntryRecord);
-            BandMapEntryRecord := LastBandMapEntryRecord^.NextEntry;
-            Continue;
-            END;
-
-        { See if the frequency is less than the next record.  If so, this
-          is where we want to put it }
-
-        IF (NOT EntryAdded) AND
-           (Frequency < BandMapEntryRecord^.Frequency) THEN
+        IF (Frequency < BandMapEntryRecord^.Frequency) THEN  { We need to put this record in here }
             BEGIN
 
-            { New for 6.50 }
+            { If the first entry in the list has a frequency higher than the one being added,
+              we need to create a new entry and make it the first one in the linked list }
 
-            IF LastBandMapEntryRecord = nil THEN  { This is the first entry }
+            IF LastBandMapEntryRecord = nil THEN   { Tells us we are the first record }
                 BEGIN
                 BandMapEntryRecord := New (BandMapEntryPointer);
 
                 { Do the splice }
 
                 BandMapEntryRecord^.NextEntry := BandMapFirstEntryList [Band, Mode];
-
                 BandMapFirstEntryList [Band, Mode] := BandMapEntryRecord;
 
                 { Save the data }
@@ -4608,16 +4677,22 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
                 BandMapEntryRecord^.QSXOffset  := QSXOffset;
                 BandMapEntryRecord^.StatusByte := StatusByte;
 
-                EntryAdded := True;
+                IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                    N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
 
-                { Setup to go through the rest of the list }
+                IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                    N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
 
-                LastBandMapEntryRecord := BandMapEntryRecord;
-                BandMapEntryRecord     := BandMapEntryRecord^.NextEntry;
-                Continue;
+                Exit;  { is a wonderful thing }
                 END;
 
             { We need to squeeze an new entry in here }
+
+            IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+                N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+            IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+                N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
 
             TempBandMapEntryRecord := BandMapEntryRecord;  { Remember }
 
@@ -4626,7 +4701,6 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
             { Do the splice }
 
             LastBandMapEntryRecord^.NextEntry := BandMapEntryRecord;
-
             BandMapEntryRecord^.NextEntry  := TempBandMapEntryRecord;
 
             { Fill in the data for the new record }
@@ -4635,16 +4709,7 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
             BandMapEntryRecord^.Frequency  := Frequency;
             BandMapEntryRecord^.QSXOffset  := QSXOffset;
             BandMapEntryRecord^.StatusByte := StatusByte;
-
-            EntryAdded := True;
-
-            { Setup to continue looking at the rest of the entries.  We
-              need to do this in case there is an entry on this band/mode
-              later on with the same callsign that needs to be deleted. }
-
-            LastBandMapEntryRecord := BandMapEntryRecord;
-            BandMapEntryRecord     := BandMapEntryRecord^.NextEntry;
-            Continue;
+            Exit;
             END;
 
         { Point to the next entry in the list }
@@ -4653,17 +4718,10 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
         BandMapEntryRecord     := BandMapEntryRecord^.NextEntry;
         END;
 
-    IF EntryAdded THEN
-      BEGIN
-      Exit;
-      END;
-
-
     { We got to the end of the list without finding the call or a place to
       add it.  Add to end of list. }
 
     BandMapEntryRecord := New (BandMapEntryPointer);
-
     LastBandMapEntryRecord^.NextEntry := BandMapEntryRecord;
 
     BandMapEntryRecord^.Call         := CompressedCall;
@@ -4671,7 +4729,13 @@ VAR LastBandMapEntryRecord: BandMapEntryPointer;
     BandMapEntryRecord^.QSXOffset    := QSXOffset;
     BandMapEntryRecord^.StatusByte   := StatusByte;
     BandMapEntryRecord^.NextEntry    := nil;
-    END;
+
+    IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+       N4OGW_RadioOne_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+
+    IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+       N4OGW_RadioTwo_BandMap.SendBandMapCall (Call, Frequency, Dupe, Mult);
+   END;
 
 
 
@@ -4866,29 +4930,23 @@ VAR StartBand, StopBand: BandType;
     tempy: longint;
 
     BEGIN
-    {KK1L: 6.64 Need to add starting column adjustment to DisplayBandMap. This will allow for}
-    {      bandmap entries beyond the screen dimensions. The 'global' variable}
-    {      FirstDisplayedBandMapColumn is set to zero in LoadBandMap and adjusted as needed}
-    {      by ShowBandMapCursor. Only a screen's worth of entries will be displayed.}
-    {KK1L: 6.64 I chose somewhat of a brute force approach rather than rewrite the whole proc.}
-    {      I mearly IF'd around the GoToProperXY calls when the CurrentCursor position was}
-    {      not within the displayed region of the bandmap. NumberEntriesDisplayed is a reference}
-    {      to the cursor on the screen, CurrentCursor is a reference to where in the displayable}
-    {      bandmap we are from a record perspective, FirstDisplayableBandMapCursor is directly}
-    {      referenceable to CurrentCursor.}
+    {KK1L: 6.64 Need to add starting column adjustment to DisplayBandMap. This will allow for
+           bandmap entries beyond the screen dimensions. The 'global' variable
+           FirstDisplayedBandMapColumn is set to zero in LoadBandMap and adjusted as needed
+           by ShowBandMapCursor. Only a screen's worth of entries will be displayed. }
+
+    {KK1L: 6.64 I chose somewhat of a brute force approach rather than rewrite the whole proc.
+           I mearly IF'd around the GoToProperXY calls when the CurrentCursor position was
+           not within the displayed region of the bandmap. NumberEntriesDisplayed is a reference
+           to the cursor on the screen, CurrentCursor is a reference to where in the displayable
+           bandmap we are from a record perspective, FirstDisplayableBandMapCursor is directly
+           referenceable to CurrentCursor. }
 
     BandMapBlinkingCall := '';
 
-    {KK1L: 6.73 added AND DisplayBandMapEnable because it keeps VGA mode supressed if not active at start up}
     IF (ScreenHeight < 40) AND (NOT DisplayBandMapEnable) THEN Exit;  { We only do band maps on VGA/EGA }
 
     IF NOT BandMapEnable THEN Exit;
-
-    {KK1L: 6.68 Tree had this check when BandMapRecord did not cover all bands. Removed!}
-    {IF VHFBandsEnabled THEN }{KK1L: 6.64 Keep band map within contest limits}
-    {  IF (BandMapBand > Band2) OR (BandMapMode > Phone) THEN Exit}
-    {ELSE}
-    {  IF (BandMapBand > Band12) OR (BandMapMode > Phone) THEN Exit; } {KK1L: 6.65 fixes WARC display enable}
 
     SaveSetAndClearActiveWindow (BandMapWindow);
 
@@ -4991,6 +5049,7 @@ VAR StartBand, StopBand: BandType;
         {KK1L: 6.67 Added indicator for dupes display mode}
         GoToXY (17, NumberBandMapRows+1);
         TextColor (White);
+
         IF BandMapDupeDisplay THEN
             Write ('DUPES ON ')
         ELSE
@@ -5050,15 +5109,20 @@ VAR StartBand, StopBand: BandType;
                    {      BandMapEntryRecord := BandMapEntryRecord^.NextEntry;    }
                    {      Continue;                                               }
                    {      END;                                                    }
+
                    {KK1L: 6.64 Set FirstDisplayedBandMapFrequency for use on next call to DisplayBandMap}
                    {KK1L: 6.65 Changed to = NumberBandMapRows from 0 to mimic display movement of EditBM}
                    {KK1L: 6.65 Changed it back because I like it better}
                    {KK1L: 6.69 Changed to = NumberBandMapRows from 0 to mimic display movement of EditBM}
+
                    IF NumberEntriesDisplayed = NumberBandMapRows THEN
                      FirstDisplayedBandMapFrequency := BandMapEntryRecord^.Frequency;
+
                    {KK1L: 6.64 Set FirstDisplayableBandMapFrequency for use on next call to DisplayBandMap}
+
                    IF CurrentCursor = 0 THEN
                      FirstDisplayableBandMapFrequency := BandMapEntryRecord^.Frequency;
+
                    { Position write position in proper place }
                    {KK1L: 6.64 but only if in the range we want to display}
                    {KK1L: 6.65 Moved further down within existing IF...THEN. It's quicker}
@@ -5070,19 +5134,20 @@ VAR StartBand, StopBand: BandType;
                        BEGIN
                        WindowCall := BandMapExpandedString (Call);
                        BandMapCall := WindowCall;
+
                        {KK1L: 6.64 Sometimes calls wrap into the next field. Truncate to 7 chars for display}
                        {      CallString is 12 chars long. No IF needed since Delete handles strings}
                        {      shorter than index requested. This handles the display. There is a}
                        {      similar change in ShowBandMapCursor to allow the call to show }
                        {      as full size when the cursor passes over it.}
+
                        Delete(BandMapCall, 8, 12);
                        WHILE (Length(BandMapCall) < 7) DO BandMapCall := BandMapCall + ' '; {KK1L: 6.69 neatens display}
-                       {KK1L: 6.64 the dupechecking stuff needed so as not to blink dupes if not displayed}
+
+                       { Determine if this entry should be blinking (for non-CQ entries) }
+
                        IF (Abs (Frequency - BandMapCursorFrequency) <= BandMapGuardBand) AND
-                          (Copy (BandMapCall, 1, 3) <> 'CQ/') THEN  {KK1L: 6.68 changed to below to show CQ} {KK1L: 6.72}
-                       {KK1L: 6.72 Removed. Many folks                              }
-                       { ended up logging "CQ/xxxx" calls which show up as Portugal.}
-                       {IF (Abs (Frequency - BandMapCursorFrequency) <= BandMapGuardBand) THEN}
+                          (Copy (BandMapCall, 1, 3) <> 'CQ/') THEN
                               BEGIN
                               IF CallWindowShowAllSpots THEN {KK1L: 6.65}
                                  BEGIN
@@ -5288,8 +5353,7 @@ VAR StartBand, StopBand: BandType;
     RestorePreviousWindow;
     END;
 
-
-
+
 
 PROCEDURE ShowBandMapCursor (CursorPosition: INTEGER;
                              NumberVisibleBandMapEntries: INTEGER;
@@ -5410,9 +5474,12 @@ VAR FreqString: Str10;
 
     End;
 
-
+
 
 PROCEDURE UpdateBlinkingBandMapCall;
+
+{ Resets the decay time of the blinking band map call record to the
+  BandMapDecayTime value }
 
     BEGIN
     IF NOT BandMapEnable THEN Exit;
@@ -5427,8 +5494,7 @@ PROCEDURE UpdateBlinkingBandMapCall;
     DisplayBandMap;
     END;
 
-
-
+
 
 PROCEDURE UpdateTenMinuteDate (Band: BandType; Mode: ModeType);
 

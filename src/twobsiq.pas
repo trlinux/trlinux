@@ -3,7 +3,7 @@
 //
 //This file is part of TR log for linux.
 //
-//TR log for linux is free software: you can redistribute it and/or
+//TR log for linux is free software: you can redistribute it and/or                       3
 //modify it under the terms of the GNU General Public License as
 //published by the Free Software Foundation, either version 2 of the
 //License, or (at your option) any later version.
@@ -29,9 +29,6 @@ TODO LIST
 
  - "ActiveBand" cursor on the band totals display is not right.
 
- - Occasionally, the auto start send doesn't start if I am busy on the other radio.
-   This might be fixed as of 4-Sep - waiting to see if it shows up again.
-
  - Anyway to quickly turn on monitor tone for manual sending?  either automagic or manual
 
  - When starting AutoStartSend when the other radio is sending CW - the indicator is
@@ -45,11 +42,255 @@ TODO LIST
  - RepeatSearchAndPounceExchange not used in 2BSIQ yet.  Will always use the non
    repeat one.
 
- - Intiial exchange has a space?
+  - Intiial exchange has a space?
 
- - Show country and beam headings?
+  - Show country and beam headings? (Fixed?)
+
+  - AltK is not well behaved.
+
+  - If in SSB - remove AutoStartSend arrows
+
+  - Need to use new TQ command for dualing CQs on SSB
+
+  - In Classic mode - start of CW of dualing CQs sounds funny.
+
+  - Serial number needs better way to start off if recording freqs
+
+NOTES FROM SSCW:
+
+    > character in CW messages clears RIT on wrong radio
+
+    As I got more contacts, the QSO before message was chopped some
+
+    Also, with more QSOs, saw a flash of yellow before CQ EXCHANGE
+
+    Improve indication of dualing CQ status
+
+    I think Alt-Enter should log a QSO even if it was a dupe - not
+    sure if that is always true in S&P
+
+    Would be nice to get capital letters when editing log.  Same for
+    Memory program (like shift keys for characters).
+
+NOTES FROM ARRL DX CW
+
+  - Maybe improve the mult/qso display with auto start CQs - I sort of fixed it
+  - Footswitch doesn't seem to want to send F1 - does PTT instead.
+  - I keep calling dupes in S&P mode - need better warnings.
+  - Dualing CQs not working?
+  - Not getting SCP calls from log?
+
+BIG ASS PROJECT
+
+  - The current partial call stuff is writen in such a way that adopting it to 2BSIQ
+    is messy.  The reason is that it was all intended to be used by Calssic mode and
+    there are various global variables used to remember where we are at in creating
+    the partial calls that show up while entering a callsign.  Since we will be entering
+    calls from two different "radios" - it would be best to have two completly isolated
+    instances of the partial call code running which are totally independant.  This will
+    likely require a total rewrite of the low level code to make it a nice object for
+    which we can define specific instances of.  I chose not to do this a few hours before
+    the NAQP RTTY test - but this will be an important addition as it will improve the
+    "callsign fetch" process when just entering the suffic of a call immensely (instead
+    of relying on SCP).  As part of this - we can likely clean up the data structure
+    used for the "partial call list" which really is something more like just an
+    alphabetical list of all the calls worked in the contest plus any that are in an
+    initial exchange file (we really don't use initial exchanges files anymore since
+    all that data is in the TRMASTER.DTA database).
+
+    The code should be such that we can easily add in calls from the SCP database if
+    we want to for the partial call list.  Maybe with the criteria "have name" or
+    "have domestic QTH".
+
+  - Improve sending RTTY message from keyboard
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+24-Feb-2023
+
+   - Removed AltD feature.
+
+   - If you are messing around with a callsign in the call window with AutoStartSend enabled,
+     you could get the AutoStartSend to trigger if you came at the AutoStartSendCharacterCount
+     by deleting a character.  This is no longer possible.  There has always been a mechanism
+     to rearm the auto start send if you go down to two letters and then enter more stuff.
+
+23-Feb-2023
+
+   - AUTO SCP CALL FETCH implemented.  Takes three letters and turns it into a full call if
+     there is only one SCP call shown (when coming back to a call and pressing ENTER).
+
+   - Fixed bug where SCP stops processing additional callsign input after auto start send.
+   - Fixed bug where entering JA1/ started auto start send.
+   - Fixed bug where expanding a callsign from the middle will trigger auto start send.
+   - Fixed bug where pressing ESCAPE after auto start send jumps you into sending the exchange.
+
+19-Feb-2023
+
+   - Made sending @ in a function key message update CallsignICameBackTo
+
+06-Feb-2023
+
+   - Hopefully enabled escape key to get out of Alt-D mode.
+
+   - Hopefully fixed bug where the wrong radio was being indcated some of the
+     time with the UDP messages - thus making Qsorder save the wrong channel
+     some of the time.
+
+   - Fixed the visible dupesheet being pretty brain dead.  Now works good for
+     the sprint hopefully.  It basically uses the same criteria as the band map
+     to switching bands.
+
+04-Feb-2023
+
+  - Some minor fixes with the AutoStartSend feature.  First off - if it is
+    enabled in classic mode - typing 2BSIQ will not start a transmission so
+    you can enter 2BSIQ without having to turn AutoStartSend off.  A minor
+    bug where you had to press the Alt-Dash key twice occasionally has been
+    fixed - and also the AutoStartSend state (which is called
+    AutoStartSendEnable in the local variable for the QSOMachine instance) is
+    copied from the Classic global variable - so both QSOMachines should come
+    up in the same Classic state.
+
+02-Feb-2023
+
+  - If callsing CQ on one radio and wanting to send F1 in S&P mode - CW will be
+    stopped on the CQing radio.
+
+19-Jan-2023
+  - Supported updating the bandmap output.
+
+14-Jan-2023
+  - Added support for N4OGW bandmap commands and VFO support.
+
+07-Jan-2023
+  - Cleaned up some stuff with RTTY.  Trying to make it as consistent to
+    CW and Classic as much as possible.  Note that you do not use CQ EXCHANGE
+    and must program EX Function Key memories F1 and F2.  MY CALL is not
+    automatically used when you call someone in S&P
+
+25-Dec-2022
+
+  - Added the Control-Q CW character to get the frequency from the other
+    radio.  This is the identical function as added to the classic mode
+    but the implementation is totally unique to TBSIQ.  It will also
+    generate a note to the log file indicating who was asked to go where.
+
+  - Cleaned up retry message from SO2R mini so pieces of it don't get left
+    over and displayed forever just after the Score total window.
+
+23-Dec-2022
+
+  - Added AUTO QSY REQUEST ENABLE parameter (control-J) which is intended to
+    automatically ask someone who is a multiplier to QSY to the other band
+    when 2BSIQing.  It is intended that it only do this when the other band
+    has some minimum number of QSOs (so you aren't doing this for easy
+    multipliers) and when for sure you are actively calling CQ on the
+    other frequency.
+
+    This is still in the idea phase.  I need to make some kind of mechanism
+    that keeps tracks of the CQ activtiy of each radio.  Then I need a
+    function that looks at that data to decide if I am active on an
+    established frequency before asking someone to QSY to that frequency.
+
+    But maybe before doing that - I should make sure I have a manual way of
+    doing it using CW messsage character for the frequency of the other radio.
+    I think I remember implementing that sometime ago?  It appears note - so
+    let's add that first (for both calssic and 2BSIQ).
+
+28-Nov-2022
+  - Realized that these removal of PttUnforce was kind of a bad idea as
+    the SO2R mini should keep PTT asserted if it has characters in the
+    buffer when seeing this command.  This is resulting in the brief
+    letup of PTT with the CW messages after a callsign is sent and before
+    the CQ exchange shows up after we have enough QSOs.
+
+    So - the SO2R mini firmware needed to be changed so it emulates how
+    things worked before - and the PTTUnassert commands put back into
+    the high level program (both classic and 2BSIQ).  Also, we need
+    to force PTT on while sending a callsign in CQ mode so that the
+    gap until we sent the CQ EXCHANGE is covered.
+
+    Finally, since we are updating the SO2R mini firmware, we are going
+    to fix the ^ character being a command prefix - and make it work
+    as a half space like it is supposed to.
+
+    Along with that will be checking the SO2R mini version now and giving
+    a warning message if it isn't up to date.
+
+    The new SO2R Mini firmare version is TRCW4 V4.
+
+    The new SO2R Mini command prefix is now semi-colon.
+
+26-Nov-2022
+
+  - In effort to make PTT work again in classic mode while sending CW,
+    I restored the old SendCrypticCW procedure in logsubs1.pas.  It had
+    been moved to logedit.pas in an attempt to let the TBSIQ stuff
+    leverage it - but that didn't work out.  Turns out that I needed
+    to delete a ClearPttForceOn command at the end of SendCrypticCWString
+    in LOGSUBS1.PAS.
+
+  - Insert status now comes up the same as what you had in classic UI.
+
+15-Nov-2022
+
+  - Removed Deleted Call message.
+
+  - Improved operation with dualing CQs on SSB.  A message in progress will
+    be stopped once a key is entered on the opposite radio in response to
+    a CQ.  This is different from CW where the CQ will finish out before
+    the call is answered.
+
+14-Nov-2022
+
+  - Fixed nasty bandmap issue where calls were bleeding over to the wrong
+    radio.  This turned out to be a case of assuming that the "real" active
+    window was already setup if the radio specific active window seemed to
+    be correct.  There might be other places lurking where you need to put
+    a SetTBSIQWindow (TBSIQ_ActiveWindow) command to make sure the correct
+    window is up.  This normally happens when a key is pressed - but if
+    something automatic like switching between band map focus without a
+    keystroke, then you might be in the wrong place.
+
+09-Nov-2022
+
+  - Fixed bug where PTT was being deasserted before completing the character
+    being sent by the Arduino when the operator is pressing ESCAPE. This was
+    fixed by removing the PTT unassert command in LOGCW in the FlushBuffer
+    prodcedure.
+
+05-Nov-2022
+
+  - Fixed UserInfo not coming up with CQ QSOs
+
+04-Nov-2022
+
+  - Fixed S&P indicator if enabled.
+
+  - Made sure remaining mults get updated when logging a QSO.
+
+  - Put editable log back up when sending CQ exchange (clearing out the partial
+    call window).
+
+03-Nov-2022
+
+  - Fixed ^ character in Arduino (see main program notes)
+
+  - Moved User Info Window above the INSERT window so it no longer gets
+    overwritten by the Auto Start Send indicator.  Note that it appears
+    you need to put the TRMASTER.BIN file in the working directory for
+    the contest.
+
+  - In S&P - made AltZ (used to go from CallWindow to ExchangeWindow and
+    get initial exchange) show station info.
+
+30-Oct-2022
+
+  - Found case where I had some letters in the call window and could not
+    clear them even though the call window string was empty.  Added a
+    ClrScr.  This happened when I was doing something with the bandmap
+    or a dupe check on the other radio.
 
 28-Oct-2022
 
@@ -127,6 +368,19 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
     listen time is four seconds.  You can adjust it during listening time in
     half second increments using PageUp/Dn.  PageUp/Dn during transmit will
     change the CW speed.
+
+  - Added a time window where function key memories are blocked out for about 200
+    ms after pressing one.  Eliminates double messages on SSB.
+
+  - Moved the "is a dupe" message up in S&P so the call gets shown.  Changed
+    colors for it.  Made message go away after 3 seconds.  Made editable log
+    come up right away.  Made it impossible for that dupe call to get back in
+    the call window for 3 seconds.
+
+  - MAde it harder to spot garbage - like something that does not look like a
+    call or a double callsign
+
+
 
 22-Oct-2022
 

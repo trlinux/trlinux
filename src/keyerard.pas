@@ -454,7 +454,7 @@ CONSTRUCTOR ArduinoKeyer.Create;
 
    Tuning := False;
    TuningWithDits := False;
-   Weight := 128;
+   Weight := 100;
    END;
 
 
@@ -487,9 +487,17 @@ VAR DelayLoops: INTEGER;
 
             IF Length (Version) = 7 THEN  { We have enough characters }
                 BEGIN
-                EchoTest := Copy (Version, 1, 4) = 'TRCW';
+                IF Copy (Version, 1, 7) <> 'TRCW V4' THEN
+                    BEGIN
+                    WriteLn ('Expected TRCW V4 response from SO2R Mini.  Received ', Version);
+                    WaitForKeyPressed;
+                    Halt;
+                    END;
+
                 GoToXY (1, WhereY);
                 ClrEol;
+
+                EchoTest := True;
                 Exit;
                 END;
             END
@@ -503,8 +511,11 @@ VAR DelayLoops: INTEGER;
                 BEGIN
                 ClrScr;
                 WriteLn;
-                WriteLn ('Unable to communicate with Arduino after ', RetryCount, ' retries');
-                WriteLn ('Returned string = ', Version);
+                WriteLn ('No valid response from Arduino after ', RetryCount, ' attempts');
+
+                IF Version <> '' THEN
+                    WriteLn ('Returned characters = ', Version);
+
                 WaitForKeyPressed;
                 Halt;
                 END;
@@ -533,7 +544,6 @@ Procedure ArduinoKeyer.InitializeKeyer;
 
    IF NOT EchoTest THEN
        BEGIN
-       ClrScr;
        WriteLn ('Arduino Keyer not responding -- check connection');
        WaitForKeyPressed;
        Halt;
@@ -565,7 +575,7 @@ FUNCTION ArduinoKeyer.GetWeight: REAL;
 { We just report back what we sent last to the keyer }
 
     BEGIN
-    GetWeight := Weight * (1 / $80);
+    GetWeight := Weight * (1 / 100);
     END;
 
 PROCEDURE ArduinoKeyer.SetPTTTurnOnDelay (delay: integer);
@@ -668,7 +678,8 @@ PROCEDURE ArduinoKeyer.PTTForceOn;
 
 Procedure ArduinoKeyer.PTTUnForce;
 
-{ Turns off PTT signal - no if ands or buts }
+{ Turns off PTT signal - no if ands or buts.  Well - okay, if there are
+  CW characters to be sent - the PTT will stay asserted }
 
     BEGIN
     IF KeyerInitialized THEN
@@ -1208,6 +1219,9 @@ FUNCTION ArduinoKeyer.DeleteLastCharacter: BOOLEAN;
 
 
 PROCEDURE ArduinoKeyer.FlushCWBuffer;
+
+{ Was sending $13 to finish current character but that resulted in PTT errors
+  so amd trying $12 }
 
     BEGIN
     IF KeyerInitialized THEN

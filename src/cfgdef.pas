@@ -45,7 +45,9 @@ PROCEDURE SetConfigurationDefaultValues;
     AutoCallTerminate      := False;
     AutoDupeEnableCQ       := True;
     AutoDupeEnableSAndP    := True;
+    AutoPartialCallFetch   := False;
     AutoQSONumberDecrement := False;
+    AutoQSYRequestEnable   := False;
     AutoReturnToCQMode     := True;
     AutoSAPEnable          := False;
     AutoSAPEnableRate      := 1000; {KK1L 6.72}
@@ -53,7 +55,7 @@ PROCEDURE SetConfigurationDefaultValues;
     AutoTimeIncrementQSOs  := 0;
 
     BandMapAllBands         := False;
-    BandMapAllModes         := False;
+    BandMapAllModes         := True;
     BandMapMultsOnly        := False; {KK1L: 6.68}
     BandMapCallWindowEnable := True;
     BandMapDisplayCQ        := True;
@@ -176,6 +178,7 @@ PROCEDURE SetConfigurationDefaultValues;
     FloppyFileSaveFrequency := 0;
 
     FootSwitchMode := FootSwitchDisabled;
+    PreviousFootSwitchMode := Normal;
 
     ForcedEntry := False; {KK1L: 6.70 switch used in JCTRL2 to add comments to LOGCFG}
 
@@ -254,6 +257,8 @@ PROCEDURE SetConfigurationDefaultValues;
     MySection    := '';
     MyState      := '';
     MyZone       := '';
+
+    N4OGW_Frequency_Control := N4OGW_FC_Auto;
 
     NameFlagEnable  := True;
     NoLog           := False;
@@ -474,7 +479,8 @@ PROCEDURE SetConfigurationDefaultValues;
     Winkey.SetTuneWithDits(False);
     Yccckey.SetTuneWithDits(False);
     TuneDupeCheckEnable := False; {KK1L: 6.73}
-    TwoRadioState   := TwoRadiosDisabled;
+    TwoRadioState := TwoRadiosDisabled;
+    TwoVFOState   := TwoVFOsDisabled;
 
     UnknownCountryFileEnable := False;
     UnknownCountryFileName   := 'UNKNOWN.CTY';
@@ -484,6 +490,8 @@ PROCEDURE SetConfigurationDefaultValues;
     VGADisplayEnable := True;
     VHFBandsEnabled := False;
     VisibleDupesheetEnable := False;
+    VisibleDupesheetBand := NoBand;
+    VisibleDupesheetMode := NoMode;
 
     WakeUpTimeout := 0;
     WaitForStrength := True;
