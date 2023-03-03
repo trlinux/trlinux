@@ -98,6 +98,8 @@ VAR PatternIndex: INTEGER;
             Exit;
             END;
 
+        { Increment to the next character in the buffer and pattern }
+
         Inc (PatternIndex);
         Inc (Address);
         END;
@@ -129,7 +131,7 @@ VAR StartAddress, StopAddress, SaveAddress, Address: INTEGER;
         BEGIN
         IF NextBytesMatchString (Address, '<' + XMLField + '>') THEN
             BEGIN
-            StartAddress := Length (XMLField) + 2;  { Jump over the <field> entry }
+            StartAddress := Address + Length (XMLField) + 2;  { Jump over the <field> entry }
 
             Address := StartAddress;  { Address of first character after field ID }
 
