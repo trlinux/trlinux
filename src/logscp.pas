@@ -18,6 +18,13 @@
 //<http://www.gnu.org/licenses/>.
 //
 
+{ This unit was originally intended to be only for stuff that supported the
+  super check partial feature - which uses the TRMASTER.DTA file (which is
+  based on the MASTER.DTA format but with extensions).  However, it is
+  somewhat poluuted by the concept of "partial calls" which sometimes are
+  calls that are in the dupesheet.  This creates confusion when older
+  programmers who haven't looked at this code for 20 years try to use it.  }
+
 UNIT LogSCP;
 
 {$O+}
@@ -34,27 +41,42 @@ CONST
     TempFileName         = 'TEMPDTA.TMP';
     AVeryBigNumber       = 1000000000;
     MaxBlocks            = 10;
-    MaximumPossibleCalls = 50;
+    MaxCallListEntries   = 200;
     MemoryBlockSize      = 65000;
-    MaximumCallsAlreadSaved = 3000;
+    MaximumCallsAlreadySaved = 3000;
 
 TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
      EntryArrayPtr  = ^EntryArrayType;
 
-    CallsAlreadySavedArray = ARRAY [0..MaximumCallsAlreadSaved - 1] OF CallString;
+    CallsAlreadySavedArray = ARRAY [0..MaximumCallsAlreadySaved - 1] OF CallString;
     CallsAlreadySavedArrayPtr = ^CallsAlreadySavedArray;
 
     PossibleCallActionType = (AnyCall, OnlyCallsWithNames, LogOnly); {KK1L: 6.69 added LogOnly}
 
-    PossibleCallEntry = RECORD
+    { This next stuff used to called PossibleCallEntry / Record.  It also got used for
+      "partial" calls (the calls you see as you type in a callsign at the bottom of the
+      screen that only come from your dupesheet / initial exchange list).  Having it
+      called PossibleCalls was confusing...  so now it will just be called "CallList"
+      and can be used for both without creating as much confusion.
+
+      It also has been expanded to include all of the global variables which wasn't an
+      issue when we just had the Classic UI - but when we got into TBSIQ with two
+      separate partial call windows - things got really messed up.
+
+      Some fields might not be used for SCP or partial in order to make everything be able
+      to use the same data structure.  Also, since memory isn't an issue any more, the
+      maximum number of calls that could be stored has been increased from 50 to 200 }
+
+    CallListEntry = RECORD
         Call: CallString;
         Dupe: BOOLEAN;
         END;
 
-    PossibleCallRecord = RECORD
-        NumberPossibleCalls: INTEGER;
-        List: ARRAY [0..MaximumPossibleCalls - 1] OF PossibleCallEntry;
+    CallListRecord = RECORD
         CursorPosition: INTEGER;
+        Input: CallString;
+        NumberCalls: INTEGER;
+        CallList: ARRAY [0..MaxCallListEntries - 1] OF CallListEntry;
         END;
 
     DataBaseEntryRecord = RECORD
@@ -92,18 +114,18 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
     BufferPtr   = ^BufferArray;
 
     CellBufferObject = OBJECT
-        MaximumMemoryToUse: LONGINT;   { TR should set this to a low # }
+        MaximumMemoryToUse: LONGINT;   { TR DOS should set this to a low # }
         ReadAddress: LONGINT;
         MemoryAllocated: LONGINT;
         Key: Str20;
 
-        NumberBufferEntries: LONGINT;
+        NumberBufferEntries: LONGINT;   { Total of all entries across three buffers }
 
         Buffer1Bytes: LONGINT;
         Buffer2Bytes: LONGINT;
         Buffer3Bytes: LONGINT;
 
-        Buffer1: BufferPtr;
+        Buffer1: BufferPtr;  { Three buffers to handle those really big cells like JA }
         Buffer2: BufferPtr;
         Buffer3: BufferPtr;
 
@@ -114,8 +136,8 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
         PROCEDURE FigureOutBufferSizes (NumberBytes: LONGINT);
         FUNCTION  GetNextEntry (VAR EntryString: STRING): BOOLEAN;
         FUNCTION  GetNextEntryAddress (VAR EntryAddress: POINTER): BOOLEAN;
-        PROCEDURE Initialize (VAR NumberBytes: LONGINT);
         PROCEDURE GoAway;
+        PROCEDURE Initialize (VAR NumberBytes: LONGINT);
         PROCEDURE LoadCellIntoBuffer (KeyString: CallString; VAR FileRead: FILE; NumberBytes: LONGINT);
         END;
 
@@ -141,6 +163,7 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
         ASCIIFileCrunchWrite: TEXT;
         ASCIIFileIsCurrent:   BOOLEAN;   { Handy if successive AddEntries }
 
+        CallsAlreadySaved: CallsAlreadySavedArrayPtr;
         CellBuffer: CellBufferObject;    { The big and great File Buffer }
         CountryString: Str80;
 
@@ -154,19 +177,19 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
         EntryPointerList: EntryPointerListPtr;
 
         FirstMergeDataListEntry: DataListEntryPointer;
+        FirstSCPCall: CallString;
 
         IndexArrayAllocated: BOOLEAN;
 
         InitialPartialCall: CallString;
-        InitialPartialList: PartialCallListEntryPtr;
 
         LastCallRecord: DataBaseEntryRecord;
-
-        LastPartialCall: CallString;
-        LastPartialList: PartialCallListEntryPtr;
+        LastSCPCall: CallString;
 
         MemoryBlocks: ARRAY [0..MaxBlocks - 1] OF MemoryBlockPtr;
+        NumberCallsAlreadySaved: INTEGER;
         NumberEntries: LONGINT;
+        NumberSCPCalls: INTEGER;
 
         SectionOverwrite:  BOOLEAN;
         CQZoneOverwrite:   BOOLEAN;
@@ -188,6 +211,8 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
 
         PossibleCallAction: PossibleCallActionType;
 
+        SCPCallList: CallListRecord;  { Used to be PossibleCallList }
+
         SCPDisabledByApplication: BOOLEAN;  { If TRUE - memory deallocated }
 
         SCPIndexArray:   SCPIndexArrayPtr;  { Table of cell addresses }
@@ -202,10 +227,10 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
 
         PROCEDURE AddInBytes (NumberBytes, X, Y: INTEGER);
         PROCEDURE AddRecordToMergeList (Data: DatabaseEntryRecord);
+        FUNCTION  AlreadySaved (Call: CallString): BOOLEAN;
         FUNCTION  ASCIIFileCrunch: BOOLEAN;
         PROCEDURE ASCIIFileEditor;
         FUNCTION  BestTwoLetters (Partial: CallString): Str20;
-        PROCEDURE BlowAwayFirstLettersList;
         FUNCTION  BuildNewDatabaseFromASCIIFile (Ignore: CHAR): BOOLEAN;
         PROCEDURE CheckDTAFile;
         PROCEDURE ClearDataEntry (VAR Data: DatabaseEntryRecord);
@@ -214,7 +239,7 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
 
         FUNCTION  FirstCellForThisCall (Call: CallString; X, Y: INTEGER): BOOLEAN;
 
-        PROCEDURE GeneratePossibleCallList (Call: CallString);
+        PROCEDURE GeneratePossibleCallList (Call: CallString; VAR List: CallListRecord);
 
         PROCEDURE GetBestOffsets (Call: CallString;
                                   VAR StartingOffset, EndingOffset: LONGINT;
@@ -224,6 +249,7 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
         FUNCTION  GetCodeSpeed (Call: CallString): INTEGER;
         PROCEDURE GetDataFromASCIIEntry (FileString: STRING; VAR Data: DataBaseEntryRecord; Ignore: CHAR);
         FUNCTION  GetFOCNumber (Call: CallString): CallString;
+
         FUNCTION  GetName (Call: CallString): CallString;
         FUNCTION  GetNextPartialCall: CallString;
         FUNCTION  GetRandomCall: CallString;  { Use this one }
@@ -238,7 +264,7 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
                                VAR SecondArray: EntryArrayPtr;
                                VAR OutputArray: EntryArrayPtr);
 
-        PROCEDURE MovePossibleCallsFromBufferIntoCallList (Call: CallString);
+        PROCEDURE MovePossibleCallsFromBufferIntoCallList (Call: CallString; VAR List: CallListRecord);
         PROCEDURE NewTwoLetters (PartialCall: Str20);
         FUNCTION  NumberOfBytesAtThisAddress (TwoLetters: Str20): LONGINT;
         FUNCTION  OverwriteFlagStatus: BOOLEAN;
@@ -263,28 +289,56 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
 
 VAR CD: CallDatabase;
 
-    AutoPartialCallFetch: BOOLEAN;
+    AutoPartialCallFetch: BOOLEAN;   { This is a configuration variable that may or may not need to be here }
 
-    CallsAlreadySaved: CallsAlreadySavedArrayPtr;
-
-    FirstPartialCall: CallString;   { Not SCP - these come from the dupesheet/initial exchanges }
-    FirstSCPCall: CallString;       { From TRMASTER.DTA }
-
-    NumberCallsAlreadySaved: INTEGER;
+    { These need to move up to logdupe or whereever PartialCallStuff will be }
 
     NumberPartialCalls: INTEGER;    { Not SCP - these come from dupesheet/initial exchanges }
-    NumberSCPCalls: INTEGER;        { From TRMASTER.DAT }
 
-    PossibleCallList: PossibleCallRecord;  { Used for the Classic UI only }
+{ Generic routines that can be used on any instance of CallListRecord }
 
-    FUNCTION  GetRandomLetter: CHAR;
-    FUNCTION  GetRandomNumber: CHAR;
+FUNCTION  EntryExists (Call: CallString; List: CallListRecord): BOOLEAN;
+FUNCTION  GetRandomLetter: CHAR;
+FUNCTION  GetRandomNumber: CHAR;
+PROCEDURE SortCallListIntoAlphabeticalOrder (List: CallListRecord);
 
 
 
 IMPLEMENTATION
 
 uses memlinux,keycode,sysutils,timer;
+
+PROCEDURE SortCallListIntoAlphabeticalOrder (List: CallListRecord);
+
+VAR Range, Address: INTEGER;
+    TempEntry: CallListEntry;
+    Change: BOOLEAN;
+
+    BEGIN
+    IF List.NumberCalls < 2 THEN Exit;  { No sorting needed }
+
+    Range := List.NumberCalls - 2;
+
+    REPEAT
+        WITH List DO
+            BEGIN
+            Change := False;
+
+            FOR Address := 0 TO Range DO
+                IF List.CallList [Address].Call > List.CallList [Address + 1].Call THEN  { Swap 'em }
+                   BEGIN
+                   TempEntry := List.CallList [Address];
+                   List.CallList [Address] := List.CallList [Address + 1];
+                   List.CallList [Address + 1] := TempEntry;
+                   Change := True;
+                   END;
+            END;
+
+        Dec (Range);
+    UNTIL (NOT Change) OR (Range < 0);
+    END;
+
+
 
 FUNCTION DoubleIndexCall (Call: CallString): BOOLEAN;
 
@@ -334,7 +388,7 @@ PROCEDURE CellBufferObject.Initialize (VAR NumberBytes: LONGINT);
         MemoryAllocated := 3 * BufferArraySize;
         END
 
-    ELSE               { TR has set the max memory to something else }
+    ELSE               { TR DOS has set the max memory to something else }
         BEGIN
         IF MemoryAllocated > 0 THEN
             FreeMem (Buffer1, MemoryAllocated);
@@ -411,7 +465,7 @@ PROCEDURE CellBufferObject.FigureOutBufferSizes (NumberBytes: LONGINT);
 
             IF NumberBytes > BufferArraySize THEN
                 BEGIN
-                ReportError ('This cell is too big!');
+                ReportError ('This cell is too big!  in FigureOutBufferSizes in logscp.pas');
                 Halt;
                 END
             ELSE
@@ -437,7 +491,7 @@ VAR BytesRead: WORD;
     BEGIN
     Initialize (NumberBytes);
 
-    IF MaximumMemoryToUse <= BufferArraySize THEN  { TR mode }
+    IF MaximumMemoryToUse <= BufferArraySize THEN  { TR DOS mode }
         BEGIN
         BlockRead (FileRead, Buffer1^, NumberBytes, BytesRead);
         Key := KeyString;
@@ -454,7 +508,7 @@ VAR BytesRead: WORD;
 
         IF BytesRead < Buffer1Bytes THEN
             BEGIN
-            ReportError ('File read error!!  Line #721 in LOGSCP.PAS.');
+            ReportError ('File read error!!  LoadCellIntoBuffer1 in logscp.pas.');
             Halt;
             END;
         END;
@@ -465,7 +519,7 @@ VAR BytesRead: WORD;
 
         IF BytesRead < Buffer2Bytes THEN
             BEGIN
-            ReportError ('File read error!!  Line #721 in LOGSCP.PAS.');
+            ReportError ('File read error!!  LoadCellIntoBuffer2 in logscp.pas.');
             Halt;
             END;
         END;
@@ -476,7 +530,7 @@ VAR BytesRead: WORD;
 
         IF BytesRead < Buffer3Bytes THEN
             BEGIN
-            ReportError ('File read error!!  Line #721 in LOGSCP.PAS.');
+            ReportError ('File read error!!  LoadCellIntoBuffer3 in logscp.pas.');
             Halt;
             END;
         END;
@@ -583,7 +637,6 @@ VAR CellChar: CHAR;
 
     GetNextEntryAddress := False;
     END;
-
 
 
 FUNCTION GetRandomLetter: CHAR;
@@ -998,7 +1051,7 @@ VAR FirstDataRecord, SecondDataRecord, OutputDataRecord: DatabaseEntryRecord;
 
 
 
-FUNCTION AlreadySaved (Call: CallString): BOOLEAN;
+FUNCTION CallDatabase.AlreadySaved (Call: CallString): BOOLEAN;
 
 VAR Address: INTEGER;
 
@@ -1013,7 +1066,7 @@ VAR Address: INTEGER;
 
     AlreadySaved := False;
 
-    IF NumberCallsAlreadySaved < MaximumCallsAlreadSaved THEN
+    IF NumberCallsAlreadySaved < MaximumCallsAlreadySaved THEN
         BEGIN
         CallsAlreadySaved^ [NumberCallsAlreadySaved] := Call;
         Inc (NumberCallsAlreadySaved);
@@ -1310,8 +1363,8 @@ VAR FileRead, FileWrite: TEXT;
 FUNCTION CallDatabase.BestTwoLetters (Partial: CallString): Str20;
 
 { This routine will return the best two letters to be used when looking
-  for the specified callsign/partial. }
-
+  for the specified callsign/partial.  That would be the two letter cell
+  that has the fewest callsigns in it. }
 
 VAR CharPos: INTEGER;
     MinimumBytes: LONGINT;
@@ -1326,9 +1379,16 @@ VAR CharPos: INTEGER;
 
     MinimumBytes := AVeryBigNumber;
 
-    FOR CharPos := 1 TO Length (Partial) - 1 DO
+    { In March 2023 - when reviewing this  I changed the next FOR statement
+      to only go to Length (Partial) - 2 }
+
+    FOR CharPos := 1 TO Length (Partial) - 1 DO  { Changed from -1 to -2 }
         BEGIN
-        IF Copy (Partial, CharPos, 2) = 'JA' THEN Continue;
+        IF Copy (Partial, CharPos, 2) = 'JA' THEN
+            BEGIN
+            NumberBytes [CharPos] := AVeryBigNumber;
+            Continue;  { For sure not the best one }
+            END;
 
         NumberBytes [CharPos] := NumberOfBytesAtThisAddress (Copy (Partial, CharPos, 2));
 
@@ -1336,44 +1396,17 @@ VAR CharPos: INTEGER;
 
         IF NumberBytes [CharPos] > 0 THEN
             IF NumberBytes [CharPos] < MinimumBytes THEN
+                BEGIN
                 MinimumBytes := NumberBytes [CharPos];
+                BestTwoLetters := Copy (Partial, CharPos, 2);
+                END;
+
         END;
-
-    { Now, which pair had the minimum cell size? }
-
-    FOR CharPos := 1 TO Length (Partial) - 1 DO
-        IF NumberBytes [CharPos] = MinimumBytes THEN
-            BEGIN
-            BestTwoLetters := Copy (Partial, CharPos, 2);
-            Exit;
-            END;
 
     { We fall through leaving a null string if we couldn't process the
       data.  This might occure if someone called us with a string that
       didn't have two non wildcard entries in a row (like N?6). }
 
-    END;
-
-
-
-PROCEDURE CallDatabase.BlowAwayFirstLettersList;
-
-{ This procedure will clear out the InitialPartialList }
-
-VAR NextRecord, ActiveRecord: PartialCallListEntryPtr;
-
-    BEGIN
-    ActiveRecord := InitialPartialList;
-
-    WHILE ActiveRecord <> nil DO
-        BEGIN
-        NextRecord := ActiveRecord^.NextEntry;
-        Dispose (ActiveRecord);
-        ActiveRecord := NextRecord;
-        END;
-
-    InitialPartialCall := '';
-    InitialPartialList := nil;
     END;
 
 
@@ -2330,10 +2363,6 @@ VAR StartingOffset, EndingOffset, NumberBytes: LONGINT;
     KeyString: CallString;
 
     BEGIN
-    BlowAwayFirstLettersList;
-
-    { Get rid of old file buffer }
-
     GetBestOffsets (PartialCall, StartingOffset, EndingOffset, X, Y);
 
     KeyString := GetSCPCharFromInteger (X) + GetSCPCharFromInteger (Y);
@@ -3812,12 +3841,27 @@ VAR Hits, Threshold: INTEGER;
 
 
 
-PROCEDURE CallDatabase.MovePossibleCallsFromBufferIntoCallList (Call: CallString);
+FUNCTION EntryExists (Call: CallString; List: CallListRecord): BOOLEAN;
 
-LABEL CallFound;
+VAR Address: INTEGER;
+
+    BEGIN
+    IF List.NumberCalls > 0 THEN
+        FOR Address := 0 TO List.NumberCalls - 1 DO
+            IF List.CallList [Address].Call = Call THEN
+                BEGIN
+                EntryExists := True;
+                Exit;
+                END;
+
+    EntryExists := False;
+    END;
+
+
+
+PROCEDURE CallDatabase.MovePossibleCallsFromBufferIntoCallList (Call: CallString; VAR List: CallListRecord);
 
 VAR EntryString: STRING;
-    Address: INTEGER;
     Data: DataBaseEntryRecord;
 
     BEGIN
@@ -3825,52 +3869,47 @@ VAR EntryString: STRING;
 
     CellBuffer.ReadAddress := 0; { Rewind list }
 
+    { Keep asking for entries until GetNextEntry says FALSE }
+
     WHILE CellBuffer.GetNextEntry (EntryString) DO
         BEGIN
         ParseEntryToDataRecord (EntryString, Data);
 
         IF SimilarCall (Call, Data.Call) THEN
             IF (PossibleCallAction <> OnlyCallsWithNames) OR (Data.Name <> '') THEN
-                IF PossibleCallList.NumberPossibleCalls < MaximumPossibleCalls THEN
-                    BEGIN
-                    IF PossibleCallList.NumberPossibleCalls > 0 THEN
-                        FOR Address := 0 TO PossibleCallList.NumberPossibleCalls - 1 DO
-                            IF PossibleCallList.List [Address].Call = Data.Call THEN
-                                GoTo CallFound;
-
-                    { Call not in list and there is room for it }
-
-                    WITH PossibleCallList DO
+                IF List.NumberCalls < MaxCallListEntries THEN
+                    IF NOT EntryExists (Data.Call, List) THEN
                         BEGIN
-                        List [NumberPossibleCalls].Call := Data.Call;
-                        List [NumberPossibleCalls].Dupe := False;
-                        Inc (NumberPossibleCalls);
+                        List.CallList [List.NumberCalls].Call := Data.Call;
+                        List.CallList [List.NumberCalls].Dupe := False;
+                        Inc (List.NumberCalls);
                         END;
-                    END;
 
-        CallFound:
         END;
    END;
 
 
 
-PROCEDURE CallDatabase.GeneratePossibleCallList (Call: CallString);
+PROCEDURE CallDatabase.GeneratePossibleCallList (Call: CallString; VAR List: CallListRecord);
 
 { This procedure will generate a list of possible callsigns for the one
-  entered.  The list will be stored in the PossibleCalls list with
-  NumberPossibleCalls indicating the number of callsigns found. }
+  entered.  The list will be stored in the call list indicated.  Note
+  that this will set the number of entries to zero before it starts so
+  you can't use this to add more entries to an existing list. }
 
 VAR FirstKeyPos, SecondKeyPos, CharPos: INTEGER;
     LowestCell, SecondLowestCell, ThirdLowestCell, BytesAtThisPos: LONGINT;
     LowestKeyPos, SecondLowestKeyPos, ThirdLowestKeyPos: INTEGER;
-    TempDupe, Change: BOOLEAN;
-    Range, CallAddress: INTEGER;
-    TempString: CallString;
+    TempDupe: BOOLEAN;
 
     BEGIN
-    SecondLowestKeyPos := 0; //to suppress does not seem to be initialized
-    LowestKeyPos := 0; //to suppress does not seem to be initialized
-    PossibleCallList.NumberPossibleCalls := 0;
+    List.Input := Call;
+    List.NumberCalls := 0;
+
+    IF Length (Call) < 2 THEN Exit;  { Not nice to work on this with no input }
+
+    SecondLowestKeyPos := 0;         //to suppress does not seem to be initialized
+    LowestKeyPos := 0;               //to suppress does not seem to be initialized
 
     IF NOT LoadInIndexArray THEN Exit;
 
@@ -3915,7 +3954,7 @@ VAR FirstKeyPos, SecondKeyPos, CharPos: INTEGER;
     FOR CharPos := 1 TO Length (Call) - 1 DO
         IF Copy (Call, CharPos, 2) = CellBuffer.Key THEN
             BEGIN   { We have already read in a cell for this call }
-            MovePossibleCallsFromBufferIntoCallList (Call);
+            MovePossibleCallsFromBufferIntoCallList (Call, List);
             FirstKeyPos := CharPos;
             Break;
             END;
@@ -3940,7 +3979,7 @@ VAR FirstKeyPos, SecondKeyPos, CharPos: INTEGER;
                 END;
 
         NewTwoLetters (Copy (Call, FirstKeyPos, 2));
-        MovePossibleCallsFromBufferIntoCallList (Call);
+        MovePossibleCallsFromBufferIntoCallList (Call, List);
         END
     ELSE
         IF Abs (FirstKeyPos - LowestKeyPos) >= 2 THEN
@@ -3952,44 +3991,18 @@ VAR FirstKeyPos, SecondKeyPos, CharPos: INTEGER;
                 SecondKeyPos := ThirdLowestKeyPos;
 
     NewTwoLetters (Copy (Call, SecondKeyPos, 2));
-    MovePossibleCallsFromBufferIntoCallList (Call);
-
-    { Sort the calls into alphabetical order }
-
-    IF PossibleCallList.NumberPossibleCalls < 2 THEN Exit;  { No sorting needed }
-
-    Range := PossibleCallList.NumberPossibleCalls - 2;
-
-    REPEAT
-        WITH PossibleCallList DO
-            BEGIN
-            Change := False;
-
-            FOR CallAddress := 0 TO Range DO
-                IF List [CallAddress].Call > List [CallAddress + 1].Call THEN
-                   BEGIN
-                   TempString := List [CallAddress].Call;
-                   List [CallAddress].Call := List [CallAddress + 1].Call;
-                   List [CallAddress + 1].Call := TempString;
-
-                   TempDupe := List [CallAddress].Dupe;
-                   List [CallAddress].Dupe := List [CallAddress + 1].Dupe;
-                   List [CallAddress].Dupe := TempDupe;
-
-                   Change := True;
-                   END;
-            END;
-
-        Dec (Range);
-    UNTIL (NOT Change) OR (Range < 0);
+    MovePossibleCallsFromBufferIntoCallList (Call, List);
+    SortCalllistIntoAlphabeticalOrder (List);
     END;
 
-
 
 PROCEDURE CallDatabase.SortDTAFile;
 
 { This routine will sort the .DTA file cell by cell, so that the callsigns
-  in each cell are in alphabetical order. }
+  in each cell are in alphabetical order.  This saves time when generating
+  a list of calls from a specific cell as the first pass through the sort
+  routine will find no changes and exit.  This is used only in the POST
+  program. }
 
 VAR FileRead, FileWrite: FILE;
     Count, EntrySize, NumberPaddingBytes, ByteDifference, Entry: INTEGER;
@@ -4029,7 +4042,7 @@ VAR FileRead, FileWrite: FILE;
         BEGIN
         IF SizeOf (SCPIndexArray^) >= (MaxAvail - 60000) THEN
             BEGIN
-            ReportError ('Insufficient memory to run this procedure!!');
+            ReportError ('Insufficient memory to run SortDTA procedure!!');
             WaitForKeyPressed;
             Exit;
             END;
@@ -4643,8 +4656,6 @@ PROCEDURE CallDatabase.CheckDTAFile;
 
 
     BEGIN
-
-
     END;
 
 
@@ -4669,7 +4680,6 @@ PROCEDURE CallDatabase.CheckDTAFile;
     CD.CellBuffer.Key               := '';
     CD.PossibleCallAction          := OnlyCallsWithNames;
     CD.FirstMergeDataListEntry     := nil;
-    CD.InitialPartialList          := nil;
     CD.SCPIndexArray               := nil;
 
     Randomize;

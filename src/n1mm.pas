@@ -240,7 +240,7 @@ VAR Address, BytesRead: INTEGER;
         BEGIN
         FOR Address := 0 TO BytesRead - 1 DO
             Write (FileWrite, UDPBuffer [Address]);
-        WriteLn;
+        WriteLn (FileWrite);
         END;
 
     Close (FileWrite);
@@ -339,8 +339,6 @@ PROCEDURE N1MM_Object.PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str
 
 { This is pretty much a copy of what is in tbsiq_subs.pas }
 
-VAR RData: ContestExchange;
-
     BEGIN
     LogString := VisibleLog.PushLogEntry (LogString);
 
@@ -349,12 +347,8 @@ VAR RData: ContestExchange;
     GetRidOfPostcedingSpaces (LogString);
 
     IF LogString <> '' THEN
-        BEGIN
-        PutContactIntoLogFile (LogString);
+        PutContactIntoLogFile (LogString);  { AddQSOToSheets will process partial calls and exchange memory }
 
-        IF ParseExchangeIntoContestExchange (LogString, RData) THEN
-            ProcessPartialCallAndInitialExchange (RData);
-        END;
     END;
 
 
@@ -380,8 +374,6 @@ VAR LogString: Str80;
 
     VisibleDupeSheetChanged := True;
 
-    LastTwoLettersCrunchedOn := '';
-
     IF LastDeletedLogEntry <> '' THEN
         LastDeletedLogEntry := '';
 
@@ -398,10 +390,6 @@ VAR LogString: Str80;
         VisibleLog.ProcessMultipliers (RXData);  { This is in LOGEDIT.PAS }
 
     LogString := MakeLogString (RXData);  { This is in LOGSTUFF.PAS }
-
-    { We are going to makr these QSOs so we know they came from the N1MM QSO portal }
-
-    LogString [76] := '+';
 
     IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
         Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
@@ -450,6 +438,7 @@ PROCEDURE N1MM_Object.GetCallFromUDPMessage (VAR RXData: ContestExchange);
 
     BEGIN
     RXData.Callsign := GetXMLData ('call');
+    RXData.DXQTH := GetXMLData ('countryprefix');
     END;
 
 
@@ -548,6 +537,8 @@ VAR BandString, ModeString: Str20;
 
     IF ModeString = 'CW' THEN RXData.Mode := CW ELSE
     IF ModeString = 'SSB' THEN RXData.Mode := Phone;
+    IF ModeString = 'USB' THEN RXData.Mode := Phone;
+    IF ModeString = 'LSB' THEN RXData.Mode := Phone;
 
     IF (ModeString = 'DIG') OR (ModeString = 'RTTY') OR (ModeString = 'FSK') THEN
         RXData.Mode := Digital;
@@ -562,8 +553,18 @@ VAR TempString: STRING;
     xResult, Number: INTEGER;
 
     BEGIN
+    { Exchagne stuff that we will have for every kind of QSO }
+
     RXData.RSTSent := GetXMLData ('snt');
     RXData.RSTReceived := GetXMLData ('rcv');
+
+    TempString := GetXMLData ('sntnr');
+    Val (TempString, Number, xResult);
+    IF xResult = 0 THEN RXData.NumberSent := Number;
+
+    TempString := GetXMLData ('rcvnr');
+    Val (TempString, Number, xResult);
+    IF xResult = 0 THEN RXData.NumberReceived:= Number;
 
     { Now look at the ActiveExchange and pull out the appropriate data }
 
@@ -586,14 +587,6 @@ VAR TempString: STRING;
 
         QSONumberPrecedenceCheckDomesticQTHExchange:  { AKA Sweepstakes }
             BEGIN
-            TempString := GetXMLData ('sntnr');
-            Val (TempString, Number, xResult);
-            IF xResult = 0 THEN RXData.NumberSent := Number;
-
-            TempString := GetXMLData ('rcvnr');
-            Val (TempString, Number, xResult);
-            IF xResult = 0 THEN RXData.NumberReceived:= Number;
-
             RXData.Precedence := GetXMLData ('prec');
             RXData.Check := GetXMLData ('ck');
             RXData.QTHString := GetXMLData ('section');
@@ -629,17 +622,7 @@ VAR TempString: STRING;
         RSTQSONumberAndRandomCharactersExchange: BEGIN END;
         RSTQTHNameAndFistsNumberOrPowerExchange: BEGIN END;
 
-        RSTQSONumberExchange:
-            BEGIN
-            TempString := GetXMLData ('sntnr');
-            Val (TempString, Number, xResult);
-            IF xResult = 0 THEN RXData.NumberSent := Number;
-
-            TempString := GetXMLData ('rcvnr');
-            Val (TempString, Number, xResult);
-            IF xResult = 0 THEN RXData.NumberReceived:= Number;
-            END;
-
+        RSTQSONumberExchange: BEGIN END;  { Already taken care of }
         RSTQTHExchange: BEGIN END;
         RSTZoneAndPossibleDomesticQTHExchange: BEGIN END;
 

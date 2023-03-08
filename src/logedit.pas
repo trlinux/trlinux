@@ -66,13 +66,21 @@ TYPE
 
         PROCEDURE DisplayVisibleDupeSheet (Band: BandType; Mode: ModeType);
 
-        PROCEDURE DoPossibleCalls (Call: CallString);
 
         PROCEDURE EditLog;
         FUNCTION  EditableLogIsEmpty: BOOLEAN;
 
-        FUNCTION  GetInitialExchangeFromEditableLog (Call: CallString): Str40;
+        PROCEDURE GeneratePartialCalls (PartialCall: CallString;
+                                        Band: BandType;
+                                        Mode: ModeType;
+                                        VAR List: CallListRecord);
 
+        PROCEDURE GeneratePossibleCalls (Call: CallString;
+                                         Band: BandType;
+                                         Mode: ModeType;
+                                         VAR List: CallListRecord);
+
+        FUNCTION  GetInitialExchangeFromEditableLog (Call: CallString): Str40;
         FUNCTION  GetMultStatus (Call: CallString): Str160;
 
         PROCEDURE IncrementQSOPointsWithContentsOfEditableWindow (VAR QPoints: LongInt);
@@ -83,16 +91,11 @@ TYPE
         FUNCTION  LastCallsign: CallString;
         FUNCTION  LastName (Entry: INTEGER): Str20;
 
-        PROCEDURE GeneratePartialCallList (InputCall: CallString;
-                                           Band: BandType;
-                                           Mode: ModeType;
-                                           VAR PossCallList: PossibleCallRecord);
-
         FUNCTION  NumberNamesSentInEditableLog: INTEGER;
 
-        FUNCTION  PushLogEntry (NewEntry: Str80): Str80;
+        FUNCTION  PushLogEntry (NewEntry: STRING): STRING;
         PROCEDURE ProcessMultipliers (VAR RXData: ContestExchange);
-        PROCEDURE PutLogEntryIntoSheet (VAR LogEntry: Str80);
+        PROCEDURE PutLogEntryIntoSheet (VAR LogEntry: STRING);
 
         PROCEDURE SearchLog (InitialString: Str20);
         PROCEDURE SetUpEditableLog;
@@ -106,17 +109,21 @@ TYPE
         PROCEDURE UpdateTempLogFile;
         END;
 
-VAR VisibleLog: EditableLog;
-    LastSCPCall: CallString;
+VAR ClassicPossibleCallList: CallListRecord;  { Global that is used only for classic mode }
 
-    QTotals: QSOTotalArray;
+    LastPartialCall: CallString;  { Used for classic interface only }
+
     MTotals: MultTotalArrayType;
 
     OriginalTextMode: INTEGER;
+
+    QTotals: QSOTotalArray;
+
     RememberHeap:     POINTER;
 
     VisibleDupeSheetBand: BandType;
     VisibleDupeSheetMode: ModeType;
+    VisibleLog: EditableLog;
 
 PROCEDURE AddQTCToQTCBuffer (VAR QTCBuffer: LogEntryArray; QTCString: Str80; Message: INTEGER);
 
@@ -137,9 +144,7 @@ PROCEDURE TimeAndDateSet;
 
 PROCEDURE DisplayBandTotals (Band: BandType);
 
-PROCEDURE FlagDupesInPossibleCallList (Band: Bandtype;
-                                       Mode: ModeType;
-                                       VAR PossCallList: PossibleCallRecord);
+PROCEDURE FlagDupesInList (Band: Bandtype; Mode: ModeType; VAR List: CallListRecord);
 
 PROCEDURE GoToLastCQFrequency;
 PROCEDURE GoToNextBandMapFrequency;
@@ -767,34 +772,32 @@ PROCEDURE BandDown;
 
 
 
-PROCEDURE FlagDupesInPossibleCallList (Band: Bandtype;
-                                       Mode: ModeType;
-                                       VAR PossCallList: PossibleCallRecord);
+PROCEDURE FlagDupesInList (Band: Bandtype; Mode: ModeType; VAR List: CallListRecord);
+
+{ Will set the dupe flag based upon the dupesheets AND the editable log window }
 
 VAR Address, Entry: INTEGER;
     PossibleCall, Call: CallString;
 
-
     BEGIN
-    IF PossibleCallList.NumberPossibleCalls > 0 THEN
-        FOR Address := 0 TO PossibleCallList.NumberPossibleCalls - 1 DO
+    IF List.NumberCalls > 0 THEN
+        FOR Address := 0 TO List.NumberCalls - 1 DO
             BEGIN
-            PossibleCall := PossibleCallList.List [Address].Call;
-
+            PossibleCall := List.CallList [Address].Call;
 
             IF Sheet.CallIsADupe (PossibleCall, Band, Mode) THEN
-                PossCallList.List [Address].Dupe := True
+                List.CallList [Address].Dupe := True
             ELSE
                 FOR Entry := 1 TO 5 DO
                     BEGIN
                     Call := UpperCase (GetLogEntryCall (VisibleLog.LogEntries [Entry]));
 
                     IF PossibleCall = Call THEN    { This is a dupe? }
-                        IF ((ActiveMode = GetLogEntryMode (VisibleLog.LogEntries [Entry])) OR
+                        IF ((Mode = GetLogEntryMode (VisibleLog.LogEntries [Entry])) OR
                            (NOT QSOByMode)) AND
-                           ((ActiveBand = GetLogEntryBand (VisibleLog.LogEntries [Entry])) OR
+                           ((Band = GetLogEntryBand (VisibleLog.LogEntries [Entry])) OR
                            (NOT QSOByBand)) THEN
-                               PossibleCallList.List [Address].Dupe := True;
+                               List.CallList [Address].Dupe := True;
 
                     END;
             END;
@@ -837,7 +840,7 @@ VAR Entry: INTEGER;
     END;
 
 
-FUNCTION EditableLog.PushLogEntry (NewEntry: Str80): Str80;
+FUNCTION EditableLog.PushLogEntry (NewEntry: STRING): STRING;
 
 VAR Entry: INTEGER;
 
@@ -1555,7 +1558,7 @@ PROCEDURE EditableLog.ProcessMultipliers (VAR RXData: ContestExchange);
     END;
 
 
-PROCEDURE FixMultiplierString (TempRXData: ContestExchange; VAR LogEntry: Str80);
+PROCEDURE FixMultiplierString (TempRXData: ContestExchange; VAR LogEntry: STRING);
 
 VAR NewMultString: Str80;
 
@@ -1572,7 +1575,7 @@ VAR NewMultString: Str80;
     END;
 
 
-PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: Str80);
+PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: STRING);
 
 { This procedure will look at the log entry string passed to it and
   see if any multiplier flags need to be set.  It will not erase any
@@ -2088,22 +2091,24 @@ VAR OutputString: Str160;
     RestorePreviousWindow;
     END;
 
+
 
+PROCEDURE EditableLog.GeneratePossibleCalls (Call: CallString;
+                                             Band: BandType;
+                                             Mode: Modetype;
+                                             VAR List: CallListRecord);
 
-PROCEDURE EditableLog.DoPossibleCalls (Call: CallString);
-
-{ This is not partial calls.  Assumes someone has done TwoLetterCrunchProcess }
+{ This used to display them - but we leave that to someone else to figure out }
 
     BEGIN
-    PossibleCallList.NumberPossibleCalls := 0;
-    PossibleCallList.CursorPosition      := 0;
-    IF NOT PossibleCallEnable THEN Exit;
+    List.NumberCalls    := 0;
+    List.CursorPosition := 0;
 
-    CD.GeneratePossibleCallList (Call);                                      { From TRMASTER.DTA}
+    IF (NOT PossibleCallEnable) OR (Length (Call) < 2) THEN Exit;
 
-    Sheet.GetPossibleCallsFromDupesheet (Call, PossibleCallList);            { From dupesheet }
-    FlagDupesInPossibleCallList (ActiveBand, ActiveMode, PossibleCallList);
-    DisplayPossibleCalls (PossibleCallList);
+    CD.GeneratePossibleCallList (Call, List);            { From TRMASTER.DTA}
+    Sheet.AddPossibleCallsFromDupesheet (Call, List);    { From dupesheet }
+    FlagDupesInList (Band, Mode, List);
     END;
 
 
@@ -2280,7 +2285,7 @@ if remmultmatrix[multband,multmode,Zone] = nil then exit;
 
 PROCEDURE EditableLog.SearchLog (InitialString: Str20);
 
-VAR SearchString, FileString: Str80;
+VAR SearchString, FileString: STRING;
     FileRead: TEXT;
     NumberLinesWritten: INTEGER;
     Key: CHAR;
@@ -2474,16 +2479,21 @@ VAR TempString: CallString;
     END;
 
 
-PROCEDURE EditableLog.GeneratePartialCallList (InputCall: CallString;
-                                               Band: BandType;
-                                               Mode: ModeType;
-                                               VAR PossCallList: PossibleCallRecord);
+PROCEDURE EditableLog.GeneratePartialCalls (PartialCall: CallString;
+                                            Band: BandType;
+                                            Mode: ModeType;
+                                            VAR List: CallListRecord);
 
 VAR Call: CallString;
     Entry: INTEGER;
 
     BEGIN
-    Sheet.MakePartialCallList (InputCall, Band, Mode, PossibleCallList);
+    List.NumberCalls := 0;
+    List.CursorPosition := 0;
+
+    IF (NOT PartialCallEnable) OR (Length (PartialCall) < 2) THEN Exit;
+
+    Sheet.GeneratePartialCallListFromAllCallList (PartialCall, Band, Mode, List);
 
     { Add in any entries from the Editable Log }
 
@@ -2491,17 +2501,16 @@ VAR Call: CallString;
         BEGIN
         Call := GetLogEntryCall (LogEntries [Entry]);
 
-        IF Pos (InputCall, Call) <> 0 THEN
-            IF CallNotInPossibleCallList (Call, PossibleCallList) THEN
+        IF Pos (PartialCall, Call) <> 0 THEN
+            IF NOT EntryExists (Call, List) THEN
                 BEGIN
-                PossCallList.List [PossCallList.NumberPossibleCalls].Call := Call;
-                PossCallList.List [PossCallList.NumberPossibleCalls].Dupe := False;
-                Inc (PossCallList.NumberPossibleCalls);
-                IF PossCallList.NumberPossibleCalls > 12 THEN Break;
+                List.CallList [List.NumberCalls].Call := Call;
+                Inc (List.NumberCalls);
+                IF List.NumberCalls > 20 THEN Break;
                 END;
         END;
 
-    FlagDupesInPossibleCallList (Band, Mode, PossCallList);
+    FlagDupesInList (Band, Mode, List);
     END;
 
 
@@ -2556,11 +2565,11 @@ PROCEDURE DisplaySCPCall (Call: CallString; Radio: RadioType); {KK1L: 6.73 Added
 
 PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; Radio: RadioType);
 
-{KK1L: 6.73 Added Radio to allow SO2R SCP}
+{ This is only used for the classic UI }
 
     BEGIN
     IF CD.SCPDisabledByApplication THEN Exit;
-    IF Call = LastSCPCall THEN Exit;
+    IF Call = CD.LastSCPCall THEN Exit;
 
     SCPScreenFull := False;
 
@@ -2572,7 +2581,7 @@ PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; R
             IF NOT EditableLogDisplayed THEN
                 DisplayEditableLog (LogEntries);
 
-        LastSCPCall := '';
+        CD.LastSCPCall := '';
         Exit;
         END;
 
@@ -2580,18 +2589,18 @@ PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; R
         BEGIN
         IF Length (Call) < SCPMinimumLetters THEN
             BEGIN
-            LastSCPCall := '';
+            CD.LastSCPCall := '';
             Exit;
             END
         END
     ELSE
         IF Length (Call) < 2 THEN
             BEGIN
-            LastSCPCall := '';
+            CD.LastSCPCall := '';
             Exit;
             END;
 
-    LastSCPCall := Call;
+    CD.LastSCPCall := Call;
 
     IF NOT CD.PartialCallSetup (Call) THEN Exit;
 
@@ -2600,8 +2609,7 @@ PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; R
 
     GridSquareListShown := False;
 
-    FirstSCPCall := '';
-    NumberSCPCalls := 0;
+    CD.NumberSCPCalls := 0;
 
     REPEAT
         Call := CD.GetNextPartialCall;
@@ -2609,15 +2617,14 @@ PROCEDURE EditableLog.SuperCheckPartial (Call: CallString; Automatic: BOOLEAN; R
         IF Call <> '' THEN
             BEGIN
             DisplaySCPCall (Call, Radio); {KK1L: 6.73 Fixed proc to for SO2R}
-            Inc (NumberSCPCalls);
-            IF FirstSCPCall = '' THEN FirstSCPCall := Call;
+            Inc (CD.NumberSCPCalls);
             END;
 
         IF SCPScreenFull THEN Break;
 
         IF NewKeyPressed THEN
             BEGIN
-            LastSCPCall := '';
+            CD.LastSCPCall := '';
             Break;
             END;
 
@@ -2743,6 +2750,7 @@ FUNCTION QuickEditResponseWithPartials (Prompt: Str80;
 
 VAR InputString: Str80;
     Key: Char;
+    PossibleCallList: CallListRecord;
 
     BEGIN
     SaveSetAndClearActiveWindow (QuickCommandWindow);
@@ -2795,14 +2803,14 @@ VAR InputString: Str80;
                     ClrEol;
 
                     IF PartialCallEnable THEN
-                        IF Sheet.TwoLetterCrunchProcess (InputString, PossibleCallList) THEN
-                            BEGIN
-                            VisibleLog.GeneratePartialCallList (InputString,
-                                                                ActiveBand,
-                                                                ActiveMode,
-                                                                PossibleCallList);
-                            DisplayPossibleCalls (PossibleCallList);
-                            END;
+                        BEGIN
+                        Sheet.GeneratePartialCallListFromAllCallList (InputString,
+                                                                      ActiveBand,
+                                                                      ActiveMode,
+                                                                      PossibleCallList);
+
+                        DisplayPossibleCalls (PossibleCallList);
+                        END;
 
                     IF SCPMinimumLetters > 0 THEN  {KK1L: 6.73 Adds SCP to ALT-D entry}
                         VisibleLog.SuperCheckPartial (InputString, True, InactiveRadio); {KK1L: 6.73 Added InactiveRadio}
@@ -2837,14 +2845,14 @@ VAR InputString: Str80;
                        InputString := InputString + Key;
 
                        IF PartialCallEnable THEN
-                           IF Sheet.TwoLetterCrunchProcess (InputString, PossibleCallList) THEN
-                               BEGIN
-                               VisibleLog.GeneratePartialCallList (InputString,
-                                                                   ActiveBand,
-                                                                   ActiveMode,
-                                                                   PossibleCallList);
-                               DisplayPossibleCalls (PossibleCallList);
-                               END;
+                           BEGIN
+                           VisibleLog.GeneratePartialCalls (InputString,
+                                                            ActiveBand,
+                                                            ActiveMode,
+                                                            PossibleCallList);
+
+                           DisplayPossibleCalls (PossibleCallList);
+                           END;
 
                        IF SCPMinimumLetters > 0 THEN  {KK1L: 6.73 Adds SCP to ALT-D entry}
                            VisibleLog.SuperCheckPartial (InputString, True, InactiveRadio); {KK1L: 6.73 Added InactiveRadio}
@@ -3042,7 +3050,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
 PROCEDURE EditInit;
 
     BEGIN
-    PossibleCallList.NumberPossibleCalls := 0;
+    ClassicPossibleCallList.NumberCalls := 0;
     LastDeletedLogEntry := '';
     END;
 
@@ -3231,7 +3239,253 @@ PROCEDURE AddQTCToQTCBuffer (VAR QTCBuffer: LogEntryArray; QTCString: Str80; Mes
     RestorePreviousWindow;
     END;
 
+
 
+FUNCTION GetInitialExchangeFromTRMASTER (Call: CallString): STRING;
+
+VAR CustomString, Exchange, Command, TempString: STRING;
+    TempQTH: QTHRecord;
+    StandardCall: CallString;
+    Data: DatabaseEntryRecord;
+    Heading, Zone: INTEGER;
+
+    BEGIN
+    StandardCall := StandardCallFormat (Call, True);
+
+    CASE ActiveInitialExchange OF
+
+        CustomInitialExchange:
+            BEGIN
+            Exchange := '';
+            CustomString := CustomInitialExchangeString;
+
+            WHILE CustomString <> '' DO
+                BEGIN
+                Command := RemoveFirstString (CustomString);
+
+                IF Command = 'CQZONE' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.CQZone <> '') THEN
+                        Exchange := Exchange + Data.CQZone + ' '
+                    ELSE
+                        BEGIN
+                        Zone := CountryTable.GetCQZone (Call);
+
+                        IF Zone > 0 THEN
+                            BEGIN
+                            Str (Zone, TempString);
+                            Exchange := Exchange + TempString + ' ';
+                            END;
+                        END;
+
+                IF Command = 'ITUZONE' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.ITUZone <> '') THEN
+                        Exchange := Exchange + Data.ITUZone + ' '
+                    ELSE
+                        BEGIN
+                        Zone := CountryTable.GetITUZone (Call);
+
+                        IF Zone > 0 THEN
+                            BEGIN
+                            Str (Zone, TempString);
+                            Exchange := Exchange + TempString + ' ';
+                            END;
+                        END;
+
+                IF Command = 'NAME' THEN
+                    IF CD.GetEntry (StandardCall, Data) AND (Data.Name <> '') THEN
+                        Exchange := Exchange + Data.Name + ' ';
+
+                IF Command = 'QTH' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.QTH <> '') THEN
+                        Exchange := Exchange + Data.QTH + ' ';
+
+                IF Command = 'SECTION' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.Section <> '') THEN
+                        Exchange := Exchange + Data.Section + ' ';
+
+                IF Command = 'USER1' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.User1 <> '') THEN
+                        Exchange := Exchange + Data.User1 + ' ';
+
+                IF Command = 'USER2' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.User2 <> '') THEN
+                        Exchange := Exchange + Data.User2 + ' ';
+
+                IF Command = 'USER3' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.User3 <> '') THEN
+                        Exchange := Exchange + Data.User3 + ' ';
+
+                IF Command = 'USER4' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.User4 <> '') THEN
+                        Exchange := Exchange + Data.User4 + ' ';
+
+                IF Command = 'USER5' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.User5 <> '') THEN
+                        Exchange := Exchange + Data.User5 + ' ';
+
+                IF Command = 'GRID' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.Grid <> '') THEN
+                        BEGIN
+                        Exchange := Exchange + Data.Grid + ' ';
+
+                        IF (MyGrid <> '') AND LooksLikeAGrid (Data.Grid) THEN
+                            BEGIN
+                            SaveSetAndClearActiveWindow (BeamHeadingWindow);
+                            Heading := Round (GetBeamHeading (MyGrid, Data.Grid));
+                            Write (Data.Grid, ' at ', Heading, DegreeSymbol);
+                            RestorePreviousWindow;
+                            END;
+                        END;
+
+                IF Command = 'FOC' THEN
+                    IF CD.GetEntry (StandardCall, Data) AND (Data.FOC <> '') THEN
+                        Exchange := Exchange + Data.FOC + ' ';
+
+                IF Command = 'CHECK' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.Check <> '') THEN
+                        Exchange := Exchange + Data.Check + ' ';
+
+                IF Command = 'OLDCALL' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.OldCall <> '') THEN
+                        Exchange := Exchange + Data.OldCall + ' ';
+
+                IF Command = 'TENTEN' THEN
+                    IF CD.GetEntry (Call, Data) AND (Data.TenTen <> '') THEN
+                        Exchange := Exchange + Data.TenTen + ' ';
+
+                END;
+
+            GetInitialExchangeFromTRMASTER := ' ' + Exchange; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
+
+{               IF InitialExchangeOverwrite THEN
+                InitialExchangePutUp := True;} {KK1L: 6.70 For custom typing any character overwrites the whole exchange.}
+
+            Exit;
+            END;
+
+
+        ZoneInitialExchange:
+            BEGIN
+            IF CD.GetEntry (Call, Data) THEN
+                BEGIN
+                IF ActiveZoneMult = ITUZones THEN
+                    BEGIN
+                    IF Data.ITUZone <> '' THEN
+                        BEGIN
+                        GetInitialExchangeFromTRMASTER := ' ' + Data.ITUZone; {KK1L: 6.73 Added ' '. K9PG forgets to add it.}
+
+                        { InitialExchangePutUp := True; }
+
+                        Exit;
+                        END;
+                    END
+                ELSE
+                    IF Data.CQZone <> '' THEN
+                        BEGIN
+                        GetInitialExchangeFromTRMASTER := ' ' + Data.CQZone; {KK1L: 6.73 Added ' '. K9PG forgets to add it.}
+
+                        { InitialExchangePutUp := True; }
+                        Exit;
+                        END;
+                END;
+
+            LocateCall (Call, TempQTH, True);
+            IF TempQTH.Zone > 0 THEN Str (TempQTH.Zone, TempString);
+            GetRidOfPrecedingSpaces (TempString);
+            IF Debug AND (TempString = '') THEN TempString := '40';
+
+            { InitialExchangePutUp := TempString <> ''; }
+            END;
+
+        NameInitialExchange:
+            BEGIN
+            TempString := CD.GetName (StandardCall);
+            IF TempString <> '' THEN TempString := TempString + ' ';
+            END;
+
+        NameQTHInitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                BEGIN
+                IF Data.Name <> '' THEN TempString := Data.Name + ' ';
+                IF Data.QTH  <> '' THEN TempString := TempString + Data.QTH + ' ';
+                END;
+
+        CheckSectionInitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                IF (Data.Check   <> '') AND (Data.Section <> '') THEN
+                    TempString := Data.Check + Data.Section + ' ';
+
+        SectionInitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                BEGIN
+                IF Data.Section <> '' THEN
+                    TempString := Data.Section + ' '
+                ELSE
+                    TempString := GetVEInitialExchange (Call);
+                END
+            ELSE
+                TempString := GetVEInitialExchange (Call);
+
+
+        QTHInitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                BEGIN
+                IF Data.QTH <> '' THEN
+                    TempString := Data.QTH + ' '
+                ELSE
+                    TempString := GetVEInitialExchange (Call);
+                END
+            ELSE
+                TempString := GetVEInitialExchange (Call);
+
+        GridInitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                BEGIN
+                TempString := Data.Grid;
+
+                IF (MyGrid <> '') AND LooksLikeAGrid (Data.Grid) THEN
+                    BEGIN
+                    SaveSetAndClearActiveWindow (BeamHeadingWindow);
+                    Heading := Round (GetBeamHeading (MyGrid, Data.Grid));
+                    Write (Data.Grid, ' at ', Heading, DegreeSymbol);
+                    RestorePreviousWindow;
+                    END;
+                END;
+
+        FOCInitialExchange:
+            IF CD.GetEntry (StandardCall, Data) THEN
+                TempString := Data.Foc;
+
+        User1InitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                TempString := Data.User1;
+
+        User2InitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                TempString := Data.User2;
+
+        User3InitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                TempString := Data.User3;
+
+        User4InitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                TempString := Data.User4;
+
+        User5InitialExchange:
+            IF CD.GetEntry (Call, Data) THEN
+                TempString := Data.User5;
+
+        END; { if case }
+
+    GetInitialExchangeFromTRMASTER := ' ' + TempString; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
+
+{   IF InitialExchangeOverwrite THEN
+        InitialExchangePutUp := True;} {KK1L: 6.73 Typing any character overwrites the whole exchange.}
+
+    END;
+
+
 
 FUNCTION InitialExchangeEntry (Call: CallString): Str80;
 
@@ -3246,259 +3500,23 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
     Data: DatabaseEntryRecord;
 
     BEGIN
-    {TR6.74 - Removed any manipulation of IntialExchangePutUp from this
-     routine.  It is up to whomever calls it to decide if they want to
-     change the state of that variable. }
-
-    { InitialExchangePutUp := False; }
-
     IF NOT GoodCallSyntax (Call) THEN
         BEGIN
         InitialExchangeEntry := '';
         Exit;
         END;
 
+    { First - we see if there is something in the editable log }
+
     TempString := VisibleLog.GetInitialExchangeFromEditableLog (Call);
 
-    IF TempString = '' THEN TempString := GetInitialExchange (Call);
+    { If not - look at the AllCallList to see if ExchangeMemory has something }
 
-    IF TempString = '' THEN
-        BEGIN
-        StandardCall := StandardCallFormat (Call, True);
+    IF TempString = '' THEN TempString := GetInitialExchangeFromExchangeMemory (Call);
 
-        CASE ActiveInitialExchange OF
+    { If we have something now - we do some special massaging if the data came from a log entry }
 
-            CustomInitialExchange:
-                BEGIN
-                Exchange := '';
-                CustomString := CustomInitialExchangeString;
-
-                WHILE CustomString <> '' DO
-                    BEGIN
-                    Command := RemoveFirstString (CustomString);
-
-                    IF Command = 'CQZONE' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.CQZone <> '') THEN
-                            Exchange := Exchange + Data.CQZone + ' '
-                        ELSE
-                            BEGIN
-                            Zone := CountryTable.GetCQZone (Call);
-
-                            IF Zone > 0 THEN
-                                BEGIN
-                                Str (Zone, TempString);
-                                Exchange := Exchange + TempString + ' ';
-                                END;
-                            END;
-
-                    IF Command = 'ITUZONE' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.ITUZone <> '') THEN
-                            Exchange := Exchange + Data.ITUZone + ' '
-                        ELSE
-                            BEGIN
-                            Zone := CountryTable.GetITUZone (Call);
-
-                            IF Zone > 0 THEN
-                                BEGIN
-                                Str (Zone, TempString);
-                                Exchange := Exchange + TempString + ' ';
-                                END;
-                            END;
-
-                    IF Command = 'NAME' THEN
-                        IF CD.GetEntry (StandardCall, Data) AND (Data.Name <> '') THEN
-                            Exchange := Exchange + Data.Name + ' ';
-
-                    IF Command = 'QTH' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.QTH <> '') THEN
-                            Exchange := Exchange + Data.QTH + ' ';
-
-                    IF Command = 'SECTION' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.Section <> '') THEN
-                            Exchange := Exchange + Data.Section + ' ';
-
-                    IF Command = 'USER1' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.User1 <> '') THEN
-                            Exchange := Exchange + Data.User1 + ' ';
-
-                    IF Command = 'USER2' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.User2 <> '') THEN
-                            Exchange := Exchange + Data.User2 + ' ';
-
-                    IF Command = 'USER3' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.User3 <> '') THEN
-                            Exchange := Exchange + Data.User3 + ' ';
-
-                    IF Command = 'USER4' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.User4 <> '') THEN
-                            Exchange := Exchange + Data.User4 + ' ';
-
-                    IF Command = 'USER5' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.User5 <> '') THEN
-                            Exchange := Exchange + Data.User5 + ' ';
-
-                    IF Command = 'GRID' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.Grid <> '') THEN
-                            BEGIN
-                            Exchange := Exchange + Data.Grid + ' ';
-
-                            IF (MyGrid <> '') AND LooksLikeAGrid (Data.Grid) THEN
-                                BEGIN
-                                SaveSetAndClearActiveWindow (BeamHeadingWindow);
-                                Heading := Round (GetBeamHeading (MyGrid, Data.Grid));
-                                Write (Data.Grid, ' at ', Heading, DegreeSymbol);
-                                RestorePreviousWindow;
-                                END;
-                            END;
-
-                    IF Command = 'FOC' THEN
-                        IF CD.GetEntry (StandardCall, Data) AND (Data.FOC <> '') THEN
-                            Exchange := Exchange + Data.FOC + ' ';
-
-                    IF Command = 'CHECK' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.Check <> '') THEN
-                            Exchange := Exchange + Data.Check + ' ';
-
-                    IF Command = 'OLDCALL' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.OldCall <> '') THEN
-                            Exchange := Exchange + Data.OldCall + ' ';
-
-                    IF Command = 'TENTEN' THEN
-                        IF CD.GetEntry (Call, Data) AND (Data.TenTen <> '') THEN
-                            Exchange := Exchange + Data.TenTen + ' ';
-
-                    END;
-
-                InitialExchangeEntry := ' ' + Exchange; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
-
-{               IF InitialExchangeOverwrite THEN
-                    InitialExchangePutUp := True;} {KK1L: 6.70 For custom typing any character overwrites the whole exchange.}
-
-                Exit;
-                END;
-
-
-            ZoneInitialExchange:
-                BEGIN
-                IF CD.GetEntry (Call, Data) THEN
-                    BEGIN
-                    IF ActiveZoneMult = ITUZones THEN
-                        BEGIN
-                        IF Data.ITUZone <> '' THEN
-                            BEGIN
-                            InitialExchangeEntry := ' ' + Data.ITUZone; {KK1L: 6.73 Added ' '. K9PG forgets to add it.}
-
-                            { InitialExchangePutUp := True; }
-
-                            Exit;
-                            END;
-                        END
-                    ELSE
-                        IF Data.CQZone <> '' THEN
-                            BEGIN
-                            InitialExchangeEntry := ' ' + Data.CQZone; {KK1L: 6.73 Added ' '. K9PG forgets to add it.}
-
-                            { InitialExchangePutUp := True; }
-                            Exit;
-                            END;
-                    END;
-
-                LocateCall (Call, TempQTH, True);
-                IF TempQTH.Zone > 0 THEN Str (TempQTH.Zone, TempString);
-                GetRidOfPrecedingSpaces (TempString);
-                IF Debug AND (TempString = '') THEN TempString := '40';
-
-                { InitialExchangePutUp := TempString <> ''; }
-                END;
-
-            NameInitialExchange:
-                BEGIN
-                TempString := CD.GetName (StandardCall);
-                IF TempString <> '' THEN TempString := TempString + ' ';
-                END;
-
-            NameQTHInitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    BEGIN
-                    IF Data.Name <> '' THEN TempString := Data.Name + ' ';
-                    IF Data.QTH  <> '' THEN TempString := TempString + Data.QTH + ' ';
-                    END;
-
-            CheckSectionInitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    IF (Data.Check   <> '') AND (Data.Section <> '') THEN
-                        TempString := Data.Check + Data.Section + ' ';
-
-            SectionInitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    BEGIN
-                    IF Data.Section <> '' THEN
-                        TempString := Data.Section + ' '
-                    ELSE
-                        TempString := GetVEInitialExchange (Call);
-                    END
-                ELSE
-                    TempString := GetVEInitialExchange (Call);
-
-
-            QTHInitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    BEGIN
-                    IF Data.QTH <> '' THEN
-                        TempString := Data.QTH + ' '
-                    ELSE
-                        TempString := GetVEInitialExchange (Call);
-                    END
-                ELSE
-                    TempString := GetVEInitialExchange (Call);
-
-            GridInitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    BEGIN
-                    TempString := Data.Grid;
-
-                    IF (MyGrid <> '') AND LooksLikeAGrid (Data.Grid) THEN
-                        BEGIN
-                        SaveSetAndClearActiveWindow (BeamHeadingWindow);
-                        Heading := Round (GetBeamHeading (MyGrid, Data.Grid));
-                        Write (Data.Grid, ' at ', Heading, DegreeSymbol);
-                        RestorePreviousWindow;
-                        END;
-                    END;
-
-            FOCInitialExchange:
-                IF CD.GetEntry (StandardCall, Data) THEN
-                    TempString := Data.Foc;
-
-            User1InitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    TempString := Data.User1;
-
-            User2InitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    TempString := Data.User2;
-
-            User3InitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    TempString := Data.User3;
-
-            User4InitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    TempString := Data.User4;
-
-            User5InitialExchange:
-                IF CD.GetEntry (Call, Data) THEN
-                    TempString := Data.User5;
-
-            END; { if case }
-
-        InitialExchangeEntry := ' ' + TempString; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
-
-{        IF InitialExchangeOverwrite THEN
-            InitialExchangePutUp := True;} {KK1L: 6.73 Typing any character overwrites the whole exchange.}
-
-        END
-    ELSE
+    IF TempString <> '' THEN
         BEGIN
         GetRidOfPostcedingSpaces (TempString);
 
@@ -3525,32 +3543,27 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
             {           for IARU and WRTC!! Added the second line above.}
             TempString := RemoveFirstString (TempString);
 
-        {KK1L: 6.73 Typing any character overwrites the whole exchange. Tree
-         decided this was a good thing even for rover calls and moved it here }
-
-{       IF InitialExchangeOverwrite THEN InitialExchangePutUp := True;  }
-
-        IF NOT RoverCall (Call) THEN
-            BEGIN
-            InitialExchangeEntry := ' ' + TempString + ' '; {KK1L: 6.73 Added ' '. K9PG forgets to add it.}
-            END
-        ELSE
-            BEGIN
-            InitialExchangeEntry := TempString; {KK1L: 6.73 Per Tree to fix VHF rover problem.}
-
-{           InitialExchangePutUp := True; }
-            END;
-
         END;
 
-    { In 6.40 - made this work all of the time instead of only with
-      above }
+    { And if we have nothing yet - we will go check the TRMASTER.DTA file }
+
+    IF TempString = '' THEN
+        TempString := GetInitialExchangeFromTRMASTER (Call);
+
+    IF NOT RoverCall (Call) THEN
+        InitialExchangeEntry := ' ' + TempString + ' '  {KK1L: 6.73 Added ' '. K9PG forgets to add it.}
+    ELSE
+        InitialExchangeEntry := TempString;             {KK1L: 6.73 Per Tree to fix VHF rover problem.}
+
+    { We sort through the various entries in the initial exchange to try and update
+      beam headings or domestic multiplier status,  This is probably more than you
+      bargined for if you are just trying to get an initial exchange. }
 
     WHILE TempString <> '' DO
         BEGIN
-        { was FirstString before 6.43 }
-
         TestString := RemoveLastString (TempString);
+
+        { Show beam heading if we have a grid }
 
         IF (MyGrid <> '') AND LooksLikeAGrid (TestString) THEN
             BEGIN
@@ -3573,6 +3586,8 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
 
             RestorePreviousWindow;
             END;
+
+        { Show Domestic multiplier status }
 
         IF DoingDomesticMults THEN
             IF NOT StringIsAllNumbersOrSpaces (TestString) THEN
@@ -3597,7 +3612,7 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
         END;
     END;
 
-
+
 
 PROCEDURE UpdateBandMapMultiplierStatus;
 

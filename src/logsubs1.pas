@@ -62,11 +62,11 @@ PROCEDURE PutUpCQMenu;
 PROCEDURE PossibleCallCursorRight;
 
     BEGIN
-    WITH PossibleCallList DO
-        IF (NumberPossibleCalls > 0) AND (CursorPosition < NumberPossibleCalls - 1) THEN
+    WITH ClassicPossibleCallList DO
+        IF (NumberCalls > 0) AND (CursorPosition < NumberCalls - 1) THEN
             BEGIN
             Inc (CursorPosition);
-            DisplayPossibleCalls (PossibleCallList);
+            DisplayPossibleCalls (ClassicPossibleCallList);
             END;
     END;
 
@@ -74,11 +74,11 @@ PROCEDURE PossibleCallCursorRight;
 PROCEDURE PossibleCallCursorLeft;
 
     BEGIN
-    WITH PossibleCallList DO
-        IF (NumberPossibleCalls > 0) AND (CursorPosition > 0) THEN
+    WITH ClassicPossibleCallList DO
+        IF (NumberCalls > 0) AND (CursorPosition > 0) THEN
             BEGIN
             Dec (CursorPosition);
-            DisplayPossibleCalls (PossibleCallList);
+            DisplayPossibleCalls (ClassicPossibleCallList);
             END;
     END;
 

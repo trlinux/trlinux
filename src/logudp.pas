@@ -183,7 +183,7 @@ TYPE
 
     UDPRecordType = RECORD
         app: Str40;
-        contestname: Str40;
+        contestname: Str80;
         contestnr: Str20;
         timestamp: Str40;        { 2020-01-17 16:43:38 }
         mycall: Str20;
@@ -308,6 +308,8 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
         UDP_Record.MyCall := MyCall;          { A global that comes from LOGWIND.PAS }
         UDP_Record.Call := Callsign;          { Callsign of station being worked }
         UDP_Record.Mode := ModeString [Mode]; { Until someone tells me different }
+        UDP_Record.CountryPrefix := DXQTH;    { DXCC Prefix }
+
         GetRidOfPostcedingSpaces (UDP_Record.Mode);
 
         IF Frequency <> 0 THEN
@@ -396,13 +398,13 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
         IF NumberReceived <> -1 THEN
             BEGIN
             Str (NumberReceived, TempString);
-            UDP_Record.sntnr := TempString;
+            UDP_Record.rcvnr := TempString;
             END;
 
         IF NumberSent <> -1 THEN
             BEGIN
             Str (NumberSent, TempString);
-            UDP_Record.rcvnr := TempString;
+            UDP_Record.sntnr := TempString;
             END;
 
         IF PostalCode <> '' THEN UDP_Record.rcv := PostalCode;
@@ -473,6 +475,7 @@ VAR Index: INTEGER;
 
     BEGIN
     IF Length (AddString) > 0 THEN
+        BEGIN
         FOR Index := 1 TO Length (AddString) DO
             BEGIN
             UDPBuffer [NumberBytesInUDPBuffer] := AddString [Index];
@@ -485,6 +488,13 @@ VAR Index: INTEGER;
                 Halt;
                 END;
             END;
+
+        UDPBuffer [NumberBytesInUDPBuffer] := CarriageReturn;
+        Inc (NumberBytesInUDPBuffer);
+        UDPBuffer [NumberBytesInUDPBuffer] := LineFeed;
+        Inc (NumberBytesInUDPBuffer);
+        END;
+
     END;
 
 
@@ -499,60 +509,60 @@ PROCEDURE BuildUDPPAcket;
 
     AddStringToUDPBuffer ('<?xml version=''1.0'' encoding=''utf-8''?>');
     AddStringToUDPBuffer ('<contactinfo>');
-    AddStringToUDPBuffer ('<app>TRLogLinux</app>');
-    AddStringtoUDPBuffer ('<contestname>' + ContestName + '</contestname>');
+    AddStringToUDPBuffer (TabKey + '<app>TRLogLinux</app>');
+    AddStringtoUDPBuffer (TabKey + '<contestname>' + ContestName + '</contestname>');
 
     WITH Udp_Record DO
         BEGIN
-        AddStringToUDPBuffer ('<timestamp>' + TimeStamp + '</timestamp>');
-        AddStringtoUDPBuffer ('<mycall>' + MyCall + '</mycall>');
-        AddStringToUDPBuffer ('<band>' + Band + '</band>');
-        AddStringToUDPBuffer ('<rxfreq>' + RXFreq + '</rxfreq>');
-        AddStringtoUDPBuffer ('<txfreq>' + TXFreq + '</txfreq>');
+        AddStringToUDPBuffer (TabKey + '<timestamp>' + TimeStamp + '</timestamp>');
+        AddStringtoUDPBuffer (TabKey + '<mycall>' + MyCall + '</mycall>');
+        AddStringToUDPBuffer (TabKey + '<band>' + Band + '</band>');
+        AddStringToUDPBuffer (TabKey + '<rxfreq>' + RXFreq + '</rxfreq>');
+        AddStringtoUDPBuffer (TabKey + '<txfreq>' + TXFreq + '</txfreq>');
 
-        IF Operator_Call <> '' THEN AddStringToUDPBuffer ('<operator>' + Operator_Call + '</operator>');
+        IF Operator_Call <> '' THEN AddStringToUDPBuffer (TabKey + '<operator>' + Operator_Call + '</operator>');
 
-        AddStringtoUDPBuffer ('<mode>' + Mode + '</mode>');
-        AddStringtoUDPBuffer ('<call>' + Call + '</call>');
-        AddStringtoUDPBuffer ('<countryprefix>' + CountryPrefix + '</countryprefix>');
-        AddStringtoUDPBuffer ('<wpxprefix>' + WPXPrefix + '</wpxprefix>');
-        AddStringtoUDPBuffer ('<stationprefix>' + StationPrefix + '</stationprefix>');
-        AddStringtoUDPBuffer ('<continent>' + Continent + '</continent>');
+        AddStringtoUDPBuffer (TabKey + '<mode>' + Mode + '</mode>');
+        AddStringtoUDPBuffer (TabKey + '<call>' + Call + '</call>');
+        AddStringtoUDPBuffer (TabKey + '<countryprefix>' + CountryPrefix + '</countryprefix>');
+        AddStringtoUDPBuffer (TabKey + '<wpxprefix>' + WPXPrefix + '</wpxprefix>');
+        AddStringtoUDPBuffer (TabKey + '<stationprefix>' + StationPrefix + '</stationprefix>');
+        AddStringtoUDPBuffer (TabKey + '<continent>' + Continent + '</continent>');
 
-        IF snt <> '' THEN AddStringtoUDPBuffer ('<snt>' + snt + '</snt>');
-        IF sntnr <> '' THEN AddStringtoUDPBuffer ('<sntnr>' + SntNr + '</sntnr>');
-        IF rcv <> '' THEN AddStringtoUDPBuffer ('<rcv>' + Rcv + '</rcv>');
-        IF rcvnr <> '' THEN AddStringtoUDPBuffer ('<rcvnr>' + RcvNr + '</rcvnr>');
-        IF GridSquare <> '' THEN AddStringtoUDPBuffer ('<gridsquare>' + GridSquare + '</gridsquare>');
-        IF Exchangel <> '' THEN AddStringtoUDPBuffer ('<exchangel>' + exchangel + '</exchangel>');
-        IF Section <> '' THEN AddStringtoUDPBuffer ('<section>' + Section + '</section>');
-        IF Comment <> '' THEN AddStringtoUDPBuffer ('<comment>' + Comment + '</comment>');
-        IF QTH <> '' THEN AddStringtoUDPBuffer ('<qth>' + QTH + '</qth>');
-        IF Name <> '' THEN AddStringtoUDPBuffer ('<name>' + Name + '</name>');
-        IF Power <> '' THEN AddStringtoUDPBuffer ('<power>' + Power + '</power>');
-        IF MiscText <> '' THEN AddStringtoUDPBuffer ('<misctext>' + MiscText + '</misctext>');
-        IF Zone <> '' THEN AddStringtoUDPBuffer ('<zone>' + Zone + '</zone>');
-        IF Prec <> '' THEN AddStringtoUDPBuffer ('<prec>' + Prec + '</prec>');
-        IF Ck <> '' THEN AddStringtoUDPBuffer ('<ck>' + Ck + '</ck>');
-        IF IsMultiplierl <> '' THEN AddStringtoUDPBuffer ('<ismultiplierl>' + IsMultiplierl + '</ismultiplierl>');
-        IF IsMultiplier2 <> '' THEN AddStringtoUDPBuffer ('<ismultiplier2>' + IsMultiplier2 + '</ismultiplier2>');
-        IF IsMultiplier3 <> '' THEN AddStringtoUDPBuffer ('<ismultiplier3>' + IsMultiplier3 + '</ismultiplier3>');
-        IF Points <> '' THEN AddStringtoUDPBuffer ('<points>' + Points + '</points>');
-        IF Radionr <> '' THEN AddStringtoUDPBuffer ('<radionr>' + RadioNr + '</radionr>');
-        IF Run1Run2 <> '' THEN AddStringtoUDPBuffer ('<run1run2>' + Run1Run2 + '<run1run2>');
-        IF RoverLocation <> '' THEN AddStringtoUDPBuffer ('<RoverLocation>' + RoverLocation + '</RoverLocation>');
-        IF RadioInterfaced <> '' THEN AddStringToUDPBuffer ('<RadioInterfaced>' + RadioInterfaced + '</RadioInterfaced>');
+        IF snt <> '' THEN AddStringtoUDPBuffer (TabKey + '<snt>' + snt + '</snt>');
+        IF sntnr <> '' THEN AddStringtoUDPBuffer (TabKey + '<sntnr>' + SntNr + '</sntnr>');
+        IF rcv <> '' THEN AddStringtoUDPBuffer (TabKey + '<rcv>' + Rcv + '</rcv>');
+        IF rcvnr <> '' THEN AddStringtoUDPBuffer (TabKey + '<rcvnr>' + RcvNr + '</rcvnr>');
+        IF GridSquare <> '' THEN AddStringtoUDPBuffer (TabKey + '<gridsquare>' + GridSquare + '</gridsquare>');
+        IF Exchangel <> '' THEN AddStringtoUDPBuffer (TabKey + '<exchangel>' + exchangel + '</exchangel>');
+        IF Section <> '' THEN AddStringtoUDPBuffer (TabKey + '<section>' + Section + '</section>');
+        IF Comment <> '' THEN AddStringtoUDPBuffer (TabKey + '<comment>' + Comment + '</comment>');
+        IF QTH <> '' THEN AddStringtoUDPBuffer (TabKey + '<qth>' + QTH + '</qth>');
+        IF Name <> '' THEN AddStringtoUDPBuffer (TabKey + '<name>' + Name + '</name>');
+        IF Power <> '' THEN AddStringtoUDPBuffer (TabKey + '<power>' + Power + '</power>');
+        IF MiscText <> '' THEN AddStringtoUDPBuffer (TabKey + '<misctext>' + MiscText + '</misctext>');
+        IF Zone <> '' THEN AddStringtoUDPBuffer (TabKey + '<zone>' + Zone + '</zone>');
+        IF Prec <> '' THEN AddStringtoUDPBuffer (TabKey + '<prec>' + Prec + '</prec>');
+        IF Ck <> '' THEN AddStringtoUDPBuffer (TabKey + '<ck>' + Ck + '</ck>');
+        IF IsMultiplierl <> '' THEN AddStringtoUDPBuffer (TabKey + '<ismultiplierl>' + IsMultiplierl + '</ismultiplierl>');
+        IF IsMultiplier2 <> '' THEN AddStringtoUDPBuffer (TabKey + '<ismultiplier2>' + IsMultiplier2 + '</ismultiplier2>');
+        IF IsMultiplier3 <> '' THEN AddStringtoUDPBuffer (TabKey + '<ismultiplier3>' + IsMultiplier3 + '</ismultiplier3>');
+        IF Points <> '' THEN AddStringtoUDPBuffer (TabKey + '<points>' + Points + '</points>');
+        IF Radionr <> '' THEN AddStringtoUDPBuffer (TabKey + '<radionr>' + RadioNr + '</radionr>');
+        IF Run1Run2 <> '' THEN AddStringtoUDPBuffer (TabKey + '<run1run2>' + Run1Run2 + '<run1run2>');
+        IF RoverLocation <> '' THEN AddStringtoUDPBuffer (TabKey + '<RoverLocation>' + RoverLocation + '</RoverLocation>');
+        IF RadioInterfaced <> '' THEN AddStringToUDPBuffer (TabKey + '<RadioInterfaced>' + RadioInterfaced + '</RadioInterfaced>');
 
         { For now - we always send zero for this }
 
-        AddStringtoUDPBuffer ('<NetworkedCompNr>' + '0' + '</NetworkedCompNr>');
+        AddStringtoUDPBuffer (TabKey + '<NetworkedCompNr>' + '0' + '</NetworkedCompNr>');
 
-        IF IsOriginal <> '' THEN AddStringtoUDPBuffer ('<IsOriginal>' + IsOriginal + '</IsOriginal>');
-        IF NetBiosName <> '' THEN AddStringtoUDPBuffer ('<NetBiosName>' + NetBIOSName + '</NetBiosName>');
-        IF IsRunQSO <> '' THEN AddStringtoUDPBuffer ('<IsRunQSO>' + IsRunQSO + '</IsRunQSO>');
-        IF StationName <> '' THEN AddStringtoUDPBuffer ('<StationName>' + StationName + '</StationName>');
-        IF ID <> '' THEN AddStringtoUDPBuffer ('<ID>' + ID + '</ID>');
-        IF IsClaimedQSO <> '' THEN AddStringtoUDPBuffer ('<IsClaimedQso>' + IsCLaimedQSO + '</IsClaimedQso> ');
+        IF IsOriginal <> '' THEN AddStringtoUDPBuffer (TabKey + '<IsOriginal>' + IsOriginal + '</IsOriginal>');
+        IF NetBiosName <> '' THEN AddStringtoUDPBuffer (TabKey + '<NetBiosName>' + NetBIOSName + '</NetBiosName>');
+        IF IsRunQSO <> '' THEN AddStringtoUDPBuffer (TabKey + '<IsRunQSO>' + IsRunQSO + '</IsRunQSO>');
+        IF StationName <> '' THEN AddStringtoUDPBuffer (TabKey + '<StationName>' + StationName + '</StationName>');
+        IF ID <> '' THEN AddStringtoUDPBuffer (TabKey + '<ID>' + ID + '</ID>');
+        IF IsClaimedQSO <> '' THEN AddStringtoUDPBuffer (TabKey + '<IsClaimedQso>' + IsCLaimedQSO + '</IsClaimedQso> ');
         END;
 
     AddStringToUDPBuffer ('</contactinfo>');

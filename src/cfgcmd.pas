@@ -1683,14 +1683,6 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-
-    IF ID = 'INITIAL EXCHANGE FILENAME' THEN
-        BEGIN
-        InitialExchangeFilename := CMD;
-        ProcessConfigInstructions2 := True;
-        Exit;
-        END;
-
     {KK1L: 6.70}
     IF ID = 'INITIAL EXCHANGE OVERWRITE' THEN
         BEGIN

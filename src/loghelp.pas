@@ -39,7 +39,6 @@ TYPE
 
 VAR
     ConfirmEditChanges: BOOLEAN;
-    Doing2BSIQ:         BOOLEAN;
     TabMode:            TabModeType;
     UserNameString:     Str40;
     VideoGameLength:    INTEGER;

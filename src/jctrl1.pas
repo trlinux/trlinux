@@ -265,7 +265,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       ADP: Description := 'AUTO DISPLAY DUPE QSO';
       ADE: Description := 'AUTO DUPE ENABLE CQ';
       ADS: Description := 'AUTO DUPE ENABLE S AND P';
-      APF: Description := 'AUTO SCP CALL FETCH';
+      APF: Description := 'AUTO PARTIAL CALL FETCH';
       AQI: Description := 'AUTO QSL INTERVAL';
       AQD: Description := 'AUTO QSO NUMBER DECREMENT';
       AQR: Description := 'AUTO QSY REQUEST ENABLE';
