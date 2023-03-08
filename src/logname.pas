@@ -179,7 +179,7 @@ TYPE
         NumberClubCalls: INTEGER;
 
         PROCEDURE Abort;
-        PROCEDURE AddCallToPossibleList (Call: CallString; VAR lList: CallListRecord);
+        PROCEDURE AddCallToPossibleList (Call: CallString; VAR List: CallListRecord);
         FUNCTION  AddClubCall (Call: CallString): BOOLEAN;
         FUNCTION  AddName (Call: CallString; Name: Str80): BOOLEAN;
         PROCEDURE ComputeTotalCalls;
