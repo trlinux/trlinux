@@ -193,7 +193,7 @@ TYPE
         PROCEDURE InputASCIIFile;
         FUNCTION  Load: BOOLEAN;
         PROCEDURE MakeASCIIList (FileName: Str80);
-        PROCEDURE MakePossibleCallList (Call: CallString; VAR PossCallList: PossibleCallRecord);
+        PROCEDURE MakePossibleCallList (Call: CallString; VAR PossCallList: CallListRecord);
         FUNCTION  ReLoad: BOOLEAN;
         PROCEDURE Save;
         FUNCTION  TotalNumberOfCalls: INTEGER;
@@ -1544,7 +1544,7 @@ VAR Entry: INTEGER;
 
 
 
-PROCEDURE NameDictionary.MakePossibleCallList (Call: CallString; VAR PossCallList: PossibleCallRecord);
+PROCEDURE NameDictionary.MakePossibleCallList (Call: CallString; VAR List: CallListRecord);
 
 
 { Possible calls either match prefixes and the suffixes are possible calls
@@ -1590,7 +1590,7 @@ VAR Address, NameCode, Index: INTEGER;
                             TestCall := ExpandTwoBytes (CommonCalls^ [NameCode, Index]);
 
                             IF SimilarCall (TestCall, Suffix) THEN
-                                AddCallToPossibleList (Prefix + TestCall, PossCallList);
+                                AddCallToPossibleList (Prefix + TestCall, List);
                             END;
                         END
                     ELSE
@@ -1606,7 +1606,7 @@ VAR Address, NameCode, Index: INTEGER;
                                 TestCall := ExpandTwoBytes (CommonCalls^ [NameCode, Index]);
 
                                 IF TestCall = Suffix THEN
-                                    AddCallToPossibleList (ListPrefix + Suffix, PossCallList);
+                                    AddCallToPossibleList (ListPrefix + Suffix, List);
 
                                 END;
                             END;
@@ -1651,7 +1651,7 @@ VAR Address, NameCode, Index: INTEGER;
                             TestCall := ExpandTwoBytes (UnCommonCalls^ [NameCode, Index]);
 
                             IF SimilarCall (TestCall, Suffix) THEN
-                                AddCallToPossibleList (Prefix + TestCall, PossCallList);
+                                AddCallToPossibleList (Prefix + TestCall, List);
                             END;
                         END
                     ELSE
@@ -1668,7 +1668,7 @@ VAR Address, NameCode, Index: INTEGER;
                                 TestCall := ExpandTwoBytes (UnCommonCalls^ [NameCode, Index]);
 
                                 IF TestCall = Suffix THEN
-                                    AddCallToPossibleList (ListPrefix + Suffix, PossCallList);
+                                    AddCallToPossibleList (ListPrefix + Suffix, List);
 
                                 END;
                             END;
@@ -1701,7 +1701,7 @@ VAR Address, NameCode, Index: INTEGER;
                 BEGIN
                 TempCall := ExpandedString (ClubCalls^ [Address]);
                 IF SimilarCall (TempCall, TestCall) THEN
-                    AddCallToPossibleList (TempCall, PossCallList);
+                    AddCallToPossibleList (TempCall, List);
                 END;
             END;
 
