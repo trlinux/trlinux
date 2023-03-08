@@ -193,7 +193,7 @@ TYPE
         PROCEDURE InputASCIIFile;
         FUNCTION  Load: BOOLEAN;
         PROCEDURE MakeASCIIList (FileName: Str80);
-        PROCEDURE MakePossibleCallList (Call: CallString; VAR PossCallList: CallListRecord);
+        PROCEDURE MakePossibleCallList (Call: CallString; VAR List: CallListRecord);
         FUNCTION  ReLoad: BOOLEAN;
         PROCEDURE Save;
         FUNCTION  TotalNumberOfCalls: INTEGER;
