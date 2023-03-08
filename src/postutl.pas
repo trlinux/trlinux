@@ -791,7 +791,7 @@ PROCEDURE ShowRestartDotBin;
 
 VAR FileWrite: TEXT;
     Block, NumberCalls, NumberEntriesInLastBlock, NumberBlocks: INTEGER;
-    BlockAddress, CharPointer, EndAddress, Address: INTEGER;
+    CharPointer, EndAddress, Address: INTEGER;
 
     Band: BandType;
     Mode: ModeType;
