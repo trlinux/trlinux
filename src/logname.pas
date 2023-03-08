@@ -179,7 +179,7 @@ TYPE
         NumberClubCalls: INTEGER;
 
         PROCEDURE Abort;
-        PROCEDURE AddCallToPossibleList (Call: CallString; VAR PossCallList: PossibleCallRecord);
+        PROCEDURE AddCallToPossibleList (Call: CallString; VAR lList: CallListRecord);
         FUNCTION  AddClubCall (Call: CallString): BOOLEAN;
         FUNCTION  AddName (Call: CallString; Name: Str80): BOOLEAN;
         PROCEDURE ComputeTotalCalls;
@@ -1522,23 +1522,23 @@ VAR FileWrite: FILE;
 
 
 
-PROCEDURE NameDictionary.AddCallToPossibleList (Call: CallString; VAR PossCallList: PossibleCallRecord);
+PROCEDURE NameDictionary.AddCallToPossibleList (Call: CallString; VAR List: CallListRecord);
 
 VAR Entry: INTEGER;
 
     BEGIN
     GetRidOfPrecedingSpaces (Call);
 
-    IF PossCallList.NumberPossibleCalls < 12 THEN
+    IF List.NumberCalls < 12 THEN
         BEGIN
-        IF PossCallList.NumberPossibleCalls > 0 THEN
-            FOR Entry := 0 TO PossCallList.NumberPossibleCalls - 1 DO
-                IF PossCallList.List [Entry].Call = Call THEN
+        IF List.NumberCalls > 0 THEN
+            FOR Entry := 0 TO List.NumberCalls - 1 DO
+                IF List.CallList [Entry].Call = Call THEN
                     Exit;
 
-        PossCallList.List [PossCallList.NumberPossibleCalls].Call := Call;
-        PossCallList.List [PossCallList.NumberPossibleCalls].Dupe := False;
-        Inc (PossCallList.NumberPossibleCalls);
+        List.CallList [List.NumberCalls].Call := Call;
+        List.CallList [List.NumberCalls].Dupe := False;
+        Inc (List.NumberCalls);
         END;
     END;
 
