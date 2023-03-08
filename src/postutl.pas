@@ -976,51 +976,24 @@ VAR FileWrite: TEXT;
                     END;
                 END;
 
-    WriteLn (FileWrite, 'Number of calls in partial call list = ', NumberPartialCalls);
-    WriteLn (FileWrite, 'Number different initial exchange = ', NumberInitialExchanges);
-
-    ExchangeMemoryEnable := NumberInitialExchanges <> 0;
-
+    WriteLn (FileWrite, 'Number of calls in partial call list = ', NumberAllCalls);
     WriteLn (FileWrite);
 
-    IF NumberPartialCalls > 0 THEN
+    IF NumberAllCalls > 0 THEN
         BEGIN
         Block := 1;
         BlockAddress := 0;
 
-        WriteLn (FileWrite, 'Partial call list with initial exchanges (if any) : ');
+        WriteLn (FileWrite, 'All Call List with initial exchanges (if any) : ');
 
-        FOR Address := 0 TO NumberPartialCalls - 1 DO
+        FOR Address := 0 TO NumberAllCalls - 1 DO
             BEGIN
-            CallSign := ExpandedString (PartialCallList [Block]^ [BlockAddress].Call);
-
-            WriteLn (FileWrite, Address + 1:5, Callsign:12, GetInitialExchange (CallSign):12);
-
-            Inc (BlockAddress);
-
-            IF BlockAddress = FourByteBlockSize THEN
-                BEGIN
-                BlockAddress := 0;
-                Inc (Block);
-                END;
-
+            CallSign := AllCallList [Address];
+            WriteLn (FileWrite, Address + 1:5, Callsign:12, ExchangeMemoryList [Address]:12);
             END;
         END;
 
     WriteLn (FileWrite);
-
-    IF NumberLongPartialCalls > 0 THEN
-        BEGIN
-        WriteLn (FileWrite, 'Long partial call list with initial exchanges (if any) : ');
-
-        FOR Address := 0 TO NumberLongPartialCalls - 1 DO
-            BEGIN
-            CallSign := BigExpandedString (LongPartialCallList^ [Address]);
-            WriteLn (FileWrite, Address + 1:5, Callsign:14, GetInitialExchange (CallSign):12);
-            Inc (BlockAddress);
-            END;
-        END;
-
     Close (FileWrite);
     Sheet.DisposeOfMemoryAndZeroTotals;
     WaitForKeyPressed;
