@@ -981,9 +981,6 @@ VAR FileWrite: TEXT;
 
     IF NumberAllCalls > 0 THEN
         BEGIN
-        Block := 1;
-        BlockAddress := 0;
-
         WriteLn (FileWrite, 'All Call List with initial exchanges (if any) : ');
 
         FOR Address := 0 TO NumberAllCalls - 1 DO
