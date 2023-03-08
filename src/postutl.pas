@@ -1082,6 +1082,7 @@ VAR Key: CHAR;
     Call: CallString;
     FileName: Str40;
     Address: INTEGER;
+    List: CallListRecord;
 
     BEGIN
     REPEAT
@@ -1188,14 +1189,14 @@ VAR Key: CHAR;
 
                      IF Call <> '' THEN
                          BEGIN
-                         CD.GeneratePossibleCallList (Call);
+                         CD.GeneratePossibleCallList (Call, List);
 
-                         IF PossibleCallList.NumberPossibleCalls > 0 THEN
-                             FOR Address := 0 TO PossibleCallList.NumberPossibleCalls - 1 DO
+                         IF List.NumberCalls > 0 THEN
+                             FOR Address := 0 TO List.NumberCalls - 1 DO
                                  BEGIN
                                  IF WhereX > 72 THEN WriteLn;
                                  IF WhereX > 1 THEN Write (' ');
-                                 Write (PossibleCallList.List [Address].Call);
+                                 Write (List.CallList [Address].Call);
                                  END;
                          END
                      ELSE
