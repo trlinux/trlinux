@@ -19,6 +19,7 @@ You should have received a copy of the GNU General
 
 0.56
 
+<<<<<<< HEAD
 08-Mar-2020
    - Rename AUTO SCP CALL FETCH to AUTO PARTIAL CALL FETCH to more accurately describe
      which window it works with.  Also made it work if two letters resolves to a single
@@ -31,6 +32,8 @@ You should have received a copy of the GNU General
      the old PossibleCallList.
    - Removed support for INITIAL.EX file - please use TRMASTER.DTA
 
+=======
+>>>>>>> origin/master
 
 02-Mar-2023
 
