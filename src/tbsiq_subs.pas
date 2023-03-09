@@ -2605,6 +2605,9 @@ VAR Key, ExtendedKey: CHAR;
                 ExchangeWindowString := InitialExchange;
                 Write (ExchangeWindowString);
                 ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
+
+                IF InitialExchangeOverwrite THEN
+                    InitialExchangePutUp := ExchangeWindowString <> '';
                 END;
 
             QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;
@@ -2764,7 +2767,11 @@ VAR Key, ExtendedKey: CHAR;
 
                             QSONumberForPreviousQSO := QSONumberForThisQSO;
                             SetUpNextQSONumber;
-                            END;
+                            END
+
+                        ELSE
+                            IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                                SwapWindows;
 
                     NullKey:
                         BEGIN
@@ -4480,19 +4487,19 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     { A keystroke will stop the DualingCQ activity.  Note that you are likely
       on the wrong radio with the CW or for sure SSB }
 
-     IF (DualingCQState <> NoDualingCQs) AND (Mode = Phone) THEN  { Make me the TX radio }
-         BEGIN
-         { Try and stop the message on the other radio? }
+    IF (DualingCQState <> NoDualingCQs) AND (Mode = Phone) THEN  { Make me the TX radio }
+        BEGIN
+        { Try and stop the message on the other radio? }
 
-         CASE Radio OF
-             RadioOne: rig2.directcommand ('RX;');
-             RadioTwo: rig1.directcommand ('RX;');
-             END;
+        CASE Radio OF
+            RadioOne: rig2.directcommand ('RX;');
+            RadioTwo: rig1.directcommand ('RX;');
+            END;
 
-         ActiveRadio := Radio;
-         ActiveKeyer.SetActiveRadio (Radio);   { This seems necessary }
-         TBSIQ_CW_Engine.ShowActiveRadio;
-         END;
+        ActiveRadio := Radio;
+        ActiveKeyer.SetActiveRadio (Radio);   { This seems necessary }
+        TBSIQ_CW_Engine.ShowActiveRadio;
+        END;
 
     DualingCQState := NoDualingCQs;
 
@@ -4506,34 +4513,6 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
       and cursor positions }
 
     SetTBSIQWindow (TBSIQ_ActiveWindow);  { Sets cursor }
-
-    { Deal with the case where someone is sending us a character using AltD on the other radio }
-
-    IF CharacterInput <> Chr (0) THEN   { Someone is talking to us }
-        BEGIN
-        IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
-            BEGIN
-            IF CharacterInput <> CarriageReturn THEN
-                BEGIN
-                CallWindowString := CallWindowString + CharacterInput;
-                ClrScr;
-                Write (CallWindowString);
-                CallWindowCursorPosition := Length (CallWindowString) + 1;
-                ActionRequired := False;
-                END;
-
-            IF CharacterInput = CarriageReturn THEN   { end of input - do dupe check }
-                IF WindowDupecheck THEN
-                    BEGIN
-                    CallWindowString := '';
-                    CallWindowCursorPosition := 1;
-                    ClrScr;
-                    END;
-            END;
-
-        CharacterInput := Chr (0);
-        Exit;
-        END;
 
     CASE TBSIQ_ActiveWindow OF
         TBSIQ_CallWindow:
@@ -4549,15 +4528,26 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
             END;
         END;
 
+    { Very special case:  We have a virgin initial exchange posted in the exchange
+      window and someone has typed a key while in the exchange window and the
+      global InitialExchangeOverwrite is set.  We need to erase the initial
+      exchange }
+
+    IF InitialExchangeOverwrite AND InitialExchangePutUp THEN
+        BEGIN
+        IF (TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow) THEN
+            BEGIN
+            ClrScr;
+            WindowString := '';
+            ExchangeWindowString := '';
+            CursorPosition := 1;
+            InitialExchangePutUp := False;
+            END;
+        END;
+
     { See what key was pressed }
 
     KeyChar := UpCase (TBSIQ_ReadKey (Radio));
-
-    IF QSOState = QST_AltDInput THEN   { send this to the other radio }
-        BEGIN
-        ActionRequired := True;
-        Exit;
-        END;
 
     { Default conditions if we exit soon }
 

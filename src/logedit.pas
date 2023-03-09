@@ -3250,6 +3250,8 @@ VAR CustomString, Exchange, Command, TempString: STRING;
     Heading, Zone: INTEGER;
 
     BEGIN
+    TempString := '';
+
     StandardCall := StandardCallFormat (Call, True);
 
     CASE ActiveInitialExchange OF
@@ -3478,11 +3480,7 @@ VAR CustomString, Exchange, Command, TempString: STRING;
 
         END; { if case }
 
-    GetInitialExchangeFromTRMASTER := ' ' + TempString; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
-
-{   IF InitialExchangeOverwrite THEN
-        InitialExchangePutUp := True;} {KK1L: 6.73 Typing any character overwrites the whole exchange.}
-
+    GetInitialExchangeFromTRMASTER := TempString;
     END;
 
 
@@ -3550,10 +3548,15 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
     IF TempString = '' THEN
         TempString := GetInitialExchangeFromTRMASTER (Call);
 
-    IF NOT RoverCall (Call) THEN
-        InitialExchangeEntry := ' ' + TempString + ' '  {KK1L: 6.73 Added ' '. K9PG forgets to add it.}
+    IF TempString <> '' THEN
+        BEGIN
+        IF NOT RoverCall (Call) THEN
+            InitialExchangeEntry := ' ' + TempString + ' '
+        ELSE
+            InitialExchangeEntry := TempString;
+        END
     ELSE
-        InitialExchangeEntry := TempString;             {KK1L: 6.73 Per Tree to fix VHF rover problem.}
+        InitialExchangeEntry := '';
 
     { We sort through the various entries in the initial exchange to try and update
       beam headings or domestic multiplier status,  This is probably more than you
