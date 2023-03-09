@@ -376,14 +376,6 @@ CHANGE LOG - 2BSIQ  Mode
   - In S&P - made AltZ (used to go from CallWindow to ExchangeWindow and
     get initial exchange) show station info.
 
-
-<<<<<<< HEAD
-=======
-
-
-
-
->>>>>>> origin/master
 0.55
 
 - Many enhancements and bug fixes with the 2BSIQ user interface.  
