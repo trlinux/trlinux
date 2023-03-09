@@ -16,6 +16,367 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+
+0.56
+
+08-Mar-2020
+   - Rename AUTO SCP CALL FETCH to AUTO PARTIAL CALL FETCH to more accurately describe
+     which window it works with.  Also made it work if two letters resolves to a single
+     entry in the partial call window.
+
+06-Mar-2023
+   - Reworked the logscp.pas file to not use the global variable PossibleCallList.
+     Instead, the routines will work with the data structure CallListRecord.  There
+     is an instance of that as a global variable called CD.SCPCallList that replaces
+     the old PossibleCallList.
+   - Removed support for INITIAL.EX file - please use TRMASTER.DTA
+
+
+02-Mar-2023
+
+   - Note there is a new Arduino release - SO2RMini_2023_Feb_28.  This has a PTT
+     fix and code added by N4OGW to suuport integration of the SO2R Mini with the
+     TRLog firmware for his so2sdr program.
+
+   - Added some support for some of the typical multi-multi contests to the new
+     N1MM_UDP_PORT function.  There are still lots of exchanges that will not be
+     parsed correctly.  Also - currently, there is no validity check on the data
+     before attempting to log the QSO.  Also - none of it is tested yet.
+
+28-Feb-2023
+
+   - Added N1MM_UDP_PORT config command which will accept "industry standard" QSO
+     records and log them.
+
+24-Feb-2023
+
+  - Added indication of the band/mode for the reminaing multiplier display.
+  - Updated remaining country list to include PJ4 and PJ5.  Removed four
+    rarer countries from both remaining country lists to make room.
+
+23-Feb-2023
+
+ - AUTO SCP CALL FETCH feature implemented (default FALSE - available on ControlJ menu)
+   When TRUE - if you have entered three letters and they resolve so that only one SCP
+   call is shown - pressing RETURN will use that SCP call.  Works in both classic and
+   TBSIQ.
+
+11-Jan-2023
+
+ - Made some minor tweaks to the QSO UDP record so that K3IT's Qsorder program will be happy
+   with our UDP packets including SO2R support.
+
+08-Jan-2023
+
+ - Changed default of BANDMAP ALL MODES to TRUE to get around weird bug I was
+   having during an RTTY contest.
+
+07-Jan-2023
+
+ - Fixed RTTY messages being saved incorrectly into CFG file.
+
+06-Jan-2023
+
+ - Added UDP export of QSO information.  New LOGCFG commands:
+
+     QSO UDP IP = 192.168.0.100
+     QSO UDP PORT = 10009
+
+   Many data fields are being parsed, but some are not yet fully engaged (like frequency information).
+   However, there should be enough information there for the basic information of the QSO.
+
+
+27-Dec-2022
+
+ - Expanded the N4OGW commands to support two radios:
+
+    N4OGW RADIO ONE BANDMAP IP        defauly is blank string (Use 127.0.0.1 for local running bandmap )
+    N4OGW RADIO ONE BANDMAP PORT      default is zero
+    N4OGW RADIO ONE BANDMAP UDP PORT  default is 45454
+    N4OGW RADIO TWO BANDMAP IP        default is blank string (Use 127.0.0.1 for local running bandmap )
+    N4OGW RADIO TWO BANDMAP PORT      default is zero
+    N4OGW RADIO TWO BANDMAP UDP PORT  default is 45454
+
+    When using two band maps - TR will send any spotted call to both bandmaps.
+    When a call is deleted - it will also be deleted in both bandmaps.
+
+    Really - the only time the two are handled distinctly is when they generate a frequency command
+    from a mouse click and it needs to be routed to the proper radio.  However, we can get extra
+    bonus points for being careful when we get a delete command and only removing the specific
+    frequency for that callsign.  Note that this will generate a non-specific-frequency delete
+    command to N4OGW which will remove the call from all frequencies on his bandmap.  This could
+    perhaps be worked around by detecing this condition in TR Log and then sending a new spot to
+    N4OGW for the instances of the call that should stay displayed.
+
+    The two bandmaps can likely share the same UDP port number for sending data back to the logging
+    program.  There is a RadioNr field in the packet that will make it clear which radio should
+    respond to the command.
+
+25-Dec-2022
+
+  - Fixed QSOs this hour display - was stuck at zero.
+
+  - Added display of working directory for TRMaster file to both Control-J and
+    the Statistics display in POST (function Z at the TRMASTER menu).  The default
+    location appears to be .trlog in the users home directory.
+
+24-Dec-2022
+
+  - Added Control-Q to CW message - will send integer kHz of the other radio's
+    frequency.  It will also generate a note in the log indicating who was asked
+    to go where.
+
+23-Dec-2022
+
+  - When a band map entry times out (over 60 minutes) it will also get deleted in the
+    N4OGW bandmap as well.  Pretty sure this will delete any instance of that call regardless
+    of the band however.
+
+20-Dec-2022
+
+  - Did some work to simplify the WindowEditor routine.
+  - Fixed bug where I coudln't overwrite a band map displayed callsign by typing over it
+
+17-Dec-2022
+
+  - Added TWO VFO MODE (control-J) which when enabled will process a space bar at an empty
+    call window in CQ mode to swap the A and B VFOs and put you into S&P mode.  Once out of
+    S&P mode - you are back on your CQ frequency.  This currently only works with Kenwood
+    and Elecraft radios.
+
+11-Dec-2022
+
+   - Some rough edges with bandmap blinking call resolved.  Seems to work great with the
+     N4OGW bandmap now.  Made calls from the N4OGW bandmap go to VFO A for now.  Not sure
+     how things will work with the second VFO or even a different rig ATM
+
+10-Dec-2022
+
+   - N4OGW bandmap interface is now feature complete.  Will need some adjustement of the
+     color coding to make it look better.  Some features not yet supported in 2BSIQ.
+
+05-Dec-2022
+
+   - Added support for N4OGW so2r-bandmap.  Use N4OGW BAND MAP IP and N4OGW BAND MAP PORT
+     in your config file to enable.
+
+03-Dec-2022
+
+   - Fixed CQ with footswitch restarting message as footswitch still pressed
+
+29-Nov-2022
+
+   - Fixed new bug where exiting F10 (sending keyboard CW) left PTT hanging that
+     was introduced with the SO2R mini on 28-Nov-2022.
+
+28-Nov-2022
+
+  - Changed SO2R Mini CW character command from ^ to ; (semi-colon)
+  - Changed SO2R Mini version to TRCW V4
+  - Changed SO2R Mini to not drop PTT when seeing PTT unforce command when more chars to be sent.
+  - Had a few places where I had removed PTT unforce from classic interface that could be put back.
+  - Added support for ^ half space to SO2R Mini
+
+03-Nov-2022
+
+  - There is an issue with using the SO2R Mini with the ^ character in CW messages.
+    Previously, using a ^ in a CW message would produce a half space.  For the SO2R
+    Mini, this is a prefix for a command - which will be the next character in the
+    message.  Here are the valid SO2R mini commands:
+
+    ^D - Long Dash
+    ^F - Speed up CW by 2 WPM
+    ^H - Half dit space
+    ^I - Switch headphones to inactive radio
+    ^J - Switch headphones to active radio
+    ^S - Slow down CW by 2 WPM
+    ^X - Switch headphones to Radio 1
+    ^Y - Switch headphones to Radio 2
+    ^Z - Switch headphones to Stereo
+
+    Also - I found a bug with the implmentation of the ^H command in the SO2R Mini
+    firmware that has been fixed with release dated Nov 3, 2022.
+
+02-Nov-2022
+
+  - With the SO2R mini, the weight display in the ControlJ menu was being divided
+    by 128 instead of 100 - and thus was displaying wrong.  If you entered a new
+    weight, it was being processed correctly - but still displayed wrong.
+
+
+CHANGE LOG - 2BSIQ  Mode
+
+24-Feb-2023
+
+   - AUTO SCP CALL FETCH implemented.  Takes three letters and turns it into a full call if
+     there is only one SCP call shown (when coming back to a call and pressing ENTER).
+
+   - Fixed bug where SCP stops processing additional callsign input after auto start send.
+   - Fixed bug where entering JA1/ started auto start send.
+   - Fixed bug where expanding a callsign from the middle will trigger auto start send.
+   - Fixed bug where pressing ESCAPE after auto start send jumps you into sending the exchange.
+
+19-Feb-2023
+
+   - Made sending @ in a function key message update CallsignICameBackTo
+
+06-Feb-2023
+
+   - Hopefully enabled escape key to get out of Alt-D mode.
+
+   - Hopefully fixed bug where the wrong radio was being indcated some of the
+     time with the UDP messages - thus making Qsorder save the wrong channel
+     some of the time.
+
+   - Fixed the visible dupesheet being pretty brain dead.  Now works good for
+     the sprint hopefully.  It basically uses the same criteria as the band map
+     to switching bands.
+
+04-Feb-2023
+
+  - Some minor fixes with the AutoStartSend feature.  First off - if it is
+    enabled in classic mode - typing 2BSIQ will not start a transmission so
+    you can enter 2BSIQ without having to turn AutoStartSend off.  A minor
+    bug where you had to press the Alt-Dash key twice occasionally has been
+    fixed - and also the AutoStartSend state (which is called
+    AutoStartSendEnable in the local variable for the QSOMachine instance) is
+    copied from the Classic global variable - so both QSOMachines should come
+    up in the same Classic state.
+
+02-Feb-2023
+
+  - If callsing CQ on one radio and wanting to send F1 in S&P mode - CW will be
+    stopped on the CQing radio.
+
+19-Jan-2023
+  - Supported updating the bandmap output.
+
+14-Jan-2023
+  - Added support for N4OGW bandmap commands and VFO support.
+
+07-Jan-2023
+  - Cleaned up some stuff with RTTY.  Trying to make it as consistent to
+    CW and Classic as much as possible.  Note that you do not use CQ EXCHANGE
+    and must program EX Function Key memories F1 and F2.  MY CALL is not
+    automatically used when you call someone in S&P
+
+25-Dec-2022
+
+  - Added the Control-Q CW character to get the frequency from the other
+    radio.  This is the identical function as added to the classic mode
+    but the implementation is totally unique to TBSIQ.  It will also
+    generate a note to the log file indicating who was asked to go where.
+
+  - Cleaned up retry message from SO2R mini so pieces of it don't get left
+    over and displayed forever just after the Score total window.
+
+23-Dec-2022
+
+  - Added AUTO QSY REQUEST ENABLE parameter (control-J) which is intended to
+    automatically ask someone who is a multiplier to QSY to the other band
+    when 2BSIQing.  It is intended that it only do this when the other band
+    has some minimum number of QSOs (so you aren't doing this for easy
+    multipliers) and when for sure you are actively calling CQ on the
+    other frequency.
+
+    This is still in the idea phase.  I need to make some kind of mechanism
+    that keeps tracks of the CQ activtiy of each radio.  Then I need a
+    function that looks at that data to decide if I am active on an
+    established frequency before asking someone to QSY to that frequency.
+
+    But maybe before doing that - I should make sure I have a manual way of
+    doing it using CW messsage character for the frequency of the other radio.
+    I think I remember implementing that sometime ago?  It appears note - so
+    let's add that first (for both calssic and 2BSIQ).
+
+28-Nov-2022
+  - Realized that these removal of PttUnforce was kind of a bad idea as
+    the SO2R mini should keep PTT asserted if it has characters in the
+    buffer when seeing this command.  This is resulting in the brief
+    letup of PTT with the CW messages after a callsign is sent and before
+    the CQ exchange shows up after we have enough QSOs.
+
+    So - the SO2R mini firmware needed to be changed so it emulates how
+    things worked before - and the PTTUnassert commands put back into
+    the high level program (both classic and 2BSIQ).  Also, we need
+    to force PTT on while sending a callsign in CQ mode so that the
+    gap until we sent the CQ EXCHANGE is covered.
+
+    Finally, since we are updating the SO2R mini firmware, we are going
+    to fix the ^ character being a command prefix - and make it work
+    as a half space like it is supposed to.
+
+    Along with that will be checking the SO2R mini version now and giving
+    a warning message if it isn't up to date.
+
+    The new SO2R Mini firmare version is TRCW4 V4.
+
+    The new SO2R Mini command prefix is now semi-colon.
+
+26-Nov-2022
+
+  - In effort to make PTT work again in classic mode while sending CW,
+    I restored the old SendCrypticCW procedure in logsubs1.pas.  It had
+    been moved to logedit.pas in an attempt to let the TBSIQ stuff
+    leverage it - but that didn't work out.  Turns out that I needed
+    to delete a ClearPttForceOn command at the end of SendCrypticCWString
+    in LOGSUBS1.PAS.
+
+  - Insert status now comes up the same as what you had in classic UI.
+
+15-Nov-2022
+
+  - Removed Deleted Call message.
+
+  - Improved operation with dualing CQs on SSB.  A message in progress will
+    be stopped once a key is entered on the opposite radio in response to
+    a CQ.  This is different from CW where the CQ will finish out before
+    the call is answered.
+
+14-Nov-2022
+
+  - Fixed nasty bandmap issue where calls were bleeding over to the wrong
+    radio.  This turned out to be a case of assuming that the "real" active
+    window was already setup if the radio specific active window seemed to
+    be correct.  There might be other places lurking where you need to put
+    a SetTBSIQWindow (TBSIQ_ActiveWindow) command to make sure the correct
+    window is up.  This normally happens when a key is pressed - but if
+    something automatic like switching between band map focus without a
+    keystroke, then you might be in the wrong place.
+
+09-Nov-2022
+
+  - Fixed bug where PTT was being deasserted before completing the character
+    being sent by the Arduino when the operator is pressing ESCAPE. This was
+    fixed by removing the PTT unassert command in LOGCW in the FlushBuffer
+    prodcedure.
+
+05-Nov-2022
+
+  - Fixed UserInfo not coming up with CQ QSOs
+
+04-Nov-2022
+
+  - Fixed S&P indicator if enabled.
+
+  - Made sure remaining mults get updated when logging a QSO.
+
+  - Put editable log back up when sending CQ exchange (clearing out the partial
+    call window).
+
+03-Nov-2022
+
+  - Fixed ^ character in Arduino (see main program notes)
+
+  - Moved User Info Window above the INSERT window so it no longer gets
+    overwritten by the Auto Start Send indicator.  Note that it appears
+    you need to put the TRMASTER.BIN file in the working directory for
+    the contest.
+
+  - In S&P - made AltZ (used to go from CallWindow to ExchangeWindow and
+    get initial exchange) show station info.
+
+
 0.55
 
 - Many enhancements and bug fixes with the 2BSIQ user interface.  
