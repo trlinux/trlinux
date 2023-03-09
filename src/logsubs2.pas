@@ -349,8 +349,6 @@ VAR RData: ContestExchange;
 
         IF ParseExchangeIntoContestExchange (LogString, RData) THEN
             BEGIN
-            ProcessPartialCallAndInitialExchange (RData);
-
             IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
                 BEGIN
                 IF (NOT MultiMultsOnly) OR
@@ -541,9 +539,7 @@ VAR MultiString, MessageString: STRING;
                 MultiString := ConvertK1EANetworkLogMessageToN6TRLogString (MultiString);
                 ParseExchangeIntoContestExchange (MultiString, RXData);
 
-                ProcessPartialCallAndInitialExchange (RXData);
-
-                { These next steps are unique for K1EA network entries that
+               { These next steps are unique for K1EA network entries that
                   have no QSO point information, multiplier information or
                   even the sent QSO Number when they come in. }
 
@@ -568,9 +564,6 @@ VAR MultiString, MessageString: STRING;
                 CheckBand (Band);
 
                 NewMult := GetLogEntryMultString (MessageString) <> '';
-
-                ParseExchangeIntoContestExchange (MessageString, RXData);
-                ProcessPartialCallAndInitialExchange (RXData);
 
                 IF SendQSOImmediately THEN
                     PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
@@ -745,9 +738,6 @@ VAR MultiString, MessageString: STRING;
 
                 NewMult := GetLogEntryMultString (MessageString) <> '';
 
-                ParseExchangeIntoContestExchange (MessageString, RXData);
-                ProcessPartialCallAndInitialExchange (RXData);
-
                 IF SendQSOImmediately THEN
                     PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
                 ELSE
@@ -877,7 +867,9 @@ VAR Frequency: LONGINT;
                         END;
                     END;
 
-        VisibleLog.DoPossibleCalls (CallWindowString);
+        VisibleLog.GeneratePossibleCalls (CallWindowString, ActiveBand, ActiveMode, ClassicPossibleCallList);
+        DisplayPossibleCalls (ClassicPossibleCallList);
+
         ExchangeWindowString := '';
         ClearWindow (ExchangeWindow);
 
@@ -962,10 +954,10 @@ VAR InitialExchange: Str80;
     BEGIN
     GoodCallPutUp := False;
 
-    WITH PossibleCallList DO
-        IF NumberPossibleCalls > 0 THEN
+    WITH ClassicPossibleCallList DO
+        IF NumberCalls > 0 THEN
             BEGIN
-            CallWindowString := List [CursorPosition].Call;
+            CallWindowString := CallList [CursorPosition].Call;
             ClearWindow (ExchangeWindow);
 
             IF ActiveWindow = ExchangeWindow THEN
@@ -1276,7 +1268,7 @@ VAR Key: CHAR;
                 Key := NewReadKey;
 
                 CASE Key OF
-                  AltA: IF (CallWindowString = '') AND (LastSCPCall = '') THEN
+                  AltA: IF (CallWindowString = '') AND (CD.LastSCPCall = '') THEN
                             SetAlarm
                         ELSE
                             VisibleLog.SuperCheckPartial (CallWindowString, False, ActiveRadio);
@@ -1329,10 +1321,7 @@ VAR Key: CHAR;
 
                   AltX: ExitProgram;
 
-                  AltY: BEGIN
-                        DeleteLastContact;
-                        LastTwoLettersCrunchedOn := '';
-                        END;
+                  AltY: DeleteLastContact;
 
                   PageUpKey:   SpeedUp;
                   PageDownKey: SlowDown;
@@ -1462,7 +1451,7 @@ VAR Key: CHAR;
         CASE Key OF
             NullKey:
                 CASE (NewReadKey) OF
-                    AltA: IF (CallWindowString = '') AND (LastSCPCall = '')  THEN
+                    AltA: IF (CallWindowString = '') AND (CD.LastSCPCall = '')  THEN
                               SetAlarm
                           ELSE
                               VisibleLog.SuperCheckPartial (CallWindowString, False, ActiveRadio);
@@ -1484,8 +1473,6 @@ VAR Key: CHAR;
                           DisplayInsertMode (InsertMode);
 
                           DisplayNextQSONumber (QSONumberForThisQSO);
-
-                          LastTwoLettersCrunchedOn := '';
 
                           IF VisibleDupeSheetEnable THEN
                               BEGIN
@@ -1545,10 +1532,7 @@ VAR Key: CHAR;
                           SaveSetAndClearActiveWindow (QuickCommandWindow); {KK1L: 6.71}
                           END;
 
-                    AltY: BEGIN
-                          DeleteLastContact;
-                          LastTwoLettersCrunchedOn := '';
-                          END;
+                    AltY: DeleteLastContact;
 
                     AltDash:
                         BEGIN
@@ -2180,15 +2164,17 @@ VAR Result: INTEGER;
     { Do all the right things with the new callsign }
 
     IF (ActiveWindow = CallWindow) AND PartialCallEnable THEN
-        IF Sheet.TwoLetterCrunchProcess (WindowString, PossibleCallList) THEN
-             BEGIN
-             VisibleLog.GeneratePartialCallList (WindowString,
-                                                 ActiveBand,
-                                                 ActiveMode,
-                                                 PossibleCallList);
+        IF WindowString <> LastPartialCall THEN
+            BEGIN
+            LastPartialCall := WindowString;
 
-             DisplayPossibleCalls (PossibleCallList);
-             END;
+            VisibleLog.GeneratePartialCalls (WindowString,
+                                             ActiveBand,
+                                             ActiveMode,
+                                             ClassicPossibleCallList);
+
+            DisplayPossibleCalls (ClassicPossibleCallList);
+            END;
 
     { Check dualing CQ state machine.  If it is active and a message
       has finished, do something }
@@ -3533,13 +3519,15 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   BEGIN
                   ShowStationInformation (WindowString);
                   DisplayGridSquareStatus (WindowString);
-                  VisibleLog.DoPossibleCalls (WindowString);
+                  VisibleLog.GeneratePossibleCalls (CallWindowString, ActiveBand, ActiveMode, ClassicPossibleCallList);
+                  DisplayPossibleCalls (ClassicPossibleCallList);
                   END
               ELSE
                   BEGIN
                   ShowStationInformation (CallWindowString);
                   DisplayGridSquareStatus (CallWindowString);
-                  VisibleLog.DoPossibleCalls (CallWindowString);
+                  VisibleLog.GeneratePossibleCalls (CallWindowString, ActiveBand, ActiveMode, ClassicPossibleCallList);
+                  DisplayPossibleCalls (ClassicPossibleCallList);
                   END;
 
               IF ActiveRotatorPort <> nil THEN
@@ -3996,14 +3984,14 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   AltA: IF (ActiveWindow = CallWindow) THEN
                             BEGIN
-                            IF (WindowString = '') AND (LastSCPCall = '') THEN
+                            IF (WindowString = '') AND (CD.LastSCPCall = '') THEN
                                 SetAlarm
                             ELSE
                                 VisibleLog.SuperCheckPartial (WindowString, False, ActiveRadio);
                                 {KK1L: 6.73 Added ActiveRadio}
                             END
                         ELSE
-                            IF (CallWindowString = '') AND (LastSCPCall = '')  THEN
+                            IF (CallWindowString = '') AND (CD.LastSCPCall = '')  THEN
                                 SetAlarm
                             ELSE
                                 VisibleLog.SuperCheckPartial (CallWindowString, False, ActiveRadio);
@@ -4031,8 +4019,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         DisplayInsertMode (InsertMode);
 
                         DisplayNextQSONumber (QSONumberForThisQSO);
-
-                        LastTwoLettersCrunchedOn := '';
 
                         IF VisibleDupeSheetEnable THEN
                             BEGIN
@@ -4165,10 +4151,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   AltX: ExitProgram;
 
-                  AltY: BEGIN
-                        DeleteLastContact;
-                        LastTwoLettersCrunchedOn := '';
-                        END;
+                  AltY: DeleteLastContact;
 
                   AltZ: BEGIN
                         DoAltZ (WindowString, KeyChar);
@@ -4367,8 +4350,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                               DisplayInsertMode (InsertMode);
 
                               DisplayNextQSONumber (QSONumberForThisQSO);
-
-                              LastTwoLettersCrunchedOn := '';
                               END
                           ELSE
                               Exit;
@@ -4474,22 +4455,22 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   BEGIN
                   IF ActiveWindow = CallWindow THEN
                       BEGIN
-                      WITH PossibleCallList DO
-                          IF NumberPossibleCalls > 0 THEN
+                      WITH ClassicPossibleCallList DO
+                          IF NumberCalls > 0 THEN
                               BEGIN
-                              WindowString := List [CursorPosition].Call;
+                              WindowString := CallList [CursorPosition].Call;
                               ClrScr;
                               Write (WindowString);
                               END;
                       END
                   ELSE
                       BEGIN
-                      WITH PossibleCallList DO
-                          IF NumberPossibleCalls > 0 THEN
+                      WITH ClassicPossibleCallList DO
+                          IF NumberCalls > 0 THEN
                               BEGIN
                               RestorePreviousWindow;
                               ClrScr;
-                              CallWindowString := List [CursorPosition].Call;
+                              CallWindowString := CallList [CursorPosition].Call;
                               Write (CallWindowString);
                               SaveAndSetActiveWindow (ExchangeWindow);
                               END;
@@ -4825,8 +4806,6 @@ VAR LogString: Str80;
 
     IF ActivePacketPort <> nil THEN
         Packet.DeletePacketEntry (RXData.Callsign, RXData.Band, RXData.Mode);
-
-    LastTwoLettersCrunchedOn := '';
 
     IF AutoTimeIncrementQSOs > 0 THEN
         BEGIN
@@ -5282,7 +5261,8 @@ VAR Key, ExtendedKey: CHAR;
                                     BEGIN
                                     DisplayGridSquareStatus (CallWindowString);
                                     ShowStationInformation (CallWindowString);
-                                    VisibleLog.DoPossibleCalls (CallWindowString);
+                                    VisibleLog.GeneratePossibleCalls (CallWindowString, ActiveBand, ActiveMode, ClassicPossibleCallList);
+                                    DisplayPossibleCalls (ClassicPossibleCallList);
                                     END;
 
                                 IF GoodCallSyntax (CallWindowString) THEN
@@ -5431,7 +5411,9 @@ ControlEnterCommand1:
                                    IF LeaveCursorInCallWindow THEN
                                        RestorePreviousWindow;
 
-                                   VisibleLog.DoPossibleCalls (CallWindowString);
+                                   VisibleLog.GeneratePossibleCalls (CallWindowString, ActiveBand, ActiveMode, ClassicPossibleCallList);
+                                   DisplayPossibleCalls (ClassicPossibleCallList);
+
                                    DDX (MaybeRespondToMyCall);
                                    END;
                                END
@@ -6061,13 +6043,16 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 Write (TempKey);
 
                                 IF PartialCallEnable THEN
-                                    IF Sheet.TwoLetterCrunchProcess (CallWindowString, PossibleCallList) THEN
+                                    IF (CallWindowString <> LastPartialCall) THEN
                                         BEGIN
-                                        VisibleLog.GeneratePartialCallList (CallWindowString,
-                                                        ActiveBand,
-                                                        ActiveMode,
-                                                        PossibleCallList);
-                                        DisplayPossibleCalls (PossibleCallList);
+                                        LastPartialCall := CallWindowString;
+
+                                        VisibleLog.GeneratePartialCalls (CallWindowString,
+                                                                         ActiveBand,
+                                                                         ActiveMode,
+                                                                         ClassicPossibleCallList);
+
+                                        DisplayPossibleCalls (ClassicPossibleCallList);
                                         END;
 
                                 IF (SCPMinimumLetters > 0) AND (NOT NewKeyPressed) THEN {KK1L: 6.73 Added ActiveRadio}
@@ -6164,7 +6149,8 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                         Write (CallWindowString);
                         ShowStationInformation (CallWindowString);
                         DisplayGridSquareStatus (CallWindowString);
-                        VisibleLog.DoPossibleCalls (CallWindowString);
+                        VisibleLog.GeneratePossibleCalls (CallWindowString, ActiveBand, ActiveMode, ClassicPossibleCallList);
+                        DisplayPossibleCalls (ClassicPossibleCallList);
 
                         IF (Length (CallWindowString) >= 3) AND (ExchangeWindowString = '') THEN
                             BEGIN
@@ -6472,12 +6458,12 @@ VAR Key, TempKey, ExtendedKey : CHAR;
             CarriageReturn:
                 IF Length (CallWindowString) > 1 THEN
                     BEGIN
-                    IF AutoPartialCallFetch AND (Length (CallWindowString) = 3) THEN
-                        IF PossibleCallList.NumberPossibleCalls = 1 THEN
+                    IF AutoPartialCallFetch AND (Length (CallWindowString) <= 3) THEN
+                        IF ClassicPossibleCallList.NumberCalls = 1 THEN
                             BEGIN
                             ClrScr;
-                            Write (PossibleCallList.List [0].Call);
-                            CallWindowString := PossibleCallList.List [0].Call;;
+                            Write (ClassicPossibleCallList.CallList [0].Call);
+                            CallWindowString := ClassicPossibleCallList.CallList [0].Call;;
                             END;
 
                     CallsignICameBackTo := CallWindowString;
@@ -7243,7 +7229,8 @@ VAR MTotals: MultTotalArrayType;
                 VisibleLog.ShowQSOStatus        (CallWindowString);
                 END;
 
-            VisibleLog.DoPossibleCalls      (CallWindowString);
+            VisibleLog.GeneratePossibleCalls (CallWindowString, ActiveBand, ActiveMode, ClassicPossibleCallList);
+            DisplayPossibleCalls (ClassicPossibleCallList);
 
             IF TailEnding THEN
                 BEGIN

@@ -134,8 +134,14 @@ uses keycode;
 
 FUNCTION Compare (x, y: POINTER): INTEGER;
 
-{ Returns -1, 0, or +1 as the first argument is less than, equal to,
-  or greater than the second argument. }
+{ This rountine is specific to the type of data being sorted.  In this case,
+  we are sorting callsigns which typically are 12 characters or less.  The
+  callsign will be terminated with a control-Z.  Note that the records
+  themselves might be longer than the 12 bytes - but at least the callsign
+  part needs to be 12 characters or less }
+
+{ Returns -1, 0, or +1 as the first argument is less than, equal to, or
+  greater than the second argument. }
 
 TYPE Entry = ARRAY [0..11] OF CHAR;
      EntryPointer = ^Entry;
@@ -147,9 +153,9 @@ VAR XCall, YCall: EntryPointer;
     XCall := X;
     YCall := Y;
 
-    Address := 0;
+    Address := 0;    { Start at the first byte of the object }
 
-    WHILE TRUE DO
+    WHILE Address < 12 DO     { This used to be WHILE TRUE, but what both > 12 bytes? }
         BEGIN
         IF XCall^ [Address] <= ControlZ THEN
             BEGIN
@@ -182,6 +188,14 @@ VAR XCall, YCall: EntryPointer;
 
         Exit;
         END;
+
+    { This is new in Feb-2023.
+      We dropped here because it appears we got to 12 bytes without either entry having a
+      control-Z.  This is likely because they are equal since the probability of any call
+      being longer than 12 bytes is near zero - so therefore the probability of the two
+      calls being the same should be near one over zero.  }
+
+    Compare := 0;
     END;
 
 

@@ -604,7 +604,7 @@ VAR
     CommandUseInactiveRadio:     BOOLEAN; {KK1L: 6.73}
     ContactsPerPage:             INTEGER;
     ContinentString:             Str20;
-    ContestName:                 Str40; {KK1L: 6.68 shortened from Str80}
+    ContestName:                 Str80; {KK1L: 6.68 shortened from Str80}
     ContestTitle:                Str80;
     ContinentQSOCount:           ARRAY [Band160..Band10, ContinentType] OF INTEGER;
     ControlBMemory:              CallString;
@@ -619,6 +619,7 @@ VAR
     DisplayBandMapEnable:    BOOLEAN; {KK1L: 6.73}
     DisplayedCodeSpeed: BYTE;
     DisplayedFrequency: LONGINT;
+    Doing2BSIQ:     BOOLEAN;
     DVPEnable:      BOOLEAN;
     DXMultLimit:                  INTEGER; {KK1L: 6.65}
 
@@ -728,6 +729,7 @@ VAR
     OkayToPutUpBandMapCall: BOOLEAN;
     OnDeckCall:             CallString;
     OpMode:                 OpModeType;
+
     R1_OpMode:              OpModeType;
     R2_OpMode:              OpModeType;
 
@@ -909,7 +911,16 @@ VAR
   PROCEDURE DisplayNameSent (Name: Str80);
   PROCEDURE DisplayNamePercentage (TotalNamesSent: INTEGER; QSONumber: INTEGER);
   PROCEDURE DisplayNextQSONumber (QSONumber: INTEGER);
-  PROCEDURE DisplayPossibleCalls (VAR PossibleCalls: PossibleCallRecord);
+
+  { The following routine works for the Classi UI }
+
+  PROCEDURE DisplayPossibleCalls (VAR List: CallListRecord);
+
+  { The following routine can be used by TBSIQ if you SaveSetAndClearActiveWindow
+    to the correct radio's possible call window which would be either
+    TBSIQ_R1_PossibleCallWindow or TBSIQ_R2_PossibleCallWindow }
+
+  PROCEDURE DisplayPossibleCallsInActiveWindow (VAR List: CallListRecord);
   PROCEDURE DisplayPrefixInfo (Prefix: Str20);
   PROCEDURE DisplayQTCNumber (QTCNumber: INTEGER);
   PROCEDURE DisplayRadio (Radio: RadioType);
@@ -2180,7 +2191,7 @@ PROCEDURE RemoveWindow (WindowName: WindowType);
 
     BEGIN
     IF WindowName = ExchangeWindow     THEN ExchangeWindowCursorPosition := 0;
-    IF WindowName = PossibleCallWindow THEN PossibleCallList.NumberPossibleCalls := 0;
+    IF WindowName = PossibleCallWindow THEN CD.SCPCallList.NumberCalls := 0;
     IF ActiveWindow <> WindowName      THEN SaveAndSetActiveWindow (WindowName);
     IF ActiveWindow = DupeInfoWindow   THEN AltDDupeCheckDisplayedCall := '';
     RemoveAndRestorePreviousWindow;
@@ -2558,89 +2569,81 @@ PROCEDURE DisplayNextQSONumber (QSONumber: INTEGER);
     RestorePreviousWindow;
     END;
 
+
 
+PROCEDURE DisplayPossibleCallsInActiveWindow (VAR List: CallListRecord);
 
+{ This actually can be generic if someone has setup the right possible call window
+  already - either PossibleCallWindow for the classic UI - or whichever TBSIQ
+  possible call window that needs to be used }
 
-PROCEDURE SortPossibleCalls (VAR PossibleCalls: PossibleCallRecord);
-
-VAR Change: BOOLEAN;
-    Range, CallAddress: INTEGER;
-    Temp: PossibleCallEntry;
-
-    BEGIN
-    Range := PossibleCalls.NumberPossibleCalls - 1;
-
-    REPEAT
-        Change := False;
-        FOR CallAddress := 1 TO Range DO
-            WITH PossibleCalls DO
-                IF List [CallAddress].Call < List [CallAddress + 1].Call THEN
-                    BEGIN
-                    Temp := List [CallAddress];
-                    List [CallAddress] := List [CallAddress + 1];
-                    List [CallAddress + 1] := Temp;
-                    Change := True;
-                    END;
-
-        Dec (Range);
-    UNTIL (NOT Change) OR (Range < 1);
-    END;
-
-
-
-
-PROCEDURE DisplayPossibleCalls (VAR PossibleCalls: PossibleCallRecord);
-
-VAR PossibleCall: INTEGER;
+VAR Address: INTEGER;
     Call: CallString;
-    CharacterPosition: INTEGER;
+    MaximumCharacters, CharacterPosition: INTEGER;
 
     BEGIN
-    SaveSetAndClearActiveWindow (PossibleCallWindow);
-
     CharacterPosition := PossibleCallWindowLX;
 
-    IF PossibleCalls.NumberPossibleCalls > 0 THEN
+    IF Doing2BSIQ THEN
+        MaximumCharacters := 38
+    ELSE
+        MaximumCharacters := 78;
+
+    IF List.NumberCalls > 0 THEN
         BEGIN
-        FOR PossibleCall := 0 TO PossibleCalls.NumberPossibleCalls - 1 DO
+        FOR Address := 0 TO List.NumberCalls - 1 DO
             BEGIN
-            Call := PossibleCalls.List [PossibleCall].Call;
+            Call := List.CallList [Address].Call;
 
-            IF PossibleCalls.List [PossibleCall].Dupe THEN
+            IF CharacterPosition + Length (Call) + 2 < MaximumCharacters THEN
                 BEGIN
-                TextBackground (SelectedColors.PossibleCallWindowDupeBackground);
-                TextColor      (SelectedColors.PossibleCallWindowDupeColor);
-                END
-            ELSE
-                BEGIN
-                TextBackground (SelectedColors.PossibleCallWindowBackground);
-                TextColor      (SelectedColors.PossibleCallWindowColor);
-                END;
+                IF List.CallList [Address].Dupe THEN
+                    BEGIN
+                    TextBackground (SelectedColors.PossibleCallWindowDupeBackground);
+                    TextColor      (SelectedColors.PossibleCallWindowDupeColor);
+                    END
+                ELSE
+                    BEGIN
+                    TextBackground (SelectedColors.PossibleCallWindowBackground);
+                    TextColor      (SelectedColors.PossibleCallWindowColor);
+                    END;
 
-            IF CharacterPosition + Length (Call) + 2 < PossibleCallWindowRX THEN
-                BEGIN
-                IF PossibleCall = PossibleCalls.CursorPosition THEN
+                IF Address = List.CursorPosition THEN
                     Write ('<', Call, '>')
                 ELSE
                     Write (' ', Call, ' ');
+
                 CharacterPosition := CharacterPosition + Length (Call) + 2;
                 END
             ELSE
                 BEGIN
-                PossibleCalls.NumberPossibleCalls := PossibleCall;
-                Break;  { I think this should be here }
+                { We can truncate the # of calls here since we can't display them }
+
+                List.NumberCalls := Address;
+                Break;  { We are done }
                 END;
             END;
         END
     ELSE
         BEGIN
-        GoToXY (29, WhereY);
-        Write ('No calls found');
+        Write (' No calls found');
         END;
 
     RestorePreviousWindow;
     END;
 
+
+
+PROCEDURE DisplayPossibleCalls (VAR List: CallListRecord);
+
+{ For Classic UI only Diplays the list of calls in the PossibleCallWindow }
+
+    BEGIN
+    SaveSetAndClearActiveWindow (PossibleCallWindow);
+    DisplayPossibleCallsInActiveWindow (List);
+    END;
+
+
 
 PROCEDURE DisplayQTCNumber (QTCNumber: INTEGER);
 

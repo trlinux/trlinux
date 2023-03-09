@@ -489,7 +489,6 @@ VAR
 
     FUNCTION  ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BOOLEAN;
     PROCEDURE ProcessN4OGWCommand (N4OGW_Command: STRING);
-    PROCEDURE ProcessPartialCallAndInitialExchange (RXData: ContestExchange);
     FUNCTION  ProperSalutation (Call: CallString): Str80;
 
     PROCEDURE PushMultiMessageBuffer (Message: Str80);
@@ -6809,15 +6808,6 @@ VAR ExchangeString: Str80;
 
 
 
-PROCEDURE ProcessPartialCallAndInitialExchange (RXData: ContestExchange);
-
-    BEGIN
-    IF PartialCallEnable OR ExchangeMemoryEnable THEN
-        AddCallToPartialList (RXData.Callsign, GetInitialExchangeStringFromContestExchange (RXData));
-    END;
-
-
-
 PROCEDURE CreateAndSendSAPMultiInfoMessage;
 
 VAR TempString: Str80;
@@ -7107,7 +7097,11 @@ VAR Call, FrequencyString: STRING;
 
 
     BEGIN
-    CD.CellBuffer.MaximumMemoryToUse := 40000;
+    { This used to be something needed to limit the SCP database from hogging too much
+      memory back in the DOS days.  It isn't needed any more
+
+    CD.CellBuffer.MaximumMemoryToUse := 40000; }
+
     ExchangeErrorMessage := '';
     StuffInit;
     END.

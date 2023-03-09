@@ -179,7 +179,7 @@ TYPE
         NumberClubCalls: INTEGER;
 
         PROCEDURE Abort;
-        PROCEDURE AddCallToPossibleList (Call: CallString; VAR PossCallList: PossibleCallRecord);
+        PROCEDURE AddCallToPossibleList (Call: CallString; VAR List: CallListRecord);
         FUNCTION  AddClubCall (Call: CallString): BOOLEAN;
         FUNCTION  AddName (Call: CallString; Name: Str80): BOOLEAN;
         PROCEDURE ComputeTotalCalls;
@@ -193,7 +193,7 @@ TYPE
         PROCEDURE InputASCIIFile;
         FUNCTION  Load: BOOLEAN;
         PROCEDURE MakeASCIIList (FileName: Str80);
-        PROCEDURE MakePossibleCallList (Call: CallString; VAR PossCallList: PossibleCallRecord);
+        PROCEDURE MakePossibleCallList (Call: CallString; VAR List: CallListRecord);
         FUNCTION  ReLoad: BOOLEAN;
         PROCEDURE Save;
         FUNCTION  TotalNumberOfCalls: INTEGER;
@@ -1522,29 +1522,29 @@ VAR FileWrite: FILE;
 
 
 
-PROCEDURE NameDictionary.AddCallToPossibleList (Call: CallString; VAR PossCallList: PossibleCallRecord);
+PROCEDURE NameDictionary.AddCallToPossibleList (Call: CallString; VAR List: CallListRecord);
 
 VAR Entry: INTEGER;
 
     BEGIN
     GetRidOfPrecedingSpaces (Call);
 
-    IF PossCallList.NumberPossibleCalls < 12 THEN
+    IF List.NumberCalls < 12 THEN
         BEGIN
-        IF PossCallList.NumberPossibleCalls > 0 THEN
-            FOR Entry := 0 TO PossCallList.NumberPossibleCalls - 1 DO
-                IF PossCallList.List [Entry].Call = Call THEN
+        IF List.NumberCalls > 0 THEN
+            FOR Entry := 0 TO List.NumberCalls - 1 DO
+                IF List.CallList [Entry].Call = Call THEN
                     Exit;
 
-        PossCallList.List [PossCallList.NumberPossibleCalls].Call := Call;
-        PossCallList.List [PossCallList.NumberPossibleCalls].Dupe := False;
-        Inc (PossCallList.NumberPossibleCalls);
+        List.CallList [List.NumberCalls].Call := Call;
+        List.CallList [List.NumberCalls].Dupe := False;
+        Inc (List.NumberCalls);
         END;
     END;
 
 
 
-PROCEDURE NameDictionary.MakePossibleCallList (Call: CallString; VAR PossCallList: PossibleCallRecord);
+PROCEDURE NameDictionary.MakePossibleCallList (Call: CallString; VAR List: CallListRecord);
 
 
 { Possible calls either match prefixes and the suffixes are possible calls
@@ -1590,7 +1590,7 @@ VAR Address, NameCode, Index: INTEGER;
                             TestCall := ExpandTwoBytes (CommonCalls^ [NameCode, Index]);
 
                             IF SimilarCall (TestCall, Suffix) THEN
-                                AddCallToPossibleList (Prefix + TestCall, PossCallList);
+                                AddCallToPossibleList (Prefix + TestCall, List);
                             END;
                         END
                     ELSE
@@ -1606,7 +1606,7 @@ VAR Address, NameCode, Index: INTEGER;
                                 TestCall := ExpandTwoBytes (CommonCalls^ [NameCode, Index]);
 
                                 IF TestCall = Suffix THEN
-                                    AddCallToPossibleList (ListPrefix + Suffix, PossCallList);
+                                    AddCallToPossibleList (ListPrefix + Suffix, List);
 
                                 END;
                             END;
@@ -1651,7 +1651,7 @@ VAR Address, NameCode, Index: INTEGER;
                             TestCall := ExpandTwoBytes (UnCommonCalls^ [NameCode, Index]);
 
                             IF SimilarCall (TestCall, Suffix) THEN
-                                AddCallToPossibleList (Prefix + TestCall, PossCallList);
+                                AddCallToPossibleList (Prefix + TestCall, List);
                             END;
                         END
                     ELSE
@@ -1668,7 +1668,7 @@ VAR Address, NameCode, Index: INTEGER;
                                 TestCall := ExpandTwoBytes (UnCommonCalls^ [NameCode, Index]);
 
                                 IF TestCall = Suffix THEN
-                                    AddCallToPossibleList (ListPrefix + Suffix, PossCallList);
+                                    AddCallToPossibleList (ListPrefix + Suffix, List);
 
                                 END;
                             END;
@@ -1701,7 +1701,7 @@ VAR Address, NameCode, Index: INTEGER;
                 BEGIN
                 TempCall := ExpandedString (ClubCalls^ [Address]);
                 IF SimilarCall (TempCall, TestCall) THEN
-                    AddCallToPossibleList (TempCall, PossCallList);
+                    AddCallToPossibleList (TempCall, List);
                 END;
             END;
 

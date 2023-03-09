@@ -175,7 +175,6 @@ VAR
     QSO_UDP_IP: STRING;
     QSO_UDP_Port: LONGINT;
 
-FUNCTION  CreateRXDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange): BOOLEAN;
 PROCEDURE SendQSOToUDPPort (RXData: ContestExchange);
 
 IMPLEMENTATION
@@ -184,7 +183,7 @@ TYPE
 
     UDPRecordType = RECORD
         app: Str40;
-        contestname: Str40;
+        contestname: Str80;
         contestnr: Str20;
         timestamp: Str40;        { 2020-01-17 16:43:38 }
         mycall: Str20;
@@ -233,6 +232,7 @@ TYPE
 VAR
     NumberBytesInUDPBuffer: INTEGER;
     UDPBuffer: ARRAY [0..BufferSize -1] OF CHAR;
+
     UDP_Record: UDPRecordType;
     QSO_UDP_Socket: LONGINT;
     QSOUDPOutputPortOpen: BOOLEAN;
@@ -294,258 +294,6 @@ PROCEDURE ClearUDPRecord;
 
 
 
-PROCEDURE GetCallFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
-
-    BEGIN
-    RXData.Callsign := BracketedString (UDPMessage, '<call>', '</call>');
-    END;
-
-
-PROCEDURE GetTimeAndDateFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
-
-VAR TempString: STRING;
-    UDPDateString, UDPTimeString: Str20;
-    YearString, MonthString, DayString: Str20;
-    SecondsString: Str20;
-
-    BEGIN
-    TempString := BracketedString (UDPMessage, '<timestamp>', '</timestamp>');
-
-    UDPDateString := RemoveFirstString (TempString);   { 2020-01-17 }
-    UDPTimeString := RemoveFirstString (TempString);   { 16:43:38 }
-
-    { Only use two digits of the year }
-
-    YearString := Copy (UDPDateString, 3, 2);
-
-    { Convert integer month into JAN - DEC }
-
-    MonthString := Copy (UDPDateString, 6, 2);
-
-    IF MonthString = '01' THEN MonthString := 'JAN' ELSE
-    IF MonthString = '02' THEN MonthString := 'FEB' ELSE
-    IF MonthString = '03' THEN MonthString := 'MAR' ELSE
-    IF MonthString = '04' THEN MonthString := 'APR' ELSE
-    IF MonthString = '05' THEN MonthString := 'MAY' ELSE
-    IF MonthString = '06' THEN MonthString := 'JUN' ELSE
-    IF MonthString = '07' THEN MonthString := 'JUL' ELSE
-    IF MonthString = '08' THEN MonthString := 'AUG' ELSE
-    IF MonthString = '09' THEN MonthString := 'SEP' ELSE
-    IF MonthString = '10' THEN MonthString := 'OCT' ELSE
-    IF MonthString = '11' THEN MonthString := 'NOV' ELSE
-    IF MonthString = '12' THEN MonthString := 'DEC' ELSE
-        MonthString := '???';
-
-    DayString := Copy (UDPDateString, 9, 2);
-
-    RXData.Date := DayString + '-' + MonthString + '-' + YearString;
-
-    { Now we deal with the time - we have 12:34:56 and need an integer value for the
-      hour/minutes and seconds in its own field as an integer }
-
-    SecondsString := Copy (UDPTimeString, Length (UDPTimeString) - 1, 2);
-
-    Val (SecondsString, RXData.TimeSeconds);
-
-    { Remove seconds and the last colon }
-
-    Delete (UDPTimeString, Length (UDPTimeString) - 2, 3);
-
-    { Get rid of the remaining colon }
-
-    Delete (UDPTimeString, Length (UDPTimeString) - 2 , 1);
-
-    Val (UDPTimeString, RXData.Time);
-    END;
-
-
-
-PROCEDURE GetBandAndModeFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
-
-{ <band>3.5</band>  and  <mode>CW</mode> }
-
-VAR BandString, ModeString: Str20;
-
-    BEGIN
-    BandString := BracketedString (UDPMessage, '<band>', '</band>');
-    ModeString := BracketedString (UDPMessage, '<mode>', '</mode>');
-
-    RXData.Band := NoBand;
-    RXData.Mode := NoMode;
-
-    IF BandString = '1.8' THEN RXData.Band := Band160 ELSE
-    IF BandString = '3.5' THEN RXData.Band := Band80 ELSE
-    IF BandString = '7' THEN RXData.Band := Band40 ELSE
-    IF BandString = '10' THEN RXData.Band := Band30 ELSE
-    IF BandString = '14' THEN RXData.Band := Band20 ELSE
-    IF BandString = '18' THEN RXData.Band := Band17 ELSE
-    IF BandString = '21' THEN RXData.Band := Band15 ELSE
-    IF BandString = '24' THEN RXData.Band := Band12 ELSE
-    IF BandString = '28' THEN RXData.Band := Band10 ELSE
-    IF BandString = '50' THEN RXData.Band := Band6 ELSE
-    IF BandString = '144' THEN RXData.Band := Band2 ELSE
-    IF BandString = '222' THEN RXData.Band := Band222 ELSE
-    IF BandString = '420' THEN RXData.Band := Band432 ELSE
-    IF BandString = '902' THEN RXData.Band := Band902 ELSE
-    IF BandString = '1240' THEN RXData.Band := Band1296 ELSE
-    IF BandString = '2300' THEN RXData.Band := Band2304 ELSE
-    IF BandString = '3300' THEN RXData.Band := Band3456 ELSE
-    IF BandString = '5050' THEN RXData.Band := Band5760 ELSE
-    IF BandString = '10000' THEN RXData.Band := Band10G ELSE
-    IF BandString = '24000' THEN RXData.Band := Band24G;
-
-    IF ModeString = 'CW' THEN RXData.Mode := CW ELSE
-    IF ModeString = 'SSB' THEN RXData.Mode := Phone;
-
-    IF (ModeString = 'DIG') OR (ModeString = 'RTTY') OR (ModeString = 'FSK') THEN
-        RXData.Mode := Digital;
-
-    END;
-
-
-
-PROCEDURE GetExchangeDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
-
-VAR TempString, RSTSentString, RSTReceivedString: Str20;
-    xResult, Number: INTEGER;
-
-    BEGIN
-    { Take care of fields that might be there for any contest.  Note that BracketedString
-      will return a null string if both the starting and ending strings are not found.  }
-
-    RXData.RSTSent := BracketedString (UDPMessage, '<snt>', '</snt>');
-    RXData.RSTReceived := BracketedSTring (UDPMessage, '<rcv>', '</rcv>');
-
-    { Now look at the ActiveExchange and pull out the appropriate data }
-
-    CASE ActiveExchange OF
-        UnknownExchange: BEGIN END;
-        NoExchangeReceived: BEGIN END;
-        CheckAndChapterOrQTHExchange: BEGIN END;
-        ClassDomesticOrDXQTHExchange: BEGIN END;
-        CWTExchange: BEGIN END;
-        KidsDayExchange: BEGIN END;
-        NameAndDomesticOrDXQTHExchange: BEGIN END;
-        NameQTHAndPossibleTenTenNumber: BEGIN END;
-        NameAndPossibleGridSquareExchange: BEGIN END;
-        NZFieldDayExchange: BEGIN END;
-        QSONumberAndNameExchange: BEGIN END;
-        QSONumberDomesticOrDXQTHExchange: BEGIN END;
-        QSONumberDomesticQTHExchange: BEGIN END;
-        QSONumberNameChapterAndQTHExchange: BEGIN END;
-        QSONumberNameDomesticOrDXQTHExchange: BEGIN END;
-
-        QSONumberPrecedenceCheckDomesticQTHExchange:  { AKA Sweepstakes }
-            BEGIN
-            TempString := BracketedString (UDPMessage, '<sntnr>', '</sntnr>');
-            Val (TempString, Number, xResult);
-            IF xResult = 0 THEN RXData.NumberSent := Number;
-
-            TempString := BracketedString (UDPMessage, '<rcvnr>', '</rcvnr>');
-            Val (TempString, Number, xResult);
-            IF xResult = 0 THEN RXData.NumberReceived:= Number;
-
-            RXData.Precedence := BracketedString (UDPMessage, '<prec>', '</prec>');
-            RXData.Check := BracketedString (UDPMessage, '<ck>', '</ck>');
-            RXData.QTHString := BracketedString (UDPMessage, '<section>', '</section>');
-            END;
-
-        RSTAgeExchange: BEGIN END;
-        RSTALLJAPrefectureAndPrecedenceExchange: BEGIN END;
-        RSTAndContinentExchange: BEGIN END;
-        RSTAndDomesticQTHOrZoneExchange: BEGIN END;
-
-        RSTAndGridExchange, RSTAndOrGridExchange:
-            BEGIN
-            RXData.DomesticQTH := BracketedString (UDPMessage, '<gridsquare>', '</gridsquare>');
-            RXData.QTHString := RXData.DomesticQTH;
-            END;
-
-        RSTAndQSONumberOrDomesticQTHExchange: BEGIN END;
-        RSTAndPostalCodeExchange: BEGIN END;
-        RSTDomesticOrDXQTHExchange: BEGIN END;
-        RSTDomesticQTHExchange: BEGIN END;
-        RSTDomesticQTHOrQSONumberExchange: BEGIN END;
-        RSTNameAndQTHExchange: BEGIN END;
-        RSTPossibleDomesticQTHAndPower: BEGIN END;
-
-        RSTPowerExchange:
-            RXData.Power := BracketedString (UDPMessage, '<power>', '</power>');
-
-        RSTPrefectureExchange: BEGIN END;
-        RSTQSONumberAndDomesticQTHExchange: BEGIN END;
-        RSTQSONumberAndGridSquareExchange: BEGIN END;
-        RSTQSONumberAndPossibleDomesticQTHExchange: BEGIN END;
-        QSONumberAndPossibleDomesticQTHExchange: BEGIN END; {KK1L: 6.73 For MIQP originally}
-        RSTQSONumberAndRandomCharactersExchange: BEGIN END;
-        RSTQTHNameAndFistsNumberOrPowerExchange: BEGIN END;
-
-        RSTQSONumberExchange:
-            BEGIN
-            TempString := BracketedString (UDPMessage, '<sntnr>', '</sntnr>');
-            Val (TempString, Number, xResult);
-            IF xResult = 0 THEN RXData.NumberSent := Number;
-
-            TempString := BracketedString (UDPMessage, '<rcvnr>', '</rcvnr>');
-            Val (TempString, Number, xResult);
-            IF xResult = 0 THEN RXData.NumberReceived:= Number;
-            END;
-
-        RSTQTHExchange: BEGIN END;
-        RSTZoneAndPossibleDomesticQTHExchange: BEGIN END;
-
-        RSTZoneExchange:
-            RXData.Zone := BracketedString (UDPMessage, '<zone>', '</zone>');
-
-        RSTZoneOrSocietyExchange: { Not sure where N1MM puts society }
-            BEGIN
-            END;
-
-        RSTLongJAPrefectureExchange: BEGIN END;
-        END;  { of CASE ActiveExchange }
-    END;
-
-
-
-PROCEDURE GetFrequencyFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange);
-
-{ Frequency is in 10's of hertz }
-
-VAR TempString: Str20;
-    TempFreq: LONGINT;
-    xResult: INTEGER;
-
-    BEGIN
-    TempString := BracketedString (UDPMessage, '<rxfreq>', '</rxfreq');
-    Val (TempString, TempFreq, xResult);
-
-    IF xResult = 0 THEN
-        RXData.Frequency := TempFreq * 10;
-    END;
-
-
-
-FUNCTION CreateRXDataFromUDPMessage (UDPMessage: STRING; VAR RXData: ContestExchange): BOOLEAN;
-
-{ Does the reverse of the MergeRXExchangeToUDPRecord so that we can take a QSO UDP message
-  from like N1MM and log it in the TRLog program.  I put this here instead of N1MM so that
-  other "people" could use it - and also all of the field definitions are located here for
-  reference.  I will do some amount of checking to make sure the data looks complete and
-  if so - return TRUE. }
-
-    BEGIN
-    CreateRXDataFromUDPMessage := False;
-    ClearContestExchange (RXData);
-
-    GetBandAndModeFromUDPMessage  (UDPMessage, RXData);
-    GetFrequencyFromUDPMessage    (UDPMessage, RXData);
-    GetTimeAndDateFromUDPMessage  (UDPMessage, RXData);
-    GetCallFromUDPMessage         (UDPMessage, RXData);
-    GetExchangeDataFromUDPMessage (UDPMessage, RXData);
-    END;
-
-
-
 PROCEDURE MergeRXExchangeToUDPRecord (RXData: ContestExchange);
 
 { Takes the data found in the RXData record and puts it into the UDPRecord }
@@ -560,6 +308,8 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
         UDP_Record.MyCall := MyCall;          { A global that comes from LOGWIND.PAS }
         UDP_Record.Call := Callsign;          { Callsign of station being worked }
         UDP_Record.Mode := ModeString [Mode]; { Until someone tells me different }
+        UDP_Record.CountryPrefix := DXQTH;    { DXCC Prefix }
+
         GetRidOfPostcedingSpaces (UDP_Record.Mode);
 
         IF Frequency <> 0 THEN
@@ -648,13 +398,13 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
         IF NumberReceived <> -1 THEN
             BEGIN
             Str (NumberReceived, TempString);
-            UDP_Record.sntnr := TempString;
+            UDP_Record.rcvnr := TempString;
             END;
 
         IF NumberSent <> -1 THEN
             BEGIN
             Str (NumberSent, TempString);
-            UDP_Record.rcvnr := TempString;
+            UDP_Record.sntnr := TempString;
             END;
 
         IF PostalCode <> '' THEN UDP_Record.rcv := PostalCode;
@@ -725,6 +475,7 @@ VAR Index: INTEGER;
 
     BEGIN
     IF Length (AddString) > 0 THEN
+        BEGIN
         FOR Index := 1 TO Length (AddString) DO
             BEGIN
             UDPBuffer [NumberBytesInUDPBuffer] := AddString [Index];
@@ -737,6 +488,13 @@ VAR Index: INTEGER;
                 Halt;
                 END;
             END;
+
+        UDPBuffer [NumberBytesInUDPBuffer] := CarriageReturn;
+        Inc (NumberBytesInUDPBuffer);
+        UDPBuffer [NumberBytesInUDPBuffer] := LineFeed;
+        Inc (NumberBytesInUDPBuffer);
+        END;
+
     END;
 
 
@@ -751,60 +509,60 @@ PROCEDURE BuildUDPPAcket;
 
     AddStringToUDPBuffer ('<?xml version=''1.0'' encoding=''utf-8''?>');
     AddStringToUDPBuffer ('<contactinfo>');
-    AddStringToUDPBuffer ('<app>TRLogLinux</app>');
-    AddStringtoUDPBuffer ('<contestname>' + ContestName + '</contestname>');
+    AddStringToUDPBuffer (TabKey + '<app>TRLogLinux</app>');
+    AddStringtoUDPBuffer (TabKey + '<contestname>' + ContestName + '</contestname>');
 
     WITH Udp_Record DO
         BEGIN
-        AddStringToUDPBuffer ('<timestamp>' + TimeStamp + '</timestamp>');
-        AddStringtoUDPBuffer ('<mycall>' + MyCall + '</mycall>');
-        AddStringToUDPBuffer ('<band>' + Band + '</band>');
-        AddStringToUDPBuffer ('<rxfreq>' + RXFreq + '</rxfreq>');
-        AddStringtoUDPBuffer ('<txfreq>' + TXFreq + '</txfreq>');
+        AddStringToUDPBuffer (TabKey + '<timestamp>' + TimeStamp + '</timestamp>');
+        AddStringtoUDPBuffer (TabKey + '<mycall>' + MyCall + '</mycall>');
+        AddStringToUDPBuffer (TabKey + '<band>' + Band + '</band>');
+        AddStringToUDPBuffer (TabKey + '<rxfreq>' + RXFreq + '</rxfreq>');
+        AddStringtoUDPBuffer (TabKey + '<txfreq>' + TXFreq + '</txfreq>');
 
-        IF Operator_Call <> '' THEN AddStringToUDPBuffer ('<operator>' + Operator_Call + '</operator>');
+        IF Operator_Call <> '' THEN AddStringToUDPBuffer (TabKey + '<operator>' + Operator_Call + '</operator>');
 
-        AddStringtoUDPBuffer ('<mode>' + Mode + '</mode>');
-        AddStringtoUDPBuffer ('<call>' + Call + '</call>');
-        AddStringtoUDPBuffer ('<countryprefix>' + CountryPrefix + '</countryprefix>');
-        AddStringtoUDPBuffer ('<wpxprefix>' + WPXPrefix + '</wpxprefix>');
-        AddStringtoUDPBuffer ('<stationprefix>' + StationPrefix + '</stationprefix>');
-        AddStringtoUDPBuffer ('<continent>' + Continent + '</continent>');
+        AddStringtoUDPBuffer (TabKey + '<mode>' + Mode + '</mode>');
+        AddStringtoUDPBuffer (TabKey + '<call>' + Call + '</call>');
+        AddStringtoUDPBuffer (TabKey + '<countryprefix>' + CountryPrefix + '</countryprefix>');
+        AddStringtoUDPBuffer (TabKey + '<wpxprefix>' + WPXPrefix + '</wpxprefix>');
+        AddStringtoUDPBuffer (TabKey + '<stationprefix>' + StationPrefix + '</stationprefix>');
+        AddStringtoUDPBuffer (TabKey + '<continent>' + Continent + '</continent>');
 
-        IF snt <> '' THEN AddStringtoUDPBuffer ('<snt>' + snt + '</snt>');
-        IF sntnr <> '' THEN AddStringtoUDPBuffer ('<sntnr>' + SntNr + '</sntnr>');
-        IF rcv <> '' THEN AddStringtoUDPBuffer ('<rcv>' + Rcv + '</rcv>');
-        IF rcvnr <> '' THEN AddStringtoUDPBuffer ('<rcvnr>' + RcvNr + '</rcvnr>');
-        IF GridSquare <> '' THEN AddStringtoUDPBuffer ('<gridsquare>' + GridSquare + '</gridsquare>');
-        IF Exchangel <> '' THEN AddStringtoUDPBuffer ('<exchangel>' + exchangel + '</exchangel>');
-        IF Section <> '' THEN AddStringtoUDPBuffer ('<section>' + Section + '</section>');
-        IF Comment <> '' THEN AddStringtoUDPBuffer ('<comment>' + Comment + '</comment>');
-        IF QTH <> '' THEN AddStringtoUDPBuffer ('<qth>' + QTH + '</qth>');
-        IF Name <> '' THEN AddStringtoUDPBuffer ('<name>' + Name + '</name>');
-        IF Power <> '' THEN AddStringtoUDPBuffer ('<power>' + Power + '</power>');
-        IF MiscText <> '' THEN AddStringtoUDPBuffer ('<misctext>' + MiscText + '</misctext>');
-        IF Zone <> '' THEN AddStringtoUDPBuffer ('<zone>' + Zone + '</zone>');
-        IF Prec <> '' THEN AddStringtoUDPBuffer ('<prec>' + Prec + '</prec>');
-        IF Ck <> '' THEN AddStringtoUDPBuffer ('<ck>' + Ck + '</ck>');
-        IF IsMultiplierl <> '' THEN AddStringtoUDPBuffer ('<ismultiplierl>' + IsMultiplierl + '</ismultiplierl>');
-        IF IsMultiplier2 <> '' THEN AddStringtoUDPBuffer ('<ismultiplier2>' + IsMultiplier2 + '</ismultiplier2>');
-        IF IsMultiplier3 <> '' THEN AddStringtoUDPBuffer ('<ismultiplier3>' + IsMultiplier3 + '</ismultiplier3>');
-        IF Points <> '' THEN AddStringtoUDPBuffer ('<points>' + Points + '</points>');
-        IF Radionr <> '' THEN AddStringtoUDPBuffer ('<radionr>' + RadioNr + '</radionr>');
-        IF Run1Run2 <> '' THEN AddStringtoUDPBuffer ('<run1run2>' + Run1Run2 + '<run1run2>');
-        IF RoverLocation <> '' THEN AddStringtoUDPBuffer ('<RoverLocation>' + RoverLocation + '</RoverLocation>');
-        IF RadioInterfaced <> '' THEN AddStringToUDPBuffer ('<RadioInterfaced>' + RadioInterfaced + '</RadioInterfaced>');
+        IF snt <> '' THEN AddStringtoUDPBuffer (TabKey + '<snt>' + snt + '</snt>');
+        IF sntnr <> '' THEN AddStringtoUDPBuffer (TabKey + '<sntnr>' + SntNr + '</sntnr>');
+        IF rcv <> '' THEN AddStringtoUDPBuffer (TabKey + '<rcv>' + Rcv + '</rcv>');
+        IF rcvnr <> '' THEN AddStringtoUDPBuffer (TabKey + '<rcvnr>' + RcvNr + '</rcvnr>');
+        IF GridSquare <> '' THEN AddStringtoUDPBuffer (TabKey + '<gridsquare>' + GridSquare + '</gridsquare>');
+        IF Exchangel <> '' THEN AddStringtoUDPBuffer (TabKey + '<exchangel>' + exchangel + '</exchangel>');
+        IF Section <> '' THEN AddStringtoUDPBuffer (TabKey + '<section>' + Section + '</section>');
+        IF Comment <> '' THEN AddStringtoUDPBuffer (TabKey + '<comment>' + Comment + '</comment>');
+        IF QTH <> '' THEN AddStringtoUDPBuffer (TabKey + '<qth>' + QTH + '</qth>');
+        IF Name <> '' THEN AddStringtoUDPBuffer (TabKey + '<name>' + Name + '</name>');
+        IF Power <> '' THEN AddStringtoUDPBuffer (TabKey + '<power>' + Power + '</power>');
+        IF MiscText <> '' THEN AddStringtoUDPBuffer (TabKey + '<misctext>' + MiscText + '</misctext>');
+        IF Zone <> '' THEN AddStringtoUDPBuffer (TabKey + '<zone>' + Zone + '</zone>');
+        IF Prec <> '' THEN AddStringtoUDPBuffer (TabKey + '<prec>' + Prec + '</prec>');
+        IF Ck <> '' THEN AddStringtoUDPBuffer (TabKey + '<ck>' + Ck + '</ck>');
+        IF IsMultiplierl <> '' THEN AddStringtoUDPBuffer (TabKey + '<ismultiplierl>' + IsMultiplierl + '</ismultiplierl>');
+        IF IsMultiplier2 <> '' THEN AddStringtoUDPBuffer (TabKey + '<ismultiplier2>' + IsMultiplier2 + '</ismultiplier2>');
+        IF IsMultiplier3 <> '' THEN AddStringtoUDPBuffer (TabKey + '<ismultiplier3>' + IsMultiplier3 + '</ismultiplier3>');
+        IF Points <> '' THEN AddStringtoUDPBuffer (TabKey + '<points>' + Points + '</points>');
+        IF Radionr <> '' THEN AddStringtoUDPBuffer (TabKey + '<radionr>' + RadioNr + '</radionr>');
+        IF Run1Run2 <> '' THEN AddStringtoUDPBuffer (TabKey + '<run1run2>' + Run1Run2 + '<run1run2>');
+        IF RoverLocation <> '' THEN AddStringtoUDPBuffer (TabKey + '<RoverLocation>' + RoverLocation + '</RoverLocation>');
+        IF RadioInterfaced <> '' THEN AddStringToUDPBuffer (TabKey + '<RadioInterfaced>' + RadioInterfaced + '</RadioInterfaced>');
 
         { For now - we always send zero for this }
 
-        AddStringtoUDPBuffer ('<NetworkedCompNr>' + '0' + '</NetworkedCompNr>');
+        AddStringtoUDPBuffer (TabKey + '<NetworkedCompNr>' + '0' + '</NetworkedCompNr>');
 
-        IF IsOriginal <> '' THEN AddStringtoUDPBuffer ('<IsOriginal>' + IsOriginal + '</IsOriginal>');
-        IF NetBiosName <> '' THEN AddStringtoUDPBuffer ('<NetBiosName>' + NetBIOSName + '</NetBiosName>');
-        IF IsRunQSO <> '' THEN AddStringtoUDPBuffer ('<IsRunQSO>' + IsRunQSO + '</IsRunQSO>');
-        IF StationName <> '' THEN AddStringtoUDPBuffer ('<StationName>' + StationName + '</StationName>');
-        IF ID <> '' THEN AddStringtoUDPBuffer ('<ID>' + ID + '</ID>');
-        IF IsClaimedQSO <> '' THEN AddStringtoUDPBuffer ('<IsClaimedQso>' + IsCLaimedQSO + '</IsClaimedQso> ');
+        IF IsOriginal <> '' THEN AddStringtoUDPBuffer (TabKey + '<IsOriginal>' + IsOriginal + '</IsOriginal>');
+        IF NetBiosName <> '' THEN AddStringtoUDPBuffer (TabKey + '<NetBiosName>' + NetBIOSName + '</NetBiosName>');
+        IF IsRunQSO <> '' THEN AddStringtoUDPBuffer (TabKey + '<IsRunQSO>' + IsRunQSO + '</IsRunQSO>');
+        IF StationName <> '' THEN AddStringtoUDPBuffer (TabKey + '<StationName>' + StationName + '</StationName>');
+        IF ID <> '' THEN AddStringtoUDPBuffer (TabKey + '<ID>' + ID + '</ID>');
+        IF IsClaimedQSO <> '' THEN AddStringtoUDPBuffer (TabKey + '<IsClaimedQso>' + IsCLaimedQSO + '</IsClaimedQso> ');
         END;
 
     AddStringToUDPBuffer ('</contactinfo>');

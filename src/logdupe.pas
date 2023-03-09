@@ -34,16 +34,14 @@ USES LogDom, trCrt, Dos, SlowTree, Tree, Country9, ZoneCont, LogWind,
 
 
 CONST
-    MaxGridSquaresInList = 40;
-
-    TwoLetterPartialCallListLength =  500;
     DomesticMultArraySize          =  400;
     DXMultArraySize                =  500;
+    MaxAllCalls                    = 7000;
+    MaxGridSquaresInList           =   40;
+    MaxLongPartialCalls            =  150;
+    MaxVisDupeCallTotal            =   40;
     PrefixMultArraySize            = 1500;
     ZoneMultArraySize              =  100;
-    MaxVisDupeCallTotal            =   40;
-    MaxInitialExchanges            = 2000;
-    MaxLongPartialCalls            =  150;
 
     { Note that the four byte and eight byte blocks must be the same
       size due to how the initial exchange stuff works.        }
@@ -57,7 +55,6 @@ CONST
     MaxPartialCallBlocks = 100;
 
 TYPE
-
     ExchangeInformationRecord = RECORD
         Age:           BOOLEAN;
         Chapter:       BOOLEAN;
@@ -76,20 +73,6 @@ TYPE
         Zone:          BOOLEAN;
         ZoneOrSociety: BOOLEAN;
         END;
-
-    LongPartialCallListType = ARRAY [0..MaxLongPartialCalls] OF EightBytes;
-    LongPartialCallListPointer = ^LongPartialCallListType;
-
-    InitialExchangeArray = ARRAY [1..MaxInitialExchanges] OF EightBytes;
-    InitialExchangeArrayPointer = ^InitialExchangeArray;
-
-    PartialCallType = RECORD
-        Call: FourBytes;
-        InitialExchangeIndex: INTEGER;
-        END;
-
-    PartialCallArray = ARRAY [0..PartialCallBlockSize - 1] OF PartialCallType;
-    PartialCallArrayPtr = ^PartialCallArray;
 
     CallDistrictRecord = RECORD
         List:  ARRAY [0..MaxVisDupeCallTotal] OF STRING [6];
@@ -110,7 +93,7 @@ TYPE
           DomMultQTH:     DomesticMultiplierString;
           DomesticQTH:    Str20;
           DXMult:         BOOLEAN;
-          DXQTH:          DXMultiplierString;
+          DXQTH:          DXMultiplierString;         { Has the country prefix }
           Frequency:      LONGINT;
           InhibitMults:   BOOLEAN;
           Kids:           Str40;                      { Used for whole ex string }
@@ -219,6 +202,8 @@ TYPE
 
     CallDistrictTotalArray = ARRAY [1..11] OF INTEGER;
 
+
+
     DupeAndMultSheet = OBJECT
         DupeSheetEnable: BOOLEAN;
 
@@ -228,49 +213,31 @@ TYPE
         FUNCTION  AddBigCallAddress (BigCall: EightBytes): INTEGER;
         PROCEDURE AddCallToVisibleDupeSheet (Callsign: CallString);
         PROCEDURE AddCompressedCallToDupeSheet (Call:FourBytes; Band: BandType; Mode: ModeType);
+
+        PROCEDURE AddPossibleCallsFromDupesheet (Call: CallString; VAR List: CallListRecord);
+
         PROCEDURE AddQSOToSheets (RXData: ContestExchange);
 
         FUNCTION  CallIsADupe (Call: CallString; Band: BandType; Mode: ModeType): BOOLEAN;
-
-        PROCEDURE CancelOutNewDomesticMultWeHaveWorked (MultString: Str20;
-                                                        Band: BandType;
-                                                        Mode: ModeType);
-
-        PROCEDURE CancelOutNewDXMultWeHaveWorked (MultString: Str20;
-                                                  Band: BandType;
-                                                  Mode: ModeType);
-
-        PROCEDURE CancelOutNewZoneMultWeHaveWorked (MultString: Str20;
-                                                    Band: BandType;
-                                                    Mode: ModeType);
-
-        PROCEDURE CancelOutRemainingMultsWeHaveWorked (Band: BandType;
-                                                       Mode: ModeType;
-                                                       MultType: RemainingMultiplierType);
-
+        PROCEDURE CancelOutNewDomesticMultWeHaveWorked (MultString: Str20; Band: BandType; Mode: ModeType);
+        PROCEDURE CancelOutNewDXMultWeHaveWorked (MultString: Str20; Band: BandType; Mode: ModeType);
+        PROCEDURE CancelOutNewZoneMultWeHaveWorked (MultString: Str20; Band: BandType; Mode: ModeType);
+        PROCEDURE CancelOutRemainingMultsWeHaveWorked (Band: BandType; Mode: ModeType; MultType: RemainingMultiplierType);
         PROCEDURE ClearDupeSheet;
-
-        PROCEDURE CreateVisibleDupeSheetArrays (VAR Band: BandType;
-                                                    Mode: ModeType);
-
-
-        FUNCTION  TwoLetterCrunchProcess (PartialCall: CallString; VAR PossCallList: PossibleCallRecord): BOOLEAN;
+        PROCEDURE CreateVisibleDupeSheetArrays (VAR Band: BandType; Mode: ModeType);
 
         PROCEDURE DisposeOfMemoryAndZeroTotals;
-
-        FUNCTION  IsADomesticMult (Mult: Str10; Band: BandType; Mode: ModeType): BOOLEAN;
-
         PROCEDURE DupeSheetTotals (VAR Totals: QSOTotalArray);
 
         FUNCTION  EntryExists (Entry: FourBytes; Band: BandType; Mode: ModeType): BOOLEAN;
         PROCEDURE ExamineLogForQSOTotals (VAR QTotals: QSOTotalArray);
 
-        PROCEDURE GetPossibleCallsFromDupesheet (Call: CallString; VAR PossCallList: PossibleCallRecord);
+        PROCEDURE GeneratePartialCallListFromAllCallList (PartialCall: CallString;
+                                                          Band: BandType;
+                                                          Mode: ModeType;
+                                                          VAR List: CallListRecord);
 
-        PROCEDURE MakePartialCallList (Call: CallString;
-                                       ActiveBand: BandType;
-                                       ActiveMode: ModeType;
-                                       VAR PossCallList: PossibleCallRecord);
+        FUNCTION  IsADomesticMult (Mult: Str10; Band: BandType; Mode: ModeType): BOOLEAN;
 
         PROCEDURE MultSheetTotals (VAR Totals: MultTotalArrayType);
 
@@ -278,15 +245,26 @@ TYPE
 
         PROCEDURE SetMultFlags (VAR RXData: ContestExchange);
         PROCEDURE SetUpRemainingMultiplierArrays;
-
         PROCEDURE SaveRestartFile;
-
         PROCEDURE SheetInitAndLoad;
         END;
 
 
 
-VAR ActiveDXMult:           DXMultType;
+VAR
+
+    { An alphabetical list of all of the calls in the dupesheets }
+
+    AllCallList: ARRAY [0..MaxAllCalls - 1] OF CallString;
+
+    { The following array has the exchange memory and the indexes match those
+      for the AllCallList.  So, if yoy find K7RAT at address 34, you will
+      find the exchange memory entry for hi in the ExchangeMemoryList at
+      address 34. }
+
+    ExchangeMemoryList: ARRAY [0..MaxAllCalls - 1] OF Str20;
+
+    ActiveDXMult:           DXMultType;
     ActivePrefixMult:       PrefixMultType;
     AutoDupeEnableCQ:       BOOLEAN;
     AutoDupeEnableSAndP:    BOOLEAN;
@@ -309,36 +287,24 @@ VAR ActiveDXMult:           DXMultType;
 
     HFBandEnable: BOOLEAN;
 
-    InitialExchangeFilename: Str40;
-    InitialExchangeList: InitialExchangeArrayPointer;
-
-    LastPartialCall:              CallString;
-    LastPartialCallBlock:         INTEGER;
-    LastTwoLetterCrunchedAddress: INTEGER;
-    LastTwoLettersCrunchedOn:     Str20;
-
     LoadingInLogFile:             BOOLEAN;
-    LongPartialCallList:          LongPartialCallListPointer;
 
     MultByBand:      BOOLEAN;
     MultByMode:      BOOLEAN;
     MultiplierAlarm: BOOLEAN;
 
-    NumberDifferentMults:        BYTE;
-    NumberGridSquaresInList:     BYTE;
-    NumberInitialExchanges:      INTEGER;
-    NumberLongPartialCalls:      INTEGER;
-    NumberPartialCalls:          INTEGER;
-    NumberTwoLetterPartialCalls: INTEGER;
-    NumberVDCalls:               INTEGER;
+    NumberDifferentMults:    BYTE;
+    NumberGridSquaresInList: BYTE;
+    NumberAllCalls:          INTEGER;
+    NumberPartialCalls:      INTEGER;
+    NumberVDCalls:           INTEGER;
 
     OffTimeStart: TimeRecord;
 
-    PartialCallEnable: BOOLEAN;
+    PartialCallEnable: BOOLEAN;  { This is a global variable that affects any/all partical call engines }
 
     { The PartialCallList is an alphabetical list of callsigns which each have an index to an initial exchange }
 
-    PartialCallList: ARRAY [1..MaxPartialCallBlocks] OF PartialCallArrayPtr;
     PartialCallLoadLogEnable: BOOLEAN;
 
     QSOByBand: BOOLEAN;
@@ -363,41 +329,32 @@ VAR ActiveDXMult:           DXMultType;
 
     TotalNamesSent: INTEGER;
     TotalQSOPoints: LongInt;
-    TwoLetterCrunchPartialCallList: ARRAY [0..TwoLetterPartialCallListLength] OF INTEGER;
 
     WildCardPartials: BOOLEAN;
 
-    PROCEDURE AddCallToPartialList (Call: CallString; InitialExchange: CallString);
+    PROCEDURE AddCallToAllCallList (Call: CallString; Exchange: Str20);
 
     FUNCTION  BigEntryAddress (Entry: FourBytes): INTEGER;
-
-    FUNCTION  CallNotInPossibleCallList (Call: CallString;
-                                         VAR PossCallList: PossibleCallRecord): BOOLEAN;
 
     PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     PROCEDURE ConvertBigEntryAddressToFourBytes (EntryPointer: INTEGER; VAR BigEntry: FourBytes);
     PROCEDURE CreateGridSquareList (Call: CallString; Band: BandType);
 
     PROCEDURE DupeInit;
-    FUNCTION  FindProperPartialCallAddress (Call: CallString): INTEGER;
+    FUNCTION  FindProperAllCallListAddress (Call: CallString): INTEGER;
     FUNCTION  FoundDomesticQTH (VAR RXData: ContestExchange): BOOLEAN;
 
     PROCEDURE GetDXQTH (VAR RXData: ContestExchange);
-    FUNCTION  GetInitialExchange (Call: CallString): CallString;
+
+    FUNCTION  GetInitialExchangeFromExchangeMemory (Call: CallString): STRING;
+
     FUNCTION  GetInitialExchangeStringFromContestExchange (RData: ContestExchange): Str40;
     PROCEDURE GetMultsFromLogEntry   (LogEntry: Str80; VAR RXData: ContestExchange);
-    FUNCTION  GetPartialCall (CallAddress: INTEGER): CallString;
-
-    PROCEDURE LoadInitialExchangeFile;
 
     FUNCTION  ParseExchangeIntoContestExchange (LogEntry: STRING;
                                                 VAR RXData: ContestExchange): BOOLEAN;
 
     FUNCTION  PointsToBigCall (Entry: FourBytes): BOOLEAN;
-
-    PROCEDURE PutPartialCallInList (Call: CallString;
-                                    InitialExchange: CallString;
-                                    CallAddress: INTEGER);
 
     PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
                                         VAR ExchangeInformation: ExchangeInformationRecord
@@ -510,432 +467,184 @@ VAR QTHString: Str40;
 
 
 
-FUNCTION GetPartialCall (CallAddress: INTEGER): CallString;
+FUNCTION FindProperAllCallListAddress (Call: CallString): LONGINT;
 
-{ Fetches the partial call for the address specified. }
+{ Just needs to find the address where the entry before that address is
+  < the Call, and the address above it is > the call.  It might end up
+  pointing to the Call - or it might be one more than the Number of
+  Calls.  It could also be zero which means it is less than the first
+  call in the list. }
 
-VAR BlockNumber, BlockAddress: INTEGER;
-    LongPartialCallAddress: INTEGER;
-    TempString: CallString;
+VAR StartAddress, StopAddress, JumpSize, TestAddress, Address: INTEGER;
 
     BEGIN
-    IF CallAddress >= NumberPartialCalls THEN
+    { See if it should go at the first entry }
+
+    IF (NumberAllCalls = 0) OR (Call < AllCallList [0]) THEN
         BEGIN
-        GetPartialCall := '';
+        FindProperAllCallListAddress := 0;
         Exit;
         END;
 
-    BlockNumber    := CallAddress DIV FourByteBlockSize + 1;
-    BlockAddress   := CallAddress MOD FourByteBlockSize;
-    TempString     := ExpandedString (PartialCallList [BlockNumber]^ [BlockAddress].Call);
+    { See if it should go to the last entry }
 
-    IF StringIsAllNumbers (TempString) THEN
+    IF Call > AllCallList [NumberAllCalls - 1] THEN
         BEGIN
-        IF Length (TempString) < 3 THEN
-               BEGIN
-               GetPartialCall := '';
-               Exit;
-               END
-           ELSE
-               Val (TempString, LongPartialCallAddress);
-
-        { Runtime 201 here when entering second letter of call with Auto CQ
-          and DVP.  So, why would this ever be happening? }
-
-        IF LongPartialCallAddress < MaxLongPartialCalls THEN
-            TempString := BigExpandedString (LongPartialCallList^ [LongPartialCallAddress])
-        ELSE
-            BEGIN
-            GetPartialCall := '';
-            Exit;
-            END;
-        END;
-
-    WHILE Pos (' ', TempString) > 0 DO
-        TempString [Pos (' ', TempString)] := '/';
-
-    GetPartialCall := TempString;
-    END;
-
-
-
-FUNCTION FindProperPartialCallAddress (Call: CallString): INTEGER;
-
-{ Returns either the address that the call is located at, or the address
-  where the call should be inserted if it was going to be added to the
-  list.  }
-
-VAR Address, SearchStep, NumberSearches: INTEGER;
-
-    BEGIN
-    IF NumberPartialCalls = 0 THEN
-        BEGIN
-        FindProperPartialCallAddress := 0;
+        FindProperAllCallListAddress := NumberAllCalls;
         Exit;
         END;
 
-    { For a low number of partial calls - we just do a linear search }
+    StartAddress := 0;
+    StopAddress := NumberAllCalls - 1;
 
-    IF NumberPartialCalls <= 10 THEN
+    IF NumberAllCalls > 20 THEN   { Let's play with the addresses to make this quicker }
         BEGIN
-        Address := 0;
+        TestAddress := NumberAllCalls - 1;
+        JumpSize := NumberAllCalls DIV 2;
 
-        WHILE (GetPartialCall (Address) < Call) AND
-              (Address < NumberPartialCalls) DO
-                  Inc (Address);
+        TestAddress := TestAddress - JumpSize;
 
-        FindProperPartialCallAddress := Address;
-        Exit;
-        END;
+        { We start somewhere near the middle of the list }
 
-    { Do a binary search }
-
-    SearchStep := NumberPartialCalls DIV 2;
-    Address    := SearchStep;
-    NumberSearches := 0;
-
-    REPEAT
-        Inc (NumberSearches);
-        SearchStep := SearchStep DIV 2;
-
-        IF GetPartialCall (Address) < Call THEN
-            Address := Address + SearchStep
-        ELSE
-            Address := Address - SearchStep;
-    UNTIL SearchStep = 1;
-
-    Address := Address - NumberSearches - 2;
-    IF Address < 0 THEN Address := 0;
-
-    WHILE (GetPartialCall (Address) < Call) AND
-          (Address < NumberPartialCalls) DO
-              Inc (Address);
-
-    FindProperPartialCallAddress := Address;
-    END;
-
-
-
-FUNCTION GetInitialExchangeIndex (InitialExchange: CallString): INTEGER;
-
-{ This routine will return the appropriate InitialExchangeIndex for the
-  initial exchange passed to it.  This is the address that the initial
-  exchange can be found in the InitialExchangeList.  If the initial
-  exchange can't be found in the list - it will be added to the end
-  of the list (if there is room) and that address returned.
-
-  If the initial exchange can't be added to the list (because it is
-  full) it will return with zero.
-
-  The initial exchange list starts at 1.
-
-}
-
-VAR TempBytes: EightBytes;
-    Address: INTEGER;
-
-    BEGIN
-    GetInitialExchangeIndex := 0;       { Default in case we can't do it }
-
-    IF InitialExchange = '' THEN Exit;  { Nothing to do with this }
-
-    BigCompressFormat (InitialExchange, TempBytes);
-
-    { See if there is a list to look at.  If not, create the list and
-      make this the first entry. }
-
-    IF NumberInitialExchanges = 0 THEN  { First one - allocate memory }
-        BEGIN
-        IF MaxAvail > SizeOf (InitialExchangeArray) THEN
+        WHILE True DO
             BEGIN
-            IF InitialExchangeList = Nil THEN New (InitialExchangeList);
-            Inc (NumberInitialExchanges);
-            InitialExchangeList^ [NumberInitialExchanges] := TempBytes;
-            GetInitialExchangeIndex := NumberInitialExchanges;
-            END
-        ELSE
-            BEGIN
-            Tone.DoABeep (Single);
-            QuickDisplay ('Not enough memory for initial exchange array!!');
-            ReminderPostedCount := 30;
-            END;
+            IF AllCallList [TestAddress] = Call THEN   { BINGO!! }
+                BEGIN
+                FindProperAllCallListAddress := TestAddress;
+                Exit;
+                END;
 
-        Exit;
-        END;
+            JumpSize := JumpSize DIV 2;
 
-    { Search the list for this entry }
-
-    FOR Address := 1 TO NumberInitialExchanges DO
-        IF (TempBytes [1] = InitialExchangeList^ [Address] [1]) AND
-           (TempBytes [2] = InitialExchangeList^ [Address] [2]) AND
-           (TempBytes [3] = InitialExchangeList^ [Address] [3]) AND
-           (TempBytes [4] = InitialExchangeList^ [Address] [4]) AND
-           (TempBytes [5] = InitialExchangeList^ [Address] [5]) AND
-           (TempBytes [6] = InitialExchangeList^ [Address] [6]) AND
-           (TempBytes [7] = InitialExchangeList^ [Address] [7]) AND
-           (TempBytes [8] = InitialExchangeList^ [Address] [8]) THEN
-               BEGIN
-               GetInitialExchangeIndex := Address;  { Found it!! }
-               Exit;
-               END;
-
-    { Not found in the list.  Add it to end if there is room. }
-
-    IF NumberInitialExchanges < MaxInitialExchanges THEN
-        BEGIN
-        Inc (NumberInitialExchanges);
-        InitialExchangeList^ [NumberInitialExchanges] := TempBytes;
-        GetInitialExchangeIndex := NumberInitialExchanges;
-        END;
-    END;
-
-
-
-PROCEDURE PartialBlockSqueeze (Block: INTEGER;
-                               InputAddress: INTEGER;
-                               OutputAddress: INTEGER;
-                               VAR Entry: PartialCallType);
-
-VAR Address:   INTEGER;
-    TempEntry: PartialCallType;
-
-    BEGIN
-    TempEntry := PartialCallList [Block]^ [OutputAddress];
-
-    IF OutputAddress > InputAddress THEN
-        FOR Address := OutputAddress DOWNTO InputAddress + 1 DO
-            PartialCallList [Block]^ [Address] := PartialCallList [Block]^ [Address - 1];
-
-    PartialCallList [Block]^ [InputAddress] := Entry;
-
-    Entry := TempEntry;
-    END;
-
-
-
-PROCEDURE CheckForLongCall (VAR Call: CallString);
-
-VAR TempBytes:  EightBytes;
-
-    BEGIN
-    IF Length (Call) <= 6 THEN Exit;
-    IF NumberLongPartialCalls >= MaxLongPartialCalls THEN Exit;
-
-    IF NumberLongPartialCalls = 0 THEN
-        IF MaxAvail > SizeOf (LongPartialCallListType) THEN
-            BEGIN
-            IF LongPartialCallList = Nil THEN New (LongPartialCallList);
-            END
-        ELSE
-            BEGIN
-            Tone.DoABeep (Single);
-            QuickDisplay ('Not enough memory for LongPartialCallListType!!');
-            ReminderPostedCount := 30;
-            WHILE Length (Call) > 6 DO Delete (Call, Length (Call), 1);
-            Exit;
-            END;
-
-    BigCompressFormat (Call, TempBytes);
-
-    Str (NumberLongPartialCalls, Call);
-
-    WHILE Length (Call) < 6 DO
-        Call := '0' + Call;
-
-    LongPartialCallList^ [NumberLongPartialCalls] := TempBytes;
-    Inc (NumberLongPartialCalls);
-    END;
-
-
-
-PROCEDURE SqueezeInPartialCall (Call: CallString;
-                                InitialExchange: CallString;
-                                AddAddress: INTEGER);
-
-VAR Block, FirstBlock, LastBlock, StartAddress, EndAddress: INTEGER;
-    TempEntry: PartialCallType;
-
-    BEGIN
-    CheckForLongCall (Call);
-
-    FirstBlock := AddAddress DIV PartialCallBlockSize + 1;
-    LastBlock  := NumberPartialCalls DIV PartialCallBlockSize + 1;
-
-    CompressFormat (Call, TempEntry.Call);
-    TempEntry.InitialExchangeIndex := GetInitialExchangeIndex (InitialExchange);
-
-    FOR Block := FirstBlock TO LastBlock DO
-        BEGIN
-        IF Block = FirstBlock THEN
-            StartAddress := AddAddress MOD FourByteBlockSize
-        ELSE
-            StartAddress := 0;
-
-        IF Block = LastBlock THEN
-            BEGIN
-            EndAddress := (NumberPartialCalls) MOD PartialCallBlockSize;
-
-            IF EndAddress = 0 THEN
-                IF MaxAvail > SizeOf (PartialCallArray) THEN
+            IF AllCallList [TestAddress] < Call THEN   { We need to move up the list }
+                BEGIN
+                IF (TestAddress + JumpSize >= NumberAllCalls - 1) OR (JumpSize < 10) THEN
                     BEGIN
-                    IF PartialCallList [Block] = Nil THEN New (PartialCallList [Block]);
-                    END
-                ELSE
-                    BEGIN
-                    Tone.DoABeep (Single);
-                    QuickDisplay ('Not enough memory for PartialCallArray!!');
-                    ReminderPostedCount := 30;
-                    Exit;
+                    StartAddress := TestAddress;
+                    StopAddress := NumberAllCalls - 1;
+                    Break;
                     END;
-            END
-        ELSE
-            EndAddress := PartialCallBlockSize - 1;
 
-        PartialBlockSqueeze (Block,
-                             StartAddress,
-                             EndAddress,
-                             TempEntry);
+                TestAddress := TestAddress + JumpSize;
+                END
+
+            ELSE                                       { We need to move down the list }
+                BEGIN
+                IF (TestAddress - JumpSize <= 0) OR (JumpSize < 10) THEN
+                    BEGIN
+                    StartAddress := 0;
+                    StopAddress := NumberAllCalls - 1;
+                    Break;
+                    END;
+
+                TestAddress := TestAddress - JumpSize;
+                END;
+            END;  { of WHILE True }
         END;
 
-    Inc (NumberPartialCalls);
+
+    FOR Address := StartAddress TO StopAddress DO
+        IF Call <= AllCallList [Address] THEN
+            BEGIN
+            FindProperAllCallListAddress := Address;
+            Exit;
+            END;
+
+    { I really don't think we should ever get here }
+
+    WriteLn ('Error in FindProperAllCallListAddress');
+    Halt;
     END;
 
 
 
-PROCEDURE AddCallToPartialList (Call: CallString; InitialExchange: CallString);
+PROCEDURE AddCallToAllCallList (Call: CallString; Exchange: Str20);
 
-VAR ProperAddress: INTEGER;
-    Index, BlockNumber, BlockAddress: INTEGER;
+VAR Address, ProperAddress: LONGINT;
 
     BEGIN
-    ProperAddress := FindProperPartialCallAddress (Call);
+    ProperAddress := FindProperAllCallListAddress (Call);
 
-    IF GetPartialCall (ProperAddress) = Call THEN
+    IF AllCallList [ProperAddress] = Call THEN    { Call already exists }
         BEGIN
-        BlockNumber  := ProperAddress DIV FourByteBlockSize + 1;
-        BlockAddress := ProperAddress MOD FourByteBlockSize;
-
-        Index := GetInitialExchangeIndex (InitialExchange);
-
-        PartialCallList [BlockNumber]^ [BlockAddress].InitialExchangeIndex := Index;
+        { Do we want to update the initial exchange? }
         Exit;
         END;
 
-    SqueezeInPartialCall (Call, InitialExchange, ProperAddress);
+    IF NumberAllCalls = MaxAllCalls THEN Exit;  { No room }
+
+    IF ProperAddress = NumberAllCalls THEN   { Add it to the end }
+        BEGIN
+        AllCallList [NumberAllCalls] := Call;
+        ExchangeMemoryList [NumberAllCalls] := Exchange;
+        Inc (NumberAllCalls);
+        Exit;
+        END;
+
+    { Make room for the new entry }
+
+    FOR Address := NumberAllCalls DOWNTO ProperAddress + 1 DO
+        BEGIN
+        AllCallList [Address] := AllCallList [Address - 1];
+        ExchangeMemoryList [Address] := ExchangeMemoryList [Address - 1];
+        END;
+
+    AllCallList [ProperAddress] := Call;
+    ExchangeMemoryList [ProperAddress] := Exchange;
+
+    Inc (NumberAllCalls);
     END;
 
 
 
-FUNCTION GetInitialExchange (Call: CallString): CallString;
+FUNCTION GetInitialExchangeFromExchangeMemory (Call: CallString): STRING;
 
 { This procedure will return the initial exchange for the callsign passed
   to it.  If there is no initial exchange, a null string will be returned. }
 
-VAR CallAddress, BlockNumber, Index, BlockAddress: INTEGER;
-    TempCall: CallString;
+VAR Address: INTEGER;
 
     BEGIN
-    GetInitialExchange := '';
+    GetInitialExchangeFromExchangeMemory := '';
 
-    IF (NOT ExchangeMemoryEnable) OR (NumberInitialExchanges = 0) THEN Exit;
+    IF NOT ExchangeMemoryEnable THEN Exit;
+    IF NumberAllCalls = 0 THEN Exit;
 
-    { Find the callsign in the partial call database.  This list also
-      contains the address of the initial exchange in the initial
-      exchange list. }
+    { We can speed this up later when it all works if we need to }
 
-    CallAddress := FindProperPartialCallAddress (Call);
-
-    TempCall := GetPartialCall (CallAddress);
-
-    { If we have found the call, return to corresponding initial exchange }
-
-    IF (Call = TempCall) OR (RootCall (Call) = RootCall (TempCall)) THEN
-        BEGIN
-        BlockNumber  := CallAddress DIV FourByteBlockSize + 1;
-        BlockAddress := CallAddress MOD FourByteBlockSize;
-
-        Index := PartialCallList [BlockNumber]^ [BlockAddress].InitialExchangeIndex;
-
-        IF (Index <> 0) AND (Index <= NumberInitialExchanges) THEN
-            GetInitialExchange := BigExpandedString (InitialExchangeList^ [Index]);
-        Exit;
-        END;
-
-    IF CallAddress > 0 THEN
-        BEGIN
-        Dec (CallAddress);
-
-        TempCall := GetPartialCall (CallAddress);
-
-        IF (Call = TempCall) OR (RootCall (Call) = RootCall (TempCall)) THEN
+    FOR Address := 9 TO NumberAllCalls - 1 DO
+        IF AllCallList [Address] = Call THEN
             BEGIN
-            BlockNumber  := CallAddress DIV FourByteBlockSize + 1;
-            BlockAddress := CallAddress MOD FourByteBlockSize;
-
-            Index := PartialCallList [BlockNumber]^ [BlockAddress].InitialExchangeIndex;
-
-            IF (Index <> 0) AND (Index <= NumberInitialExchanges) THEN
-                GetInitialExchange := BigExpandedString (InitialExchangeList^ [Index]);
-            END;
-        END;
-    END;
-
-
-
-FUNCTION CallNotInPossibleCallList (Call: CallString;
-                                    VAR PossCallList: PossibleCallRecord): BOOLEAN;
-
-VAR Entry: INTEGER;
-
-    BEGIN
-    CallNotInPossibleCallList := True;
-
-    IF PossCallList.NumberPossibleCalls = 0 THEN Exit;
-
-    FOR Entry := 0 TO PossCallLIst.NumberPossibleCalls - 1 DO
-        IF Call = PossCallList.List [Entry].Call THEN
-            BEGIN
-            CallNotInPossibleCallList := False;
+            GetInitialExchangeFromExchangeMemory := ExchangeMemoryList [Address];
             Exit;
             END;
     END;
 
 
 
-PROCEDURE DupeAndMultSheet.MakePartialCallList (Call: CallString;
-                                                ActiveBand: BandType;
-                                                ActiveMode: ModeType;
-                                                VAR PossCallList: PossibleCallRecord);
+PROCEDURE DupeAndMultSheet.GeneratePartialCallListFromAllCallList (PartialCall: CallString;
+                                                                   Band: BandType;
+                                                                   Mode: ModeType;
+                                                                   VAR List: CallListRecord);
 
-{ This assume someone has called the TwoLetterCrunchProcess so there are some
-  calls in the TwoLetterCrunchPartialCallList }
+{ New routine that just uses the AllCalls list }
 
 VAR Address: INTEGER;
-    TempCall: CallString;
 
     BEGIN
-    PossCallList.NumberPossibleCalls := 0;
-    PossCallList.CursorPosition      := 0;
+    List.NumberCalls := 0;
+    List.CursorPosition := 0;
 
-    IF NOT PartialCallEnable THEN Exit;
+    IF Length (PartialCall) < 2 THEN Exit;
 
-    IF Length (Call) < 2 THEN Exit;
+    IF NumberAllCalls = 0 THEN Exit;
 
-    IF NumberTwoLetterPartialCalls > 0 THEN
-        FOR Address := 0 TO NumberTwoLetterPartialCalls - 1 DO
+    FOR Address := 0 TO NumberAllCalls - 1 DO
+        IF Pos (PartialCall, AllCallList [Address]) > 0 THEN
             BEGIN
-            TempCall := GetPartialCall (TwoLetterCrunchPartialCallList [Address]);
-
-            IF Pos (Call, TempCall) <> 0 THEN
-                IF CallNotInPossibleCallList (TempCall, PossCallList) THEN  { added 6.27 }
-                    BEGIN
-                    PossCallList.List [PossCallList.NumberPossibleCalls].Call := TempCall;
-                    PossCallList.List [PossCallList.NumberPossibleCalls].Dupe :=
-                            CallIsADupe (TempCall, ActiveBand, ActiveMode);
-
-                    Inc (PossCallList.NumberPossibleCalls);
-                    IF PossCallList.NumberPossibleCalls > 12 THEN Exit;
-                    END;
+            List.CallList [List.NumberCalls].Call := AllCallList [Address];
+            List.CallList [List.NumberCalls].Dupe := CallIsADupe (AllCallList [Address], Band, Mode);
+            Inc (List.NumberCalls);
             END;
     END;
 
@@ -1419,8 +1128,7 @@ VAR CompressedCall, CompressedMult: FourBytes;
     BigCallAddress, NumberMults: INTEGER;
 
     BEGIN
-    IF LoadingInLogFile AND PartialCallLoadLogEnable AND PartialCallEnable THEN
-        AddCallToPartialList (RXData.Callsign, GetInitialExchangeStringFromContestExchange (RXData));
+    AddCallToAllCallList (RXData.Callsign, GetInitialExchangeStringFromContestExchange (RXData));
 
     RXData.Callsign := StandardCallFormat (RXData.Callsign, True);
 
@@ -1669,150 +1377,6 @@ VAR Band: BandType;
                 END;
 
         DupeSheet.NumberBigCalls := 0;
-        END;
-    END;
-
-
-
-FUNCTION DupeAndMultSheet.TwoLetterCrunchProcess (PartialCall: CallString; VAR PossCallList: PossibleCallRecord): BOOLEAN;
-
-{ This process was created back when doing partial calls took a significant amount
-  of time.  It was put into the loop that waited for a keystroke (in the routine
-  CheckEverything in the logsubs.pas file).
-
-  It will process up to 200 calls each time this is called.  It will return TRUE
-  if there has been some change to the PossibleCallList.  So that I can use the
-  same routine for TBSIQ - it is now required that you specify which possible
-  call list you want to work with (as there are radio instance specific ones in
-  TBSIQ }
-
-VAR Address, FirstAddress, LastAddress, NumberCallsToCrunch: INTEGER;
-    GotPartialCall, TempString: Str20;
-
-    BEGIN
-    TwoLetterCrunchProcess := False;          { Assume no changes }
-
-    IF Length (PartialCall) < 2 THEN Exit;    { We don't do anything yet }
-    IF NumberPartialCalls = 0 THEN Exit;      { No partial calls to look at }
-
-    { Look to see if we have different first two letters than the last time
-      this function was called.  If so, set up a brand new process with an
-      empty list of callsigns. }
-
-    IF LastTwoLettersCrunchedOn <> Copy (PartialCall, 1, 2) THEN
-        BEGIN
-        LastTwoLettersCrunchedOn     := Copy (PartialCall, 1, 2);
-        LastTwoLetterCrunchedAddress := -1;
-        NumberTwoLetterPartialCalls  :=  0;
-        TwoLetterCrunchProcess       := True;
-        LastPartialCall              := PartialCall;
-        END;
-
-    { Look to see if we have processed the whole list.  If so, then, there isn't
-      anything for us to do.  However, if the callsign has changed, we will
-      report TRUE so that the partial call list can be recalculated based upon
-      the new callsign.  }
-
-    IF LastTwoLetterCrunchedAddress >= NumberPartialCalls - 1 THEN
-        BEGIN
-        TwoLetterCrunchProcess := PartialCall <> LastPartialCall;
-        LastPartialCall := PartialCall;
-        Exit;
-        END;
-
-    { Now we only care about the first two letters. }
-
-    IF Length (PartialCall) > 2 THEN PartialCall := Copy (PartialCall, 1, 2);
-
-    { Wildcard partials means the two letters can show up anywhere in the
-      callsign. }
-
-    IF WildCardPartials THEN
-        BEGIN
-        NumberCallsToCrunch := NumberPartialCalls - LastTwoLetterCrunchedAddress - 1;
-
-        { We will only crunch up to 200 callsigns per call to this process.  Note
-          that we might not get to all of them if the operator presses a key. }
-
-        IF NumberCallsToCrunch > 200 THEN NumberCallsToCrunch := 200;
-
-        { Now look through the partial call list, looking for any calls that have
-          the partial string in it. }
-
-        FOR Address := LastTwoLetterCrunchedAddress + 1 TO LastTwoLetterCrunchedAddress + NumberCallsToCrunch DO
-            BEGIN
-            IF Pos (PartialCall, GetPartialCall (Address)) > 0 THEN
-                BEGIN
-                IF NumberTwoLetterPartialCalls < TwoLetterPartialCallListLength THEN
-                    BEGIN
-                    TwoLetterCrunchPartialCallList [NumberTwoLetterPartialCalls] := Address;
-                    Inc (NumberTwoLetterPartialCalls);
-                    TwoLetterCrunchProcess := True;     { We have changed the list }
-                    END;
-                END;
-
-            Inc (LastTwoLetterCrunchedAddress);
-
-            { For the classic version - we will exit if a key has been pressed }
-
-            IF (NOT Doing2BSIQ) AND NewKeyPressed THEN Exit;  { Went to NewKeyPressed in 6.27 }
-            END;
-        END
-
-    ELSE
-        BEGIN
-
-{ Remember that the partial call list is in alphabetical order.  If we
-  find the first and last address that partial calls will be found, our
-  job is done.  First, we compute the first address for this partial call. }
-
-        FirstAddress := FindProperPartialCallAddress (PartialCall);
-
-{ Since we back up one more, if the address is more than zero, decrement
-  it by one. }
-
-        IF FirstAddress > 0 THEN Dec (FirstAddress);
-
-
-{ Now we find the last address for any partial calls.  We do this by finding
-  the proper address for a call with the last character incremented by one. }
-{ Generate a string that has the second character incremented }
-
-        TempString := PartialCall;
-
-        IF TempString [2] = 'Z' THEN
-            BEGIN
-            TempString [2] := '0';
-            TempString [1] := Chr (Ord (TempString [1]) + 1);
-
-            IF TempString [1] > 'Z' THEN
-                LastAddress := NumberPartialCalls
-            ELSE
-                LastAddress := FindProperPartialCallAddress (TempString);
-            END
-        ELSE
-            BEGIN
-            TempString [2] := Chr (Ord (TempString [2]) + 1);
-            LastAddress := FindProperPartialCallAddress (TempString);
-            END;
-
-        FOR Address := FirstAddress TO LastAddress DO
-            BEGIN
-            GotPartialCall := GetPartialCall (Address);
-
-            IF Pos (PartialCall, GotPartialCall) = 1 THEN
-                BEGIN
-                IF NumberTwoLetterPartialCalls <  TwoLetterPartialCallListLength THEN
-                    BEGIN
-                    TwoLetterCrunchPartialCallList [NumberTwoLetterPartialCalls] := Address;
-                    Inc (NumberTwoLetterPartialCalls);
-                    TwoLetterCrunchProcess := True;
-                    END;
-                END;
-
-            Inc (LastTwoLetterCrunchedAddress);
-            END;
-        LastTwoLetterCrunchedAddress := NumberPartialCalls - 1;
         END;
     END;
 
@@ -2115,9 +1679,8 @@ VAR Band: BandType;
     DupeSheet.NumberBigCalls := 0;
     TotalQSOPoints := 0;
     TotalNamesSent := 0;
-    LastPartialCallBlock := 0;
     NumberPartialCalls := 0;
-    NumberInitialExchanges := 0;
+    NumberAllCalls := 0;
     END;
 
 PROCEDURE DupeAndMultSheet.DupeSheetTotals (VAR Totals: QSOTotalArray);
@@ -2210,137 +1773,28 @@ VAR FileRead: TEXT;
 
 
 
-PROCEDURE LoadInitialExchangeFile;
+PROCEDURE DupeAndMultSheet.AddPossibleCallsFromDupesheet (Call: CallString; VAR List: CallListRecord);
 
-VAR FileRead: TEXT;
-    FileString, InitialExchangeString, Call: Str80;
-    NumberCallsFound: INTEGER;
+{ This will not set the NumberCalls to zero - so any calls already added will be there }
 
-    BEGIN
-    WriteLn;
-
-    NumberCallsFound := 0;
-
-    IF OpenFileForRead (FileRead, InitialExchangeFileName) THEN
-        BEGIN
-        WHILE NOT Eof (FileRead) DO
-            BEGIN
-            ReadLn (FileRead, FileString);
-            GetRidOfPrecedingSpaces (FileString);
-            FileString := UpperCase (FileString);
-
-            IF FileString <> '' THEN
-                BEGIN
-                Call := RemoveFirstString (FileString);
-                IF FileString <> '' THEN
-                    BEGIN
-                    InitialExchangeString := '';
-                    WHILE FileString <> '' DO
-                        InitialExchangeString := InitialExchangeString + RemoveFirstString (FileString) + ' ';
-
-                    GetRidOfPostcedingSpaces (InitialExchangeString);
-
-                    AddCallToPartialList (Call, InitialExchangeString);
-                    Inc (NumberCallsFound);
-
-                    GoToXY (1, WhereY);
-                    Write (NumberCallsFound);
-                    END;
-                END;
-            END;
-
-        Close (FileRead);
-        GoToXY (1, WhereY);
-        WriteLn ('There were ', NumberCallsFound, ' calls found in initial exchange file.');
-        END;
-
-
-    END;
-
-
-
-PROCEDURE DupeAndMultSheet.GetPossibleCallsFromDupesheet (Call: CallString; VAR PossCallList: PossibleCallRecord);
-
-LABEL CallAlreadyInList;
-
-VAR Band, StartBand, EndBand: BandType;
-    Mode, StartMode, EndMode: ModeType;
-    CallBytes: FourBytes;
-    NumberCalls, CallAddress, NumberDupeBlocks, EndAddress, Entry: INTEGER;
-    NumberEntriesInLastBlock, Block: INTEGER;
-    TempCall: Str80;
+VAR Address: INTEGER;
 
     BEGIN
     IF Call = '' THEN Exit;
+    IF NumberAllCalls = 0 THEN Exit;
+
+    { Not sure about this - but will keep it for now }
+
     Call := StandardCallFormat (Call, True);
 
-    CompressFormat (Call, CallBytes);
+    { We can speed this up later }
 
-    IF QSOByBand THEN
-        BEGIN
-        StartBand := Band160;
-        EndBand   := BandLight;
-        END
-    ELSE
-        BEGIN
-        StartBand := All;
-        EndBand   := All;
-        END;
-
-    IF QSOByMode THEN
-        BEGIN
-        StartMode := CW;
-        EndMode   := Phone;
-        END
-    ELSE
-        BEGIN
-        StartMode := Both;
-        EndMode   := Both;
-        END;
-
-    FOR Band := StartBand TO EndBand DO
-        FOR Mode := StartMode TO EndMode DO
+    FOR Address := 0 TO NumberAllCalls - 1 DO
+        IF SimilarCall (Call, AllCallList [Address]) THEN
             BEGIN
-            NumberCalls := DupeSheet.Totals [Band, Mode];
-
-            IF NumberCalls > 0 THEN
-                BEGIN
-                NumberDupeBlocks         := (NumberCalls - 1) DIV FourByteBlockSize + 1;
-                NumberEntriesInLastBlock := (NumberCalls - 1) MOD FourByteBlockSize + 1;
-
-                Block := 1;
-
-                REPEAT
-                    IF Block = NumberDupeBlocks THEN
-                        EndAddress := NumberEntriesInLastBlock
-                    ELSE
-                        EndAddress := FourByteBlockSize;
-
-                    FOR CallAddress := 0 TO EndAddress - 1 DO
-                        BEGIN
-                        IF NumBytes (Addr (CallBytes), Addr (DupeSheet.DupeList [Band, Mode, Block]^ [CallAddress])) >= 2 THEN
-                            BEGIN
-                            TempCall := ExpandedString (DupeSheet.DupeList [Band, Mode, Block]^ [CallAddress]);
-                            IF SimilarCall (TempCall, Call) THEN
-                                IF PossCallList.NumberPossibleCalls < 12 THEN
-                                    BEGIN
-                                    IF PossCallList.NumberPossibleCalls > 0 THEN
-                                        FOR Entry := 0 TO PossCallList.NumberPossibleCalls - 1 DO
-                                            IF PossCallList.List [Entry].Call = TempCall THEN
-                                                GoTo CallAlreadyInList;
-                                    PossCallList.List [PossCallList.NumberPossibleCalls].Call := TempCall;
-                                    PossCallList.List [PossCallList.NumberPossibleCalls].Dupe := False;
-
-                                    Inc (PossCallList.NumberPossibleCalls);
-                                    END
-                                ELSE
-                                    Exit;
-                            END;
-                        CallAlreadyInList:
-                        END;
-                Inc (Block);
-                UNTIL Block > NumberDupeBlocks;
-                END;
+            List.CallList [List.NumberCalls].Call := AllCallList [Address];
+            List.CallList [List.NumberCalls].Dupe := False;  { Unless you want to give me band/mode }
+            Inc (List.NumberCalls);
             END;
     END;
 
@@ -2351,48 +1805,6 @@ PROCEDURE DupeAndMultSheet.MultSheetTotals (VAR Totals: MultTotalArrayType);
 
     BEGIN
     Totals := MultSheet.Totals;
-    END;
-
-
-
-PROCEDURE PutPartialCallInList (Call: CallString;
-                                InitialExchange: CallString;
-                                CallAddress: INTEGER);
-
-VAR BlockNumber, BlockAddress: INTEGER;
-    CompressedCall: FourBytes;
-    Index: BYTE;
-
-    BEGIN
-    BlockNumber  := CallAddress DIV FourByteBlockSize + 1;
-    BlockAddress := CallAddress MOD FourByteBlockSize;
-
-    IF BlockNumber > LastPartialCallBlock THEN
-        BEGIN
-        IF MaxAvail < SizeOf (FourByteBlockArray) THEN
-            BEGIN
-            Tone.DoABeep (Single);
-            QuickDisplay ('Not enough memory for FourByteBlockArray!!');
-            ReminderPostedCount := 30;
-            Exit;
-            END;
-
-        IF PartialCallList [BlockNumber] = Nil THEN
-            New (PartialCallList [BlockNumber]);
-
-        LastPartialCallBlock := BlockNumber;
-        END;
-
-    CompressFormat (Call, CompressedCall);
-    PartialCallList [BlockNumber]^ [BlockAddress].Call := CompressedCall;
-
-    IF ExchangeMemoryEnable THEN
-        BEGIN
-        Index := GetInitialExchangeIndex (InitialExchange);
-        PartialCallList [BlockNumber]^ [BlockAddress].InitialExchangeIndex := Index;
-        END
-    ELSE
-        PartialCallList [BlockNumber]^ [BlockAddress].InitialExchangeIndex := 0;
     END;
 
 
@@ -2546,7 +1958,7 @@ PROCEDURE DupeAndMultSheet.SaveRestartFile;
 VAR Band: BandType;
     Mode: ModeType;
     FileWrite: File;
-    Block, xResult, NumberBlocks: INTEGER;
+    Address, Block, xResult, NumberBlocks: INTEGER;
 
     BEGIN
     Assign  (FileWrite, LogRestartFileName);
@@ -2645,30 +2057,14 @@ VAR Band: BandType;
                        END;
         END;
 
-    BlockWrite (FileWrite, NumberPartialCalls,     SizeOf (NumberPartialCalls),     xResult);
-    BlockWrite (FileWrite, LastPartialCallBlock,   SizeOf (LastPartialCallBlock),   xResult);
-    BlockWrite (FileWrite, NumberInitialExchanges, SizeOf (NumberInitialExchanges), xResult);
-    BlockWrite (FileWrite, NumberLongPartialCalls, SizeOf (NumberInitialExchanges), xResult);
+    BlockWrite (FileWrite, NumberAllCalls , SizeOf (NumberAllCalls), xResult);
 
-    IF NumberPartialCalls > 0 THEN
-        BEGIN
-        NumberBlocks := (NumberPartialCalls - 1) DIV PartialCallBlockSize + 1;
-
-        FOR Block := 1 TO NumberBlocks DO
+    IF NumberAllCalls > 0 THEN
+        FOR Address := 0 TO NumberAllCalls - 1 DO
             BEGIN
-            BlockWrite (FileWrite,
-                        PartialCallList [Block]^,
-                        SizeOf (PartialCallList [Block]^),
-                        xResult);
+            BlockWrite (FileWrite, AllCallList [Address], SizeOf (AllCallList [Address]), xResult);
+            BlockWrite (FileWrite, ExchangeMemoryList [Address], SizeOf (ExchangeMemoryList [Address]), xResult);
             END;
-
-        IF NumberInitialExchanges > 0 THEN
-            BlockWrite (FileWrite, InitialExchangeList^, SizeOf (InitialExchangeList^), xResult);
-
-        END;
-
-    IF NumberLongPartialCalls > 0 THEN
-        BlockWrite (FileWrite, LongPartialCallList^, SizeOf (LongPartialCallList^), xResult);
 
     FOR Band := Band160 TO Band2 DO
         FOR Mode := CW TO PHONE DO
@@ -2682,7 +2078,7 @@ VAR Band: BandType;
 FUNCTION DupeAndMultSheet.ReadInBinFiles (JustDoIt: BOOLEAN): BOOLEAN;
 
 VAR FileRead: FILE;
-    xResult, Block, NumberBlocks: INTEGER;
+    Address, xResult, Block, NumberBlocks: INTEGER;
     Band: BandType;
     Mode: ModeType;
     RestartVersion: Str20;
@@ -2756,8 +2152,6 @@ VAR FileRead: FILE;
     BlockRead (FileRead, QSOTotals,        SizeOf (QSOTotals),        xResult);
     BlockRead (FileRead, TotalNamesSent,   SizeOf (TotalNamesSent),   xResult);
     BlockRead (FileRead, TotalQSOPoints,   SizeOf (TotalQSOPoints),   xResult);
-    {BlockRead (FileRead, RadioOneSpeed,    SizeOf (RadioOneSpeed),    xResult);}
-    {BlockRead (FileRead, RadioTwoSpeed,    SizeOf (RadioTwoSpeed),    xResult);}
     BlockRead (FileRead, SpeedMemory[RadioOne], SizeOf (SpeedMemory[RadioOne]),  xResult); {KK1L: 6.73}
     BlockRead (FileRead, SpeedMemory[RadioTwo], SizeOf (SpeedMemory[RadioTwo]),  xResult); {KK1L: 6.73}
     BlockRead (FileRead, MultByBand,       SizeOf (MultByBand),       xResult);
@@ -2782,6 +2176,7 @@ VAR FileRead: FILE;
 
     ActiveBand := BandMemory [RadioOne];
     ActiveMode := ModeMemory [RadioOne];
+
     BandMapBand := ActiveBand; {KK1L: 6.68 gets BM in sync when no radio connected}
     BandMapMode := ActiveMode; {KK1L: 6.68 gets BM in sync when no radio connected}
 
@@ -2885,39 +2280,14 @@ VAR FileRead: FILE;
                 END;
         END;
 
-    BlockRead (FileRead, NumberPartialCalls,     SizeOf (NumberPartialCalls),     xResult);
-    BlockRead (FileRead, LastPartialCallBlock,   SizeOf (LastPartialCallBlock),   xResult);
-    BlockRead (FileRead, NumberInitialExchanges, SizeOf (NumberInitialExchanges), xResult);
-    BlockRead (FileRead, NumberLongPartialCalls, SizeOf (NumberInitialExchanges), xResult);
+    BlockRead (FileRead, NumberAllCalls , SizeOf (NumberAllCalls), xResult);
 
-    IF NumberPartialCalls > 0 THEN
-        BEGIN
-        NumberBlocks := (NumberPartialCalls - 1) DIV FourByteBlockSize + 1;
-
-        FOR Block := 1 TO NumberBlocks DO
+    IF NumberAllCalls > 0 THEN
+        FOR Address := 0 TO NumberAllCalls - 1 DO
             BEGIN
-            IF PartialCallList [Block] = Nil THEN
-                New (PartialCallList [Block]);
-            BlockRead (FileRead,
-                       PartialCallList [Block]^,
-                       SizeOf (PartialCallList [Block]^),
-                       xResult);
+            BlockRead (FileRead, AllCallList [Address], SizeOf (AllCallList [Address]), xResult);
+            BlockRead (FileRead, ExchangeMemoryList [Address], SizeOf (ExchangeMemoryList [Address]), xResult);
             END;
-
-        IF NumberInitialExchanges > 0 THEN
-            BEGIN
-            IF InitialExchangeList = Nil THEN
-                New (InitialExchangeList);
-            BlockRead (FileRead, InitialExchangeList^, SizeOf (InitialExchangeList^), xResult);
-            END;
-        END;
-
-    IF NumberLongPartialCalls > 0 THEN
-        BEGIN
-        IF LongPartialCallList = Nil THEN
-            New (LongPartialCallList);
-        BlockRead (FileRead, LongPartialCallList^, SizeOf (LongPartialCallList^), xResult);
-        END;
 
     FOR Band := Band160 TO Band2 DO
         FOR Mode := CW TO Phone DO
@@ -2949,12 +2319,6 @@ VAR FileRead: TEXT;
     IF ReadInBINFiles (False) THEN Exit;
 
     DisposeOfMemoryAndZeroTotals;
-
-    IF InitialExchangeFileName <> '' THEN
-        BEGIN
-        Write ('Reading initial exchange file...');
-        LoadInitialExchangeFile;
-        END;
 
     IF OpenFileForRead (FileRead, LogFileName) THEN
         BEGIN
@@ -3443,14 +2807,11 @@ VAR ExchangeString: Str80;
 
 PROCEDURE DupeInit;
 
-VAR Block: INTEGER;
-    NextEntry, ActiveVDEntry: VDEntryPointer;
+VAR NextEntry, ActiveVDEntry: VDEntryPointer;
     Band: BandType;
     Mode: ModeType;
 
     BEGIN
-    FOR Block := 1 TO MaxPartialCallBlocks DO PartialCallList [Block] := nil;
-
     ActiveVDEntry := FirstVDEntry;
 
     WHILE ActiveVDEntry <> nil DO
@@ -3461,19 +2822,14 @@ VAR Block: INTEGER;
         END;
 
     FirstVDEntry        := nil;
-    InitialExchangeList := nil;
-    LongPartialCallList := nil;
 
     ExchangeMemoryEnable       := False;
     FirstDomesticCountryRecord := nil;
-    InitialExchangeFileName    := 'INITIAL.EX';
-    LastTwoLettersCrunchedOn   := '';
     LoadingInLogFile           := False;
     MultiplierAlarm            := False;
-    NumberLongPartialCalls     := 0;
     NumberVDCalls              := 0;
     RemainingMultDisplay       := NoRemMultDisplay;
-    RestartVersionNumber       := '2.7'; {KK1L: 6.68 set to 2.7 from 2.6 for LastCQ changes}
+    RestartVersionNumber       := '3,0'; { From 2.7 with new partial call / initial ex }
     TakingABreak               := False;
     TotalOffTime               := 0;
 

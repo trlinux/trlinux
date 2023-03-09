@@ -127,6 +127,7 @@ TYPE
         LastFrequency: LONGINT;
         LastFullTimeString: STRING;          { Used for 1 second timer }
         LastFunctionKeyTime: TimeRecord;
+        LastPartialCall: CallString;
         LastQSOState: TBSIQ_QSOStateType;
         LastPossibleCall: CallString;
         LastSCPCall: CallString;             { The last call processed by the SCP engine }
@@ -139,7 +140,7 @@ TYPE
 
         OkaytoPutUpBandMapCall: BOOLEAN;
 
-        TBSIQPossibleCallList: PossibleCallRecord;  { We have specific ones for each instance }
+        TBSIQPossibleCallList: CallListRecord;  { We have specific ones for each instance }
 
         PTTState: BOOLEAN;
         PTTTestTimer: INTEGER;
@@ -179,7 +180,7 @@ TYPE
         PROCEDURE DisplayCodeSpeed;
         PROCEDURE DisplayFrequency;
         PROCEDURE DisplayInsertMode;
-        PROCEDURE DisplayPossibleCalls (VAR PossibleCalls: PossibleCallRecord);
+        PROCEDURE DisplayPossibleCalls (VAR List: CallListRecord);
         PROCEDURE DisplayQSONumber;
         PROCEDURE DisplaySCPCall (Call: CallString);
         PROCEDURE DisplayTXColor;     { Red, Yellow or Blue}
@@ -268,6 +269,8 @@ VAR
     RData: ContestExchange;  { Used to talk between TBSIQ_ParametersOkay and TBSIQ_LogContact }
 
     TBSIQ_BandMapFocus: RadioType;   { gets used for the visible dupesheet too }
+    TBSIQ_SCPFocus: RadioType;       { which radio has precedence over SCP display }
+
 
 FUNCTION  InitializeKeyboards: BOOLEAN;
 FUNCTION  NewInitializeKeyboards: BOOLEAN;
@@ -616,17 +619,16 @@ PROCEDURE QSOMachineObject.SetCodeSpeed (Speed: INTEGER);
 
 PROCEDURE QSOMachineOBject.DoPossibleCalls (Callsign: CallString);
 
+VAR List: CallListRecord;
+
     BEGIN
     IF LastPossibleCall = Callsign THEN Exit;
     LastPossibleCall := Callsign;
 
     IF NOT PossibleCallEnable THEN Exit;
 
-    IF Sheet.TwoLetterCrunchProcess (Callsign, TBSIQPossibleCallList) THEN
-        BEGIN
-        VisibleLog.GeneratePartialCallList (Callsign, Band, Mode, TBSIQPossibleCallList);
-        DisplayPossibleCalls (TBSIQPossibleCallList);
-        END;
+    VisibleLog.GeneratePossibleCalls (Callsign, Band, Mode, List);
+    DisplayPossibleCalls (List);
     END;
 
 
@@ -1491,10 +1493,11 @@ VAR Call: CallString;
 
     BEGIN
     IF CD.SCPDisabledByApplication THEN Exit;
+
     IF CallWindowString = LastSCPCall THEN Exit;
+    LastSCPCall := CallWindowString;
 
     SCPScreenFull := False;
-    LastSCPCall := CallWindowString;
 
     IF NOT CD.PartialCallSetup (CallWindowString) THEN Exit;
 
@@ -1503,8 +1506,7 @@ VAR Call: CallString;
 
     SaveSetAndClearActiveWindow (EditableLogWindow);
 
-    FirstSCPCall := '';
-    NumberSCPCalls := 0;
+    CD.NumberSCPCalls := 0;
 
     REPEAT
         Call := CD.GetNextPartialCall;
@@ -1512,8 +1514,7 @@ VAR Call: CallString;
         IF Call <> '' THEN
             BEGIN
             DisplaySCPCall (Call);
-            Inc (NumberSCPCalls);
-            IF FirstSCPCall = '' THEN FirstSCPCall := Call;
+            Inc (CD.NumberSCPCalls);
             END;
 
         IF SCPScreenFull THEN Break;
@@ -1958,14 +1959,12 @@ VAR Key, ExtendedKey: CHAR;
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
 
-    { Give some oxygen to the partial call two letter crunch.  This works on its own }
-
-    IF PartialCallEnable THEN
-        IF Sheet.TwoLetterCrunchProcess (CallWindowString, TBSIQPossibleCallList) THEN
-            BEGIN
-            VisibleLog.GeneratePartialCallList (CallWindowString, Band, Mode, TBSIQPossibleCallList);
-            DisplayPossiblecalls (TBSIQPossibleCallList);
-            END;
+    IF PartialCallEnable AND (LastPartialCall <> CallWindowString) THEN
+        BEGIN
+        VisibleLog.GeneratePartialCalls (CallWindowString, Band, Mode, TBSIQPossibleCallList);
+        DisplayPossiblecalls (TBSIQPossibleCallList);
+        LastPartialCall := CallWindowString;
+        END;
 
     { Tend to the N4OGW band map as needed }
 
@@ -2059,10 +2058,7 @@ VAR Key, ExtendedKey: CHAR;
             { Clear the auto start send station called flag if the CallWindow is mostly empty }
 
             IF Length (CallWindowString)  <= 2 THEN
-                BEGIN
                 AutoStartSendStationCalled := False;
-                RemovePossibleCallWindow;
-                END;
 
             { See if we have a keystroke to look at }
 
@@ -2185,13 +2181,13 @@ VAR Key, ExtendedKey: CHAR;
                                     END
                                 ELSE
                                     BEGIN
-                                    IF AutoPartialCallFetch AND (Length (CallWindowString) = 3) THEN
+                                    IF AutoPartialCallFetch AND ((Length (CallWindowString) = 3) OR (Length (CallWindowString) = 2)) THEN
                                         BEGIN
-                                        IF TBSIQPossibleCallList.NumberPossibleCalls = 1 THEN
+                                        IF TBSIQPossibleCallList.NumberCalls = 1 THEN
                                             BEGIN
                                             ClrScr;
-                                            Write (TBSIQPossibleCallList.List [0].Call);
-                                            WindowString := TBSIQPossibleCallList.List [0].Call;;
+                                            Write (TBSIQPossibleCallList.CallList [0].Call);
+                                            WindowString := TBSIQPossibleCallList.CallList [0].Call;;
                                             CallWindowString := WindowString;
                                             END;
                                         END;
@@ -3892,10 +3888,10 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
-    FirstSCPCall := '';
     K3RXPollActive := False;
     LocalInsertMode := InsertMode;                          { Need to get the global Insert Mode here }
     LastFrequency := 0;
+    LastPartialCall := '';
     MarkTime (LastFunctionKeyTime);
     LastQSOState := QST_None;
     OkayToPutUpBandMapCall := False;
@@ -4186,12 +4182,9 @@ PROCEDURE QSOMachineObject.RemovePossibleCallWindow;
 
 
 
-PROCEDURE QSOMachineObject.DisplayPossibleCalls (VAR PossibleCalls: PossibleCallRecord);
+PROCEDURE QSOMachineObject.DisplayPossibleCalls (VAR List: CallListRecord);
 
 { Specific for TBSIQ - just uses half the screen }
-
-VAR CharacterPosition, PossibleCall: INTEGER;
-    Call: CallString;
 
     BEGIN
     CASE Radio OF
@@ -4199,49 +4192,7 @@ VAR CharacterPosition, PossibleCall: INTEGER;
         RadioTwo: SaveSetAndClearActiveWindow (TBSIQ_R2_PossibleCallWindow);
         END;
 
-    CharacterPosition := 1;
-
-    IF PossibleCalls.NumberPossibleCalls > 0 THEN
-        BEGIN
-        FOR PossibleCall := 0 TO PossibleCalls.NumberPossibleCalls - 1 DO
-            BEGIN
-            Call := PossibleCalls.List [PossibleCall].Call;
-
-            IF PossibleCalls.List [PossibleCall].Dupe THEN
-                BEGIN
-                TextBackground (SelectedColors.PossibleCallWindowDupeBackground);
-                TextColor      (SelectedColors.PossibleCallWindowDupeColor);
-                END
-            ELSE
-                BEGIN
-                TextBackground (SelectedColors.PossibleCallWindowBackground);
-                TextColor      (SelectedColors.PossibleCallWindowColor);
-                END;
-
-            IF CharacterPosition + Length (Call) + 2 < 40 THEN
-                BEGIN
-                IF PossibleCall = PossibleCalls.CursorPosition THEN
-                    Write ('<', Call, '>')
-                ELSE
-                    Write (' ', Call, ' ');
-
-                CharacterPosition := CharacterPosition + Length (Call) + 2;
-                END
-            ELSE
-                BEGIN
-                { truncate the list }
-                PossibleCalls.NumberPossibleCalls := PossibleCall;
-                Break;
-                END;
-            END;
-        END
-    ELSE
-        BEGIN
-        GoToXY (9, 1);
-        Write ('No calls found');
-        END;
-
-    RestorePreviousWindow;
+    DisplayPossibleCallsInActiveWindow (List);
     END;
 
 
@@ -4654,7 +4605,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     IF KeyChar = PossibleCallRightKey THEN
         BEGIN
         WITH TBSIQPossibleCallList DO
-            IF (NumberPossibleCalls > 0) AND (CursorPosition < NumberPossibleCalls - 1) THEN
+            IF (NumberCalls > 0) AND (CursorPosition < NumberCalls - 1) THEN
                 BEGIN
                 Inc (CursorPosition);
                 DisplayPossibleCalls (TBSIQPossibleCallList);
@@ -4665,7 +4616,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     IF KeyChar = PossibleCallLeftKey THEN
         BEGIN
         WITH TBSIQPossibleCallList DO
-            IF (NumberPossibleCalls > 0) AND (CursorPosition > 0) THEN
+            IF (NumberCalls > 0) AND (CursorPosition > 0) THEN
                 BEGIN
                 Dec (CursorPosition);
                 DisplayPossibleCalls (TBSIQPossibleCallList);
@@ -4676,9 +4627,11 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     IF KeyChar = PossibleCallAcceptKey THEN
         BEGIN
         WITH TBSIQPossibleCallList DO
-            IF NumberPossibleCalls > 0 THEN
+            IF NumberCalls > 0 THEN
                 BEGIN
-                CallWindowString := List [CursorPosition].Call;
+                WITH TBSIQPossibleCallList DO
+                    CallWindowString := CallList [CursorPosition].Call;
+
                 CallWindowCursorPosition := Length (CallWindowString) + 1;
 
                 IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
@@ -4859,13 +4812,13 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                 BEGIN
                 ShowStationInformation (WindowString);
                 DisplayGridSquareStatus (WindowString);
-                VisibleLog.DoPossibleCalls (WindowString);
+                DoPossibleCalls (WindowString);
                 END
             ELSE
                 BEGIN
                 ShowStationInformation (CallWindowString);
                 DisplayGridSquareStatus (CallWindowString);
-                VisibleLog.DoPossibleCalls (CallWindowString);
+                DoPossibleCalls (CallWindowString);
                 END;
             END;
 
@@ -5083,7 +5036,6 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                       VisibleLog.ShowRemainingMultipliers;
                       VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
                       DisplayTotalScore (TotalScore);
-                      LastTwoLettersCrunchedOn := '';
 
                       IF VisibleDupeSheetEnable THEN
                           BEGIN
@@ -5356,7 +5308,6 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                         VisibleLog.DisplayGridMap (Band, Mode);
   {                     DisplayTotalScore (TotalScore); }
                         DisplayInsertMode;
-                        LastTwoLettersCrunchedOn := '';
                         ClearKeyCache := True;
                         END
                     ELSE
@@ -7003,8 +6954,6 @@ VAR LogString: Str80;
 
     VisibleDupeSheetChanged := True;
 
-    LastTwoLettersCrunchedOn := '';
-
     IF LastDeletedLogEntry <> '' THEN
         BEGIN
         LastDeletedLogEntry := '';
@@ -7070,8 +7019,6 @@ VAR LogString: Str80;
 
 PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
 
-VAR RData: ContestExchange;
-
     BEGIN
     LogString := VisibleLog.PushLogEntry (LogString);
 
@@ -7080,12 +7027,7 @@ VAR RData: ContestExchange;
     GetRidOfPostcedingSpaces (LogString);
 
     IF LogString <> '' THEN
-        BEGIN
         TBSIQ_PutContactIntoLogFile (LogString);
-
-        IF ParseExchangeIntoContestExchange (LogString, RData) THEN
-            ProcessPartialCallAndInitialExchange (RData);
-        END;
     END;
 
 

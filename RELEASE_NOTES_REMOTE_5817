@@ -19,18 +19,6 @@ You should have received a copy of the GNU General
 
 0.56
 
-08-Mar-2020
-   - Rename AUTO SCP CALL FETCH to AUTO PARTIAL CALL FETCH to more accurately describe
-     which window it works with.  Also made it work if two letters resolves to a single
-     entry in the partial call window.
-
-06-Mar-2023
-   - Reworked the logscp.pas file to not use the global variable PossibleCallList.
-     Instead, the routines will work with the data structure CallListRecord.  There
-     is an instance of that as a global variable called CD.SCPCallList that replaces
-     the old PossibleCallList.
-   - Removed support for INITIAL.EX file - please use TRMASTER.DTA
-
 
 02-Mar-2023
 
@@ -375,6 +363,11 @@ CHANGE LOG - 2BSIQ  Mode
 
   - In S&P - made AltZ (used to go from CallWindow to ExchangeWindow and
     get initial exchange) show station info.
+
+
+
+
+
 
 0.55
 
