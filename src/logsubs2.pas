@@ -5138,7 +5138,6 @@ VAR Key, ExtendedKey: CHAR;
                         BEGIN
                         NameCallsignPutUp := '';
                         CleanUpDisplay;
-                        RemoveWindow (ExchangeWindow);
                         {KK1L: 6.73 Clears the DupeInfoStuff I'm working on. Add the DupeInfo check}
                         {IF NOT VisibleDupesheetEnable THEN}
                         IF (NOT VisibleDupesheetEnable) AND (AltDDupeCheckDisplayedCall = '') THEN
@@ -5147,7 +5146,6 @@ VAR Key, ExtendedKey: CHAR;
                             RemoveWindow (MultiplierInformationWindow);
                             END;
                         SearchAndPounce := False;
-                        OpMode := CQOpMode;
 
                         IF AltDDupeCheckCall <> '' THEN {KK1L: 6.73 Keeps SO2R message in line with reality}
                             BEGIN
@@ -5173,13 +5171,21 @@ VAR Key, ExtendedKey: CHAR;
                     END;
 
                 SpaceBar:
-                    IF (Length (CallWindowString) > 0) AND SpaceBarDupeCheckEnable THEN
-                        WindowDupeCheck
-                    ELSE
+                    IF (TwoVFOState = TwoVFOSwapped) AND (CallWindowString = '') THEN
                         BEGIN
-                        ProcessExchangeFunctionKey (F1);
-                        DDX (MaybeRespondToMyCall);
-                        END;
+                        SearchAndPounce := False;
+                        RemoveWindow (ExchangeWindow);
+                        OpMode := CQOpMode;
+                        Exit;
+                        END
+                    ELSE
+                        IF (Length (CallWindowString) > 0) AND SpaceBarDupeCheckEnable THEN
+                            WindowDupeCheck
+                        ELSE
+                            BEGIN
+                            ProcessExchangeFunctionKey (F1);
+                            DDX (MaybeRespondToMyCall);
+                            END;
 
                 NullKey:
                     CASE ExtendedKey OF
@@ -6228,7 +6234,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                     UNTIL NOT SearchAndPounce;
 
                     SwapVFOs;
-
+                    OpMode := CQOpMode;
                     TwoVFOState := TwoVFOIdle;
                     Continue;
                     END;

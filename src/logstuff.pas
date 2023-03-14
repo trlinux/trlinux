@@ -7044,7 +7044,8 @@ VAR Call, FrequencyString: STRING;
           It just sends the delete command back to N4OGW so he will actually do
           the delete from his bandmap }
 
-        DeleteBandMapCall (Call);
+        DeleteBandMapCallFromN4OGWBandmap (Call);
+        DeleteBandMapCallFromTRBandMap (Call);   { New routine }
         Exit;
         END;
 

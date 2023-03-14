@@ -41,6 +41,14 @@ PROGRAM ContestLoggingProgram;
      - When using footswitch to send CQ message, I get a VOX warning which I do
        not get from pressing F1.
 
+14-Mar-2020
+
+  - Did a few tweaks to the TWO VFO MODE.  If you are in that mode with an empty
+    call window - you can swap back and forth between VFOs by hitting the SPACE
+    BAR.  If have something in the call window - pressing space bar will do a dupe
+    check.  You exit S&P and return to the "CQ" frequency by either exiting S&P with
+    an escape key - or pressing SPACE BAR with an empty call window.
+
 08-Mar-2020
 
    - Rename AUTO SCP CALL FETCH to AUTO PARTIAL CALL FETCH to more accurately describe
