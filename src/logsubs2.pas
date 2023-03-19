@@ -98,28 +98,27 @@ VAR SpeedString, MultString: Str20;
         Exit;
         END;
 
+    { Show status for the call }
+
+    DisplayGridSquareStatus (Call);
+    VisibleLog.ShowQSOStatus (Call);
+    VisibleLog.ShowMultiplierStatus (Call);
+
     SaveSetAndClearActiveWindow (DupeInfoWindow);
 
     Str (SpeedMemory [InactiveRadio], SpeedString);
+    AltDBand := BandMemory [InactiveRadio];
+    AltDMode := ModeMemory [Inactiveradio];
 
-    IF VisibleLog.CallIsADupe (Call,
-                               BandMemory [InactiveRadio],
-                               ModeMemory [InactiveRadio]) THEN
-
+    IF VisibleLog.CallIsADupe (Call, AltDBand, AltDMode) THEN
        BEGIN
-       WriteLn (Call + ' DUPE!! on ' + BandString [BandMemory [InactiveRadio]] + ModeString [ModeMemory [InactiveRadio]]);
+       WriteLn (Call + ' DUPE!! on ' + BandString [AltDBand] + ModeString [AltDMode]);
        Write (InitialExchangeEntry (BandMapBlinkingCall));;
 
        IF (DupeCheckSound <> DupeCheckNoSound) AND AddToBandMap THEN
            Tone.DoABeep (ThreeHarmonics);
 
        AltDDupeCheckDisplayedCall := Call;
-
-       { Show some status for the call }
-
-       DisplayGridSquareStatus (Call);
-       VisibleLog.ShowQSOStatus (Call);
-       VisibleLog.ShowMultiplierStatus (Call);
 
        { Add this to the band map }
 
@@ -136,41 +135,36 @@ VAR SpeedString, MultString: Str20;
 
                    IF Frequency <> -1 THEN
                        BEGIN
-                       NewBandMapEntry (Call, Frequency, 0, ModeMemory [InactiveRadio],
+                       NewBandMapEntry (Call, Frequency, 0, AltDMode,
                                         True, False, BandMapDecayTime, True);
 
-                       BandMapCursorFrequency := Frequency; {KK1L: 6.68 band map will track manual entry}
-
+                       BandMapCursorFrequency := Frequency;   {KK1L: 6.68 band map will track manual entry}
                        JustLoadingBandMapWithNoRadio := True; {KK1L: 6.68}
                        END;
                    END;
 
-       RestorePreviousWindow;
-
        IF SendAltDSpotsToPacket AND (Frequency <> -1) THEN
            CreateAndSendPacketSpot (Call, Frequency);
 
+       RestorePreviousWindow;
        Exit;
-       END;
+       END;  { of CallIsADupe }
 
     { This guy is not a dupe - go ahead and setup to work him }
 
-    AltDBand := BandMemory [InactiveRadio];
-    AltDMode := ModeMemory [Inactiveradio];
-
-    IF ModeMemory [InactiveRadio] = CW THEN
+    IF AltDMode = CW THEN
         WriteLn (Call + ' OK!! at ' + SpeedString + ' WPM')
     ELSE
         WriteLn (Call + ' OK!!');
 
-    Write ('Space bar for ', BandString [BandMemory [InactiveRadio]],
-            ModeString [ModeMemory [InactiveRadio]], ' QSO');
+    Write ('Space bar for ', BandString [AltDBand], ModeString [AltDMode], ' QSO');
 
     AltDDupeCheckDisplayedCall := Call;
 
-    DisplayGridSquareStatus (Call);
-    VisibleLog.ShowQSOStatus (Call);
-    VisibleLog.ShowMultiplierStatus (Call);
+    { See if it is a multiplier (used for creating bandmap entry }
+
+    VisibleLog.DetermineIfNewMult (Call, AltDBand, AltDMode, MultString);
+    Mult := MultString <> '';
 
     IF TwoRadioState <> TwoRadiosDisabled THEN
         BEGIN
@@ -183,14 +177,6 @@ VAR SpeedString, MultString: Str20;
         IF GetRadioParameters (InactiveRadio, '', Frequency, Band, Mode, FALSE, False) THEN
             BEGIN
             BandMapCursorFrequency := Frequency;
-
-            VisibleLog.DetermineIfNewMult (Call,
-                                           BandMemory [InactiveRadio],
-                                           ModeMemory [InactiveRadio],
-                                           MultString);
-
-            Mult := MultString <> '';
-
             NewBandMapEntry (Call, Frequency, 0, Mode, False, Mult, BandMapDecayTime, True);
             DisplayBandMap;
             END
@@ -201,19 +187,8 @@ VAR SpeedString, MultString: Str20;
 
                 IF Frequency <> -1 THEN
                     BEGIN
-                    VisibleLog.DetermineIfNewMult (Call, BandMemory [InactiveRadio],
-                                                   ModeMemory [InactiveRadio], MultString);
-
-                    Mult := MultString <> '';
-
-                    {KK1L: 6.73 changed CheckMode to ModeMemory [InactiveRadio]}
-
-                    NewBandMapEntry (Call, Frequency, 0, ModeMemory [InactiveRadio], False, Mult,
-                                     BandMapDecayTime, True);
-
-
+                    NewBandMapEntry (Call, Frequency, 0, AltDMode, False, Mult, BandMapDecayTime, True);
                     BandMapCursorFrequency := Frequency; {KK1L: 6.68 band map will track manual entry}
-
                     JustLoadingBandMapWithNoRadio := True; {KK1L: 6.68}
                     END;
                 END;
@@ -2045,8 +2020,6 @@ VAR Result: INTEGER;
     IF (ActiveWindow = CallWindow) AND (SCPMinimumLetters > 0) AND (NOT NewKeyPressed) THEN
         VisibleLog.SuperCheckPartial (WindowString, True, ActiveRadio); {KK1L: 6.73 Added ActiveRadio}
 
-    {UpdateTimeAndRateDisplays (True, True);} {KK1L: 6.72 Moved from here to the end of the procedure.}
-
     IF PacketFile THEN
         BEGIN
         BlockRead (PacketFileRead, PacketChar,  SizeOf (PacketChar), Result);
@@ -2289,92 +2262,64 @@ VAR Result: INTEGER;
            QuickDisplay ('Dualing CQ mode active.  Enter rest of call that answered then ENTER');
            END;
 
-    { See if there is something to be done as a result of a change in
-      the band map blinking call }
+    { See if there is something to be done as a result of a change in the band map blinking call }
 
     IF BandMapEnable THEN
-        {IF (BandMapBlinkingCall <> BandMapInfoCall) THEN } { Different call }
-        {KK1L: 6.73 Keeps station ready to work whenever tuned to a BM entry or NEXTBANDMAP}
-        {I tried these things to allow tuning the inactive radio to load DupeInfoCall correctly. }
-        {The problem is that if you tune slower than AutoSAPEnableRate then the call will not update.}
-        {Of course you need to limit entry here otherwise the display will blink like crazy.}
-        IF ((BandMapBlinkingCall <> CallLastTimeIWasHere) OR
-           (BandMapBlinkingCall <> DupeInfoCallPrompt)) THEN
-//if bandmapblinkingcall <> calllasttimeiwashere then
+        BEGIN
+        IF ((BandMapBlinkingCall <> CallLastTimeIWasHere) OR (BandMapBlinkingCall <> DupeInfoCallPrompt)) THEN
             BEGIN
-            CallLastTimeIWasHere := BandMapBlinkingCall; {KK1L: 6.73}
+            CallLastTimeIWasHere := BandMapBlinkingCall;
 
             IF BandMapBlinkingCall <> '' THEN
                 BEGIN
                 BandMapInitialExchange := InitialExchangeEntry (BandMapBlinkingCall);
 
-                {IF TwoRadioState <> CallReady THEN }{KK1L: 6.73}
+                IF BandMapBand = BandMemory [InactiveRadio] THEN { Tuning inactive radio.}
                     BEGIN
-                    {SaveSetAndClearActiveWindow (DupeInfoWindow);} {KK1L: 6.73 Moved to below.}
-                    {WriteLn (BandMapBlinkingCall);}  {KK1L: 6.73 Moved to below.}
-                    {Write (BandMapInitialExchange);} {KK1L: 6.73 Moved to below.}
-                    {RestorePreviousWindow;}          {KK1L: 6.73 Moved to below.}
+                    SaveSetAndClearActiveWindow (DupeInfoWindow);
 
-                    {KK1L: 6.73 Displays BM entry from inactive radio. Will set up to work if not dupe.}
-                    {           Really only want this stuff to happen when tuning inactive radio.}
-                    IF BandMapBand = BandMemory[InactiveRadio] THEN {KK1L: 6.73 tuning inactive radio.}
+                    IF VisibleLog.CallIsADupe (BandMapBlinkingCall, BandMapBand, BandMapMode) THEN
                         BEGIN
-                        IF VisibleLog.CallIsADupe (BandMapBlinkingCall, BandMapBand, BandMapMode) THEN
+                        WriteLn (BandMapBlinkingCall + ' DUPE!!');
+                        Write ('on            ' + BandString [BandMapBand] + ModeString [BandMapMode]);
+                        END
+                    ELSE                { Not a dupe. Set up to work with space bar.}
+                        BEGIN
+                        IF (OpMode = CQOpMode) THEN
                             BEGIN
-                            SaveSetAndClearActiveWindow (DupeInfoWindow);
-                            WriteLn (BandMapBlinkingCall + ' DUPE!!');
-//next line fixed blinking on dupes ks
-//                            DupeInfoCallPrompt := BandMapBlinkingCall;
-                            Write ('on            ' + BandString [BandMapBand] + ModeString [BandMapMode]);
-                            VisibleLog.ShowQSOStatus (BandMapBlinkingCall);
-                            VisibleLog.ShowMultiplierStatus (BandMapBlinkingCall);
-                            RestorePreviousWindow;
-
-                            {SaveSetAndClearActiveWindow (AltCallWindow); }
-                            {Write (BandMapBlinkingCall, ' Dupe!');       }
-                            {RestorePreviousWindow;                       }
-                            END
-                        ELSE {KK1L: 6.73 Not a dupe. Set up to work with space bar.}
-                            BEGIN
-                            SaveSetAndClearActiveWindow (DupeInfoWindow);
-                            {KK1L: 6.73 add condition to make auto ALT-D an option. Added TuneDupeCheckEnable}
-
-                            IF (OpMode = CQOpMode) THEN
-                                BEGIN
-                                IF ModeMemory[InactiveRadio] = CW THEN
-                                    WriteLn (BandMapBlinkingCall + ' OK!! at ' + SpeedString + ' WPM')
-                                ELSE
-                                    WriteLn (BandMapBlinkingCall + ' OK!!');
-
-                                DupeInfoCallPrompt := BandMapBlinkingCall;
-
-                                IF TuneDupeCheckEnable THEN
-                                    BEGIN
-                                    Write ('Space bar for ', BandString [BandMapBand], ModeString [BandMapMode], ' QSO');
-                                    DupeInfoCall := BandMapBlinkingCall;
-                                    TwoRadioState := CallReady; {KK1l: 6.73 This sets up for automatic ATL-D}
-                                    END;
-                                END
+                            IF ModeMemory[InactiveRadio] = CW THEN
+                                WriteLn (BandMapBlinkingCall + ' OK!! at ' + SpeedString + ' WPM')
                             ELSE
+                                WriteLn (BandMapBlinkingCall + ' OK!!');
+
+                            DupeInfoCallPrompt := BandMapBlinkingCall;
+
+                            IF TuneDupeCheckEnable THEN
                                 BEGIN
-                                DupeInfoCallPrompt := BandMapBlinkingCall;
-
-                                IF TuneDupeCheckEnable THEN
-                                    BEGIN
-                                    WriteLn (BandMapBlinkingCall + ' OK!!          ');
-                                    Write ('CQ mode for   ', BandString [BandMapBand], ModeString [BandMapMode], ' QSO');
-                                    END;
+                                Write ('Space bar for ', BandString [BandMapBand], ModeString [BandMapMode], ' QSO');
+                                DupeInfoCall := BandMapBlinkingCall;
+                                TwoRadioState := CallReady;   { This sets up for automatic ATL-D}
                                 END;
+                            END
+                        ELSE        { S&P mode }
+                            BEGIN
+                            DupeInfoCallPrompt := BandMapBlinkingCall;
 
-                            VisibleLog.ShowQSOStatus (BandMapBlinkingCall);
-                            VisibleLog.ShowMultiplierStatus (BandMapBlinkingCall);
-                            RestorePreviousWindow;
+                            IF TuneDupeCheckEnable THEN
+                                BEGIN
+                                WriteLn (BandMapBlinkingCall + ' OK!!          ');
+                                Write ('CQ mode for   ', BandString [BandMapBand], ModeString [BandMapMode], ' QSO');
+                                END;
                             END;
                         END;
+
+                    RestorePreviousWindow;  { Exit from DupeInfoWindow }
+                    VisibleLog.ShowQSOStatus (BandMapBlinkingCall);
+                    VisibleLog.ShowMultiplierStatus (BandMapBlinkingCall);
                     END;
 
-                { The big IF below is not working right because OkayToPutUpBandMap is often false
-                  when I think it should be true }
+                { Here is the only place we put the BandMapBlinking call into the call
+                  window. }
 
                 IF (ActiveWindow = CallWindow) AND
                    (OpMode = SearchAndPounceOpMode) AND
@@ -2383,14 +2328,11 @@ VAR Result: INTEGER;
                    (OkayToPutUpBandMapCall) AND
                    (BandMapCallWindowEnable) THEN
                        BEGIN
-                       { Moved this from up 7 lines in 5.88 }
-
                        ShowStationInformation (BandMapBlinkingCall);
                        WindowString := BandMapBlinkingCall;
                        ClrScr;
 
-                       { We write the initial exchange for reference - even though it really is
-                         not there.   }
+                       { We write the initial exchange - even though it really is not there.   }
 
                        { So - in Dec 2022, I am sitting here wondering why there is a space in
                          front of the callsign when doing this.  Decided to remove it }
@@ -2400,10 +2342,7 @@ VAR Result: INTEGER;
                        BandMapEntryInCallWindow := True;
                        END;
                 END
-            ELSE                 { Need to clear out the old call }
-
-                { BandMapBlinkingCall is now null }
-
+            ELSE      { No BM blinking call - Need to clear out the old call }
                 BEGIN
                 IF (ActiveWindow = CallWindow) THEN
                     BEGIN
@@ -2427,10 +2366,6 @@ VAR Result: INTEGER;
                             ExchangeWindowCursorPosition := Length (ExchangeWindowString) + 1;
                             RestorePreviousWindow;
                             END;
-
-                        { Added in 6.61 to fix entries not coming up later }
-
-                        {OkayToPutUpBandMapCall := True;}{KK1L: 6.73 To fix call popping up after working them.}
                         END;
                     END;
 
@@ -2464,17 +2399,13 @@ VAR Result: INTEGER;
             BandMapInfoCall := BandMapBlinkingCall;
             END;
 
-    UpdateTimeAndRateDisplays (True, True); {KK1L: 6.72 Moved here to speed up SCP and other things}
+        IF RadioOnTheMove [ActiveRadio] THEN OkayToPutUpBandMapCall := True;
+        END;
+
+    { Done with bandmap stuff }
+
+    UpdateTimeAndRateDisplays (True, True);
     IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
-
-    IF RadioOnTheMove [ActiveRadio] THEN {KK1L: 6.73 To fix call popping up after already working them.}
-        OkayToPutUpBandMapCall := True;
-
-    { KK1L had this - but once I am on the move - I don't think I ever want to set it back to
-      false
-    ELSE
-        OkayToPutUpBandMapCall := False; }
-
     END;
 
 
@@ -3254,6 +3185,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
           EscapeKey:
               BEGIN
+              OkayToPutUpBandMapCall := False;  { We don't want someone overriding my escape }
 
               //quick and dirty escape kills rtty -- also backs up one step, but
               //that's why it's dirty
@@ -4392,6 +4324,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                 Write (WindowString);
                 GoToXY (CursorPosition - 1, WhereY);
                 ShowPartialCallMults (WindowString);
+                OkayToPutUpBandMapCall := False;
                 END;
 
           '-':

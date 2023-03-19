@@ -84,6 +84,11 @@ NOTES FROM ARRL DX CW
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+19-Mar-2023
+
+  - Fixed backspace getting overwritten by BandMapBlinkingCall (similar to fix in
+    classic UI).
+
 09-Mar-2023
 
    - If in the middle of a QSO and you are editing the CallWindow and hit

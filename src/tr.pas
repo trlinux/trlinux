@@ -38,8 +38,11 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
-     - When using footswitch to send CQ message, I get a VOX warning which I do
-       not get from pressing F1.
+19-Mar-2020
+
+  - When on a frequency with BandMapBlinking call - pressing BACKSPACE now will work.
+    Before, the call was being overwritten with the BandMapBLinkingCall.
+
 
 14-Mar-2020
 
@@ -64,6 +67,9 @@ PROGRAM ContestLoggingProgram;
 
    - Removed support for INITIAL.EX file - please use TRMASTER.DTA
 
+   - Improved format of QSO records send with QSO UDP PORT/QSO UDP IP to use new
+     lines and tabs in front of each field.  This copies how N1MM and DX Log send
+     their data.
 
 02-Mar-2023
 
@@ -74,7 +80,7 @@ PROGRAM ContestLoggingProgram;
    - Added some support for some of the typical multi-multi contests to the new
      N1MM_UDP_PORT function.  There are still lots of exchanges that will not be
      parsed correctly.  Also - currently, there is no validity check on the data
-     before attempting to log the QSO.  Also - none of it is tested yet.
+     before attempting to log the QSO.
 
 28-Feb-2023
 

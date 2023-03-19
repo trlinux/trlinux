@@ -4920,6 +4920,8 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
         BackSpace:
             BEGIN
+            OkayToPutUpBandMapCall := False;
+
             { Backspace needs to be AutoStartSend aware }
 
             IF QSOState = QST_AutoStartSending THEN Exit;

@@ -91,6 +91,14 @@ TYPE
         Time: TimeRecord;
         END;
 
+
+    BandMapCallStatusType = (NoBandMapCallStatus,
+                             BandMapCallIdle,
+                             BandMapCallInCallWindow,
+                             BandMapCallEdited,
+                             BandMapCallDeleted);
+
+
     UserInfoType = (NoUserInfo,
                    NameInfo,
                    QTHInfo,
@@ -574,6 +582,11 @@ VAR
     BandMapMode:                ModeType;
     BandMapBlinkingCall:        CallString;
     BandMapBlinkingCallRecord:  BandMapEntryPointer;
+
+    BandMapCallStatus:          BandMapCallStatusType;  { An attempt to get better control }
+    BandMapCallStatusCall:      CallString;
+    BandMapCallStatusFrequency: LONGINT;
+
     BandMapCursorData:          BandMapEntryPointer;
     BandMapCursorFrequency:     LONGINT;
     BandMapDisplayCQ:           BOOLEAN;
@@ -585,7 +598,6 @@ VAR
     BandMapEnable:              BOOLEAN;
     BandMapEntryInCallWindow:   BOOLEAN;
     BandMapFileVersion:         CHAR;
-    {KK1L: 6.65 Expanded array to cover all cases to keep BM from going whacko when tuning out of band}
     BandMapFirstEntryList:      ARRAY [Band160..NoBand, CW..FM] OF BandMapEntryPointer;
     BandMapGuardBand:           INTEGER;
     BandMapMultsOnly:           BOOLEAN; {KK1L: 6.68}
@@ -6691,6 +6703,8 @@ VAR Band: BandType;
     Minute: INTEGER;
 
     BEGIN
+    BandMapCallStatus := NoBandMapCallStatus;
+
     Write ('Disposing of multi message arrays.  Let N6TR know if program hangs now.');
 
     FOR Band := Band160 TO ALL DO
@@ -6798,7 +6812,7 @@ VAR Band: BandType;
     NumberSavedWindows          := 0;
     NumberTotalScoreMessages    := 0;
 
-    OkayToPutUpBandMapCall      := True;
+    OkayToPutUpBandMapCall      := True;   { Initial condition }
     OnDeckCall                  := '';
 
     PacketReturnCount           := 2;
