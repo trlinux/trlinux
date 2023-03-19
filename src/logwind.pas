@@ -91,14 +91,6 @@ TYPE
         Time: TimeRecord;
         END;
 
-
-    BandMapCallStatusType = (NoBandMapCallStatus,
-                             BandMapCallIdle,
-                             BandMapCallInCallWindow,
-                             BandMapCallEdited,
-                             BandMapCallDeleted);
-
-
     UserInfoType = (NoUserInfo,
                    NameInfo,
                    QTHInfo,
@@ -582,10 +574,6 @@ VAR
     BandMapMode:                ModeType;
     BandMapBlinkingCall:        CallString;
     BandMapBlinkingCallRecord:  BandMapEntryPointer;
-
-    BandMapCallStatus:          BandMapCallStatusType;  { An attempt to get better control }
-    BandMapCallStatusCall:      CallString;
-    BandMapCallStatusFrequency: LONGINT;
 
     BandMapCursorData:          BandMapEntryPointer;
     BandMapCursorFrequency:     LONGINT;
@@ -6703,8 +6691,6 @@ VAR Band: BandType;
     Minute: INTEGER;
 
     BEGIN
-    BandMapCallStatus := NoBandMapCallStatus;
-
     Write ('Disposing of multi message arrays.  Let N6TR know if program hangs now.');
 
     FOR Band := Band160 TO ALL DO
