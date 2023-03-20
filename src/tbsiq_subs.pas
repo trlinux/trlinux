@@ -5335,6 +5335,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                         WindowString := '';
                         CursorPosition := 1;
                         BandMapCallPutUp := '';
+                        OkayToPutUpBandMapCall := False;
                         END;
 
                 IF LocalInsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }

@@ -38,6 +38,12 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
+20-Mar-2020
+
+  - If you are on a frequency where the call window is populated with a callsingn from
+    the bandmap and start to enter a new callsign, the window will clear out first.  This
+    was invented first in TBSIQ and I made it work the same way in classic mode now.
+
 19-Mar-2020
 
   - When on a frequency with BandMapBlinking call - pressing BACKSPACE now will work.

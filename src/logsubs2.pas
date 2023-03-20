@@ -2946,12 +2946,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
         CheckForRemovedDupeSheetWindow;
 
-        { Dec-2022 This might be something we need to put back in }
-
-        {IF ((ActiveWindow = CallWindow) AND (WindowString = '')) OR
-           ((ActiveWindow = ExchangeWindow) AND (CallWindowString = '')) THEN
-               OkayToPutUpBandMapCall := True;} {KK1L: 6.73 To fix call popping up after working them.}
-
         IF (ActiveMultiPort <> nil) AND (MultiInfoMessage <> '') THEN
             MarkTime (MultiInfoMessageTimeout);
 
@@ -4496,10 +4490,17 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   BEGIN  { We are going to add this character to the string }
 
-                  {KK1L: 6.68 Added the OR JustLoadingBandMapWithNoRadio to prevent having to ESC to clear the call}
-                  {           window after being asked for the frequency when loading the band map by S&P with no }
-                  {           radio interface. Originally added for WRTC 2002 radio B rules.}
+                  OkayToPutUpBandMapCall := False;
 
+                  { Don't add characters to a band map callsign }
+
+                  IF (ActiveWindow = CallWindow) AND (WindowString = BandMapBlinkingCall) THEN
+                      BEGIN
+                      BandMapEntryInCallWindow := False;
+                      ClrScr;
+                      WindowString := '';
+                      CursorPosition := 1;
+                      END;
 
                   { See if we need to overwrite whatever garbage the band map put into the window }
 
