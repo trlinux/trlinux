@@ -662,6 +662,7 @@ VAR
     LastDisplayedFMMode:           BOOLEAN;
     LastDisplayedFreq:             ARRAY [RadioType] of LONGINT; {KK1L: 6.73}
     LastDisplayedMode:             ModeType;
+    LastDisplayedQSONumber:        LONGINT;
     LastDisplayedTime:             Str20;
     LastDisplayedHour:             Str20;
     LastEditedBandMapEntry: INTEGER;
@@ -2554,6 +2555,10 @@ VAR Percentage: REAL;
 PROCEDURE DisplayNextQSONumber (QSONumber: INTEGER);
 
     BEGIN
+    IF QSONumber = LastDisplayedQSONumber THEN Exit;
+
+    LastDisplayedQSONumber := QSONumber;
+
     SaveSetAndClearActiveWindow (QSONumberWindow);
 
     IF QSONumber > 9999 THEN
@@ -6770,6 +6775,7 @@ VAR Band: BandType;
     LastDisplayedFreq[RadioTwo]     := 0; {KK1L: 6.73}
     LastDisplayedHour      := '';
     LastDisplayedMode      := NoMode;
+    LastDisplayedQSONumber := -1;
     LastDisplayedTime      := '';
 
     LastEditedBandMapEntry := 0;
