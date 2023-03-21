@@ -84,6 +84,10 @@ NOTES FROM ARRL DX CW
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+21-Mar-2023
+
+  - Fixed case of QSONumberByBand.
+
 19-Mar-2023
 
   - Fixed backspace getting overwritten by BandMapBlinkingCall (similar to fix in

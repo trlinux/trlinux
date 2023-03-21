@@ -146,6 +146,8 @@ PROCEDURE DisplayBandTotals (Band: BandType);
 
 PROCEDURE FlagDupesInList (Band: Bandtype; Mode: ModeType; VAR List: CallListRecord);
 
+FUNCTION  GetNextQSONumber: INTEGER;  { This works for both states of QSONumberByBand }
+
 PROCEDURE GoToLastCQFrequency;
 PROCEDURE GoToNextBandMapFrequency;
 PROCEDURE GoToNextDisplayedBandMapFrequency;
@@ -271,11 +273,10 @@ PROCEDURE Send88Message;
 
     BEGIN
     IF SeventyThreeMessageSent THEN Exit;
-
     SendStringAndStop ('88 ' + MyCall + ' TEST');
     END;
 
-
+
 
 PROCEDURE CleanUpDisplay;
 
@@ -301,9 +302,14 @@ PROCEDURE CleanUpDisplay;
     DisplayUserInfo ('');
     END;
 
-
+
 
 FUNCTION TotalContacts: INTEGER;
+
+{ This is the original function that generated the next QSO number.  It got ignored
+  for awhile after the new QSONumber methodology was introduced (mainly to support
+  TBSIQ).  However, it needs to be used in the special case when QSONumberByBand is
+  True, }
 
 VAR TempQSOTotals: QSOTotalArray;
 
@@ -3841,7 +3847,6 @@ PROCEDURE DeleteLastContact;
     DisplayTotalScore (TotalScore);
     DisplayInsertMode (InsertMode);
 
-
     { Not sure yet about dealing with getting the QSO Number back }
 
     DisplayNextQSONumber (QSONumberForThisQSO);
@@ -4071,6 +4076,31 @@ PROCEDURE ToggleModes;
         END;
     END;
 
+
+
+FUNCTION GetNextQSONumber: INTEGER;
+
+VAR TempQSOTotals: QSOTotalArray;
+
+{ Returns next available serial number.  Note that this probably never should be called
+  without QSONumberByBand = True unless you are being very careful to store it away in
+  QSONumberForThisQSO since doing so will increment the NextQSONumbertoGiveOut. }
+
+    BEGIN
+    IF QSONumberByBand THEN
+        BEGIN
+        TempQSOTotals := QSOTotals;
+        VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
+        GetNextQSONumber := TempQSOTotals [ActiveBand, Both] + 1;
+        END
+    ELSE
+        BEGIN
+        GetNextQSONumber := NextQSONumberToGiveOut;
+        Inc (NextQSONumberToGiveOut);
+        END;
+    END;
+
+
 
     BEGIN
     EditInit;

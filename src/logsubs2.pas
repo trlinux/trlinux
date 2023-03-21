@@ -1252,12 +1252,6 @@ VAR Key: CHAR;
                   AltB: BEGIN
                         RememberFrequency;
                         BandUp;
-
-                        {KK1L: 6.73 NOTE the following statement is redundant. It is in BandUp and BandDown.}
-
-                        IF QSONumberByBand THEN
-                            DisplayNextQSONumber (QSONumberForThisQSO);
-
                         END;
 
                   AltD: IF K1EANetworkEnable THEN
@@ -1272,19 +1266,12 @@ VAR Key: CHAR;
                         ToggleModes;
                         END;
 
-                  AltR: BEGIN
-                        IF (TwoRadioState = StationCalled) THEN {KK1L: 6.73}
-                            BEGIN
-                            Tone.DoABeep(Warning);
-                            QuickDisplay('You are working a station on the 2nd radio. Escape to cancel first!');
-                            END
-                        ELSE
+                  AltR: IF NOT SingleRadioMode THEN
                             BEGIN
                             SwapRadios;
                             InactiveRigCallingCQ := False;
                             Str (SpeedMemory[InactiveRadio], SpeedString); {KK1L: 6.73 Used to use a variable CheckSpeed}
                             END;
-                        END;
 
                   AltS: SetNewCodeSpeed;
                   AltT: TimeAndDateSet;
@@ -2011,6 +1998,12 @@ VAR Result: INTEGER;
             ProcessN4OGWCommand (N4OGW_Command);
             END;
         END;
+
+    { If we are doing QSO Numbers by band - we want to make sure we have the right number displayed
+      regardless of whom might have changed bands }
+
+    IF QSONumberByBand THEN
+        DisplayNextQSONumber (GetNextQSONumber);
 
     IF ActiveMultiPort <> nil THEN CheckMultiState;
 
@@ -4039,20 +4032,12 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         VisibleLog.SetUpEditableLog;
                         END;
 
-                  AltR: BEGIN
-                        {KK1L: 6.73 Not implimented because George did not like it AT ALL!}
-                        {IF (TwoRadioState = StationCalled) THEN }{KK1L: 6.73}
-                        {    BEGIN }
-                        {    DoABeep(Warning); }
-                        {    QuickDisplay('You are working a station on the 2nd radio. Escape to cancel first!'); }
-                        {    END }
-                        {ELSE }
+                  AltR: IF NOT SingleRadioMode THEN
                             BEGIN
                             SwapRadios;
                             InactiveRigCallingCQ := False;
                             Str (SpeedMemory[InactiveRadio], SpeedString); {KK1L: 6.73 Used to use a variable CheckSpeed}
                             END;
-                        END;
 
                   AltS: SetNewCodeSpeed;
                   AltT: TimeAndDateSet;
@@ -5899,23 +5884,12 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                       DisplayAutoSendCharacterCount;
                                       END;
 
-                                AltR: BEGIN
-                                      IF NOT SingleRadioMode THEN
-                                        BEGIN
-                                        IF (TwoRadioState = StationCalled) THEN {KK1L: 6.73}
-                                          BEGIN
-                                          Tone.DoABeep(Warning);
-                                          QuickDisplay('You are working a station on the 2nd radio. Escape to cancel first!');
-                                          END
-                                        ELSE
+                                AltR: IF NOT SingleRadioMode THEN
                                           BEGIN
                                           SwapRadios;
                                           DisplayAutoSendCharacterCount;
-                                          {KK1L: 6.73 Used to use a variable CheckSpeed}
                                           Str (SpeedMemory[InactiveRadio], SpeedString);
                                           END;
-                                        END;
-                                      END;
 
                                 AltV: BEGIN
                                       RememberFrequency; {KK1L: 6.72 Added to match all other calls. Needed for loss of coms}

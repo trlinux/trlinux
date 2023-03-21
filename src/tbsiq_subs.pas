@@ -124,6 +124,7 @@ TYPE
         K3RXPollActive: BOOLEAN;
         KeyboardCWMessage: STRING;
 
+        LastDisplayedQSONumber: LONGINT;
         LastFrequency: LONGINT;
         LastFullTimeString: STRING;          { Used for 1 second timer }
         LastFunctionKeyTime: TimeRecord;
@@ -331,16 +332,28 @@ PROCEDURE QSOMachineObject.SetUpNextQSONumber;
 
 { Normally, this would come from GetNextQSONumber in LOGWIND, however, if the QSO
   number on the other radio hasn't been used - we can steal it.  Note that we will
-  never steal a QSO number that is less than the one we just sent. }
+  never steal a QSO number that is less than the one we just sent.
+
+  However, if QSONumberByBand is true - we can short circuit all of this logic and
+  just generate a QSO number that is one more than the QSO totals for the ActiveBand }
+
+VAR TempQSOTotals: QSOTotalArray;
 
     BEGIN
+    IF QSONumberByBand THEN
+        BEGIN
+        TempQSOTotals := QSOTotals;    { Get global QSO totals in dupesheet }
+        VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);  { Add in EditableLog QSOs }
+        QSONumberForThisQSO := TempQSOTotals [Band, Both] + 1;
+        Exit;
+        END;
+
     CASE Radio OF
         RadioOne:
             IF Radio2QSOMachine.QSONumberUnused THEN   { Steal QSO number from Radio 2 }
                 IF Radio2QSOMachine.QSONumberForThisQSO > QSONumberForThisQSO THEN
                     BEGIN
                     QSONumberForThisQSO := Radio2QSOMachine.QSONumberForThisQSO;
-                    DisplayQSONumber;
                     Radio2QSOMachine.QSONumberForThisQSO := GetNextQSONumber;
                     Radio2QSOMachine.DisplayQSONumber;
                     Exit;
@@ -351,7 +364,6 @@ PROCEDURE QSOMachineObject.SetUpNextQSONumber;
                 IF Radio1QSOMachine.QSONumberForThisQSO > QSONumberForthisQSO THEN
                     BEGIN
                     QSONumberForThisQSO := Radio1QSOMachine.QSONumberForThisQSO;
-                    DisplayQSONumber;
                     Radio1QSOMachine.QSONumberForThisQSO := GetNextQSONumber;
                     Radio1QSOMachine.DisplayQSONumber;
                     Exit;
@@ -363,7 +375,6 @@ PROCEDURE QSOMachineObject.SetUpNextQSONumber;
 
     QSONumberForThisQSO := GetNextQSONumber;   { from LOGWIND }
     QSONumberUnused := True;
-    DisplayQSONumber;
     END;
 
 
@@ -1773,6 +1784,10 @@ PROCEDURE QSOMachineObject.DisplayQSONumber;
 { Uses QSONumberForThisQSO }
 
     BEGIN
+    IF QSONumberForThisQSO = LastDisplayedQSONumber THEN Exit;
+
+    LastDisplayedQSONumber := QSONumberForThisQSO;
+
     CASE Radio OF
         RadioOne: SaveAndSetActiveWindow (TBSIQ_R1_QSONumberWindow);
         RadioTwo: SaveAndSetActiveWindow (TBSIQ_R2_QSONumberWindow);
@@ -2100,7 +2115,7 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             IF WindowString = 'UPDATEQSONR' THEN
                                 BEGIN
-                                QSONumberForThisQSO := GetNextQSONumber;   { from LOGWIND }
+                                QSONumberForThisQSO := GetNextQSONumber;   { from LOGEDIT }
                                 QSONumberUnused := True;
                                 DisplayQSONumber;
                                 CallwindowString := '';
@@ -3538,8 +3553,18 @@ VAR FrequencyChange, TempFreq: LONGINT;
     TempBand: BandType;
     TempMode: ModeType;
     TimeString: STRING;
+    TempQSOTotals: QSOTotalArray;
 
     BEGIN
+    IF QSONumberByBand THEN
+        BEGIN
+        TempQSOTotals := QSOTotals;    { Get global QSO totals in dupesheet }
+        VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);  { Add in EditableLog QSOs }
+        QSONumberForThisQSO := TempQSOTotals [Band, Both] + 1;
+        END;
+
+    DisplayQSONumber;  { Just to always make sure it is right }
+
     IF DupeShown THEN
         IF ElaspedSec100 (DupeShownTime) > 300 THEN
             BEGIN
@@ -3863,6 +3888,8 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
   running people.  All of the windows are referenced from WindowLocationX and
   WindowLocationY which need to be set for this specific instance. }
 
+VAR TempQSOTotals: QSOTotalArray;
+
     BEGIN
     { Store the values in this instance }
 
@@ -3896,6 +3923,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
     K3RXPollActive := False;
+    LastDisplayedQSONumber := -1;
     LocalInsertMode := InsertMode;                          { Need to get the global Insert Mode here }
     LastFrequency := 0;
     LastPartialCall := '';
@@ -4122,6 +4150,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     { Get the next QSO Number }
 
     QSONumberForThisQSO := GetNextQSONumber;   { Comes from LOGWIND }
+
     DisplayQSONumber;
     QSONumberUnused := True;
 

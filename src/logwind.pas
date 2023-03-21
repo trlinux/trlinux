@@ -946,7 +946,6 @@ VAR
   FUNCTION  GetRecordForBandMapCursor (VAR Entry: BandMapEntryPointer;
                                           CursorEntryNumber: INTEGER) : BOOLEAN;
 
-  FUNCTION  GetNextQSONumber: INTEGER;
   FUNCTION  GetUserInfoString (Call: CallString): STRING;
 
   PROCEDURE IncrementTime (Count: INTEGER);
@@ -6909,17 +6908,6 @@ VAR FileRead: TEXT;
         NextQSONumberToGiveOut := LargestQSONumberFound + 1
     ELSE
         NextQSONumberToGiveOut := 1;
-    END;
-
-
-
-FUNCTION GetNextQSONumber: INTEGER;
-
-{ Returns next available serial number }
-
-    BEGIN
-    GetNextQSONumber := NextQSONumberToGiveOut;
-    Inc (NextQSONumberToGiveOut);
     END;
 
 

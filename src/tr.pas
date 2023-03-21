@@ -38,19 +38,26 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
-20-Mar-2020
+21-Mar-2023
 
-  - If you are on a frequency where the call window is populated with a callsingn from
+  - Fixed QSONumberByBand for classic mode.  Was broken when we adopted the new QSO Number
+    system for TBSIQ a couple of months ago.
+
+20-Mar-2023
+
+  - If you are on a frequency where the call window is populated with a callsign from
     the bandmap and start to enter a new callsign, the window will clear out first.  This
-    was invented first in TBSIQ and I made it work the same way in classic mode now.
+    was invented first in TBSIQ and I made it work the same way in classic mode now.  So
+    many times I would tune into a frequency and not even be aware that there was a callsign
+    polulated and start enterting a call to do a dupe check on it.
 
-19-Mar-2020
+19-Mar-2023
 
   - When on a frequency with BandMapBlinking call - pressing BACKSPACE now will work.
     Before, the call was being overwritten with the BandMapBLinkingCall.
 
 
-14-Mar-2020
+14-Mar-2023
 
   - Did a few tweaks to the TWO VFO MODE.  If you are in that mode with an empty
     call window - you can swap back and forth between VFOs by hitting the SPACE
@@ -58,7 +65,7 @@ PROGRAM ContestLoggingProgram;
     check.  You exit S&P and return to the "CQ" frequency by either exiting S&P with
     an escape key - or pressing SPACE BAR with an empty call window.
 
-08-Mar-2020
+08-Mar-2023
 
    - Rename AUTO SCP CALL FETCH to AUTO PARTIAL CALL FETCH to more accurately describe
      which window it works with.  Also made it work if two letters resolves to a single
