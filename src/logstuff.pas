@@ -5625,6 +5625,10 @@ VAR TempString, LogString: STRING;
 
         LogString := LogString + 'Frequency=' + TempString + ' ';
 
+        Str (NumberSent, TempString);
+
+        LogString := LogString + 'NumberSent=' + TempString + ' ';
+
         CASE Radio OF
             NoRadio:  LogString := LogString + 'Radio=NoRadio ';
             RadioOne: LogString := LogString + 'Radio=RadioOne ';
