@@ -38,6 +38,21 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
+22-Mar-2023
+
+  - Added a new file - LONGLOG.DAT which will have all of the information that is
+    generated for the normal LOG.DAT entries and add more accurate frequency and
+    time data along with an ID for which radio was active.  This file is written
+    when the QSO is made and will not reflect any changes made with the Alt-E
+    editor.  It is intended to support a future change to the Cabrillo spec where
+    the frequency and time will be more exact.  It also likely makes using LOG
+    FREQUENCY ENABLE less useful as keeping the sent QSO number is much more
+    important especially in the TBSIQ case.
+
+    At some point, the Cabrillo generator in POST will need to be made aware of
+    this file and incorporate the new data.  This will probably happen shortly
+    after the 2023 WPX SSB event.
+
 21-Mar-2023
 
   - Fixed QSONumberByBand for classic mode.  Was broken when we adopted the new QSO Number

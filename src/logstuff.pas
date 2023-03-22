@@ -126,6 +126,7 @@ CONST
     LookForDupes = True;
     DoNotLookForDupes = NOT LookForDupes;
 
+    LongLogFileName = 'LONGLOG.DAT';
 
     ProcessedMultiMessageBufferLength = 256;
 
@@ -465,6 +466,7 @@ VAR
     FUNCTION  LooksLikeACallSign (Call: Str40): BOOLEAN;
 
     FUNCTION  MakeLogString (RXData: ContestExchange): Str80;
+
     FUNCTION  MarineOrAirMobileStation (Call: CallString): Boolean; {KK1L: 6.68 Used in WRTC 2002}
 
     PROCEDURE NextPage;
@@ -5545,7 +5547,8 @@ FUNCTION MakeLogString (RXData: ContestExchange): Str80;
 { This function will take the information in the contest exchange record
   passed to it and generate a log entry string from it.  }
 
-VAR LogString: Str80;
+VAR TempString, LogString: STRING;
+    FileWrite: TEXT;
 
     BEGIN
     LogString := '';
@@ -5606,6 +5609,36 @@ VAR LogString: Str80;
     MultiplierStamp (RXData, LogString);
     QSOPointStamp   (RXData, LogString);
     MakeLogString := LogString;
+
+    { Now for some tricky stuff.  I am going to make the LogString a bit longer and
+      save a copy of it in the file LONGLOG.DAT just for fun.  }
+
+    WITH RXData DO
+        BEGIN
+        Str (TimeSeconds, TempString);
+
+        WHILE Length (TempString) < 2 DO TempString := '0' + TempString;
+
+        LogString := LogString + ' Seconds=' + TempString + ' ';
+
+        Str (Frequency, TempString);
+
+        LogString := LogString + 'Frequency=' + TempString + ' ';
+
+        CASE Radio OF
+            NoRadio:  LogString := LogString + 'Radio=NoRadio ';
+            RadioOne: LogString := LogString + 'Radio=RadioOne ';
+            RadioTwo: LogString := LogString + 'Radio=RadioTwo ';
+            END;
+        END;
+
+    LogString := LogString + GetExactTimeString;  { Thanks n4ogw.pas }
+
+    { Save the long string in LONGLOG.DAT }
+
+    OpenFileForAppend (FileWrite, LongLogFileName);
+    WriteLn (FileWrite, LogString);
+    Close (FileWrite);
     END;
 
 

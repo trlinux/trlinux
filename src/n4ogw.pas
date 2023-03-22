@@ -101,6 +101,8 @@ VAR
 
     N4OGW_UDP_Port_Initialized: BOOLEAN;           { Gets set to TRUE when the first instance opens the port }
 
+FUNCTION GetExactTimeString: STRING;
+
 IMPLEMENTATION
 
 CONST DebugFileName = 'N4OGW_debug.txt';
