@@ -38,6 +38,11 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
+24-Mar-2023
+
+  - Improved POST Cabrillo file generator to incorporte data in the LONGLOG.DAT
+    file for frequency and sent QSO Number.
+
 22-Mar-2023
 
   - Added a new file - LONGLOG.DAT which will have all of the information that is
