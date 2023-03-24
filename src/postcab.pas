@@ -835,6 +835,9 @@ VAR LongLogFileString: STRING;
         END;
 
     WriteLn ('Your LONGLOG file is out of sync with your LOG.DAT file - please fix');
+
+    WriteLn ('.DAT file = ', OriginalFileString);
+    WriteLn ('LONGLOG.DAT file = ', LongLogFileString);
     Halt;
     END;
 
