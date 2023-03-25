@@ -40,6 +40,8 @@ PROGRAM ContestLoggingProgram;
 
 24-Mar-2023
 
+  - Made prefix mults get processed (0119Z after contest start)
+
   - Improved POST Cabrillo file generator to incorporte data in the LONGLOG.DAT
     file for frequency and sent QSO Number.
 
