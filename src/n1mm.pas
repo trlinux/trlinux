@@ -553,7 +553,7 @@ VAR TempString: STRING;
     xResult, Number: INTEGER;
 
     BEGIN
-    { Exchagne stuff that we will have for every kind of QSO }
+    { Exchange stuff that we will have for every kind of QSO }
 
     RXData.RSTSent := GetXMLData ('snt');
     RXData.RSTReceived := GetXMLData ('rcv');
@@ -565,6 +565,8 @@ VAR TempString: STRING;
     TempString := GetXMLData ('rcvnr');
     Val (TempString, Number, xResult);
     IF xResult = 0 THEN RXData.NumberReceived:= Number;
+
+    RXData.Prefix := GetXMLData ('wpxprefix');
 
     { Now look at the ActiveExchange and pull out the appropriate data }
 
@@ -622,7 +624,10 @@ VAR TempString: STRING;
         RSTQSONumberAndRandomCharactersExchange: BEGIN END;
         RSTQTHNameAndFistsNumberOrPowerExchange: BEGIN END;
 
-        RSTQSONumberExchange: BEGIN END;  { Already taken care of }
+        RSTQSONumberExchange:
+            BEGIN
+            END;  { Already taken care of }
+
         RSTQTHExchange: BEGIN END;
         RSTZoneAndPossibleDomesticQTHExchange: BEGIN END;
 
