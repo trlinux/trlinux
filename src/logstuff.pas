@@ -5903,15 +5903,6 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
 
         CQWPXQSOPointMethod:
           BEGIN
-          { In 2022 - QSOs with Russia and EU do not count for the WPX test }
-
-          IF (RXCtyID = 'UA') OR (RXCtyID = 'UA2') OR (RXCtyID = 'UA9') OR
-             (RXCtyID = 'R1FJ') OR (RXCtyID = 'EU') THEN
-              BEGIN
-              RXData.QSOPoints := 0;
-              Exit;
-              END;
-
           IF RXData.QTH.Continent = MyContinent THEN
               BEGIN
               IF RXCtyID = MyCountry THEN

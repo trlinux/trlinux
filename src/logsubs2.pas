@@ -2010,6 +2010,7 @@ VAR Result: INTEGER;
     IF ActiveRTTYPort <> nil THEN CheckRTTY;
 
     {KK1L: 6.72 Moved here to speed up SCP. UpdateTimeAndRateDisplays hogs a bit of time now.}
+
     IF (ActiveWindow = CallWindow) AND (SCPMinimumLetters > 0) AND (NOT NewKeyPressed) THEN
         VisibleLog.SuperCheckPartial (WindowString, True, ActiveRadio); {KK1L: 6.73 Added ActiveRadio}
 
@@ -2793,14 +2794,19 @@ VAR FileName, CommandString: Str40;
 
 PROCEDURE DoAltZ (VAR WindowString: Str80; VAR KeyChar: CHAR);
 
+{ Alt-Z is a trick I use to fill in the exchange window with the initial exchange
+  for whatever is in the call window.  It also will put you into the exchange window
+  if you are in the call window. }
+
     BEGIN
     IF ActiveWindow = ExchangeWindow THEN
         BEGIN
         ExchangeWindowString := InitialExchangeEntry (CallWindowString);
+
         ClrScr;
         Write (ExchangeWindowString);
 
-        {TR6.74 - because InitialExchangeEntry no longer does this }
+        { TR6.74 - because InitialExchangeEntry no longer does this }
 
         IF InitialExchangeOverwrite THEN
             InitialExchangePutUp := ExchangeWindowString <> '';
@@ -2838,7 +2844,7 @@ PROCEDURE DoAltZ (VAR WindowString: Str80; VAR KeyChar: CHAR);
 
         ShowStationInformation (WindowString);
 
-        KeyChar := ControlX;
+        KeyChar := ControlX;  { Used to move the ActiveWindow down to the exchang window }
         END;
     END;
 

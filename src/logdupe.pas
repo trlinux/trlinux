@@ -1915,14 +1915,6 @@ VAR NumberMults: INTEGER;
 
     IF (RXData.Prefix <> '') AND DoingPrefixMults THEN
         BEGIN
-        { In 2022 - UA and EU QSOs do not count }
-
-        IF ActiveQSOPointMethod = CQWPXQSOPointMethod THEN
-            IF (RXData.QTH.CountryID = 'UA') OR (RXData.QTH.CountryID = 'UA2') OR
-               (RXdata.QTH.CountryID = 'UA9') OR (RXData.QTH.CountryID = 'R1FJ') OR
-               (RXData.QTH.CountryID = 'EU') THEN
-                Exit;  { No need to worry about zone mults }
-
         NumberMults := MultSheet.Totals [MultBand, MultMode].NumberPrefixMults;
 
         IF NumberMults = 0 THEN

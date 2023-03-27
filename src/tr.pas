@@ -38,6 +38,10 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
+26-Mar-2023
+
+  - Fixed Russia counting as zero points.
+
 24-Mar-2023
 
   - Made prefix mults get processed (0119Z after contest start)
