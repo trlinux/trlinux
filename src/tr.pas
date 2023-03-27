@@ -38,6 +38,11 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
+27-Mar-2023
+
+    - Taught the ADIF conversion routine to use the LONGLOG.DAT if a LONGLOG
+      file is used for the input.
+
 26-Mar-2023
 
   - Fixed Russia counting as zero points.
