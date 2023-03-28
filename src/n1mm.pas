@@ -370,7 +370,8 @@ PROCEDURE N1MM_Object.LogN1MMContact (RXData: ContestExchange);
 VAR LogString: Str80;
 
     BEGIN
-    CalculateQSOPoints (RXData);
+    IF RXData.QSOPoints = -1 THEN
+        CalculateQSOPoints (RXData);
 
     VisibleDupeSheetChanged := True;
 
@@ -567,6 +568,10 @@ VAR TempString: STRING;
     IF xResult = 0 THEN RXData.NumberReceived:= Number;
 
     RXData.Prefix := GetXMLData ('wpxprefix');
+
+    TempString := GetXMLData ('points');
+    Val (TempString, Number, xResult);
+    IF xResult = 0 THEN RXData.QSOPoints := Number;
 
     { Now look at the ActiveExchange and pull out the appropriate data }
 

@@ -38,6 +38,10 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
+28-Mar-2023
+
+     - Fixed N1MM QSO packets not processing QSO points.
+
 27-Mar-2023
 
     - Taught the ADIF conversion routine to use the LONGLOG.DAT if a LONGLOG
