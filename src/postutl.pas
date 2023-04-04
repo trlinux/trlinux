@@ -1718,7 +1718,14 @@ VAR TempString: STRING;
             IF PossibleFreqString <> '' THEN
                 BEGIN
                 Val(PossibleFreqString,FreqMHz,xResult);
-                if xResult <> 0 then FreqMHz := 0.0;
+
+                { The value in the long log file is in Hertz - so convert to Mhz }
+
+                IF xResult <> 0 THEN
+                    FreqMHz := 0.0
+                ELSE
+                    FreqMhz := FreqMhz / 1000000;
+
                 END;
             END
 

@@ -38,6 +38,10 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
+04-Apr-2023
+
+    - Fixed frequency in ADIF file when using LONGLOG.DAT file
+
 28-Mar-2023
 
      - Fixed N1MM QSO packets not processing QSO points.
