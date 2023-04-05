@@ -1690,8 +1690,8 @@ VAR TempString: STRING;
     Mode: ModeType;
     DateString, TimeString, Call, RSTSent, RSTReceived, LengthString: Str20;
     MonthString, YearString, DayString: STRING [5];
-    FreqMhz: Real;
-    PossibleFreqString : String;
+    FreqMhz: REAL;
+    PossibleFreqString : STRING;
     xresult: INTEGER;
     UsingLongLogFile: BOOLEAN;
 
@@ -1725,7 +1725,6 @@ VAR TempString: STRING;
                     FreqMHz := 0.0
                 ELSE
                     FreqMhz := FreqMhz / 1000000;
-
                 END;
             END
 
@@ -1733,9 +1732,9 @@ VAR TempString: STRING;
             BEGIN
             PossibleFreqString := Copy(LogString,23,5);
 
-            IF StringHas (PossibleFreqString, '.')  THEN
+            IF StringHas (PossibleFreqString, '.')  THEN  { Frequency is partially in # sent field }
                 BEGIN
-                Val(PossibleFreqString,FreqMHz,xResult);
+                Val(PossibleFreqString,FreqMHz,xResult);  { This is the frequency after the decimal point }
                 if xResult <> 0 then FreqMHz := 0.0;
                 END;
             END;
@@ -1960,12 +1959,17 @@ VAR OutputFileName, InputFileName: Str40;
 
     WriteLn;
 
-    WriteLn ('If you have the LONGLOG.DAT file available, you can use that instead of');
-    WriteLn ('of your .DAT file and get exact frequencies.');
-    WriteLn;
-
-    InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
-    IF InputFileName = '' THEN Exit;
+    IF FileExists ('LONGLOG.DAT') THEN
+        BEGIN
+        WriteLn ('You appear to have the file LONGLOG.DAT available.  This file will be used');
+        WriteLn ('for your input file since it has more accurate data than your LOG file.');
+        InputFileName := 'LONGLOG.DAT';
+        END
+    ELSE
+        BEGIN
+        InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
+        IF InputFileName = '' THEN Exit;
+        END;
 
     OutputFileName := GetResponse ('Enter ADIF output filename (none to exit) : ');
     IF OutputFileName = '' THEN Exit;
