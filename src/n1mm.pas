@@ -421,16 +421,6 @@ VAR LogString: Str80;
         UpdateBandMapMultiplierStatus;
         UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
         END;
-
-    { This might not be a good thing to do.  FIrst off - Qsorder will not do anything
-      useful as a result.  If I am sending this to yet anotehr computer - what if it
-      is the one that sent the message.  Will it at some point send the QSO back to me? }
-
-    IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
-        BEGIN
-        RXData.Date := GetFullDateString;
-        SendQSOToUDPPort (RXData);
-        END;
     END;
 
 
@@ -684,6 +674,10 @@ FUNCTION N1MM_Object.CreateRXDataFromUDPMessage (VAR RXData: ContestExchange): B
     GetTimeAndDateFromUDPMessage  (RXData);
     GetCallFromUDPMessage         (RXData);
     GetExchangeDataFromUDPMessage (RXData);
+
+    { Make sure we don't send it out if we are sending QSO UDP packets }
+
+    RXData.Source := ImportedQSO;
     END;
 
 

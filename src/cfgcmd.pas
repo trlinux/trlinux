@@ -2120,6 +2120,7 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'MULTI PORT' THEN
         BEGIN
         ActiveMultiPort := nil;
+
         IF StringHas(UpperCase(CMD),'SERIAL') THEN
            BEGIN
               tempstring := wordafter(CMD,'SERIAL');
@@ -2132,6 +2133,7 @@ VAR xResult,tempint: INTEGER;
            END;
 
         IF ActiveMultiPort <> nil THEN Packet.PacketBandSpots := True;
+
         ProcessConfigInstructions2 := (ActiveMultiPort <> nil) OR (CMD = 'NONE');
         Exit;
         END;
@@ -2685,7 +2687,6 @@ VAR xResult,tempint: INTEGER;
         ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
-
 
     IF ID = 'QSX ENABLE' THEN
         BEGIN

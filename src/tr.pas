@@ -38,6 +38,16 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
+
+25-May-2023
+
+  - Made it so QSOs that were imported using N1MM UDP PORT are not sent out to the
+    QSO UDP IP / QSO UDP PORT output so we don't get an infinite loop.
+
+09-May-2023
+
+  - Fixed QSOByBand and QSOByMode for 7QP
+
 04-Apr-2023
 
     - Fixed frequency in ADIF file when using LONGLOG.DAT file

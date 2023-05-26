@@ -81,6 +81,8 @@ TYPE
 
     VisibleDupesheet = ARRAY [1..10] OF CallDistrictRecord;
 
+    ContestExchangeSourceType = (LocalQSO, ImportedQSO);
+
     ContestExchange = RECORD
           Age:            Str20;
           Band:           BandType;
@@ -119,6 +121,7 @@ TYPE
           RSTSent:         RSTString;
           RSTReceived:     RSTString;
           SearchAndPounce: BOOLEAN;
+          Source:          ContestExchangeSourceType;
           TenTenNum:       LONGINT;
           Time:            INTEGER;                   { INTEGER time }
           TimeSeconds:     INTEGER;                   { Use with Time to get more resolution }
@@ -710,6 +713,7 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
 
     Exchange.RandomCharsSent     := '';
     Exchange.RandomCharsReceived := '';
+    Exchange.Source           := LocalQSO;  { Change to imported if needed }
 
     Exchange.QTH.Country      := -1;
     Exchange.QTH.Continent    := UnknownContinent;
