@@ -39,6 +39,22 @@ PROGRAM ContestLoggingProgram;
      - Although when working someone in S&P - after you are done - the call is gone
 
 
+TODO List after 2023 WPX CW:
+
+ - Bandmap is challenged indicating mult status of portable callsigns (prefix)
+ - Need to keep better track of what entries are being sent to the N4OGW bandmap
+   and deleted them after some time.
+ - Not getting country ID info with two characters (might be 2BSIQ only)
+ - Some bandmap confusion on which band is dispayed with TBSIQ
+ - Update whole bandmap when any QSO made - am seeing lots of calls not disappearing
+   when they are now dupes.
+ - Probably TBSIQ only - only getting 4 characters for QSO info instead of full call
+ - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
+ - Alt-I seems to work once but not again (TBSIQ?)
+
+1-Jun-2023
+  - Fixed WPX Prefixes mults not being flagged when receiving QSO_UDP packets.
+
 25-May-2023
 
   - Made it so QSOs that were imported using N1MM UDP PORT are not sent out to the

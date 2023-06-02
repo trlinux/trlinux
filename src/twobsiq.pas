@@ -84,6 +84,9 @@ NOTES FROM ARRL DX CW
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+02-Jun-2023
+  - Fixed QSO_UDP record where last call popped off editable log window was being sent.
+
 21-Mar-2023
 
   - Fixed case of QSONumberByBand.

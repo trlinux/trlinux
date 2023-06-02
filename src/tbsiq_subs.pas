@@ -7385,6 +7385,7 @@ VAR LogString: Str80;
         UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
         END;
 
+
     IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
         BEGIN
         RXData.Date := GetFullDateString;
@@ -7397,6 +7398,7 @@ VAR LogString: Str80;
 PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
 
 VAR TempString: STRING;
+    TempData: ContestExchange;
 
     BEGIN
     { Leveraged from LOGSUBS2.PAS }
@@ -7426,7 +7428,6 @@ VAR TempString: STRING;
         END;
 
 
-
     LogString := VisibleLog.PushLogEntry (LogString);
 
     { LogString is now what popped off the top of the editable window }
@@ -7439,7 +7440,7 @@ VAR TempString: STRING;
 
         { From LOGSUBS2.PAS }
 
-        IF ParseExchangeIntoContestExchange (LogString, RData) THEN
+        IF ParseExchangeIntoContestExchange (LogString, TempData) THEN
             BEGIN
             IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
                 BEGIN

@@ -2382,21 +2382,18 @@ VAR FileRead: TEXT;
                         IF NOT TempRXData.DXMult THEN
                             BEGIN
                             ReportError ('Duplicate DX multiplier found = ' + TempRXData.DXQTH);
-                            Wait (1000);
                             END;
 
                     IF DoingPrefixMults AND (TempRXData.Prefix <> '') THEN
                         IF NOT TempRXData.PrefixMult THEN
                             BEGIN
                             ReportError ('Duplicate prefix multiplier found = ' + TempRXData.Prefix);
-                            Wait (1000);
                             END;
 
                     IF DoingZoneMults AND (TempRXData.Zone <> '') THEN
                         IF NOT TempRXData.ZoneMult THEN
                             BEGIN
                             ReportError ('Duplicate zone multiplier found = ' + TempRXData.Zone);
-                            Wait (1000);
                             END;
 
                     AddQSOToSheets (TempRXData);
