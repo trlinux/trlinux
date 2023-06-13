@@ -691,7 +691,7 @@ VAR MultString: Str40;
     BEGIN
     WindowDupeCheck := False;
 
-    IF Length (CallWindowString) < 3 THEN Exit;  { I like 3 instead of 2 }
+    IF Length (CallWindowString) < 2 THEN Exit;
 
     BandMapBand := Band;
     BandMapMode := Mode;
@@ -2666,6 +2666,7 @@ VAR Key, ExtendedKey: CHAR;
             IF (NOT ActionRequired) AND TBSIQ_CW_Engine.CWFinished (Radio) THEN   { we are done sending the call }
                 BEGIN
                 IF AutoCallTerminate THEN
+                    BEGIN
                     IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                         BEGIN
                         ExpandedString := ExpandCrypticString (CQExchange);
@@ -2680,6 +2681,9 @@ VAR Key, ExtendedKey: CHAR;
                         ShowCWMessage (ExpandedString);
                         QSOState := QST_Idle;
                         END;
+
+                    ShowStationInformation (CallWindowString);
+                    END;
                 END;
 
             IF NOT ActionRequired THEN Exit;  { No keystroke to respond to }
@@ -4242,8 +4246,6 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 { Here we setup the various windows for the QSO Machine and get it all ready to start
   running people.  All of the windows are referenced from WindowLocationX and
   WindowLocationY which need to be set for this specific instance. }
-
-VAR TempQSOTotals: QSOTotalArray;
 
     BEGIN
     { Store the values in this instance }

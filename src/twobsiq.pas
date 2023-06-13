@@ -74,7 +74,6 @@ NOTES FROM SSCW:
 
 NOTES FROM ARRL DX CW
 
-  - Maybe improve the mult/qso display with auto start CQs - I sort of fixed it
   - Footswitch doesn't seem to want to send F1 - does PTT instead.
   - I keep calling dupes in S&P mode - need better warnings.
   - Dualing CQs not working?
@@ -83,6 +82,10 @@ NOTES FROM ARRL DX CW
   - Improve sending RTTY message from keyboard
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+03-Jun-2023
+  - Made station info for complete callsign come up after auto start send is done.
+  - Allowed country check of two letter callsigns.
 
 02-Jun-2023
   - Fixed QSO_UDP record where last call popped off editable log window was being sent.

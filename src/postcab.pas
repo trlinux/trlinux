@@ -789,7 +789,13 @@ VAR NumberSentString, FrequencyString: Str80;
     BEGIN
     NumberSentString := BracketedString (LongLogFileString, 'NumberSent=', ' ');
 
-    IF NumberSentString <> '' THEN
+    { So the issue here is that we have the NumberSent field even if we
+      are not using QSO Numbers.  We now rely on SentQSONumberFieldLocation
+      being something valid
+
+    IF NumberSentString <> '' THEN  }
+
+    IF SentQSONumberFieldLocation >= 1 THEN
         BEGIN
         WHILE Length (NumberSentString) < SentQSONumberLength DO
             NumberSentString := ' ' + NumberSentString;
@@ -805,6 +811,12 @@ VAR NumberSentString, FrequencyString: Str80;
         { Remove the last 3 digits in the FreqeuencyString so we only have integer kHz }
 
         Delete (FrequencyString, Length (FrequencyString) - 2, 3);
+
+        { Ignore anything above 10 meters }
+
+        IF Length (FrequencyString) = 5 THEN
+            IF Copy (FrequencyString, 1, 1) > '2' THEN
+                Exit;
 
         WHILE Length (FrequencyString) < 5 DO
             FrequencyString := ' ' + FrequencyString;
@@ -1914,7 +1926,9 @@ Call fields end here for length=12                                
 
                         Str (QSONumberSent:SentQSONumberLength, QSONumberSentString);
                         Insert (QSONumberSentString, SentData, CursorPosition);
-                        END;
+                        END
+                    ELSE
+                        SentQSONumberFieldLocation := -1;
 
                     IF StringHas (SentData, ControlN) THEN
                         BEGIN
