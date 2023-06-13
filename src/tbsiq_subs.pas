@@ -728,18 +728,16 @@ VAR MultString: Str40;
 
         IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
             BEGIN
-            VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
-            Mult := MultString <> '';
-
             BandMapCursorFrequency := DisplayedFrequency;
             BandMapMode := Mode;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
             BandMapCallPutUp := CallWindowString;
 
-            { First True is dupe - second one is SendToMulti }
+            { First True is dupe - second one is SendToMulti.  We use False for
+              the mult flag since dupes seldom are mults }
 
-            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, True, Mult, BandMapDecayTime, True);
+            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, True, False, BandMapDecayTime, True);
             DisablePutUpBandMapCall := False;
             END;
 
@@ -750,18 +748,16 @@ VAR MultString: Str40;
             END
         ELSE
             BEGIN
-            VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
-            Mult := MultString <> '';
-
             BandMapCursorFrequency := DisplayedFrequency;
             BandMapMode := Mode;
             BandMapBand := Band;
             TBSIQ_BandMapFocus := Radio;
             BandMapCallPutUp := CallWindowString;
 
-            { First True is dupe - first True is SendToMulti }
+            { First True is dupe - second one is SendToMulti.  We use False for
+              the mult flag since dupes seldom are mults }
 
-            NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, Mult, BandMapDecayTime, True);
+            NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, False, BandMapDecayTime, True);
 
             SwapWindows;
             ClrScr;
@@ -783,7 +779,8 @@ VAR MultString: Str40;
         ClrScr;
         CallWindowString := '';
         CallWindowCursorPosition := 1;
-        END
+        END  { of dupe }
+
     ELSE
         BEGIN  { Not a dupe }
         ShowStationInformation (CallWindowString);
@@ -1341,7 +1338,6 @@ VAR MultiString, MessageString: STRING;
                       CalculateBandMode }
 
                     VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
-
                     Mult := MultString <> '';
 
                     { SendToMulti = False }
@@ -1520,7 +1516,6 @@ VAR MultiString, MessageString: STRING;
                       CalculateBandMode }
 
                     VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
-
                     Mult := MultString <> '';
                                                                     { SendToMulti = False }
                     NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
@@ -3600,20 +3595,15 @@ VAR Key, ExtendedKey: CHAR;
                                 BEGIN
                                 IF GoodCallSyntax (CallWindowString) THEN
                                     BEGIN
-                                    { We don't know if this is a dupe }
+                                    ThisIsADupe := VisibleLog.CallIsADupe (CallWindowString, Band, Mode);
 
-                                    IF LooksLikeACallsign (CallWindowString) THEN
+                                    IF NOT ThisIsADupe THEN
                                         BEGIN
-                                        ThisIsADupe := VisibleLog.CallIsADupe (CallWindowString, Band, Mode);
-
-                                        IF NOT ThisIsADupe THEN
-                                            BEGIN
-                                            VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
-                                            Mult := MultString <> '';
-                                            END
-                                        ELSE
-                                            Mult := False;
-                                        END;
+                                        VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
+                                        Mult := MultString <> '';
+                                        END
+                                    ELSE
+                                        Mult := False;
 
                                     BandMapCursorFrequency := DisplayedFrequency;
                                     BandMapMode := Mode;
@@ -3621,7 +3611,7 @@ VAR Key, ExtendedKey: CHAR;
                                     TBSIQ_BandMapFocus := Radio;
                                     BandMapCallPutUp := CallWindowString;
 
-                                    { First True is dupe - second one is SendToMulti }
+                                    { Last TRUE indicates to SendToMulti }
 
                                     NewBandMapEntry (CallWindowString, Frequency, 0, Mode, ThisIsADupe, Mult, BandMapDecayTime, True);
                                     DisablePutUpBandMapCall := False;

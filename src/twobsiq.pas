@@ -83,6 +83,9 @@ NOTES FROM ARRL DX CW
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+13-Jun-2023
+  - Attempted to clean up the mult display on bandmap entries for WPX.
+
 03-Jun-2023
   - Made station info for complete callsign come up after auto start send is done.
   - Allowed country check of two letter callsigns.

@@ -2469,12 +2469,26 @@ VAR CharIndex, iDstPtrIndex: INTEGER;
 
 FUNCTION LooksLikeACallSign (Call: Str40): BOOLEAN;
 
+{ I am a bit concerned about having this function here and also having
+  the GoodcallSyntax function down in TREE.PAS.  It seems that we should
+  only have one funtion to decide if a callsign looks right or not.  For
+  now, I vote that we use the one in TREE.PAS until proven othersise.  This
+  is in June 2023.  If this is like a few years later - feel free to remove
+  this function and just call the one in TREE.PAS directly. }
+
 TYPE GOT = (gotNIL, gotLETTER, gotNUMBER);
 
 VAR CharIndex, nChanges: INTEGER;
     gotWhat: GOT;
 
     BEGIN
+    { Intercept this with the function in tree.pas }
+
+    LooksLikeACallsign := GoodCallSyntax (Call);
+    Exit;
+
+    { This is the old code that was generated for who knows what reason }
+
     LooksLikeACallsign := False;
 
     gotWhat := gotNIL;
