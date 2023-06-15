@@ -302,7 +302,7 @@ VAR Address: INTEGER;
         FOR Address := 0 TO SpotList.NumberSpots - 1 DO
             IF SpotList.SpotListArray [Address].Callsign = Call THEN
                 BEGIN
-                SpotList.SpotListArray [Address].SecondsRemaining := 60;
+                SpotList.SpotListArray [Address].SecondsRemaining := 3600;
                 Exit;
                 END;
 
@@ -311,7 +311,7 @@ VAR Address: INTEGER;
     IF SpotList.NumberSpots < 1000 THEN
         BEGIN
         SpotList.SpotListArray [SpotList.NumberSpots].Callsign := Call;
-        SpotList.SpotListArray [SpotList.NumberSpots].SecondsRemaining := 60;
+        SpotList.SpotListArray [SpotList.NumberSpots].SecondsRemaining := 3600;
         Inc (SpotList.NumberSpots);
         END
     ELSE

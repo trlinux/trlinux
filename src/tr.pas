@@ -42,13 +42,15 @@ PROGRAM ContestLoggingProgram;
 TODO List after 2023 WPX CW:
 
  - Bandmap is challenged indicating mult status of portable callsigns (prefix)
- - Need to keep better track of what entries are being sent to the N4OGW bandmap
-   and deleted them after some time.
  - Some bandmap confusion on which band is dispayed with TBSIQ
  - Update whole bandmap when any QSO made - am seeing lots of calls not disappearing
    when they are now dupes.
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
+
+
+14-Jun-2023
+  - Added memory of calls sent to N4OGW and made them get deleted after an hour
 
 13-Jun-2023
   - Fixed issue with QSO number being inserted at the start of Cabrillo
