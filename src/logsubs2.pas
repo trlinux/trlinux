@@ -6150,6 +6150,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                     SwapVFOs;
                     OpMode := CQOpMode;
                     TwoVFOState := TwoVFOIdle;
+                    RemoveWindow (ExchangeWindow);
                     Continue;
                     END;
 

@@ -49,6 +49,9 @@ TODO List after 2023 WPX CW:
  - Alt-I seems to work once but not again (TBSIQ?)
 
 
+16-Jun-2023
+  - Removed exchange window when returnning from SO2V QSO or not
+
 14-Jun-2023
   - Added memory of calls sent to N4OGW and made them get deleted after an hour
 
