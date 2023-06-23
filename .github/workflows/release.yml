@@ -9,10 +9,10 @@ env:
 jobs:
   generate:
     name: Create release-artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
       - name: Generate the artifacts
         run : |
            pwd
@@ -43,9 +43,6 @@ jobs:
       - name: Upload the artifacts
         env:
            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v1
         with:
-           upload_url: ${{ github.event.release.upload_url }}
-           asset_path: tmp/trlinux-r${{ env.G_RELEASE }}_64bit.tgz
-           asset_name: trlinux-r${{ env.G_RELEASE }}_64bit.tgz
-           asset_content_type: application/octet-stream
+           files: tmp/trlinux-r${{ env.G_RELEASE }}_64bit.tgz
