@@ -16,6 +16,92 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+0.57 (includes changes not documented for 0.56)
+
+- A new log file is now being generated independently from the
+  .DAT file.  This file has addition data in it to support
+  showing exact frequency information when using serial nummbers.
+
+  When you use the Cabrillo log generator and it sees the file
+  LONGLOG.DAT, it will try to use the data there.  If the .DAT
+  and the LONGLOG.DAT file are out of step with each other, you
+  will need to make edits to fix the issue.  Or if you don't want
+  to mess with it - just delete the LONGLOG.DAT file.  The most
+  common reason for them to be out of step is if you made any
+  edits to your log during the contest.  The ADIF conversion
+  routine will also use this data.
+
+- Fixed QSOBYBAND and QSOBYMODE not being properly setup for the 7QP.
+
+- Implemented support of the so2sdr-bandmap program by N4OGW.  New
+  commands are as follows:
+
+  N4OGW RADIO ONE BANDMAP IP = xxx.xxx.xxx.xxx (127.0.0.1 for local)
+  N4OGW RADIO ONE BANDMAP PORT = xxxx
+  N4OGW RADIO ONE BANDMAP UDP PORT = xxxxx (default is 45454)
+  N4OGW RADIO TWO BANDMAP IP = xxx.xxx.xxx.xxx (127.0.0.1 for local)
+  N4OGW RADIO TWO BANDMAP PORT = xxxx
+  N4OGW RADIO TWO BANDMAP UDP PORT = xxxxx (default is 45454)
+  N4OGW FREQUENCY CONTROL = VFOA VFOB AUTO
+
+  Auto will put the frequency into VFOA if you are in S&P, or VFOB
+  if you are in CQ mode.  This is triggered by clicking on a callsign
+  on the so2sdr-bandmap display.
+
+- AUTO PARTIAL CALL FETCH implemented (control-J - default FALSE).
+  When enabled, if you type three letters of a callsign, and it
+  resolves to one - and only one - possible call (not SCP call),
+  then the callsign will be rewritten with the full callsign when
+  you press RETURN and that callsign will be answered.  This does
+  not trigger auto start sending.
+
+- Some work done to clean up RTTY functionality - and making it
+  consistent between Classic and 2BSIQ interfaces.
+
+- Updated the firmware for the Arduino in the SO2RMini to version
+  TRCW V4 - or SO2RMini_2023_Feb_28.
+
+  Note that the valid control characters that you can put in a
+  meesage that the SO2RMini will process are:
+
+    ^D - Long Dash
+    ^F - Speed up CW by 2 WPM
+    ^H - Half dit space
+    ^I - Switch headphones to inactive radio
+    ^J - Switch headphones to active radio
+    ^S - Slow down CW by 2 WPM
+    ^X - Switch Headphones to Radio 1
+    ^Y - Switch Headphones to Radio 2
+    ^Z - Switch Headphones to Stereo
+
+- Added N1MM UDP PORT command (set to port number).  Allows the
+  N1MM type QSO packets to be imported into the log.
+
+- Added ability to send N1MM type QSO packets:
+
+  QSO UDP IP = xxx.xxx.xxx.xxx
+  QSO UDP Port = xxxx
+
+  These packets have been tailored so that the K3IT Qsoorder
+  program will be happy with them.
+
+- Note - you can use the two above commands to send QSOs around
+  to other computers in a multi-op.  However, the existing network
+  commands are still supported (for now).
+
+- Removed the Alt-D feature in 2BSIQ as it was causing too many issues.
+
+- Eliminated use of SERIALNUMBER.TXT for serial number coordination.
+  Serial numbers are now computed by looking at the log file (or
+  LONGLOG) during start up of the program.  For contests like the
+  SS where only one sequence of serial numbers is used, and using
+  TBSIQ, the left radio will be at the next QSO number to be sent
+  and the right radio one more than that.  Note that once a QSO
+  number is "assigned" to a radio, it can not be used by the other
+  radio.  So in this case, if you start making QSOs on the right
+  radio, the original QSO number will be waiting on the left
+  radio to be used whenever a QSO is finally made there.
+
 0.55
 
 - Many enhancements and bug fixes with the 2BSIQ user interface.  
@@ -33,7 +119,9 @@ You should have received a copy of the GNU General
 
 - Packet cluster support in 2BSIQ interface.
 
-- RTTY supported with K3/K4 radios.  
+- RTTY supported with K3/K4 radios for transmission.  You still have 
+  to read the display of the radio to get calls and exchanges and 
+  enter them by hand.  
 
 - New QSO number metodology implemented for 2BSIQ.  When you
   first start, you will have QSO #1 on the left radio and
@@ -52,7 +140,7 @@ You should have received a copy of the GNU General
   you must not use the option to log frequencies if you
   are using QSO numbers.  
   
-  AutoCQ using AltQ and AltC now supported.  
+- AutoCQ using AltQ and AltC now supported in TBSIQ.
  
 
 0.54
