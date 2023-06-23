@@ -122,7 +122,7 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 23-Feb-2023
 
-   - AUTO SCP CALL FETCH implemented.  Takes three letters and turns it into a full call if
+   - AUTO PARTIAL CALL FETCH implemented.  Takes three letters and turns it into a full call if
      there is only one SCP call shown (when coming back to a call and pressing ENTER).
 
    - Fixed bug where SCP stops processing additional callsign input after auto start send.

@@ -225,7 +225,8 @@ PROCEDURE N4OGW_BandMap_Object.SetRXMode;
       of seconds to make sure the pipeline including RX latency is all
       processed before doing this.  So - we set a timer to create this delay }
 
-    TXModeTimeout := 2;
+    TXModeTimeout := 2;  { We set to 3 so we can send the RX command at 1 and again
+                           at zero }
     END;
 
 
@@ -517,12 +518,17 @@ VAR Hours, Minutes, Seconds, Sec100: WORD;
         BEGIN
         Dec (TXModeTimeOut);
 
-        IF TXModeTimeOut = 0 THEN
+        IF (TXModeTimeOut = 0) OR (TXModeTimeOut = 0) THEN
             BEGIN
             SendString := 'r' + Chr(0);
             FpSend (Socket, @SendString [1], Length (SendString), 0);
             TXMode := False;
             WriteToDebugFile ('Sent r command (receive mode)');
+
+            { Do it twice? }
+
+            SendString := 'r' + Chr(0);
+            FpSend (Socket, @SendString [1], Length (SendString), 0);
             END;
         END;
     END;
