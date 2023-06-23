@@ -370,7 +370,8 @@ PROCEDURE N1MM_Object.LogN1MMContact (RXData: ContestExchange);
 VAR LogString: Str80;
 
     BEGIN
-    CalculateQSOPoints (RXData);
+    IF RXData.QSOPoints = -1 THEN
+        CalculateQSOPoints (RXData);
 
     VisibleDupeSheetChanged := True;
 
@@ -419,16 +420,6 @@ VAR LogString: Str80;
         BEGIN
         UpdateBandMapMultiplierStatus;
         UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
-        END;
-
-    { This might not be a good thing to do.  FIrst off - Qsorder will not do anything
-      useful as a result.  If I am sending this to yet anotehr computer - what if it
-      is the one that sent the message.  Will it at some point send the QSO back to me? }
-
-    IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
-        BEGIN
-        RXData.Date := GetFullDateString;
-        SendQSOToUDPPort (RXData);
         END;
     END;
 
@@ -553,7 +544,7 @@ VAR TempString: STRING;
     xResult, Number: INTEGER;
 
     BEGIN
-    { Exchagne stuff that we will have for every kind of QSO }
+    { Exchange stuff that we will have for every kind of QSO }
 
     RXData.RSTSent := GetXMLData ('snt');
     RXData.RSTReceived := GetXMLData ('rcv');
@@ -565,6 +556,12 @@ VAR TempString: STRING;
     TempString := GetXMLData ('rcvnr');
     Val (TempString, Number, xResult);
     IF xResult = 0 THEN RXData.NumberReceived:= Number;
+
+    RXData.Prefix := GetXMLData ('wpxprefix');
+
+    TempString := GetXMLData ('points');
+    Val (TempString, Number, xResult);
+    IF xResult = 0 THEN RXData.QSOPoints := Number;
 
     { Now look at the ActiveExchange and pull out the appropriate data }
 
@@ -622,7 +619,10 @@ VAR TempString: STRING;
         RSTQSONumberAndRandomCharactersExchange: BEGIN END;
         RSTQTHNameAndFistsNumberOrPowerExchange: BEGIN END;
 
-        RSTQSONumberExchange: BEGIN END;  { Already taken care of }
+        RSTQSONumberExchange:
+            BEGIN
+            END;  { Already taken care of }
+
         RSTQTHExchange: BEGIN END;
         RSTZoneAndPossibleDomesticQTHExchange: BEGIN END;
 
@@ -674,6 +674,10 @@ FUNCTION N1MM_Object.CreateRXDataFromUDPMessage (VAR RXData: ContestExchange): B
     GetTimeAndDateFromUDPMessage  (RXData);
     GetCallFromUDPMessage         (RXData);
     GetExchangeDataFromUDPMessage (RXData);
+
+    { Make sure we don't send it out if we are sending QSO UDP packets }
+
+    RXData.Source := ImportedQSO;
     END;
 
 

@@ -31,11 +31,6 @@ UNIT N4OGW;
 
   Then N4OGWBandMap1.Init (IPAddress: String; Port: LONGINT): BOOLEAN;
 
-  The K7RAT RTL-SDR device works best like this:
-
-      10M - IF Offset 100   Tuner Gain  170  Not direct sampling
-     160M -                                  Direct sampling
-
   }
 
 {$O+}
@@ -48,30 +43,42 @@ USES SlowTree, datetimec, Tree, KeyCode, Sockets, UnixType, BaseUnix, portname;
 CONST MaxQTCs = 10;
 
 TYPE
+    SpotListEntry = RECORD
+        Callsign: CallString;
+        SecondsRemaining: INTEGER;
+        END;
+
+    SpotListType = RECORD
+        SpotListArray: ARRAY [9..1000] OF SpotListEntry;
+        NumberSpots: INTEGER;
+        END;
+
     N4OGW_BandMap_Object = CLASS
         BandMapCenterFrequency: LONGINT;
         IPAddress: STRING;
         PortNumber: LONGINT;
         Socket: LONGINT;
 
-        TXMode: BOOLEAN;
-        TXModeTimeout: INTEGER;     { Timer used to count down the TX hold time }
-        TXModeSecondsMemory: WORD;  { Used to remember last seconds value for timer }
-
         QTC_Count: INTEGER;    { Number of UDP messages cued up }
         QTC_Buffer: ARRAY [0..MaxQTCs - 1] OF STRING;
+
+        SecondsMemory: WORD;  { Used to remember seconds value }
+
+        TXMode: BOOLEAN;
+        TXModeTimeout: INTEGER;     { Timer used to count down the TX hold time }
+
+        SpotList: SpotListType;
 
         UDP_PortNumber: LONGINT;
         UDP_Socket: LONGINT;
         UDP_Message: STRING;
 
+        PROCEDURE AddCallToSpotArray (Call: CallString);
         FUNCTION  Check_UDP_Port: BOOLEAN;  { Returns true if a message was found }
-
+        PROCEDURE CheckSpotArray;
         PROCEDURE DeleteCallsign (Call: STRING);
         FUNCTION  GetNextQTC: STRING;
-
         PROCEDURE Heartbeat; { Call this often to give oxygen to UDP polling and TX timeout }
-
         PROCEDURE Init (IP: STRING; Port: LONGINT; UDP_Port: LONGINT);
 
         PROCEDURE SendBandMapCall (Call: CallString; Frequency: LongInt;
@@ -100,6 +107,8 @@ VAR
     N4OGW_RadioTwo_BandMap: N4OGW_BandMap_Object;
 
     N4OGW_UDP_Port_Initialized: BOOLEAN;           { Gets set to TRUE when the first instance opens the port }
+
+FUNCTION GetExactTimeString: STRING;
 
 IMPLEMENTATION
 
@@ -207,8 +216,6 @@ VAR SendString: Str20;
 
 PROCEDURE N4OGW_BandMap_Object.SetRXMode;
 
-VAR Hours, Minutes, Sec100: WORD;
-
     BEGIN
     IF NOT TXMode THEN Exit;   { We are not in TX mode - nothing to do }
 
@@ -219,7 +226,6 @@ VAR Hours, Minutes, Sec100: WORD;
       processed before doing this.  So - we set a timer to create this delay }
 
     TXModeTimeout := 2;
-    GetTime (Hours, Minutes, TXModeSecondsMemory, Sec100);
     END;
 
 
@@ -233,6 +239,7 @@ VAR SocketAddr: TINetSockAddr;
     IPAddress := IP;
     PortNumber := Port;
     QTC_Count := 0;
+    SpotList.NumberSpots := 0;
     TXMode := False;
     TXModeTimeout := 0;
     UDP_PortNumber := UDP_Port;
@@ -284,14 +291,90 @@ VAR SocketAddr: TINetSockAddr;
 
 
 
+PROCEDURE N4OGW_BandMap_Object.AddCallToSpotArray (Call: CallString);
+
+VAR Address: INTEGER;
+
+    BEGIN
+    { See if the call is already in the list - and if so - update the time remaining }
+
+    IF SpotList.NumberSpots > 0 THEN
+        FOR Address := 0 TO SpotList.NumberSpots - 1 DO
+            IF SpotList.SpotListArray [Address].Callsign = Call THEN
+                BEGIN
+                SpotList.SpotListArray [Address].SecondsRemaining := 3600;
+                Exit;
+                END;
+
+    { Add call to the spot list and set to default time remaining }
+
+    IF SpotList.NumberSpots < 1000 THEN
+        BEGIN
+        SpotList.SpotListArray [SpotList.NumberSpots].Callsign := Call;
+        SpotList.SpotListArray [SpotList.NumberSpots].SecondsRemaining := 3600;
+        Inc (SpotList.NumberSpots);
+        END
+    ELSE
+        WriteToDebugFile ('SPOT ARRAY IS FULL!!  Trying to add ' + Call);
+    END;
+
+
+
+PROCEDURE N4OGW_BandMap_Object.CheckSpotArray;
+
+{ Decrements minutes remaining for all entries.  If remaining time goes to
+  zero for a call - it is deleted }
+
+VAR Address: INTEGER;
+    NewArrayAddress, NumberEntriesDeleted: INTEGER;
+
+    BEGIN
+    IF SpotList.NumberSpots = 0 THEN Exit;  { Nothing to do }
+
+    NewArrayAddress := 0;
+    NumberEntriesDeleted := 0;
+
+    { Decrement time and see if it went to zero or below }
+
+    FOR Address := 0 TO SpotList.NumberSpots - 1 DO
+        BEGIN
+        Dec (SpotList.SpotListArray [Address].SecondsRemaining);
+
+        IF SpotList.SpotListArray [Address].SecondsRemaining <= 0 THEN
+            BEGIN
+            Inc (NumberEntriesDeleted);
+            DeleteCallSign (SpotList.SpotListArray [Address].Callsign);
+            WriteToDebugFile ('TIMEOUT!!  We decided to delete ' + SpotList.SpotListArray [Address].Callsign);
+            END
+
+        ELSE
+           { This entry is okay - save it on the "new array" }
+
+            BEGIN
+            IF NumberEntriesDeleted > 0 THEN
+                SpotList.SpotListArray [NewArrayAddress] := SpotList.SpotListArray [Address];
+
+            Inc (NewArrayAddress);
+            END;
+
+        END;
+
+    SpotList.NumberSpots := NewArrayAddress;
+    END;
+
+
+
 PROCEDURE N4OGW_BandMap_Object.SendBandMapCall (Call: CallString;
                                                 Frequency: LongInt;
                                                 Dupe: BOOLEAN;
                                                 Mult: BOOLEAN);
 
+
 VAR FrequencyString, SendString: STRING;
 
     BEGIN
+    AddCallToSpotArray (Call);
+
     Str (Frequency, FrequencyString);
 
     IF Dupe THEN  { Blue call and signal }
@@ -387,7 +470,7 @@ VAR BytesRead: INTEGER;
 
 FUNCTION N4OGW_BandMap_Object.UDP_Normal_Status_Message (Message: STRING): BOOLEAN;
 
-{ Looks at the UDP message to see if it looks like the once second keep
+{ Looks at the UDP message to see if it looks like the once a second keep
   alive message from N4OGW }
 
     BEGIN
@@ -418,25 +501,28 @@ VAR Hours, Minutes, Seconds, Sec100: WORD;
                 WriteToDebugFile ('QTC count is more than 5!!');
             END;
 
-    { See if we are doing a TX delay to allow latency to catch up before enabling
-      peak detect }
+
+    { Check system clock so we can execute some stuff once a second }
+
+    GetTime (Hours, Minutes, Seconds, Sec100);
+
+    IF Seconds = SecondsMemory THEN Exit;
+    SecondsMemory := Seconds;
+
+    { We are now executing this code only once a second }
+
+    CheckSpotArray;
 
     IF TXModeTimeout > 0 THEN
         BEGIN
-        GetTime (Hours, Minutes, Seconds, Sec100);
+        Dec (TXModeTimeOut);
 
-        IF Seconds <> TXModeSecondsMemory THEN  { One second tick }
+        IF TXModeTimeOut = 0 THEN
             BEGIN
-            TXModeSecondsMemory := Seconds;
-            Dec (TXModeTimeOut);
-
-            IF TXModeTimeOut = 0 THEN
-                BEGIN
-                SendString := 'r' + Chr(0);
-                FpSend (Socket, @SendString [1], Length (SendString), 0);
-                TXMode := False;
-                WriteToDebugFile ('Sent r command (receive mode)');
-                END;
+            SendString := 'r' + Chr(0);
+            FpSend (Socket, @SendString [1], Length (SendString), 0);
+            TXMode := False;
+            WriteToDebugFile ('Sent r command (receive mode)');
             END;
         END;
     END;

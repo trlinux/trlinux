@@ -126,6 +126,7 @@ CONST
     LookForDupes = True;
     DoNotLookForDupes = NOT LookForDupes;
 
+    LongLogFileName = 'LONGLOG.DAT';
 
     ProcessedMultiMessageBufferLength = 256;
 
@@ -465,6 +466,7 @@ VAR
     FUNCTION  LooksLikeACallSign (Call: Str40): BOOLEAN;
 
     FUNCTION  MakeLogString (RXData: ContestExchange): Str80;
+
     FUNCTION  MarineOrAirMobileStation (Call: CallString): Boolean; {KK1L: 6.68 Used in WRTC 2002}
 
     PROCEDURE NextPage;
@@ -2467,12 +2469,26 @@ VAR CharIndex, iDstPtrIndex: INTEGER;
 
 FUNCTION LooksLikeACallSign (Call: Str40): BOOLEAN;
 
+{ I am a bit concerned about having this function here and also having
+  the GoodcallSyntax function down in TREE.PAS.  It seems that we should
+  only have one funtion to decide if a callsign looks right or not.  For
+  now, I vote that we use the one in TREE.PAS until proven othersise.  This
+  is in June 2023.  If this is like a few years later - feel free to remove
+  this function and just call the one in TREE.PAS directly. }
+
 TYPE GOT = (gotNIL, gotLETTER, gotNUMBER);
 
 VAR CharIndex, nChanges: INTEGER;
     gotWhat: GOT;
 
     BEGIN
+    { Intercept this with the function in tree.pas }
+
+    LooksLikeACallsign := GoodCallSyntax (Call);
+    Exit;
+
+    { This is the old code that was generated for who knows what reason }
+
     LooksLikeACallsign := False;
 
     gotWhat := gotNIL;
@@ -5545,7 +5561,8 @@ FUNCTION MakeLogString (RXData: ContestExchange): Str80;
 { This function will take the information in the contest exchange record
   passed to it and generate a log entry string from it.  }
 
-VAR LogString: Str80;
+VAR TempString, LogString: STRING;
+    FileWrite: TEXT;
 
     BEGIN
     LogString := '';
@@ -5606,6 +5623,40 @@ VAR LogString: Str80;
     MultiplierStamp (RXData, LogString);
     QSOPointStamp   (RXData, LogString);
     MakeLogString := LogString;
+
+    { Now for some tricky stuff.  I am going to make the LogString a bit longer and
+      save a copy of it in the file LONGLOG.DAT just for fun.  }
+
+    WITH RXData DO
+        BEGIN
+        Str (TimeSeconds, TempString);
+
+        WHILE Length (TempString) < 2 DO TempString := '0' + TempString;
+
+        LogString := LogString + ' Seconds=' + TempString + ' ';
+
+        Str (Frequency, TempString);
+
+        LogString := LogString + 'Frequency=' + TempString + ' ';
+
+        Str (NumberSent, TempString);
+
+        LogString := LogString + 'NumberSent=' + TempString + ' ';
+
+        CASE Radio OF
+            NoRadio:  LogString := LogString + 'Radio=NoRadio ';
+            RadioOne: LogString := LogString + 'Radio=RadioOne ';
+            RadioTwo: LogString := LogString + 'Radio=RadioTwo ';
+            END;
+        END;
+
+    LogString := LogString + GetExactTimeString;  { Thanks n4ogw.pas }
+
+    { Save the long string in LONGLOG.DAT }
+
+    OpenFileForAppend (FileWrite, LongLogFileName);
+    WriteLn (FileWrite, LogString);
+    Close (FileWrite);
     END;
 
 
@@ -5866,15 +5917,6 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
 
         CQWPXQSOPointMethod:
           BEGIN
-          { In 2022 - QSOs with Russia and EU do not count for the WPX test }
-
-          IF (RXCtyID = 'UA') OR (RXCtyID = 'UA2') OR (RXCtyID = 'UA9') OR
-             (RXCtyID = 'R1FJ') OR (RXCtyID = 'EU') THEN
-              BEGIN
-              RXData.QSOPoints := 0;
-              Exit;
-              END;
-
           IF RXData.QTH.Continent = MyContinent THEN
               BEGIN
               IF RXCtyID = MyCountry THEN
@@ -7044,7 +7086,8 @@ VAR Call, FrequencyString: STRING;
           It just sends the delete command back to N4OGW so he will actually do
           the delete from his bandmap }
 
-        DeleteBandMapCall (Call);
+        DeleteBandMapCallFromN4OGWBandmap (Call);
+        DeleteBandMapCallFromTRBandMap (Call);   { New routine }
         Exit;
         END;
 

@@ -1309,6 +1309,8 @@ VAR TimeOut: INTEGER;
         Exit;
         END;
 
+    { If a DVPMessage is playing - wait for it to end }
+
     IF (ActiveMode = Phone) AND DVPMessagePlaying THEN
         BEGIN
         DVPStopPlayback;
@@ -1332,10 +1334,7 @@ VAR TimeOut: INTEGER;
                 Wait (5);
                 Inc (TimeOut)
             UNTIL (NOT DVKMessagePlaying) OR (TimeOut > 30);
-            END
-    ELSE
-        IF (ActiveMode = Phone) AND DVKRadioEnable THEN
-            SendDVKMessage('DVK0');
+            END;
 
     IF ActiveMode = CW THEN FlushCWBufferAndClearPTT;
 
@@ -1367,6 +1366,11 @@ VAR TimeOut: INTEGER;
         DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
         END;
 
+    { We need to update the QSO number sent displayed if QSONumberByBand }
+
+    IF QSONumberByBand THEN
+        DisplayNextQSONumber (99);
+
     { RX Audio affected before here }
 
     SetUpToSendOnActiveRadio;
@@ -1385,9 +1389,10 @@ VAR TimeOut: INTEGER;
 
     BandMapBand := ActiveBand;
     BandMapMode := ActiveMode; {KK1L: 6.69}
-    {DisplayBandMap;} {KK1L: 6.71 Removed because UpdateTimeAndRateDisplays in LOGWIND covers it.}
     VisibleDupeSheetChanged := True;
     END;
+
+
 
 PROCEDURE ExchangeRadios; {KK1L: 6.71}
 {KK1L: 6.71 This proc exchanges the band/mode/freq of the radios keeping the same one active}

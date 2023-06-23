@@ -309,6 +309,7 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
         UDP_Record.Call := Callsign;          { Callsign of station being worked }
         UDP_Record.Mode := ModeString [Mode]; { Until someone tells me different }
         UDP_Record.CountryPrefix := DXQTH;    { DXCC Prefix }
+        UDP_Record.WPXPrefix := Prefix;       { WPX Prefix }
 
         GetRidOfPostcedingSpaces (UDP_Record.Mode);
 
@@ -388,7 +389,7 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
         IF Check <> '' THEN UDP_Record.ck := Check;
         IF Classs <> '' THEN UDP_Record.rcv := Classs;
         IF Kids <> '' THEN UDP_Record.rcv := Kids;
-        IF Name <> '' THEN UDP_Record.name := Name;
+        IF Name <> '' THEN UDP_Record.Name := Name;
 
         CASE Radio OF
             RadioOne: UDP_Record.RadioNr := '1';

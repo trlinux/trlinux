@@ -81,6 +81,8 @@ TYPE
 
     VisibleDupesheet = ARRAY [1..10] OF CallDistrictRecord;
 
+    ContestExchangeSourceType = (LocalQSO, ImportedQSO);
+
     ContestExchange = RECORD
           Age:            Str20;
           Band:           BandType;
@@ -119,6 +121,7 @@ TYPE
           RSTSent:         RSTString;
           RSTReceived:     RSTString;
           SearchAndPounce: BOOLEAN;
+          Source:          ContestExchangeSourceType;
           TenTenNum:       LONGINT;
           Time:            INTEGER;                   { INTEGER time }
           TimeSeconds:     INTEGER;                   { Use with Time to get more resolution }
@@ -710,6 +713,7 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
 
     Exchange.RandomCharsSent     := '';
     Exchange.RandomCharsReceived := '';
+    Exchange.Source           := LocalQSO;  { Change to imported if needed }
 
     Exchange.QTH.Country      := -1;
     Exchange.QTH.Continent    := UnknownContinent;
@@ -1915,14 +1919,6 @@ VAR NumberMults: INTEGER;
 
     IF (RXData.Prefix <> '') AND DoingPrefixMults THEN
         BEGIN
-        { In 2022 - UA and EU QSOs do not count }
-
-        IF ActiveQSOPointMethod = CQWPXQSOPointMethod THEN
-            IF (RXData.QTH.CountryID = 'UA') OR (RXData.QTH.CountryID = 'UA2') OR
-               (RXdata.QTH.CountryID = 'UA9') OR (RXData.QTH.CountryID = 'R1FJ') OR
-               (RXData.QTH.CountryID = 'EU') THEN
-                Exit;  { No need to worry about zone mults }
-
         NumberMults := MultSheet.Totals [MultBand, MultMode].NumberPrefixMults;
 
         IF NumberMults = 0 THEN
@@ -2386,21 +2382,18 @@ VAR FileRead: TEXT;
                         IF NOT TempRXData.DXMult THEN
                             BEGIN
                             ReportError ('Duplicate DX multiplier found = ' + TempRXData.DXQTH);
-                            Wait (1000);
                             END;
 
                     IF DoingPrefixMults AND (TempRXData.Prefix <> '') THEN
                         IF NOT TempRXData.PrefixMult THEN
                             BEGIN
                             ReportError ('Duplicate prefix multiplier found = ' + TempRXData.Prefix);
-                            Wait (1000);
                             END;
 
                     IF DoingZoneMults AND (TempRXData.Zone <> '') THEN
                         IF NOT TempRXData.ZoneMult THEN
                             BEGIN
                             ReportError ('Duplicate zone multiplier found = ' + TempRXData.Zone);
-                            Wait (1000);
                             END;
 
                     AddQSOToSheets (TempRXData);

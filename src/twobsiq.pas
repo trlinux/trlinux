@@ -74,37 +74,42 @@ NOTES FROM SSCW:
 
 NOTES FROM ARRL DX CW
 
-  - Maybe improve the mult/qso display with auto start CQs - I sort of fixed it
   - Footswitch doesn't seem to want to send F1 - does PTT instead.
   - I keep calling dupes in S&P mode - need better warnings.
   - Dualing CQs not working?
   - Not getting SCP calls from log?
 
-BIG ASS PROJECT
-
-  - The current partial call stuff is writen in such a way that adopting it to 2BSIQ
-    is messy.  The reason is that it was all intended to be used by Calssic mode and
-    there are various global variables used to remember where we are at in creating
-    the partial calls that show up while entering a callsign.  Since we will be entering
-    calls from two different "radios" - it would be best to have two completly isolated
-    instances of the partial call code running which are totally independant.  This will
-    likely require a total rewrite of the low level code to make it a nice object for
-    which we can define specific instances of.  I chose not to do this a few hours before
-    the NAQP RTTY test - but this will be an important addition as it will improve the
-    "callsign fetch" process when just entering the suffic of a call immensely (instead
-    of relying on SCP).  As part of this - we can likely clean up the data structure
-    used for the "partial call list" which really is something more like just an
-    alphabetical list of all the calls worked in the contest plus any that are in an
-    initial exchange file (we really don't use initial exchanges files anymore since
-    all that data is in the TRMASTER.DTA database).
-
-    The code should be such that we can easily add in calls from the SCP database if
-    we want to for the partial call list.  Maybe with the criteria "have name" or
-    "have domestic QTH".
-
   - Improve sending RTTY message from keyboard
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+13-Jun-2023
+  - Attempted to clean up the mult display on bandmap entries for WPX.
+
+03-Jun-2023
+  - Made station info for complete callsign come up after auto start send is done.
+  - Allowed country check of two letter callsigns.
+
+02-Jun-2023
+  - Fixed QSO_UDP record where last call popped off editable log window was being sent.
+
+21-Mar-2023
+
+  - Fixed case of QSONumberByBand.
+
+19-Mar-2023
+
+  - Fixed backspace getting overwritten by BandMapBlinkingCall (similar to fix in
+    classic UI).
+
+09-Mar-2023
+
+   - If in the middle of a QSO and you are editing the CallWindow and hit
+     RETURN when the Exchange window doesn't have a valid exchange in it,
+     the cursor will now jump to the Exchange window (this matches the
+     behavior in classic mode).
+
+   - Made INITIAL EXCHANGE OVERWRITE work in TBSIQ.
 
 24-Feb-2023
 

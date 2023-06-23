@@ -574,6 +574,7 @@ VAR
     BandMapMode:                ModeType;
     BandMapBlinkingCall:        CallString;
     BandMapBlinkingCallRecord:  BandMapEntryPointer;
+
     BandMapCursorData:          BandMapEntryPointer;
     BandMapCursorFrequency:     LONGINT;
     BandMapDisplayCQ:           BOOLEAN;
@@ -585,7 +586,6 @@ VAR
     BandMapEnable:              BOOLEAN;
     BandMapEntryInCallWindow:   BOOLEAN;
     BandMapFileVersion:         CHAR;
-    {KK1L: 6.65 Expanded array to cover all cases to keep BM from going whacko when tuning out of band}
     BandMapFirstEntryList:      ARRAY [Band160..NoBand, CW..FM] OF BandMapEntryPointer;
     BandMapGuardBand:           INTEGER;
     BandMapMultsOnly:           BOOLEAN; {KK1L: 6.68}
@@ -662,6 +662,7 @@ VAR
     LastDisplayedFMMode:           BOOLEAN;
     LastDisplayedFreq:             ARRAY [RadioType] of LONGINT; {KK1L: 6.73}
     LastDisplayedMode:             ModeType;
+    LastDisplayedQSONumber:        LONGINT;
     LastDisplayedTime:             Str20;
     LastDisplayedHour:             Str20;
     LastEditedBandMapEntry: INTEGER;
@@ -885,7 +886,8 @@ VAR
   PROCEDURE DecrementBandMapTimes;
   PROCEDURE DecrementQTCCount (Call: CallString; Count: INTEGER);
 
-  PROCEDURE DeleteBandMapCall (Call: Callstring);
+  PROCEDURE DeleteBandMapCallFromN4OGWBandmap (Call: Callstring);
+  PROCEDURE DeleteBandMapCallFromTRBandMap (Call: CallString);    { Does it for all bands/modes }
   PROCEDURE DeleteBandMapEntry (VAR Entry: BandMapEntryPointer);
 
   PROCEDURE DisplayAutoSendCharacterCount;
@@ -945,7 +947,6 @@ VAR
   FUNCTION  GetRecordForBandMapCursor (VAR Entry: BandMapEntryPointer;
                                           CursorEntryNumber: INTEGER) : BOOLEAN;
 
-  FUNCTION  GetNextQSONumber: INTEGER;
   FUNCTION  GetUserInfoString (Call: CallString): STRING;
 
   PROCEDURE IncrementTime (Count: INTEGER);
@@ -2554,6 +2555,10 @@ VAR Percentage: REAL;
 PROCEDURE DisplayNextQSONumber (QSONumber: INTEGER);
 
     BEGIN
+    IF QSONumber = LastDisplayedQSONumber THEN Exit;
+
+    LastDisplayedQSONumber := QSONumber;
+
     SaveSetAndClearActiveWindow (QSONumberWindow);
 
     IF QSONumber > 9999 THEN
@@ -3902,9 +3907,7 @@ PROCEDURE DisplayAutoSendCharacterCount;
     END;
 
 
-PROCEDURE DeleteBandMapCall (Call: Callstring);
-
-{ At some point, this should also delete the call from the TR Log bandmap? }
+PROCEDURE DeleteBandMapCallFromN4OGWBandMap (Call: Callstring);
 
     BEGIN
     IF N4OGW_RadioOne_BandMap_IP <> '' THEN
@@ -3912,6 +3915,7 @@ PROCEDURE DeleteBandMapCall (Call: Callstring);
 
     IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
         N4OGW_RadioTwo_BandMap.DeleteCallsign (Call);
+
     END;
 
 
@@ -3924,6 +3928,10 @@ VAR BandMapEntryRecord, PreviousBandEntryRecord: BandMapEntryPointer;
 
     BEGIN
     IF NOT BandMapEnable THEN Exit;
+
+    { Takes care of the N4OGW bandmap }
+
+    DeleteBandMapCallFromN4OGWBandMap (BigExpandedString (Entry^.Call));
 
     IF BandMapAllBands THEN
         BEGIN
@@ -3999,10 +4007,107 @@ VAR BandMapEntryRecord, PreviousBandEntryRecord: BandMapEntryPointer;
                 BandMapEntryRecord      := BandMapEntryRecord^.NextEntry;
                 END;
             END;
+
     END;
 
 
+
 
+PROCEDURE DeleteBandMapCallFromTRBandmap (Call: CallString);
+
+VAR BandMapEntryRecord, PreviousBandEntryRecord: BandMapEntryPointer;
+    StartBand, StopBand, Band: BandType;
+    StartMode, StopMode, Mode: ModeType;
+
+    BEGIN
+    IF NOT BandMapEnable THEN Exit;
+
+    IF BandMapAllBands THEN
+        BEGIN
+        IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
+            BEGIN
+            StartBand := Band160;
+            StopBand  := Band2;
+            END
+        ELSE
+            BEGIN
+            StartBand := Band160;
+            StopBand  := Band12; {KK1L: 6.65 fixes WARC display enable}
+            END;
+        END
+    ELSE
+        BEGIN
+        StartBand := BandMapBand;
+        StopBand  := BandMapBand;
+        END;
+
+    IF BandMapAllModes THEN
+        BEGIN
+        StartMode := CW;
+        StopMode  := Phone;
+        END
+    ELSE
+        BEGIN
+        StartMode := BandMapMode;
+        StopMode  := BandMapMode;
+        END;
+
+    FOR Band := StartBand TO StopBand DO
+        FOR Mode := StartMode TO StopMode DO
+            BEGIN
+
+            IF (NOT WARCBandsEnabled) AND
+               ((Band = Band30) OR (Band = Band17) OR (Band = Band12)) THEN
+                Continue; {KK1L: 6.64 Keep band map within contest limits}
+
+            { We remember the previous pointer so if we have to remove something
+              from the linked list, we know where the previous entry was so we
+              can update the NextEntry value.  For the first QSO in the list, there
+              is no previous entry }
+
+            PreviousBandEntryRecord := nil;
+
+            { The BandMapEntryRecord is used to point to the record being examined.
+              We start at the first entry for the appropriate Band/Mode }
+
+            BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];
+
+            WHIlE BandMapEntryRecord <> nil DO
+                BEGIN
+                IF BigExpandedString (BandMapEntryRecord^.Call) = Call THEN
+                    BEGIN
+                    IF PreviousBandEntryRecord = nil THEN   { This is the first entry }
+                        BEGIN
+                        BandMapFirstEntryList [Band, Mode] := BandMapEntryRecord^.NextEntry;
+                        Dispose (BandMapEntryRecord);
+
+                        { Set things back up to look at the first entry in the list }
+
+                        BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];
+                        Continue;
+                        END;
+
+                    { Not the first record - remove this from the linked list }
+
+                    PreviousBandEntryRecord^.NextEntry := BandMapEntryRecord^.NextEntry;
+                    Dispose (BandMapEntryRecord);
+
+                    BandMapEntryRecord := PreviousBandEntryRecord^.NextEntry;
+
+                    { The previous record stays the same }
+
+                    Continue;
+                    END;
+
+                { We did not match the call - move to the next record }
+
+                PreviousBandEntryRecord := BandMapEntryRecord;
+                BandMapEntryRecord      := BandMapEntryRecord^.NextEntry;
+                END;
+            END;
+    END;
+
+
 
 PROCEDURE SetUpBandMapEntry (BandMapData: BandMapEntryPointer; Radio: RadioType); {KK1L: 6.73 Added Radio}
 
@@ -6670,6 +6775,7 @@ VAR Band: BandType;
     LastDisplayedFreq[RadioTwo]     := 0; {KK1L: 6.73}
     LastDisplayedHour      := '';
     LastDisplayedMode      := NoMode;
+    LastDisplayedQSONumber := -1;
     LastDisplayedTime      := '';
 
     LastEditedBandMapEntry := 0;
@@ -6697,7 +6803,7 @@ VAR Band: BandType;
     NumberSavedWindows          := 0;
     NumberTotalScoreMessages    := 0;
 
-    OkayToPutUpBandMapCall      := True;
+    OkayToPutUpBandMapCall      := True;   { Initial condition }
     OnDeckCall                  := '';
 
     PacketReturnCount           := 2;
@@ -6808,17 +6914,6 @@ VAR FileRead: TEXT;
         NextQSONumberToGiveOut := LargestQSONumberFound + 1
     ELSE
         NextQSONumberToGiveOut := 1;
-    END;
-
-
-
-FUNCTION GetNextQSONumber: INTEGER;
-
-{ Returns next available serial number }
-
-    BEGIN
-    GetNextQSONumber := NextQSONumberToGiveOut;
-    Inc (NextQSONumberToGiveOut);
     END;
 
 

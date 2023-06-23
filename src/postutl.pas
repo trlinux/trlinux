@@ -1681,6 +1681,8 @@ Begin
    AdifString := AdifString + '<Freq:' + LenStr +'>' + FreqStr;
 End;
 
+
+
 PROCEDURE ConvertLogStringToADIF (LogString: STRING; VAR ADIFString: STRING);
 
 VAR TempString: STRING;
@@ -1688,14 +1690,18 @@ VAR TempString: STRING;
     Mode: ModeType;
     DateString, TimeString, Call, RSTSent, RSTReceived, LengthString: Str20;
     MonthString, YearString, DayString: STRING [5];
-    FreqMhz: Real;
-    PossibleFreqString : String;
+    FreqMhz: REAL;
+    PossibleFreqString : STRING;
     xresult: INTEGER;
+    UsingLongLogFile: BOOLEAN;
 
     BEGIN
     TempString := '';
 
     GetRidOfPostcedingSpaces (LogString);
+
+    UsingLongLogFile := Length (LogString) > 80;
+    FreqMhz := 0.0;
 
     IF LogString <> '' THEN
         BEGIN
@@ -1704,13 +1710,34 @@ VAR TempString: STRING;
         DateString := GetLogEntryDateString (LogString);
         TimeString := GetLogEntryTimeString (LogString);
         Call       := GetLogEntryCall       (LogString);
-        PossibleFreqString := Copy(LogString,23,5);
-        FreqMhz := 0.0;
-        IF StringHas (PossibleFreqString, '.')  THEN
-        Begin
-           Val(PossibleFreqString,FreqMHz,xResult);
-           if xResult <> 0 then FreqMHz := 0.0;
-        end;
+
+        IF UsingLongLogFile THEN
+            BEGIN
+            PossibleFreqString := BracketedString (LogString, 'Frequency=', ' ');
+
+            IF PossibleFreqString <> '' THEN
+                BEGIN
+                Val(PossibleFreqString,FreqMHz,xResult);
+
+                { The value in the long log file is in Hertz - so convert to Mhz }
+
+                IF xResult <> 0 THEN
+                    FreqMHz := 0.0
+                ELSE
+                    FreqMhz := FreqMhz / 1000000;
+                END;
+            END
+
+        ELSE
+            BEGIN
+            PossibleFreqString := Copy(LogString,23,5);
+
+            IF StringHas (PossibleFreqString, '.')  THEN  { Frequency is partially in # sent field }
+                BEGIN
+                Val(PossibleFreqString,FreqMHz,xResult);  { This is the frequency after the decimal point }
+                if xResult <> 0 then FreqMHz := 0.0;
+                END;
+            END;
 
         RSTSent     := Copy (LogString, 45, 3);
         RSTReceived := Copy (LogString, 50, 3);
@@ -1732,106 +1759,130 @@ VAR TempString: STRING;
             BAND160:
                Begin
                   TempString := TempString + '<Band:4>160M';
-                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+1.0);
+                  IF NOT UsingLongLogFile THEN
+                      if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+1.0);
                End;
              BAND80:
                Begin
                   TempString := TempString + '<Band:3>80M';
-                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+3.0);
+                  IF NOT UsingLongLogFile THEN
+                      if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+3.0);
                End;
              BAND40:
                 Begin
                   TempString := TempString + '<Band:3>40M';
-                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+7.0);
+                  IF NOT UsingLongLogFile THEN
+                      if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+7.0);
                 End;
              BAND30:
                 Begin
                   TempString := TempString + '<Band:3>30M';
-                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+10.0);
+                  IF NOT UsingLongLogFile THEN
+                      if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+10.0);
                 End;
              BAND20:
                 Begin
                   TempString := TempString + '<Band:3>20M';
-                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+14.0);
+                  IF NOT UsingLongLogFile THEN
+                      if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+14.0);
                 End;
              BAND17:
                 Begin
                   TempString := TempString + '<Band:3>17M';
-                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+18.0);
+                  IF NOT UsingLongLogFile THEN
+                      if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+18.0);
                 End;
              BAND15:
                 Begin
                   TempString := TempString + '<Band:3>15M';
-                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+21.0);
+                  IF NOT UsingLongLogFile THEN
+                      if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+21.0);
                 End;
              BAND12:
                 Begin
                   TempString := TempString + '<Band:3>12M';
-                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+24.0);
+                  IF NOT UsingLongLogFile THEN
+                      if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+24.0);
                 End;
              BAND10:
                 Begin
                   TempString := TempString + '<Band:3>10M';
-                  if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+28.0);
+                  IF NOT UsingLongLogFile THEN
+                      if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+28.0);
                 End;
               BAND6:
                  Begin
                    TempString := TempString + '<Band:2>6M';
-                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+50.0);
+                   IF NOT UsingLongLogFile THEN
+                       if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+50.0);
                  End;
               BAND2:
                  Begin
                    TempString := TempString + '<Band:2>2M';
-                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+144.0);
+                   IF NOT UsingLongLogFile THEN
+                       if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+144.0);
                  End;
             BAND222:
                  Begin
                     TempString := TempString + '<Band:5>1.25M';
-                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+222.0);
+                    IF NOT UsingLongLogFile THEN
+                        if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+222.0);
                  End;
             BAND432:
                  Begin
                    TempString := TempString + '<Band:4>70CM';
-                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+432.0);
+                   IF NOT UsingLongLogFile THEN
+                       if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+432.0);
                  End;
             BAND902:
                  Begin
                    TempString := TempString + '<Band:4>35CM';
-                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+902.0);
+                   IF NOT UsingLongLogFile THEN
+                       if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+902.0);
                  End;
            BAND1296:
                  Begin
                    TempString := TempString + '<Band:4>23CM';
-                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+1296.0);
+                   IF NOT UsingLongLogFile THEN
+                       if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+1296.0);
                  End;
            BAND2304:
                  Begin
                    TempString := TempString + '<Band:4>13CM';
-                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+2304.0);
+                   IF NOT UsingLongLogFile THEN
+                       if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+2304.0);
                  End;
            BAND3456:
                  Begin
                    TempString := TempString + '<Band:3>9CM';
-                   if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+3456.0);
+                   IF NOT UsingLongLogFile THEN
+                       if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+3456.0);
                  End;
            BAND5760:
               Begin
                  TempString := TempString + '<Band:3>6CM';
-                 if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+5760.0);
+                 IF NOT UsingLongLogFile THEN
+                     if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+5760.0);
               End;
             BAND10G:
                Begin
                  TempString := TempString + '<Band:3>3CM';
-                 if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+10000.0);
+                 IF NOT UsingLongLogFile THEN
+                     if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+10000.0);
                End;
             BAND24G:
                Begin
                  TempString := TempString + '<Band:6>1.25CM';
-                 if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+24000.0);
+                 IF NOT UsingLongLogFile THEN
+                     if FreqMHz > 0.0 then AddAdifFreq(TempString,FreqMHz+24000.0);
                End;
             END;
 
+        { Using exact frequencies from LONGLOG.DAT file }
 
+        IF UsingLongLogFile THEN
+            IF FreqMHz > 0.0 THEN
+                AddAdifFreq (TempString, FreqMhz);
 
         CASE Mode OF
             CW:      TempString := TempString + '<Mode:2>CW';
@@ -1905,10 +1956,20 @@ VAR OutputFileName, InputFileName: Str40;
     WriteLn ('This procedure will convert a TR Log file to an ADIF file.  The band, mode,');
     WriteLn ('date, time and callsign will be converted.  If RSTs are found in the log,');
     WriteLn ('they will be converted as well.');
+
     WriteLn;
 
-    InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
-    IF InputFileName = '' THEN Exit;
+    IF FileExists ('LONGLOG.DAT') THEN
+        BEGIN
+        WriteLn ('You appear to have the file LONGLOG.DAT available.  This file will be used');
+        WriteLn ('for your input file since it has more accurate data than your LOG file.');
+        InputFileName := 'LONGLOG.DAT';
+        END
+    ELSE
+        BEGIN
+        InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
+        IF InputFileName = '' THEN Exit;
+        END;
 
     OutputFileName := GetResponse ('Enter ADIF output filename (none to exit) : ');
     IF OutputFileName = '' THEN Exit;

@@ -300,6 +300,8 @@ VAR TempQTH: QTHRecord;
             ActiveDomesticMult := WYSIWYGDomestic;
             MultByBand := False;
             MultByMode := False;
+            QSOByBand := True;
+            QSOByMode := True;
             FoundContest := True;
             END;
 

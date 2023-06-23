@@ -2099,8 +2099,8 @@ VAR Key: CHAR;
 FUNCTION GetPrefix (Call: CallString): PrefixString;
 
 { This function will return the prefix for the call passed to it. This is
-    a new and improved version that will handle calls as they are usaully
-    sent on the air.                                                          }
+  a new and improved version that will handle calls as they are usually
+  sent on the air.                              }
 
 VAR CallPointer, Count: INTEGER;
     FirstPart, SecondPart, TempString: Str80;

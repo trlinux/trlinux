@@ -38,10 +38,107 @@ PROGRAM ContestLoggingProgram;
 
      - Although when working someone in S&P - after you are done - the call is gone
 
-     - When using footswitch to send CQ message, I get a VOX warning which I do
-       not get from pressing F1.
 
-08-Mar-2020
+TODO List after 2023 WPX CW:
+
+ - Bandmap is challenged indicating mult status of portable callsigns (prefix)
+ - Some bandmap confusion on which band is dispayed with TBSIQ
+ - Update whole bandmap when any QSO made - am seeing lots of calls not disappearing
+   when they are now dupes.
+ - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
+ - Alt-I seems to work once but not again (TBSIQ?)
+
+
+16-Jun-2023
+  - Removed exchange window when returnning from SO2V QSO or not
+
+14-Jun-2023
+  - Added memory of calls sent to N4OGW and made them get deleted after an hour
+
+13-Jun-2023
+  - Fixed issue with QSO number being inserted at the start of Cabrillo
+    lines for contests that do not use serial numbers (like the June VHF
+    test).
+
+1-Jun-2023
+  - Fixed WPX Prefixes mults not being flagged when receiving QSO_UDP packets.
+
+25-May-2023
+
+  - Made it so QSOs that were imported using N1MM UDP PORT are not sent out to the
+    QSO UDP IP / QSO UDP PORT output so we don't get an infinite loop.
+
+09-May-2023
+
+  - Fixed QSOByBand and QSOByMode for 7QP
+
+04-Apr-2023
+
+    - Fixed frequency in ADIF file when using LONGLOG.DAT file
+
+28-Mar-2023
+
+     - Fixed N1MM QSO packets not processing QSO points.
+
+27-Mar-2023
+
+    - Taught the ADIF conversion routine to use the LONGLOG.DAT if a LONGLOG
+      file is used for the input.
+
+26-Mar-2023
+
+  - Fixed Russia counting as zero points.
+
+24-Mar-2023
+
+  - Made prefix mults get processed (0119Z after contest start)
+
+  - Improved POST Cabrillo file generator to incorporte data in the LONGLOG.DAT
+    file for frequency and sent QSO Number.
+
+22-Mar-2023
+
+  - Added a new file - LONGLOG.DAT which will have all of the information that is
+    generated for the normal LOG.DAT entries and add more accurate frequency and
+    time data along with an ID for which radio was active.  This file is written
+    when the QSO is made and will not reflect any changes made with the Alt-E
+    editor.  It is intended to support a future change to the Cabrillo spec where
+    the frequency and time will be more exact.  It also likely makes using LOG
+    FREQUENCY ENABLE less useful as keeping the sent QSO number is much more
+    important especially in the TBSIQ case.
+
+    At some point, the Cabrillo generator in POST will need to be made aware of
+    this file and incorporate the new data.  This will probably happen shortly
+    after the 2023 WPX SSB event.
+
+21-Mar-2023
+
+  - Fixed QSONumberByBand for classic mode.  Was broken when we adopted the new QSO Number
+    system for TBSIQ a couple of months ago.
+
+20-Mar-2023
+
+  - If you are on a frequency where the call window is populated with a callsign from
+    the bandmap and start to enter a new callsign, the window will clear out first.  This
+    was invented first in TBSIQ and I made it work the same way in classic mode now.  So
+    many times I would tune into a frequency and not even be aware that there was a callsign
+    polulated and start enterting a call to do a dupe check on it.
+
+19-Mar-2023
+
+  - When on a frequency with BandMapBlinking call - pressing BACKSPACE now will work.
+    Before, the call was being overwritten with the BandMapBLinkingCall.
+
+
+14-Mar-2023
+
+  - Did a few tweaks to the TWO VFO MODE.  If you are in that mode with an empty
+    call window - you can swap back and forth between VFOs by hitting the SPACE
+    BAR.  If have something in the call window - pressing space bar will do a dupe
+    check.  You exit S&P and return to the "CQ" frequency by either exiting S&P with
+    an escape key - or pressing SPACE BAR with an empty call window.
+
+08-Mar-2023
 
    - Rename AUTO SCP CALL FETCH to AUTO PARTIAL CALL FETCH to more accurately describe
      which window it works with.  Also made it work if two letters resolves to a single
@@ -56,6 +153,9 @@ PROGRAM ContestLoggingProgram;
 
    - Removed support for INITIAL.EX file - please use TRMASTER.DTA
 
+   - Improved format of QSO records send with QSO UDP PORT/QSO UDP IP to use new
+     lines and tabs in front of each field.  This copies how N1MM and DX Log send
+     their data.
 
 02-Mar-2023
 
@@ -66,7 +166,7 @@ PROGRAM ContestLoggingProgram;
    - Added some support for some of the typical multi-multi contests to the new
      N1MM_UDP_PORT function.  There are still lots of exchanges that will not be
      parsed correctly.  Also - currently, there is no validity check on the data
-     before attempting to log the QSO.  Also - none of it is tested yet.
+     before attempting to log the QSO.
 
 28-Feb-2023
 
