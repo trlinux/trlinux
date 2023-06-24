@@ -1930,8 +1930,8 @@ VAR Band: BandType;
 
     IF NOT DoingDupingFile THEN
         BEGIN
-        WriteLn (FileWrite, '                   160    80    40    20    15    10    ALL');
-        WriteLn (FileWrite, '                   ---    --    --    --    --    --    ---');
+        WriteLn (FileWrite, '                   160    80    40    20    15    10    30    17    12    ALL');
+        WriteLn (FileWrite, '                   ---    --    --    --    --    --    --    --    --    ---');
         END;
 
     Write (FileWrite, '  USA calls   = ');
@@ -1940,7 +1940,7 @@ VAR Band: BandType;
         BEGIN
         AllBandTotal := 0;
 
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, USA]:6);
             AllBandTotal := ContTotals [Band, USA] + AllBandTotal;
@@ -1955,7 +1955,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, Canada]:6);
             AllBandTotal := ContTotals [Band, Canada] + AllBandTotal;
@@ -1970,7 +1970,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, NA]:6);
             AllBandTotal := ContTotals [Band, NA] + AllBandTotal;
@@ -1984,7 +1984,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, SA]:6);
             AllBandTotal := ContTotals [Band, SA] + AllBandTotal;
@@ -1998,7 +1998,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, EU]:6);
             AllBandTotal := ContTotals [Band, EU] + AllBandTotal;
@@ -2012,7 +2012,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, AF]:6);
             AllBandTotal := ContTotals [Band, AF] + AllBandTotal;
@@ -2026,7 +2026,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, ASI]:6);
             AllBandTotal := ContTotals [Band, ASI] + AllBandTotal;
@@ -2040,7 +2040,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, Japan]:6);
             AllBandTotal := ContTotals [Band, Japan] + AllBandTotal;
@@ -2054,7 +2054,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, OC]:6);
             AllBandTotal := ContTotals [Band, OC] + AllBandTotal;
@@ -2070,7 +2070,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, ContTotals [Band, UK]:6);
             AllBandTotal := ContTotals [Band, UK] + AllBandTotal;
@@ -2089,7 +2089,7 @@ VAR Band: BandType;
     IF NOT DoingDupingFile THEN
         BEGIN
         AllBandTotal := 0;
-        FOR Band := Band160 TO Band10 DO
+        FOR Band := Band160 TO Band12 DO
             BEGIN
             Write (FileWrite, QSOTotals [Band]:6);
             AllBandTotal := QSOTotals [Band] + AllBandTotal;
@@ -2101,7 +2101,7 @@ VAR Band: BandType;
 
     WriteLn (FileWrite);
 
-    FOR Band := Band160 TO Band10 DO
+    FOR Band := Band160 TO Band12 DO
         IF ContTotals [Band, UK] > 0 THEN
             BEGIN
             TempString := BandString [Band];

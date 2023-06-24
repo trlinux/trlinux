@@ -1780,7 +1780,10 @@ VAR CQMemory, SendChar: CHAR;
             REPEAT
                 IF ActiveMode <> Phone THEN
                     BEGIN
-                    TimeElasped := ActiveKeyer.GetCountsSinceLastCW DIV 298;
+                    IF NOT CWStillBeingSent THEN
+                        TimeElasped := ActiveKeyer.GetCountsSinceLastCW DIV 298
+                    ELSE
+                        TimeElasped := 0;
                     END
                 ELSE
                     TimeElasped := MicroTimeElapsed (StartOfLastPhoneMessage) DIV 50;
@@ -1805,6 +1808,7 @@ VAR CQMemory, SendChar: CHAR;
                 IF ActiveMultiPort <> nil THEN CheckMultiState;
 
                 Packet.CheckPacket;
+                UpdateTimeAndRateDisplays (True, False);
 
             //Wait (4);
 
