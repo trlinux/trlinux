@@ -83,6 +83,17 @@ NOTES FROM ARRL DX CW
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+07-Aug-2023
+
+  - Played around with the variable SearchAndPounceExchangeSent some to make
+    sure it got set and unset at the right times.  I had a few times during the
+    NAQP where I was surprised that an exchange didn't get sent when logging a
+    QSO.
+
+05-Aug-2023
+
+  - Initial exchange was broken if you had overwrite enabled.  Fixed this bug.
+
 13-Jun-2023
   - Attempted to clean up the mult display on bandmap entries for WPX.
 
