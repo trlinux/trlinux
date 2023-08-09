@@ -2345,6 +2345,8 @@ VAR FileRead: TEXT;
             BEGIN
             ReadLn (FileRead, FileString);
 
+            ClearContestExchange (TempRXData);
+
             TempRXData.Band     := GetLogEntryBand (FileString);
             TempRXData.Mode     := GetLogEntryMode (FileString);
             TempRXData.Callsign := GetLogEntryCall (FileString);
@@ -2358,19 +2360,13 @@ VAR FileRead: TEXT;
                 Inc (QSOTotals [All,             TempRXData.Mode]);
                 Inc (QSOTotals [All,             Both]);
 
+                QSOPoints := TempRXData.QSOPoints;
+
                 GoToXY (1, WhereY);
                 Write (QSOTotals [All, Both]);
 
                 IF PartialCallLoadLogEnable THEN
-                    BEGIN
                     ParseExchangeIntoContestExchange (FileString, TempRXData);
-                    QSOPoints := TempRXData.QSOPoints;
-                    END
-                ELSE
-                    BEGIN
-                    QSOPoints := GetLogEntryQSOPoints (FileString);
-                    TempRXData.Callsign := GetLogEntryCall (FileString);
-                    END;
 
                 IF SingleBand <> All THEN
                     IF TempRXData.Band <> SingleBand THEN

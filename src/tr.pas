@@ -49,6 +49,11 @@ TODO List after 2023 WPX CW:
  - Alt-I seems to work once but not again (TBSIQ?)
 
 
+09-Aug-2023
+  - Fixed bug where the initial exchanges were getting screwed up if you
+    loaded a log without PARTIAL CALL LOAD LOG ENABLE = TRUE. The exchange
+    info wasn't initialized and it was being added to the AllCallList.
+
 16-Jun-2023
   - Removed exchange window when returnning from SO2V QSO or not
 
