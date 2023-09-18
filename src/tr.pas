@@ -49,6 +49,10 @@ TODO List after 2023 WPX CW:
  - Alt-I seems to work once but not again (TBSIQ?)
 
 
+14-Sep-2023
+  - Changed the domestic file used for the CW Sprint from S48P8.DOM to SPRINT.DOM
+  - For the Sprint, added Hawaii as a domestic mult.
+
 09-Aug-2023
   - Fixed bug where the initial exchanges were getting screwed up if you
     loaded a log without PARTIAL CALL LOAD LOG ENABLE = TRUE. The exchange

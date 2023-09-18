@@ -1050,7 +1050,14 @@ VAR Key:             CHAR;
             NumberExchangeElementsToRecord := 1;
             END;
 
-        CalQSO, FQP, MIQP, MQP, OHIOQP, SALMONRUN, WQP:  {KK1L: 6.71 added other state QPs}
+        CalQSO, FQP, MIQP, MQP, OHIOQP, WQP:  {KK1L: 6.71 added other state QPs}
+            BEGIN
+            Section := GetResponse ('Enter your state or county sent : '); {KK1L: 6.71 Removed 'Cal' before 'county'}
+            IF Section = '' THEN Exit;
+            SentInformation := '$ ' + Section;
+            END;
+
+        SALMONRUN:  {KK1L: 6.71 added other state QPs}
             BEGIN
             Section := GetResponse ('Enter your state or county sent : '); {KK1L: 6.71 Removed 'Cal' before 'county'}
             IF Section = '' THEN Exit;
