@@ -49,6 +49,10 @@ TODO List after 2023 WPX CW:
  - Alt-I seems to work once but not again (TBSIQ?)
 
 
+27-Sep-2023
+  - Added support in KEYERARD.PAS for W9CF added parallel port commands
+  - Added support in Arduino code for W9CF parallel port commands.
+
 18-Sep-2023
   - Fixed Cabrillo output for WA-SALMON-RUN
 
