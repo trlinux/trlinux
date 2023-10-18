@@ -48,6 +48,13 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+18-Oct-2023
+ - I had a feature that in classic mode would not add characters to a call window
+   entry if the call window entry is the band map binking call.  This manifasted
+   itself as follows: Type in ZD9, do a dupecheck (and put it on the band map) so
+   you can see the beam heading.  Then try to enter a W and log the callsign.  Pressing
+   the W clears the call window..  So - I defeated this feature for better or worse.
+
 
 27-Sep-2023
   - Added support in KEYERARD.PAS for W9CF added parallel port commands
