@@ -48,6 +48,29 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+18-Oct-2023
+ - I had a feature that in classic mode would not add characters to a call window
+   entry if the call window entry is the band map binking call.  This manifasted
+   itself as follows: Type in ZD9, do a dupecheck (and put it on the band map) so
+   you can see the beam heading.  Then try to enter a W and log the callsign.  Pressing
+   the W clears the call window..  So - I defeated this feature for better or worse.
+
+
+27-Sep-2023
+  - Added support in KEYERARD.PAS for W9CF added parallel port commands
+  - Added support in Arduino code for W9CF parallel port commands.
+
+18-Sep-2023
+  - Fixed Cabrillo output for WA-SALMON-RUN
+
+14-Sep-2023
+  - Changed the domestic file used for the CW Sprint from S48P8.DOM to SPRINT.DOM
+  - For the Sprint, added Hawaii as a domestic mult.
+
+09-Aug-2023
+  - Fixed bug where the initial exchanges were getting screwed up if you
+    loaded a log without PARTIAL CALL LOAD LOG ENABLE = TRUE. The exchange
+    info wasn't initialized and it was being added to the AllCallList.
 
 16-Jun-2023
   - Removed exchange window when returnning from SO2V QSO or not

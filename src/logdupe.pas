@@ -606,6 +606,7 @@ FUNCTION GetInitialExchangeFromExchangeMemory (Call: CallString): STRING;
   to it.  If there is no initial exchange, a null string will be returned. }
 
 VAR Address: INTEGER;
+    AddressString: Str20;
 
     BEGIN
     GetInitialExchangeFromExchangeMemory := '';
@@ -615,7 +616,7 @@ VAR Address: INTEGER;
 
     { We can speed this up later when it all works if we need to }
 
-    FOR Address := 9 TO NumberAllCalls - 1 DO
+    FOR Address := 0 TO NumberAllCalls - 1 DO
         IF AllCallList [Address] = Call THEN
             BEGIN
             GetInitialExchangeFromExchangeMemory := ExchangeMemoryList [Address];
@@ -974,11 +975,27 @@ VAR MultString: Str20;
 
 PROCEDURE TransferLogEntryInfoToContestExchange (LogEntry: Str80; VAR RXData: ContestExchange);
 
+{ So - in 2023 we have a problem.  I am expecting RXData to have the necessary information
+  to determine the initial exchange.  This wasn't a requirement before I changed things
+  and went to the AllCallList that gets entries added to it when the QSO is put into
+  the dupesheet.  Thus - a QSO that has scrolled off the top of the editable log window
+  has messed up initial exchange information.
+
+  To fix this - this routine has to get a lot smarter and properly populate the exchange
+  fields with the proper information.  Some of this is already done in the routine that
+  fetches initial exchanges from the EditableLogWindow!  }
+
     BEGIN
     ClearContestExchange (RXData);
     RXData.Band     := GetLogEntryBand (LogEntry);
     RXData.Mode     := GetLogEntryMode (LogEntry);
     RXData.Callsign := GetLogEntryCall (LogEntry);
+
+    { The above stuff is what used to be here - it gets destroyed when the
+      ParseExchangeIntoContestExchange procedure is called }
+
+    ParseExchangeIntoContestExchange (LogEntry, RXData);
+
     GetMultsFromLogEntry (LogEntry, RXData);
     RXData.QTH.Prefix := RXData.Prefix;
     END;
@@ -2328,6 +2345,8 @@ VAR FileRead: TEXT;
             BEGIN
             ReadLn (FileRead, FileString);
 
+            ClearContestExchange (TempRXData);
+
             TempRXData.Band     := GetLogEntryBand (FileString);
             TempRXData.Mode     := GetLogEntryMode (FileString);
             TempRXData.Callsign := GetLogEntryCall (FileString);
@@ -2341,19 +2360,13 @@ VAR FileRead: TEXT;
                 Inc (QSOTotals [All,             TempRXData.Mode]);
                 Inc (QSOTotals [All,             Both]);
 
+                QSOPoints := TempRXData.QSOPoints;
+
                 GoToXY (1, WhereY);
                 Write (QSOTotals [All, Both]);
 
                 IF PartialCallLoadLogEnable THEN
-                    BEGIN
                     ParseExchangeIntoContestExchange (FileString, TempRXData);
-                    QSOPoints := TempRXData.QSOPoints;
-                    END
-                ELSE
-                    BEGIN
-                    QSOPoints := GetLogEntryQSOPoints (FileString);
-                    TempRXData.Callsign := GetLogEntryCall (FileString);
-                    END;
 
                 IF SingleBand <> All THEN
                     IF TempRXData.Band <> SingleBand THEN
@@ -2702,6 +2715,7 @@ FUNCTION ParseExchangeIntoContestExchange (LogEntry: STRING;
 { Returns TRUE if it looks like a good QSO }
 
 VAR ExchangeString: Str80;
+    FirstString, SecondString: Str40;
 
     BEGIN
     ParseExchangeIntoContestExchange := False;
@@ -2734,63 +2748,83 @@ VAR ExchangeString: Str80;
             RXData.RSTReceived := RemoveFirstString (ExchangeString);
         END;
 
-    IF (ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange) THEN {KK1L: 6.70 for FISTS funny exchange}
+    IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN {KK1L: 6.70 for FISTS funny exchange}
         BEGIN
         RXData.QTHString := RemoveFirstString(ExchangeString);
         RXData.Name := RemoveFirstString (ExchangeString);
         {KK1L: 6.70 The power/number is right where the mults usually go}
         RXData.Power := GetLogEntryMultString (LogEntry); {KK1L: 6.70 I use power string for either number or power}
-        END
+        Exit;
+        END;
 
-    ELSE {KK1L: 6.70 What follows is what was always here!}
+    IF ActiveExchange = CWTExchange THEN
         BEGIN
-        IF ExchangeInformation.Classs THEN
-            RXData.Classs := RemoveFirstString (ExchangeString);
+        { We either have a member number and name, or name and QTH }
 
-        { Sometimes the QSO number is optional - so only pull it off the
-          exchange if it looks like it is there. }
+        FirstString := RemoveFirstString (ExchangeString);
+        SecondString := RemoveFirstString (ExchangeString);
 
-        IF ExchangeInformation.QSONumber AND StringIsAllNumbers (GetFirstString (ExchangeString)) THEN
-            RXData.NumberReceived := RemoveFirstLongInteger (ExchangeString);
-
-        IF ExchangeInformation.RandomChars THEN
+        IF StringIsAllNumbers (FirstString) THEN
             BEGIN
-            RXData.RandomCharsSent     := RemoveFirstString (ExchangeString);   { added in 6.27 }
-            RXData.RandomCharsReceived := RemoveFirstString (ExchangeString);
-            END;
-
-        IF ExchangeInformation.PostalCode THEN
+            Val (FirstString, RXData.NumberReceived);
+            RXData.Name := SecondString;
+            END
+        ELSE
             BEGIN
-            RXData.PostalCode := RemoveFirstString (ExchangeString) + ' ' + RemoveFirstString (ExchangeString);
+            RXData.Name := FirstString;
+            RXData.QTHString := SecondString;
             END;
+        Exit;
+        END;
 
-        IF ExchangeInformation.Power THEN
-            RXData.Power := RemoveFirstString (ExchangeString);
+    {KK1L: 6.70 What follows is what was always here!}
 
-        IF ExchangeInformation.Age THEN
-            RXData.Age := RemoveFirstString (ExchangeString);
+    IF ExchangeInformation.Classs THEN
+        RXData.Classs := RemoveFirstString (ExchangeString);
 
-        IF ExchangeInformation.Name THEN
-            RXData.Name := RemoveFirstString (ExchangeString);
+    { Sometimes the QSO number is optional - so only pull it off the
+      exchange if it looks like it is there. }
 
-        IF ExchangeInformation.Chapter THEN
-            RXData.Chapter := RemoveFirstString (ExchangeString);
+    IF ExchangeInformation.QSONumber AND StringIsAllNumbers (GetFirstString (ExchangeString)) THEN
+        RXData.NumberReceived := RemoveFirstLongInteger (ExchangeString);
 
-        IF ExchangeInformation.Precedence THEN
-            RXData.Precedence := RemoveFirstString (ExchangeString);
+    IF ExchangeInformation.RandomChars THEN
+        BEGIN
+        RXData.RandomCharsSent     := RemoveFirstString (ExchangeString);   { added in 6.27 }
+        RXData.RandomCharsReceived := RemoveFirstString (ExchangeString);
+        END;
 
-        IF ExchangeInformation.Check THEN
-            RXData.Check := RemoveFirstString (ExchangeString);
+    IF ExchangeInformation.PostalCode THEN
+        BEGIN
+        RXData.PostalCode := RemoveFirstString (ExchangeString) + ' ' + RemoveFirstString (ExchangeString);
+        END;
 
-        IF ExchangeInformation.Zone AND StringIsAllNumbersOrSpaces (ExchangeString) THEN
-            RXData.Zone := RemoveFirstString (ExchangeString);
+    IF ExchangeInformation.Power THEN
+        RXData.Power := RemoveFirstString (ExchangeString);
 
-        IF ExchangeInformation.QTH THEN
-            BEGIN
-            GetRidOfPrecedingSpaces (ExchangeString);
-            GetRidOfPostcedingSpaces (ExchangeString);
-            RXData.QTHString := ExchangeString;
-            END;
+    IF ExchangeInformation.Age THEN
+        RXData.Age := RemoveFirstString (ExchangeString);
+
+    IF ExchangeInformation.Name THEN
+        RXData.Name := RemoveFirstString (ExchangeString);
+
+    IF ExchangeInformation.Chapter THEN
+        RXData.Chapter := RemoveFirstString (ExchangeString);
+
+    IF ExchangeInformation.Precedence THEN
+        RXData.Precedence := RemoveFirstString (ExchangeString);
+
+    IF ExchangeInformation.Check THEN
+        RXData.Check := RemoveFirstString (ExchangeString);
+
+    IF ExchangeInformation.Zone AND StringIsAllNumbersOrSpaces (ExchangeString) THEN
+        RXData.Zone := RemoveFirstString (ExchangeString);
+
+    IF ExchangeInformation.QTH THEN
+        BEGIN
+        GetRidOfPrecedingSpaces (ExchangeString);
+        GetRidOfPostcedingSpaces (ExchangeString);
+        RXData.QTHString := ExchangeString;
         END;
 
     ParseExchangeIntoContestExchange := True;

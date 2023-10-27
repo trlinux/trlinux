@@ -177,16 +177,20 @@ Uses keycode,linuxsound,xkb,sysutils;
 
 PROCEDURE ArduinoKeyer.SetRig1Band (Band: INTEGER);
 
-{ SO2R mini has no band output ports }
+{ SO2R mini might have a band output port thanks to W9CF }
 
     BEGIN
+    ArduinoKeyerPort.PutChar (Char ($1D));
+    ArduinoKeyerPort.PutChar (Char (Band and $0f));
     END;
 
 PROCEDURE ArduinoKeyer.SetRig2Band (Band: INTEGER);
 
-{ SO2R mini has no band output ports }
+{ SO2R mini might have band output port thanks to W9CF  }
 
     BEGIN
+    ArduinoKeyerPort.PutChar (Char ($1D));
+    ArduinoKeyerPort.PutChar (Char ($10 OR (Band and $0f)));
     END;
 
 PROCEDURE ArduinoKeyer.SetAux (Aux: INTEGER; Value: INTEGER);
@@ -194,6 +198,8 @@ PROCEDURE ArduinoKeyer.SetAux (Aux: INTEGER; Value: INTEGER);
 { I have no understanding of how to apply this to the SO2R mini }
 
     BEGIN
+    ArduinoKeyerPort.PutChar (Char ($1D));
+    ArduinoKeyerPort.PutChar (Char (((Aux AND $0F) SHL 4) OR (Value AND $0F)));
     END;
 
 

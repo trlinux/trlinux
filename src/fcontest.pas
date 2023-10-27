@@ -1667,7 +1667,9 @@ VAR TempQTH: QTHRecord;
             ActiveInitialExchange := NameQTHInitialExchange;
             ActiveQSOPointMethod := OnePointPerQSO;
             ContestName := 'North American Sprint';
-            DomesticQTHDataFileName := 'S49P8.DOM';
+            DomesticQTHDataFileName := 'SPRINT.DOM';
+
+            AddDomesticCountry ('KH6');
 
             SetCQMemoryString (CW, AltF1,  'NA \ NA');
 

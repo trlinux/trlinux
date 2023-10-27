@@ -1,4 +1,8 @@
 //
+//
+// To compile do make 0f Makefile.post in the src directory
+// To install - install -m 755 post ../log/post
+//
 //Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015.
 //
 //This file is part of TR log for linux.

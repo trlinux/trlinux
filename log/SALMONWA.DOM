@@ -1,73 +1,63 @@
 WASHINGTON COUNTIES AND STATES (for WA stations in WA Salmon Run)
 
+Ada  = ADA, ADAM, ADAMS, AD
+Aso  = ASO, AS
+Ben  = BEN, BENTON, B, BE
+Che  = CHE, CH, CHELAN, CHEL
+Clal = CLAL, CLALLAM, CLALL
+Clar = CLAR, CLARK
+Col  = COL, COLUM, COLUMBIA
+Cow  = COW, COWL, COWLIT, COWLITZ
+Dou  = D, DOU, DOUG, DOUGLAS
+Fer  = FE, FER, FERRY
+Fra  = FR, FRANK
+Gar  = GAR, GARF
+Gran = GR, GRAN
+Gray = GRAY, HAR
+Isl  = I, IS, ISL
+Jeff = J, JE, JEFF
+King = KIN, KING
+Kits = KITS
+Kitt = KITT
+Kli  = KL, KLI
+Lew  = LE, LEW
+Lin  = LI, LIN
+Mas  = M, MASO, MASON
+Oka  = O, OKAN
+Pac  = PAC
+Pend = PE, PEND
+Pie  = PI, PIE
+San  = SA, SAN
+Skag = SKAG
+Skam = SKAM
+Sno  = SN, SNO
+Spo  = SP, SPO, SPOK
+Ste  = ST, STE
+Thu  = T, TH
+Wah  = WAH
+Wal  = WAL
+Wha  = WHA
+Whi  = WHI
+Yak  = Y, YAK
 
-Adams   = ADA, ADAM, ADAMS, AD
-Asotin    = ASO, AS
-
-Ak   = AK, ALK, KL7, ALAS
-Al   = AL, ALAB
-Ar   = AR
-Az   = ARI, AZ
-
-
-Benton    = BEN, BENTON, B, BE
-
-
-Chelan   = CHE, CH, CHELAN, CHEL
-Clallam   = CLAL, CLALLAM, CLALL
-Clark   = CLAR, CLARK
-Columbia   = COL, COLUM, COLUMBIA
-Cowlitz   = COW, COWL, COWLIT, COWLITZ
-
+Ak = AK, ALK, KL7, ALAS
+Al = AL, ALAB
+Ar = AR
+Az = ARI, AZ
 Ca = CA, CA
 Co = CO
 Ct = CT, CONN
-
-
-Douglas   = D, DOU, DOUG, DOUGLAS
-
 De = DE
-
-Ferry   = FE, FER, FERRY
-Franklin   = FR, FRANK
-
 Fl = FL
-
-Garfield   = GAR, GARF
-Grant   = GR, GRAN
-GraysHarbor   = GRAY, HAR
-
 Ga = GA, GEO
-
 Hi = HA, HI, KH6, HAW
-
-
-Island    = I, IS, ISL
-
 Ia = IA, IO
 Id = ID
 Il = IL
 In = IN
-
-Jefferson   = J, JE, JEFF
-
-King   = KIN, KING
-Kitsap   = KITS
-Kittitas   = KITT
-Klickitat   = KL, KLI
-
 Ks = KA, KS
 Ky = KY, KEN
-
-
-Lewis   = LE, LEW
-Lincoln   = LI, LIN
-
 La = LA, LOU
-
-
-Mason   = M, MASO, MASON
-
 Ma = MA, MAS, MASS
 Md = MD, MARY
 Me = ME, MAI
@@ -76,7 +66,6 @@ Mn = MN, MIN
 Mo = MO, Misso
 Ms = MS, MISS
 Mt = MT, Monta
-
 Nc = NC
 Nd = ND
 Ne = NE
@@ -85,61 +74,27 @@ Nj = NJ
 Nm = NM
 Nv = NV
 Ny = NY
-
-
-Okanogan   = O, OKAN
-
 Oh = OH
 Ok = OK
 Or = OR
-
-
-Pacific   = PAC
-PendOreille   = PE, PEND
-Pierce   = PI, PIE
-
 Pa = PA, PENN
-
 Ri = RI, RH
-
-SanJuan   = SA, SAN
-Skagit   = SKAG
-Skamania   = SKAM
-Snohomish   = SN, SNO
-Spokane   = SP, SPO, SPOK
-Stevens   = ST, STE
-
 Sc = SC
 Sd = SD
-
-
-Thurston   = T, TH
-
 Tn = TN, TENN
 Tx = TX, TEX
-
 Ut = UT
-
-
-Ve1 = VE1, LAB, MAR, NB, NF, NS, PEI, VO, VY2, VE9
-Ve2 = VE2, PQ, QU, QC
-Ve3 = VE3, ON
-Ve4 = VE4, MB, MAN
-Ve5 = VE5, SK, SAS
-Ve6 = VE6, AB, ALT
-Ve7 = VE7, BC
-Ve8 = VE8, NWT, YUK, YK, YT, VY1
-
 Va = VA, VIR
 Vt = VT, VER
-
-Wahkiakum   = WAH
-WallaWalla   = WAL
-Whatcom   = WHA
-Whitman   = WHI
- 
 Wi = WI
 Wv = WV
 Wy = WY
 
-Yakima   = Y, YAK
+Mar = VE1, LAB, MAR, NB, NF, NS, PEI, VO, VY2, VE9
+Qc  = VE2, PQ, QU, QC
+On  = VE3, ON
+Man = VE4, MB, MAN
+Sk  = VE5, SK, SAS
+Ab  = VE6, AB, ALT
+Bc  = VE7, BC
+Nt  = Nt, VE8, NWT, YUK, YK, YT, VY1

@@ -2993,6 +2993,11 @@ VAR Key, ExtendedKey: CHAR;
 
             IF ActionRequired THEN
                 CASE Key OF
+                    CarriageReturn:
+                        BEGIN
+                        { Not sure what to do about this }
+                        END;
+
                     NullKey:
                         BEGIN
                         { on the fence about function key memories while the CQ Exchange is being sent }
@@ -3006,10 +3011,6 @@ VAR Key, ExtendedKey: CHAR;
                         { Extened keys other than function keys }
 
                         CASE ExtendedKey OF
-                            CarriageReturn:  { Maybe not expecting this but could happen? }
-                                BEGIN
-                                END;
-
                             UpArrow:
                                 IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                                     SetTBSIQWindow (TBSIQ_CallWindow);
@@ -3036,8 +3037,6 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQWaitingForExchange:
             BEGIN
-            DisplayUserInfo (CallWindowString);
-
             IF ActionRequired THEN
                 CASE Key OF
                     EscapeKey:
@@ -3057,6 +3056,8 @@ VAR Key, ExtendedKey: CHAR;
                             END;
 
                     CarriageReturn, '\':
+                        BEGIN
+                        DisplayUserInfo (CallWindowString);
                         IF TBSIQ_ParametersOkay (CallWindowString,
                                                  QSONumberForThisQSO,
                                                  ExchangeWindowString,
@@ -3141,6 +3142,7 @@ VAR Key, ExtendedKey: CHAR;
                         ELSE
                             IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                                 SwapWindows;
+                        END;
 
                     NullKey:
                         BEGIN
@@ -3375,6 +3377,7 @@ VAR Key, ExtendedKey: CHAR;
                         BEGIN
                         SendFunctionKeyMessage (F1, Message);
                         SearchAndPounceStationCalled := True;
+                        SearchAndPounceExchangeSent := False;
                         ShowStationInformation (CallWindowString);
                         END;
 
@@ -3634,8 +3637,6 @@ VAR Key, ExtendedKey: CHAR;
                                 SearchAndPounceStationCalled := True;
                                 END;
 
-                            IF ExtendedKey = F2 THEN
-                                SearchAndPounceExchangeSent := True;
                             END
 
                         ELSE
@@ -4280,6 +4281,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     QSOState := QST_Idle;
 
     RadioOnTheMove := False;
+    SearchAndPounceExchangeSent := False;
     SearchAndPounceStationCalled := False;
     TransmitCountDown := 0;
 
@@ -4904,23 +4906,6 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
             END;
         END;
 
-    { Very special case:  We have a virgin initial exchange posted in the exchange
-      window and someone has typed a key while in the exchange window and the
-      global InitialExchangeOverwrite is set.  We need to erase the initial
-      exchange }
-
-    IF InitialExchangeOverwrite AND InitialExchangePutUp THEN
-        BEGIN
-        IF (TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow) THEN
-            BEGIN
-            ClrScr;
-            WindowString := '';
-            ExchangeWindowString := '';
-            CursorPosition := 1;
-            InitialExchangePutUp := False;
-            END;
-        END;
-
     { See what key was pressed }
 
     KeyChar := UpCase (TBSIQ_ReadKey (Radio));
@@ -5296,6 +5281,9 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
         BackSpace:
             BEGIN
+            IF InitialExchangeOverwrite AND InitialExchangePutUp THEN
+                InitialExchangePutUp := False;  { Cancel it - we are going to edit it }
+
             OkayToPutUpBandMapCall := False;
 
             { Backspace needs to be AutoStartSend aware }
@@ -5318,6 +5306,23 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
         SpaceBar:
             IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
                 BEGIN
+                { Very special case:  We have a virgin initial exchange posted in the exchange
+                  window and someone has typed a key while in the exchange window and the
+                  global InitialExchangeOverwrite is set.  We need to erase the initial
+                  exchange - WAIT - what if it was like a carriage return!!??!! }
+
+                IF InitialExchangeOverwrite AND InitialExchangePutUp THEN
+                    BEGIN
+                    IF (TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow) THEN
+                        BEGIN
+                        ClrScr;
+                        WindowString := '';
+                        ExchangeWindowString := '';
+                        CursorPosition := 1;
+                        InitialExchangePutUp := False;
+                        END;
+                    END;
+
                 IF LocalInsertMode AND (CursorPosition <= Length (WindowString)) THEN  { Squeeze in new character }
                     BEGIN
                     IF CursorPosition > 1 THEN
@@ -5702,6 +5707,23 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
             IF LegalKey (KeyChar) THEN
                 BEGIN
+                { Very special case:  We have a virgin initial exchange posted in the exchange
+                  window and someone has typed a key while in the exchange window and the
+                  global InitialExchangeOverwrite is set.  We need to erase the initial
+                  exchange - WAIT - what if it was like a carriage return!!??!! }
+
+                IF InitialExchangeOverwrite AND InitialExchangePutUp THEN
+                    BEGIN
+                    IF (TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow) THEN
+                        BEGIN
+                        ClrScr;
+                        WindowString := '';
+                        ExchangeWindowString := '';
+                        CursorPosition := 1;
+                        InitialExchangePutUp := False;
+                        END;
+                    END;
+
                 { Don't add characters to a band map callsign }
 
                 IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
@@ -7060,13 +7082,19 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
            CASE Key OF
                F1: BEGIN
                    IF Mode = CW THEN
-                       Message := '\'
+                       BEGIN
+                       Message := '\';
+                       SearchAndPounceStationCalled := True;
+                       ENd
                    ELSE
-                       Message := ExpandCrypticString (GetExMemoryString (Mode, Key));
+                       Message := GetExMemoryString (Mode, Key);
                    END;
 
                F2: CASE Mode OF
-                       CW:      Message := SearchAndPounceExchange;
+                       CW:      BEGIN
+                                Message := SearchAndPounceExchange;
+                                SearchAndPounceExchangeSent := True;
+                                END;
 
                        Phone:   BEGIN
                                 Message := ExpandCrypticString (SearchAndPouncePhoneExchange);

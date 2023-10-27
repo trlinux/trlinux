@@ -2033,17 +2033,21 @@ VAR TempString: Str80;
     BEGIN
     ProcessCWTExchange := False;
     IF Exchange = '' THEN Exit;
+
+    { Rememeber the Exchange String }
+
     TempString := Exchange;
     Exchange := '';
 
     { We use the QSO number field for the CWT Number }
 
     RXData.NumberReceived := -1;
-    RXData.QTHString := '';  { Gets used for QTH or "CWA" }
+    RXData.QTHString := '';         { Gets used for QTH or "CWA" }
     RXData.Name := '';
 
     { We typically have one string that contains some numbers.  Pull that part of the
-      exchange string out of exchange string. }
+      exchange string out of exchange string. Any words that are not judged to be
+      all numbers will be put into the string Exhange. }
 
     WHILE TempString <> '' DO
          BEGIN
@@ -2052,6 +2056,7 @@ VAR TempString: Str80;
          IF StringHasNumber (FirstString) THEN  { Found the number - need to uncut #s }
              BEGIN
              PossibleNumberString := FirstString;
+
              FOR Index := 1 TO Length (PossibleNumberString) DO
                  BEGIN
                  IF PossibleNumberString [Index] = 'A' THEN PossibleNumberString [Index] := '1';
@@ -2061,18 +2066,20 @@ VAR TempString: Str80;
                  IF PossibleNumberString [Index] = 'T' THEN PossibleNumberString [Index] := '0';
                  END;
 
+             { If we have all numbers now - then use this for the NumberReceived }
+
              IF StringIsAllNumbers (PossibleNumberString) THEN
                  Val (PossibleNumberString, RXData.NumberReceived)
              ELSE
-                 Exchange := Exchange + FirstString;
+                 Exchange := Exchange + FirstString;  { Not all numbers }
 
              END
          ELSE
              Exchange := Exchange + FirstString + ' ';
          END;
 
-     { We have pulled out the member number (if there was one) Now process the rest of the
-      exchange string.   We assume that the name is always before the QTH }
+     { We have pulled out the member number (if there was one) Now process the rest
+       of the exchange string.   We assume that the name is always before the QTH }
 
     ParseExchange (Exchange, RXData.Name, RXData.QTHString, ThirdString);
     ProcessCWTExchange := ((RXData.NumberReceived <> -1) OR (RXData.QTHString <> '')) AND (RXData.Name <> '');

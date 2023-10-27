@@ -4484,12 +4484,15 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                  ) THEN
 
                   BEGIN  { We are going to add this character to the string }
-
                   OkayToPutUpBandMapCall := False;
 
                   { Don't add characters to a band map callsign }
 
-                  IF (ActiveWindow = CallWindow) AND (WindowString = BandMapBlinkingCall) THEN
+                  { Wait - what if I entered ZD9 and did a dupe check to get the sunrise/sunset times
+                    and then I want to add a character and log the guy?  This seems like it would make
+                    that impossible. xyzzy }
+
+                  IF (6 = 7) AND (ActiveWindow = CallWindow) AND (WindowString = BandMapBlinkingCall) THEN
                       BEGIN
                       BandMapEntryInCallWindow := False;
                       ClrScr;

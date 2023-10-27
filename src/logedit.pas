@@ -3516,7 +3516,8 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
 
     { If not - look at the AllCallList to see if ExchangeMemory has something }
 
-    IF TempString = '' THEN TempString := GetInitialExchangeFromExchangeMemory (Call);
+    IF TempString = '' THEN
+        TempString := GetInitialExchangeFromExchangeMemory (Call);
 
     { If we have something now - we do some special massaging if the data came from a log entry }
 

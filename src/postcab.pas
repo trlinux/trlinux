@@ -1050,11 +1050,19 @@ VAR Key:             CHAR;
             NumberExchangeElementsToRecord := 1;
             END;
 
-        CalQSO, FQP, MIQP, MQP, OHIOQP, SALMONRUN, WQP:  {KK1L: 6.71 added other state QPs}
+        CalQSO, FQP, MIQP, MQP, OHIOQP, WQP:  {KK1L: 6.71 added other state QPs}
             BEGIN
             Section := GetResponse ('Enter your state or county sent : '); {KK1L: 6.71 Removed 'Cal' before 'county'}
             IF Section = '' THEN Exit;
             SentInformation := '# ' + Section;
+            END;
+
+        SALMONRUN:  {KK1L: 6.71 added other state QPs}
+            BEGIN
+            Section := GetResponse ('Enter your state or county sent : '); {KK1L: 6.71 Removed 'Cal' before 'county'}
+            IF Section = '' THEN Exit;
+            RSTIsPartOfTheExchange := True;
+            SentInformation := '$ ' + Section;
             END;
 
         CQ160:       { Okay }
@@ -1332,6 +1340,7 @@ VAR Key:             CHAR;
             Region1FD:   WriteLn (FileWrite, 'CONTEST: REGION ONE FIELD DAY',Chr(13));
             Russian:     WriteLn (FileWrite, 'CONTEST: RDXC',Chr(13));
             SAC:         WriteLn (FileWrite, 'CONTEST: SAC',Chr(13));
+            SalmonRun:   WriteLn (FileWrite, 'CONTEST: WA-SALMON-RUN', Chr(13));
             SevenQP:     WriteLn (FileWrite, 'CONTEST: 7QP', Chr (13));
             Sprint:      WriteLn (FileWrite, 'CONTEST: NA-SPRINT-', ModeString,Chr(13));
             SS:          WriteLn (FileWrite, 'CONTEST: ARRL-SS-', ModeString,Chr(13));
