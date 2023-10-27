@@ -23,6 +23,21 @@ You should have received a copy of the GNU General
 
 - Updated CTY.DAT file to most recent relase
 
+- Added support in KEYERARD.PAS for W9CF added parallel port commands
+
+- Added support in Arduino code for W9CF parallel port commands.
+
+- Fixed Cabrillo output for WA-SALMON-RUN
+
+- Changed the domestic file used for the CW Sprint from S48P8.DOM to SPRINT.DOM
+
+- For the Sprint, added Hawaii as a domestic mult.
+
+- Fixed bug where the initial exchanges were getting screwed up if you
+    loaded a log without PARTIAL CALL LOAD LOG ENABLE = TRUE. The exchange
+    info wasn't initialized and it was being added to the AllCallList.
+
+- Removed exchange window when returnning from SO2V QSO or not
 
 0.57 (includes changes not documented for 0.56)
 
