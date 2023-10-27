@@ -16,6 +16,14 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+0.58
+
+- Updated Mult files for a number of contests.
+   ARRL SS, CQP, NYQP, SALMONWA
+
+- Updated CTY.DAT file to most recent relase
+
+
 0.57 (includes changes not documented for 0.56)
 
 - A new log file is now being generated independently from the
