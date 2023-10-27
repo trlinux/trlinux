@@ -1,4 +1,4 @@
-ARRL SECTIONS
+ARRL SECTIONS - 85
 
 
 Ab = AB, ALB, ALT, VE6
@@ -24,7 +24,7 @@ EWa = EW
 
 
 Ga = GA, GE
-Gta = GT
+Gh = GH, GT
 
 Ia = IA, IO
 Id = ID
@@ -38,8 +38,6 @@ Ky = KY, KE
 La = LA, LOU
 Lax = LAX, LOS
 
-
-Mar = MAR, NB, VE1, VE9, NS, MR
 Mb  = MB, MAN, VE4
 Mdc = MD, MARY, DC
 Me  = ME, MAI
@@ -49,19 +47,20 @@ Mo  = MO, MISSO
 Ms  = MS, MIS
 Mt  = MT, MON
 
+Nb  = Nb, VE9
 Nc  = NC
 Nd  = ND
 Ne  = NE
 NFl = NFL
 Nh  = NH
-Nl  = NL, VO, NFLD
+Nl  = NL, VO, NFLD, LAB
 NLi = NLI, NY
 Nm  = NM
 NNj = NNJ
 NNy = NNY
+Ns = Ns, VE1
 NTx = NTX, NTEX
 Nv  = NV, NEV
-Nt  = NW, VE8, VY1, YU, YT, YK, NT
 
 Oh  = OH
 Ok  = OK
@@ -92,6 +91,7 @@ SNj = SN
 STx = ST
 Sv  = SV
 
+Ter = Ter, NT, NW, VE8, VY1, YU, YT, YK
 Tn = TN, TEN
 
 Ut = UT
