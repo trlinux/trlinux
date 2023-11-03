@@ -55,7 +55,6 @@ TODO List after 2023 WPX CW:
    you can see the beam heading.  Then try to enter a W and log the callsign.  Pressing
    the W clears the call window..  So - I defeated this feature for better or worse.
 
-
 27-Sep-2023
   - Added support in KEYERARD.PAS for W9CF added parallel port commands
   - Added support in Arduino code for W9CF parallel port commands.

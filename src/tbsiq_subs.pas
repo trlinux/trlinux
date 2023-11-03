@@ -2385,9 +2385,10 @@ VAR Key, ExtendedKey: CHAR;
         RadioTwo: IF Radio1QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
         END;
 
-    { Unlike the WindowEditor in LOGSUBS2, this will not block execution.  It will return
-      right away with ActionRequired = FALSE if no key was pressed.  In the case of
-      QSOState = SendingKeyboardCW, all keystrokes will be returned instantly. }
+    { Unlike the WindowEditor in LOGSUBS2, WindowEditor here will not block execution.
+      It will return right away with ActionRequired = FALSE if no key was pressed.
+      In the case of QSOState = SendingKeyboardCW, all keystrokes will be returned
+      instantly. }
 
     { We want to get to some states before the WindowEditor is called }
 
@@ -2403,7 +2404,8 @@ VAR Key, ExtendedKey: CHAR;
 
     CASE QSOState OF
 
-        QST_AltDInput:    { Send characters to the other radio's call window }
+        QST_AltDInput:  { Send characters to the other radio's call window }
+                        { This got kind of cofusing and I think I am no longer doing this }
             BEGIN
             IF Key = EscapeKey THEN
                 QSOState := RememberQSOState;
@@ -4858,6 +4860,11 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
         ResetKeyStatus (Radio);
         Exit;
         END;
+
+    { We thought about looking at the footswitch here - but really, any footswitch
+      operations that require action need to be focused on the active radio and
+      since we can't tell if we are the active radio down this low, we just can't
+      deal with anything. }
 
     IF NOT ((TBSIQ_KeyPressed (Radio)) OR (CharacterInput <> Chr (0))) THEN
         Exit;  { No reason to be here }
