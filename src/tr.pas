@@ -48,6 +48,9 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+22-Nov-2023
+ - Fixed sending zone out when sending UDP QSO packets.
+
 18-Oct-2023
  - I had a feature that in classic mode would not add characters to a call window
    entry if the call window entry is the band map binking call.  This manifasted

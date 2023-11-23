@@ -307,18 +307,19 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
 
         UDP_Record.MyCall := MyCall;          { A global that comes from LOGWIND.PAS }
         UDP_Record.Call := Callsign;          { Callsign of station being worked }
+
         UDP_Record.Mode := ModeString [Mode]; { Until someone tells me different }
+        GetRidOfPostcedingSpaces (UDP_Record.Mode);
+
         UDP_Record.CountryPrefix := DXQTH;    { DXCC Prefix }
         UDP_Record.WPXPrefix := Prefix;       { WPX Prefix }
-
-        GetRidOfPostcedingSpaces (UDP_Record.Mode);
 
         IF Frequency <> 0 THEN
             BEGIN
             Str (Frequency, TempString);
             Delete (TempString, Length (TempString), 1);  { Make 10's of hertz }
             UDP_Record.rxfreq := TempString;
-            UDP_Record.rxfreq := TempString;
+            UDP_Record.txfreq := TempString;  { was rxfreq before 11-23-2023 }
             END;
 
         {  These came from N2IC who gave me a copy of the source code in N1MM.
@@ -345,7 +346,7 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
             Band5760: UDP_Record.band := '5650';
             Band10G:  UDP_Record.band := '10000';
             Band24G:  UDP_Record.band := '24000';
-//
+
 //          Band47G:  UDP_Record.band := '47000';
 //          Band76G:  UDP_Record.band := '76000';
 //          Band122G:  UDP_Record.band := '122250';
@@ -384,17 +385,13 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
 
         { Now for the fields that may - or may not - have any data in them }
 
-        IF Age <> '' THEN UDP_Record.rcv := Age;
-        IF Chapter <> '' THEN UDP_Record.rcv := Chapter;
-        IF Check <> '' THEN UDP_Record.ck := Check;
-        IF Classs <> '' THEN UDP_Record.rcv := Classs;
-        IF Kids <> '' THEN UDP_Record.rcv := Kids;
-        IF Name <> '' THEN UDP_Record.Name := Name;
-
-        CASE Radio OF
-            RadioOne: UDP_Record.RadioNr := '1';
-            RadioTwo: UDP_Record.RadioNr := '2';
-            END;  { of CASE }
+        IF Age <> ''         THEN UDP_Record.rcv := Age;
+        IF Chapter <> ''     THEN UDP_Record.rcv := Chapter;
+        IF Check <> ''       THEN UDP_Record.ck  := Check;
+        IF Classs <> ''      THEN UDP_Record.rcv := Classs;
+        IF DomesticQTH <> '' THEN UDP_Record.qth := DomesticQTH;
+        IF Kids <> ''        THEN UDP_Record.rcv  := Kids;
+        IF Name <> ''        THEN UDP_Record.Name := Name;
 
         IF NumberReceived <> -1 THEN
             BEGIN
@@ -408,9 +405,8 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
             UDP_Record.sntnr := TempString;
             END;
 
-        IF PostalCode <> '' THEN UDP_Record.rcv := PostalCode;
-
-        IF Power <> '' THEN UDP_Record.power := Power;
+        IF PostalCode <> ''      THEN UDP_Record.rcv := PostalCode;
+        IF Power <> ''           THEN UDP_Record.power := Power;
         IF Precedence <> Chr (0) THEN UDP_Record.prec := Precedence;
 
         IF Prefecture <> -1 THEN
@@ -425,6 +421,11 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
             UDP_Record.points := TempString;
             END;
 
+        CASE Radio OF
+            RadioOne: UDP_Record.RadioNr := '1';
+            RadioTwo: UDP_Record.RadioNr := '2';
+            END;  { of CASE }
+
         IF RandomCharsSent <> '' THEN UDP_Record.snt := RandomCharsSent;
         IF RandomCharsReceived <> '' THEN UDP_Record.rcv := RandomCharsReceived;
 
@@ -434,23 +435,22 @@ VAR DayString, MonthString, YearString, TimeString, SecondsString, TempString: S
             UDP_Record.rcvnr := TempString;
             END;
 
-{         Fields that still need to be parsed
+        IF Zone <> '' THEN UDP_Record.zone := Zone;
 
-          DomesticMult:   BOOLEAN;
-          DomMultQTH:     DomesticMultiplierString;
-          DomesticQTH:    Str20;
-          DXMult:         BOOLEAN;
-          DXQTH:          DXMultiplierString;
-          InhibitMults:   BOOLEAN;
-          PrefixMult:     BOOLEAN;
-          Prefix:         PrefixMultiplierString;
-          QTH:            QTHRecord;
-          QTHString:      STRING [30];
-          SearchAndPounce: BOOLEAN;
-          Zone:            ZoneMultiplierString;
-          ZoneMult:        BOOLEAN;   }
+{       RXData Fields that are ignored
 
-        { Do these last }
+        DomesticMult:    BOOLEAN;
+        DomMultQTH:      DomesticMultiplierString;
+        DXMult:          BOOLEAN;
+        DXQTH:           DXMultiplierString;
+        InhibitMults:    BOOLEAN;
+        PrefixMult:      BOOLEAN;
+        QTH:             QTHRecord;
+        QTHString:       STRING [30];
+        SearchAndPounce: BOOLEAN;
+        ZoneMult:        BOOLEAN;   }
+
+        { Do these last - I am not sure why }
 
         IF RSTReceived <> '' THEN
             IF UDP_Record.rcv = '' THEN
