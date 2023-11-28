@@ -41,7 +41,7 @@ CONST
     TempFileName         = 'TEMPDTA.TMP';
     AVeryBigNumber       = 1000000000;
     MaxBlocks            = 10;
-    MaxCallListEntries   = 200;
+    MaxCallListEntries   = 600;   { this used to be 200 - made it larger? }
     MemoryBlockSize      = 65000;
     MaximumCallsAlreadySaved = 3000;
 
@@ -276,8 +276,10 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
         FUNCTION  PartialCallSetup (PartialCall: CallString): BOOLEAN;
 
         PROCEDURE SaveCallsAndNamesToFile (FileName: Str40);
+        PROCEDURE SaveCallsToFile (FileName: Str40);
         PROCEDURE SaveDataToASCIIFile (VAR FileWrite: TEXT; NewData: DataBaseEntryRecord);
         PROCEDURE SaveToASCIIFile;
+        PROCEDURE SaveWeirdCalls (FileName: STRING);
 
         PROCEDURE SCPDisableAndDeAllocateFileBuffer;
 
@@ -1195,6 +1197,126 @@ VAR CellSize: LONGINT;
     ClrEol;
     TextColor (Cyan);
     WriteLn ('Data successfully saved to ASCII file.');
+    END;
+
+
+
+PROCEDURE CallDatabase.SaveCallsToFile (FileName: Str40);
+
+VAR CellSize: LONGINT;
+    FileRead: FILE;
+    FileWrite: TEXT;
+    X, Y, NextX, NextY, StartingOffset, EndingOffset: LONGINT;
+    KeyString, TempString: Str40;
+    EntryString: STRING;
+    DataRecord: DataBaseEntryRecord;
+
+    BEGIN
+    IF NOT LoadInIndexArray THEN Exit;
+    IF FileName = '' THEN Exit;
+
+    OpenFileForWrite (FileWrite, FileName);
+
+    GoToXY (1, WhereY);
+    Write ('Saving .DTA file to ASCII file.  Processing cell   ');
+
+    CellBuffer.Initialize (CellSize);  { Only works in POST mode }
+
+    New (CallsAlreadySaved);
+
+    FOR X := 0 TO 36 DO
+        FOR Y := 0 TO 36 DO
+            BEGIN
+            NumberCallsAlreadySaved := 0;   { Set to zero for each cell }
+
+            GoToXY (WhereX - 2, WhereY);
+
+            KeyString := GetSCPCharFromInteger (X) + GetSCPCharFromInteger (Y);
+
+            Write (KeyString);
+
+            StartingOffset := SCPIndexArray^ [X, Y];
+
+            NextY := Y + 1;
+            NextX := X;
+
+            IF NextY > 36 THEN
+                BEGIN
+                IF X < 36 THEN
+                    BEGIN
+                    NextX := X + 1;
+                    NextY := 0;
+                    EndingOffset := SCPIndexArray^ [NextX, NextY];
+                    END
+                ELSE
+                    EndingOffset := SCPEndOfFile;
+                END
+            ELSE
+                EndingOffset := SCPIndexArray^ [NextX, NextY];
+
+            IF (X <> 0) OR (Y <> 0) THEN
+                BEGIN
+                IF FilePos (FileRead) <> StartingOffset THEN
+                    BEGIN
+                    Close  (FileRead);
+                    Assign (FileRead, ActiveFileName);
+                    Reset  (FileRead, 1);
+                    Seek   (FileRead, StartingOffset);
+                    END;
+                END
+            ELSE
+                BEGIN
+                Assign (FileRead, ActiveFileName);
+                Reset  (FileRead, 1);
+                Seek   (FileRead, StartingOffset);
+                END;
+
+            IF StartingOffset < EndingOffset THEN
+                BEGIN
+                CellSize := EndingOffset - StartingOffset;
+
+                IF CellSize > 3 * BufferArraySize THEN
+                    BEGIN
+                    WriteLn;
+                    ReportError (GetSCPCharFromInteger (X) + GetSCPCharFromInteger (Y) + ' cell is too large!!!');
+                    Halt;
+                    END;
+
+                CellBuffer.LoadCellIntoBuffer (KeyString, FileRead, CellSize);
+
+                WHILE CellBuffer.GetNextEntry (EntryString) DO
+                    BEGIN
+                    ParseEntryToDataRecord (EntryString, DataRecord);
+
+                    IF FirstCellForThisCall (DataRecord.Call, X, Y) THEN
+                        IF DoubleIndexCall (DataRecord.Call) THEN
+                            BEGIN
+                            IF NOT AlreadySaved (DataRecord.Call) THEN
+                                BEGIN
+                                TempString := DataRecord.Call;
+                                WriteLn (FileWrite, TempString);
+                                END;
+                            END
+                        ELSE
+                            BEGIN
+                            TempString := DataRecord.Call;
+                            WriteLn (FileWrite, TempString);
+                            END;
+                    END;
+
+                END;
+            END;
+
+    CellBuffer.GoAway;
+    Dispose (CallsAlreadySaved);
+
+    Close (FileWrite);
+    ASCIIFileIsCurrent := True;
+    GoToXY (1, WhereY);
+    ClrEol;
+    TextColor (Cyan);
+    WriteLn ('Data successfully saved to ASCII file.');
+    WaitForKeyPressed;
     END;
 
 
@@ -2672,6 +2794,122 @@ PROCEDURE CallDatabase.SaveDataToASCIIFile (VAR FileWrite: TEXT;
         END;
 
     WriteLn (FileWrite);
+    END;
+
+
+
+PROCEDURE CallDatabase.SaveWeirdCalls (FileName: STRING);
+
+VAR FileWrite: TEXT;
+    FileRead: FILE;
+    X, Y, NextX, NextY, StartingOffset, EndingOffset: LONGINT;
+    EntryString: STRING;
+    KeyString: CallString;
+    DataRecord: DataBaseEntryRecord;
+    CellSize: LONGINT;
+
+    BEGIN
+    IF NOT LoadInIndexArray THEN
+        BEGIN
+        ReportError ('Unable to save .DTA to ASCII file.');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    OpenFileForWrite (FileWrite, FileName);
+
+    GoToXY (1, WhereY);
+    Write ('Saving weird calls to ASCII file.  Processing cell   ');
+
+    New (CallsAlreadySaved);
+
+    FOR X := 0 TO 36 DO
+        FOR Y := 0 TO 36 DO
+            BEGIN
+            NumberCallsAlreadySaved := 0;
+
+            GoToXY (WhereX - 2, WhereY);
+            KeyString := GetSCPCharFromInteger (X) + GetSCPCharFromInteger (Y);
+            Write (KeyString);
+
+            StartingOffset := SCPIndexArray^ [X, Y];
+
+            NextY := Y + 1;
+            NextX := X;
+
+            IF NextY > 36 THEN
+                BEGIN
+                IF X < 36 THEN
+                    BEGIN
+                    NextX := X + 1;
+                    NextY := 0;
+                    EndingOffset := SCPIndexArray^ [NextX, NextY];
+                    END
+                ELSE
+                    EndingOffset := SCPEndOfFile;
+                END
+            ELSE
+                EndingOffset := SCPIndexArray^ [NextX, NextY];
+
+            IF (X <> 0) OR (Y <> 0) THEN
+                BEGIN
+                IF FilePos (FileRead) <> StartingOffset THEN
+                    BEGIN
+                    Close  (FileRead);
+                    Assign (FileRead, ActiveFileName);
+                    Reset  (FileRead, 1);
+                    Seek   (FileRead, StartingOffset);
+                    END;
+                END
+            ELSE
+                BEGIN
+                Assign (FileRead, ActiveFileName);
+                Reset  (FileRead, 1);
+                Seek   (FileRead, StartingOffset);
+                END;
+
+            IF StartingOffset < EndingOffset THEN
+                BEGIN
+                CellSize := EndingOffset - StartingOffset;
+
+                IF CellSize > BufferArraySize * 3 THEN
+                    BEGIN
+                    WriteLn;
+                    ReportError (GetSCPCharFromInteger (X) + GetSCPCharFromInteger (Y) + ' cell is too large - 3!!');
+                    Halt;
+                    END;
+
+                CellBuffer.LoadCellIntoBuffer (KeyString, FileRead, CellSize);
+
+                WHILE CellBuffer.GetNextEntry (EntryString) DO
+                    BEGIN
+                    ParseEntryToDataRecord (EntryString, DataRecord);
+
+                    IF NOT GoodCallSyntax (DataRecord.Call) THEN
+                        BEGIN
+                        IF FirstCellForThisCall (DataRecord.Call, X, Y) THEN
+                            IF DoubleIndexCall (DataRecord.Call) THEN
+                                BEGIN
+                                IF NOT AlreadySaved (DataRecord.Call) THEN
+                                    WriteLn (FileWrite, DataRecord.Call);
+                                END
+                           ELSE
+                               WriteLn (FileWrite, DataRecord.Call);
+                        END;
+                    END;
+                END;
+            END;
+
+    Dispose (CallsAlreadySaved);
+    CellBuffer.GoAway;
+
+    Close (FileWrite);
+    ASCIIFileIsCurrent := True;
+    GoToXY (1, WhereY);
+    ClrEol;
+    TextColor (Cyan);
+    WriteLn ('Data successfully saved to ', FileName);
+    WaitForKeyPressed;
     END;
 
 

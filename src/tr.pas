@@ -48,13 +48,24 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+28-Nov-2023
+ - Increased size of possible/partial call list from 200 to 600.
+ - Added check to not blow up the SCP list when adding one too many
+   entries from the visibile dupesheet.
+ - Eliminated double entries when adding call from editable dupsheet into SCP.
+
+26-Nov-2023
+ - Fixed score calculation when re-reading in log without .RST file.
+
+22-Nov-2023
+ - Fixed sending zone out when sending UDP QSO packets.
+
 18-Oct-2023
  - I had a feature that in classic mode would not add characters to a call window
    entry if the call window entry is the band map binking call.  This manifasted
    itself as follows: Type in ZD9, do a dupecheck (and put it on the band map) so
    you can see the beam heading.  Then try to enter a W and log the callsign.  Pressing
    the W clears the call window..  So - I defeated this feature for better or worse.
-
 
 27-Sep-2023
   - Added support in KEYERARD.PAS for W9CF added parallel port commands

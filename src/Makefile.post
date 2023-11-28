@@ -70,7 +70,10 @@ SRC=\
 
 post: $(SRC) dupe.o dt.o findports.o hid.o curlroutines.o scoreposter.o
 	fpc -B -Mobjfpc -g -gl post
-	cp post ../log
+
+install:
+#       sudo install -m 4755 post ../log/post
+	install -m 755 post ../log/post
 
 clean:
 	rm -f *\.o *\.ppu *\.res

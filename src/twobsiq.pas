@@ -74,7 +74,6 @@ NOTES FROM SSCW:
 
 NOTES FROM ARRL DX CW
 
-  - Footswitch doesn't seem to want to send F1 - does PTT instead.
   - I keep calling dupes in S&P mode - need better warnings.
   - Dualing CQs not working?
   - Not getting SCP calls from log?
@@ -82,6 +81,14 @@ NOTES FROM ARRL DX CW
   - Improve sending RTTY message from keyboard
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+03-Nov-2023
+
+  - Not really a change - but played around with the footswitch and quickly
+    came to the realization that since we only have one footswitch - it breaks
+    the two keyboard philosophy and trying to figure out which radio should
+    respond to the footswitch is just too weird.  So - best to not use it at
+    all - except for passing PTT to the active radio when in NORMAL.
 
 07-Aug-2023
 
