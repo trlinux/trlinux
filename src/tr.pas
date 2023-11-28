@@ -48,6 +48,15 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+28-Nov-2023
+ - Increased size of possible/partial call list from 200 to 600.
+ - Added check to not blow up the SCP list when adding one too many
+   entries from the visibile dupesheet.
+ - Eliminated double entries when adding call from editable dupsheet into SCP.
+
+26-Nov-2023
+ - Fixed score calculation when re-reading in log without .RST file.
+
 22-Nov-2023
  - Fixed sending zone out when sending UDP QSO packets.
 

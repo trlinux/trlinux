@@ -90,6 +90,7 @@ TYPE
     NAQPStationDatabasePointer = ^NAQPStationDatabaseType;
 
 
+
 VAR Buffer: FileBufferPointer;
     CheckCallBuffer: CallBufferPointer;
     CabrilloEntryHead: CabrilloRecPtr;
@@ -1000,6 +1001,8 @@ VAR FileWrite: TEXT;
 
 PROCEDURE IncrementCall (VAR Call: CallString);
 
+{ Increments the string by Ord (1) }
+
     BEGIN
     IF Call [Length (Call)] = '9' THEN
         Call [Length (Call)] := 'A'
@@ -1072,6 +1075,24 @@ VAR Key: CHAR;
 
 
 
+PROCEDURE ListWeirdCalls;
+
+VAR OutputFileName: Str40;
+
+    BEGIN
+    ClearScreenAndTitle ('LIST WEIRD CALLS');
+    WriteLn ('This procedure will generate a file with callsigns in the SCP database');
+    WriteLn ('that do not pass the "LooksLikeACallsign" test.');
+    WriteLn;
+
+    OutputFileName := GetResponse ('Enter output filename (none to abort) : ');
+    IF OutputFileName = '' THEN Exit;
+
+    CD.SaveWeirdCalls (OutputFileName);
+    END;
+
+
+
 PROCEDURE DTAEditor;
 
 
@@ -1101,12 +1122,14 @@ VAR Key: CHAR;
         WriteLn ('  E - Edit data for specific callsigns in database.');
         WriteLn ('  F - Add data to TRMASTER database from various type of files.');
         WriteLn ('  G - Save calls and names to an ASCII file.');
+        WriteLn ('  I - Save ASCII list of calls to a file.');
         WriteLn ('  N - Name editor (similar to the old NAMES.CMQ name editor).');
         WriteLn ('  P - Partial calls test - pull partial calls out of databse.');
         WriteLn ('  R - Get random call (used by simulator).');
         WriteLn ('  S - Sort .DTA file so calls are in alphabetical order.');
         WriteLn ('  T - Continually fetch random callsigns until a key is pressed.');
         WriteLn ('  U - Get Unique+1 (possible) calls for a specific call.');
+        WriteLn ('  W - List weird calls in the database,');
         WriteLn ('  X - Exit menu.');
         WriteLn ('  Y - Test every call in the database.');
         WriteLn ('  Z - Show database statistics.');
@@ -1130,8 +1153,12 @@ VAR Key: CHAR;
 
             'G': BEGIN
                  FileName := GetResponse ('Enter filename to save calls and names to : ');
-                 IF FileName <> '' THEN
-                     CD.SaveCallsAndNamesToFile (FileName);
+                 IF FileName <> '' THEN CD.SaveCallsAndNamesToFile (FileName);
+                 END;
+
+            'I': BEGIN
+                 FileName := GetResponse ('Enter filename to save a list of calls to : ');
+                 IF FileName <> '' THEN CD.SaveCallsToFile (FileName);
                  END;
 
             'N': TRMasterNameEditor;
@@ -1210,6 +1237,9 @@ VAR Key: CHAR;
 
                      WriteLn (CallSortValue (Call));
                  UNTIL FAlse;
+
+
+            'W': ListWeirdCalls;
 
             'X', EscapeKey:
                     BEGIN
@@ -2431,6 +2461,94 @@ VAR FileName: Str40;
 
 
 
+PROCEDURE TransmitterIDAssign;
+
+VAR CabrilloString, InputFileName, OutputFileName: STRING;
+    InputFile, OutputFile: TEXT;
+    NumberQSOsFound: INTEGER;
+    Frequency: LONGINT;
+    Band: BandType;
+    TXID, TXID_160, TXID_80, TXID_40, TXID_20, TXID_15, TXID_10: Str20;
+
+    BEGIN
+    ClearScreenAndTitle ('CABRILLO FILE TRASMIT ID ASSIGNMENT');
+    WriteLn ('This procedure allows you to simply assign a TX ID by band to a Cabrillo');
+    WriteLn ('file so you can meet the TX ID requirement.');
+
+    InputFileName := GetResponse ('Enter input Cabrillo filename (none to abort) : ');
+    IF InputFileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (InputFile, InputFileName) THEN
+        BEGIN
+        WriteLn (InputFileName, ' not found.');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    OutputFileName := GetResponse ('Enter output filename (none to abort) : ');
+    IF OutputFileName = '' THEN Exit;
+
+    OpenFileForWrite (OutputFile, OutputFileName);
+
+    NumberQSOsFound := 0;
+
+    TXID_160 := GetResponse ('Enter band ID for 160M : ');
+    TXID_80  := GetResponse ('Enter band ID for 80M : ');
+    TXID_40  := GetResponse ('Enter band ID for 40M : ');
+    TXID_20  := GetResponse ('Enter band ID for 20M : ');
+    TXID_15  := GetResponse ('Enter band ID for 15M : ');
+    TXID_10  := GetResponse ('Enter band ID for 10M : ');
+
+    WHILE NOT Eof (InputFile) DO
+        BEGIN
+        ReadLn (InputFile, CabrilloString);
+
+        IF Pos ('QSO:', CabrilloString) = 1 THEN
+            BEGIN
+            TempString := CabrilloString;
+
+            RemoveFirstString (TempString); { QSO: }
+            Frequency := RemoveFirstLongInteger (TempString);
+
+            IF Frequency < 3000 THEN Band := Band160 ELSE
+              IF Frequency < 6000 THEN Band := Band80 ELSE
+                IF Frequency < 10000 THEN Band := Band40 ELSE
+                  IF Frequency < 16000 THEN Band := Band20 ELSE
+                    IF Frequency < 23000 THEN Band := Band15 ELSE
+                      Band := Band10;
+
+            CASE Band OF
+                Band160: TXID := TXID_160;
+                Band80:  TXID := TXID_80;
+                Band40:  TXID := TXID_40;
+                Band20:  TXID := TXID_20;
+                Band15:  TXID := TXID_15;
+                Band10:  TXID := TXID_10;
+                ELSE     TXID := '?';
+                END;
+
+            { We now have the correct TXID to use.  Likely, there is a
+              zero there now.  We will just delete the last character
+              of the QSO entry and add the new TXID }
+
+            Delete (CabrilloString, Length (CabrilloString), 1);
+            CabrilloString := CabrilloString + TXID;
+
+            Inc (NumberQSOsFound);
+            END;
+
+        WriteLn (OutputFile, CabrilloString);
+        END;
+
+    Close (InputFile);
+    Close (OutputFile);
+
+    WriteLn ('There were ', NumberQSOsFound, ' QSOs processed.');
+    WaitForKeyPressed;
+    END;
+
+
+
 FUNCTION UtilityMenu: BOOLEAN;
 
 VAR Key: CHAR;
@@ -2455,6 +2573,7 @@ VAR Key: CHAR;
     WriteLn ('  N - NameEdit (old NAMES.CMQ database editor).');
     WriteLn ('  Q - NAQP exchange checker');
     WriteLn ('  S - Show contents of RESTART.BIN file.');
+    WriteLn ('  T - Transmitter ID assign by band for Cabrillo.');
     WriteLn ('  Y - Download new country file.');
     WriteLn ('  X - Exit utility program menu.');
     WriteLn;
@@ -2478,6 +2597,7 @@ VAR Key: CHAR;
             'M': BEGIN MergeCabrilloLogs;    Exit; END;
             'N': BEGIN NameEditor;           Exit; END;
             'Q': BEGIN NAQPExchangeChecker;  Exit; END;
+            'T': BEGIN TransmitterIDAssign;  Exit; END;
             'Y': BEGIN DownloadCtyFile;      Exit; END;
             'S': BEGIN ShowRestartDotBin;    Exit; END;
 

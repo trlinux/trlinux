@@ -222,6 +222,7 @@ TYPE
         PROCEDURE AddQSOToSheets (RXData: ContestExchange);
 
         FUNCTION  CallIsADupe (Call: CallString; Band: BandType; Mode: ModeType): BOOLEAN;
+        FUNCTION  CallNotInList (Call: CallString; List: CallListRecord): BOOLEAN;
         PROCEDURE CancelOutNewDomesticMultWeHaveWorked (MultString: Str20; Band: BandType; Mode: ModeType);
         PROCEDURE CancelOutNewDXMultWeHaveWorked (MultString: Str20; Band: BandType; Mode: ModeType);
         PROCEDURE CancelOutNewZoneMultWeHaveWorked (MultString: Str20; Band: BandType; Mode: ModeType);
@@ -606,7 +607,6 @@ FUNCTION GetInitialExchangeFromExchangeMemory (Call: CallString): STRING;
   to it.  If there is no initial exchange, a null string will be returned. }
 
 VAR Address: INTEGER;
-    AddressString: Str20;
 
     BEGIN
     GetInitialExchangeFromExchangeMemory := '';
@@ -1794,9 +1794,31 @@ VAR FileRead: TEXT;
 
 
 
+FUNCTION DupeAndMultSheet.CallNotInList (Call: CallString; List: CallListRecord): BOOLEAN;
+
+VAR Address: INTEGER;
+
+    BEGIN
+    CallNotInList := True;  { Default return value }
+
+    IF List.NumberCalls = 0 THEN Exit;
+
+    FOR Address := 0 TO List.NumberCalls - 1 DO
+        IF Call = List.CallList [Address].Call THEN
+            BEGIN
+            CallNotInList := False;
+            Exit;
+            END;
+    END;
+
+
+
 PROCEDURE DupeAndMultSheet.AddPossibleCallsFromDupesheet (Call: CallString; VAR List: CallListRecord);
 
-{ This will not set the NumberCalls to zero - so any calls already added will be there }
+{ This will not set the NumberCalls to zero - so any calls already added
+  will be there.  On 28-Nov-2023 we checked to make sure we didn't add
+  calls if the array was full.  Also - we added a check to not add calls
+  that were already in the list. }
 
 VAR Address: INTEGER;
 
@@ -1812,11 +1834,13 @@ VAR Address: INTEGER;
 
     FOR Address := 0 TO NumberAllCalls - 1 DO
         IF SimilarCall (Call, AllCallList [Address]) THEN
-            BEGIN
-            List.CallList [List.NumberCalls].Call := AllCallList [Address];
-            List.CallList [List.NumberCalls].Dupe := False;  { Unless you want to give me band/mode }
-            Inc (List.NumberCalls);
-            END;
+            IF List.NumberCalls < MaxCallListEntries THEN
+                IF CallNotInList (Call, List) THEN
+                    BEGIN
+                    List.CallList [List.NumberCalls].Call := AllCallList [Address];
+                    List.CallList [List.NumberCalls].Dupe := False;  { Unless you want to give me band/mode }
+                    Inc (List.NumberCalls);
+                    END;
     END;
 
 
@@ -2347,9 +2371,10 @@ VAR FileRead: TEXT;
 
             ClearContestExchange (TempRXData);
 
-            TempRXData.Band     := GetLogEntryBand (FileString);
-            TempRXData.Mode     := GetLogEntryMode (FileString);
-            TempRXData.Callsign := GetLogEntryCall (FileString);
+            TempRXData.Band      := GetLogEntryBand (FileString);
+            TempRXData.Mode      := GetLogEntryMode (FileString);
+            TempRXData.Callsign  := GetLogEntryCall (FileString);
+            TempRXData.QSOPoints := GetLogEntryQSOPoints (FileString);
 
             GetRidOfPostcedingSpaces (TempRXData.Callsign);
 
@@ -2360,10 +2385,9 @@ VAR FileRead: TEXT;
                 Inc (QSOTotals [All,             TempRXData.Mode]);
                 Inc (QSOTotals [All,             Both]);
 
-                QSOPoints := TempRXData.QSOPoints;
+                { TempRXData.QSOPoints is not right }
 
-                GoToXY (1, WhereY);
-                Write (QSOTotals [All, Both]);
+                QSOPoints := TempRXData.QSOPoints;
 
                 IF PartialCallLoadLogEnable THEN
                     ParseExchangeIntoContestExchange (FileString, TempRXData);
@@ -2380,6 +2404,8 @@ VAR FileRead: TEXT;
                         Inc (TotalNamesSent);
 
                     TotalQSOPoints := TotalQSOPoints + QSOPoints;
+
+                    WriteLn ('QSOPoints = ', QSOPoints);
 
                     GetMultsFromLogEntry (FileString, TempRXData);
                     SetMultFlags (TempRXData);
@@ -2447,8 +2473,6 @@ VAR FileRead: TEXT;
 
         Close (FileRead);
         END;
-
-    WriteLn ('There were ', QSOTotals [All, Both], ' QSOs loaded in.');
 
     SetUpRemainingMultiplierArrays;
 
