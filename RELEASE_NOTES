@@ -16,6 +16,19 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+0.59
+
+- Fixed bug where reloading in a log had the wrong total score.
+
+- Fixed possible crash when working too many calls with JA in them.
+
+- Fixed duplicate entries in possible call window if the call is in the
+  editable window.
+
+- Added new command in POST Utility to assign Cabriilo TX ID's by band
+  (Post U T).
+
+
 0.58
 
 - Updated Mult files for a number of contests.
