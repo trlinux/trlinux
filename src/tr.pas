@@ -48,6 +48,17 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+ - Removed WARC bands from Continent Report
+
+Relase 0.59 - 28-Nov-2023
+
+01-Dec-2023
+ - When using TWO VFO MODE and you go to a frequency that has an entry in the
+   band map - instead of doing a dupecheck if you press the SPACE BAR again,
+   it will go back to your CQ frequency.  Also made it so a dupe check with a
+   dupe will update the bandmap time stamp.  Some other minor tweaks to how it
+   works when finding a dupe on the other VFO.
+
 28-Nov-2023
  - Increased size of possible/partial call list from 200 to 600.
  - Added check to not blow up the SCP list when adding one too many

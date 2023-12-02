@@ -874,7 +874,6 @@ VAR Frequency: LONGINT;
         BEGIN
         StationInformationCall := '';
         ShowStationInformation (CallWindowString);
-
         DisplayGridSquareStatus (CallWindowString);
 
         IF BandMapEnable THEN
@@ -1632,6 +1631,7 @@ VAR CQMemory, SendChar: CHAR;
     SetUpToSendOnActiveRadio;
     KeyPressedMemory := Chr (0);
     CWEnabled := True;
+    DisplayAutoSendCharacterCount;
 
     IF NOT (((AutoCQMemory >= F1)  AND (AutoCQMemory <= AltF10)) OR
             ((AutoCQMemory >= F11) AND (AutoCQMemory <= AltF12))) THEN
@@ -5103,16 +5103,32 @@ VAR Key, ExtendedKey: CHAR;
                     END;
 
                 SpaceBar:
-                    IF (TwoVFOState = TwoVFOSwapped) AND (CallWindowString = '') THEN
+                    IF (TwoVFOState = TwoVFOSwapped) AND ((CallWindowString = '') OR (CallWindowString = BandMapBlinkingCall)) THEN
                         BEGIN
+                        IF CallWindowString <> '' THEN WindowDupeCheck;
                         SearchAndPounce := False;
                         RemoveWindow (ExchangeWindow);
                         OpMode := CQOpMode;
+                        DisplayAutoSendCharacterCount;
                         Exit;
                         END
                     ELSE
                         IF (Length (CallWindowString) > 0) AND SpaceBarDupeCheckEnable THEN
-                            WindowDupeCheck
+                            BEGIN
+                            WindowDupeCheck;
+
+                            { See if this was a dupe and we want the same bahavior as above }
+
+                            IF TwoVFOState = TwoVFOSwapped THEN
+                                IF CallWindowString = '' THEN
+                                    BEGIN
+                                    SearchAndPounce := False;
+                                    RemoveWindow (ExchangeWindow);
+                                    OpMode := CQOpMode;
+                                    DisplayAutoSendCharacterCount;
+                                    Exit;
+                                    END;
+                            END
                         ELSE
                             BEGIN
                             ProcessExchangeFunctionKey (F1);
@@ -6158,6 +6174,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                     OpMode := CQOpMode;
                     TwoVFOState := TwoVFOIdle;
                     RemoveWindow (ExchangeWindow);
+                    DisplayAutoSendCharacterCount;
                     Continue;
                     END;
 

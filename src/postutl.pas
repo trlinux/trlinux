@@ -2461,6 +2461,19 @@ VAR FileName: Str40;
 
 
 
+FUNCTION GetBandFromCabrilloFrequency (Frequency: LONGINT): BandType;
+
+    BEGIN
+    IF Frequency < 3000 THEN GetBandFromCabrilloFrequency := Band160 ELSE
+      IF Frequency < 6000 THEN GetBandFromCabrilloFrequency := Band80 ELSE
+        IF Frequency < 10000 THEN GetBandFromCabrilloFrequency := Band40 ELSE
+          IF Frequency < 16000 THEN GetBandFromCabrilloFrequency := Band20 ELSE
+            IF Frequency < 23000 THEN GetBandFromCabrilloFrequency := Band15 ELSE
+              GetBandFromCabrilloFrequency := Band10;
+    END;
+
+
+
 PROCEDURE TransmitterIDAssign;
 
 VAR CabrilloString, InputFileName, OutputFileName: STRING;
@@ -2510,12 +2523,7 @@ VAR CabrilloString, InputFileName, OutputFileName: STRING;
             RemoveFirstString (TempString); { QSO: }
             Frequency := RemoveFirstLongInteger (TempString);
 
-            IF Frequency < 3000 THEN Band := Band160 ELSE
-              IF Frequency < 6000 THEN Band := Band80 ELSE
-                IF Frequency < 10000 THEN Band := Band40 ELSE
-                  IF Frequency < 16000 THEN Band := Band20 ELSE
-                    IF Frequency < 23000 THEN Band := Band15 ELSE
-                      Band := Band10;
+            Band := GetBandFromCabrilloFrequency (Frequency);
 
             CASE Band OF
                 Band160: TXID := TXID_160;
@@ -2549,6 +2557,154 @@ VAR CabrilloString, InputFileName, OutputFileName: STRING;
 
 
 
+PROCEDURE VerifyTransmitterIDs;
+
+VAR Key, ContestKey: CHAR;
+    InputFileName: Str80;
+    OriginalCabrilloString, FileString: STRING;
+    FileRead: TEXT;
+    TRLogFile: BOOLEAN;
+    NumberViolations, TX0BandChanges, TX1BandChanges: INTEGER;
+    TX0Band, TX1Band: BandType;
+    TXIDString, LastHourString, DateTimeString: Str80;
+    Frequency: LONGINT;
+    CurrentTX0Band, CurrentTX1Band, Band: BandType;
+
+    BEGIN
+    ClearScreenAndTitle ('VERIFY CABRILLO TRANSMITTER IDs');
+    WriteLn ('This procedure will look at your transmitter IDs in your Cabrillo');
+    WritELn ('file and inform you if there are any band change violations.  This');
+    WritELn ('is intended to be used for the two transmitter for CQ WW, CQ WPX,');
+    WriteLn ('ARRL DX or NAQP contests.  It will only work with Cabrillo files.');
+    WriteLn;
+
+    NumberViolations := 0;
+
+    InputFileName := GetResponse ('Enter filname to examine (none to abort) : ');
+    IF InputFileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (FileRead, InputFileName) THEN
+        BEGIN
+        WriteLn ('Unable to open file ', InputFileName);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    REPEAT
+        ContestKey := UpCase (GetKey ('Contest : (C)Q WW or WPX , (A)RRL DX, (N)AQP or ESCAPE to abort : '));
+        IF ContestKey = EscapeKey THEN Exit;
+    UNTIL (ContestKey = 'C') OR (ContestKey = 'A') OR (ContestKey = 'N');
+    WriteLn;
+
+    CASE ContestKey OF
+
+        'C', 'A':
+            BEGIN    { CQ Contests allow 8 changes / TX in calendar hour - ARRL 6  }
+
+            LastHourString := '';
+
+            WHILE NOT Eof (FileRead) DO
+                BEGIN
+                ReadLn (FileRead, FileString);
+                OriginalCabrilloString := FileString;
+
+                IF RemoveFirstString (FileString) = 'QSO:' THEN
+                    BEGIN
+                    Frequency := RemoveFirstLongInteger (FileString);
+                    Band := GetBandFromCabrilloFrequency (Frequency);
+
+                    RemoveFirstString (FileString);  { mode }
+
+                    DateTimeString := RemoveFirstString (FileString);
+                    DateTimeString := DateTimeString + RemoveFirstString (FileString);
+
+                    { Remove the minutes from the time string }
+
+                    Delete (DateTimeString, Length (DateTimeString) - 1, 2);
+
+                    { If a new hour has shown up - we start everything from scratch }
+
+                    IF DateTimeString <> LastHourString THEN
+                        BEGIN
+                        CurrentTX0Band := NoBand;
+                        CurrentTX1Band := NoBand;
+                        TX0BandChanges := 0;
+                        TX1BandChanges := 1;
+
+                        LastHourString := DateTimeString;
+                        END;
+
+                    TXIDString := GetLastString (FileString);
+
+                    IF TXIDString = '0' THEN
+                        BEGIN
+                        IF CurrentTX0Band <> Band THEN
+                            BEGIN
+                            IF CurrentTX0Band <> NoBand THEN
+                                Inc (TX0BandChanges);
+
+                            CurrentTX0Band := Band;
+
+                            CASE ContestKey OF
+                                'A': IF TX0BandChanges > 6 THEN
+                                         BEGIN
+                                         WriteLn (OriginalCabrilloString);
+                                         Inc (NumberViolations);
+                                         END;
+
+                                'C': IF TX0BandChanges > 6 THEN
+                                         BEGIN
+                                         WriteLn (OriginalCabrilloString);
+                                         Inc (NumberViolations);
+                                         END;
+
+                                END;  { of CASE }
+                            END;
+                        END
+
+                    ELSE  { TXID = 1 }
+                        BEGIN
+                        IF CurrentTX1Band <> Band THEN
+                            BEGIN
+                            IF CurrentTX1Band <> NoBand THEN
+                                Inc (TX1BandChanges);
+
+                            CurrentTX1Band := Band;
+
+                            CASE ContestKey OF
+                                'A': IF TX0BandChanges > 6 THEN
+                                         BEGIN
+                                         WriteLn (OriginalCabrilloString);
+                                         Inc (NumberViolations);
+                                         END;
+
+                                'C': IF TX0BandChanges > 6 THEN
+                                         BEGIN
+                                         WriteLn (OriginalCabrilloString);
+                                         Inc (NumberViolations);
+                                         END;
+
+                                END;  { of CASE }
+                            END;
+                        END;
+                    END;
+                END;
+
+            WriteLn ('There were ', NumberViolations, ' band changes violations found.');
+            END;
+
+        'N': BEGIN { NAQP requires 10 minutes on a band after first QSO }
+             WriteLn ('Sorry - not implemented yet');
+             END;
+
+        END; { of case }
+
+    Close (FileRead);
+    WaitForKeyPressed;
+    END;
+
+
+
 FUNCTION UtilityMenu: BOOLEAN;
 
 VAR Key: CHAR;
@@ -2574,6 +2730,7 @@ VAR Key: CHAR;
     WriteLn ('  Q - NAQP exchange checker');
     WriteLn ('  S - Show contents of RESTART.BIN file.');
     WriteLn ('  T - Transmitter ID assign by band for Cabrillo.');
+    WriteLn ('  V - Verify two transmiter band changes.');
     WriteLn ('  Y - Download new country file.');
     WriteLn ('  X - Exit utility program menu.');
     WriteLn;
@@ -2598,6 +2755,7 @@ VAR Key: CHAR;
             'N': BEGIN NameEditor;           Exit; END;
             'Q': BEGIN NAQPExchangeChecker;  Exit; END;
             'T': BEGIN TransmitterIDAssign;  Exit; END;
+            'V': BEGIN VerifyTransmitterIDs; Exit; END;
             'Y': BEGIN DownloadCtyFile;      Exit; END;
             'S': BEGIN ShowRestartDotBin;    Exit; END;
 
