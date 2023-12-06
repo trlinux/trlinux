@@ -109,7 +109,11 @@ TYPE
         DisplayedMode: ModeType;
         DisplayedTXColor: TXColorType;
         DoingPTTTest: BOOLEAN;
+
         DualModeMemory: BOOLEAN;    { Used to remember that a keystroke has already happened }
+        DualModeKey: CHAR;
+        DualModeExtendedKey: CHAR;
+
         DupeShown: BOOLEAN;
         DupeShownCallsign: CallString;
         DupeShownTime: TimeRecord;
@@ -2395,7 +2399,10 @@ VAR Key, ExtendedKey: CHAR;
         END;
 
     { Do not process any keystrokes while auto start send active on the
-      other radio.  }
+      other radio.  This is probably mostly okay as I doubt someone will
+      be actively putting in characters on one keyboard and pressing a
+      key on the other keyboard instantly.  One possible exception might
+      be the footswitch if we get that implemented. }
 
     CASE Radio OF
         RadioOne: IF Radio2QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
@@ -2409,8 +2416,27 @@ VAR Key, ExtendedKey: CHAR;
 
     { We want to get to some states before the WindowEditor is called }
 
-    IF (QSOState <> QST_StartSendingKeyboardCW) AND Not DualModeMemory THEN
-        WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
+    { We are going to have different behaviour here depending on whether we are
+      in TBSIQDualMode mode or not.  }
+
+    IF TBSIQDualMode AND DualModeMemory THEN
+        BEGIN
+        IF DisableTransmitting THEN Exit;
+
+        { We are done transmitting and can now process the keystroke that was
+          waiting }
+
+        Key := DualModeKey;
+        ExtendedKey := DualModeExtendedKey;
+        ActionRequired := True;
+        DualModeMemory := False;
+
+        { Now - we can process the remembered key stroke }
+        END
+
+    ELSE { Normal mode }
+        IF (QSOState <> QST_StartSendingKeyboardCW) THEN
+            WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
 
     { This is a VERY POWERFUL command...  not totally sure of the consequences just
       yet - but basically I am trying to lock out anything being done if both rigs
@@ -2421,7 +2447,16 @@ VAR Key, ExtendedKey: CHAR;
       key memory here. }
 
     IF ActionRequired AND DisableTransmitting THEN
+        BEGIN
+        IF TBSIQDualMode THEN
+            BEGIN
+            DualModeMemory := True;
+            DualModeKey := Key;
+            DualModeExtendedKey := ExtendedKey;
+            END;
+
         Exit;
+        END;
 
     CASE QSOState OF
 
@@ -4623,13 +4658,22 @@ VAR Color: TXColorType;
       by not looking at IAmTransmitting when in CW }
 
     CASE Mode OF
-        CW: Color := TBSIQ_CW_Engine.GetTransmitColor (Radio);
+        CW: BEGIN
+            Color := TBSIQ_CW_Engine.GetTransmitColor (Radio);
+
+            IF Color = TX_Blue THEN
+                IF DualModeMemory THEN
+                    Color := TX_Yellow;
+            END;
 
         Phone, Digital:
             IF IAmTransmitting THEN
                 Color := TX_Red
             ELSE
-                Color := TX_Blue;
+                IF DualModeMemory THEN
+                    Color := TX_Yellow
+                ELSE
+                    Color := TX_Blue;
         END;
 
     IF DisplayedTXColor <> Color THEN

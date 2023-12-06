@@ -226,7 +226,7 @@ PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
             BEGIN
             SaveAndSetActiveWindow (TBSIQ_R1_CodeSpeedWindow);
             GoToXY (9, 1);
-            Write ('CW');
+            Write ('TX');
             RestorePreviousWindow;
 
             SaveAndSetActiveWindow (TBSIQ_R2_CodeSpeedWindow);
@@ -244,7 +244,7 @@ PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
 
             SaveAndSetActiveWindow (TBSIQ_R2_CodeSpeedWindow);
             GoToXY (9, 1);
-            Write ('CW');
+            Write ('TX');
             RestorePreviousWindow;
             END;
         END;
