@@ -95,8 +95,25 @@ VAR
     SerialNumberEngine: SerialNumberObject;
 
 
+    FUNCTION TBSIQ_FootSwitchPressed: BOOLEAN;
+
+
 IMPLEMENTATION
 
+FUNCTION TBSIQ_FootSwitchPressed: BOOLEAN;
+
+{ Just an easy place to come to see if the footswitch is pressed or not.
+  This is a bit of a hack as I was not smart enough to figure out how to
+  modify Footsw to work with the ArdKeyer. }
+
+    BEGIN
+    IF ActiveKeyer = ArdKeyer THEN
+        TBSIQ_FootSwitchPressed := ArdKeyer.FootSwitchPressed
+    ELSE
+        TBSIQ_FootSwitchPressed := Footsw.getDebouncedState;
+    END;
+
+
 
 FUNCTION SerialNumberObject.GetNextSerialNumber (Callsign: CallString;
                                                  Frequency: LONGINT;

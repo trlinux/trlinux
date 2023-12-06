@@ -122,6 +122,7 @@ TYPE
         ExchangeWindowString: STRING;
         ExchangeWindowCursorPosition: INTEGER;
 
+        FootSwitchDelayNeeded: BOOLEAN;
         Frequency: LONGINT;                 { The most current frequency for the radio }
 
         InitialExchangePutUp: BOOLEAN;
@@ -2342,6 +2343,7 @@ VAR Key, ExtendedKey: CHAR;
     xResult: INTEGER;
     MultString: Str20;
     Mult: BOOLEAN;
+    CheckRadio: RadioType;
 
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
@@ -2397,6 +2399,51 @@ VAR Key, ExtendedKey: CHAR;
         IF (QSOState <> QST_SearchAndPounce) AND (QSOState <> QST_SearchAndPounceInit) THEN
             DisplayAutoStartSendCharacterCount;
         END;
+
+    { Before we get too involved looking at keystrokes - let's see if the footswitch
+      is being pressed and if we care.  We will only care if TBSIQDualMode is
+      active.  Basically - pressing the footswitch will assert PTT if this instance
+      of the QSOMachineObject is on SSB mode.  However, if we are busy transmitting
+      on the other radio - it will have to wait.
+
+      Initially - pressing the footswitch STOPS any CW instantly and asserts PTT
+      on the SSB radio.  However, to give the option of waiting for the CW to
+      end, we created TBSIQFootSwitchLockout, which when TRUE will not assert
+      PTT until the CW message is completed.  }
+
+   IF Radio = RadioOne THEN
+       CheckRadio := RadioTwo
+   ELSE
+       CheckRadio := RadioOne;
+
+   IF TBSIQDualMode AND (Mode = Phone) THEN
+        IF (NOT TBSIQFootSwitchLockout) OR TBSIQ_CW_Engine.CWFinished (CheckRadio) THEN
+            BEGIN
+            IF TBSIQ_FootSwitchPressed THEN
+                BEGIN
+                { Need to make sure we are connected to the correct radio }
+
+                ActiveRadio := Radio;
+                SetUpToSendOnActiveRadio;
+                ActiveKeyer.PTTForceOn;
+
+                { We need to setup a delay when we first hit the footswitch to give the
+                  radio time to feedback TX status }
+
+                IF FootswitchDelayNeeded THEN
+                    BEGIN
+                    TransmitCountdown := 2;
+                    FootSwitchDelayNeeded := False;
+                    END;
+                END
+
+            ELSE { not pressed }
+                BEGIN
+                ActiveKeyer.PTTUnforce;  { We really don't care what radio we are setup on }
+                FootswitchDelayNeeded := True;
+                END;
+
+            END;
 
     { Do not process any keystrokes while auto start send active on the
       other radio.  This is probably mostly okay as I doubt someone will
@@ -4329,6 +4376,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
+    FootSwitchDelayNeeded := False;
     K3RXPollActive := False;
     LastDisplayedQSONumber := -1;
     LocalInsertMode := InsertMode;                          { Need to get the global Insert Mode here }

@@ -906,6 +906,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
 
       TBM: TBSIQDualMode := NOT TBSIQDualMode;
+      TBF: TBSIQFootSwitchLockout := NOT TBSIQFootSwitchLockout;
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: TenMinuteRule := TimeOfFirstQSO;
@@ -1330,6 +1331,7 @@ VAR FileWrite: TEXT;
                END;
 
       TBM: WriteLn (FileWrite, TBSIQDualMode);
+      TBF: WriteLn (FileWrite, TBSIQFootSwitchLockout);
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: WriteLn (FileWrite, 'NONE');
@@ -1697,6 +1699,7 @@ VAR TempString: Str40;
            END;
 
       TBM: IF TBSIQDualMode THEN TempString := 'TRUE';
+      TBF: IF TBSIQFootSwitchLockout THEN TempString := 'TRUE';
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: TempString := 'NONE';

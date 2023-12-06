@@ -218,6 +218,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       SWR,
                       TAB,
                       TBM,
+                      TBF,
                       TMR,
                       TOT,
                       TDL, { TRMASTER.DTA file location }
@@ -464,6 +465,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
 
       TAB: Description := 'TAB MODE';
       TBM: Description := 'TBSIQ DUAL MODE';
+      TBF: Description := 'TBSIQ FOOTSWITCH LOCKOUT';
       TMR: Description := 'TEN MINUTE RULE';
       TOT: Description := 'TOTAL OFF TIME';
       TDL: Description := 'TRMASTER.DTA LOCATION';
@@ -842,6 +844,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
            END;
 
       TBM: Write (TBSIQDualMode);
+      TBF: Write (TBSIQFootSwitchLockout);
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: Write ('NONE');
@@ -1781,6 +1784,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Radios are on different modes')
            ELSE
                Write ('Both radios are same mode.');
+
+      TBF: IF TBSIQFootSwitchLockout THEN
+               Write ('Wait for CW to be done')
+           ELSE
+               Write ('Interrupt CW and instant PTT');
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: Write ('No ten minute display');

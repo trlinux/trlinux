@@ -833,6 +833,8 @@ VAR
                                attempting to use TBSIQ with one rig on CW and the
                                other on phone. }
 
+    TBSIQFootSwitchLockout: BOOLEAN;  { When TRUE, PTT is delayed until CW done }
+
     TenMinuteRule:  TenMinuteRuleType;
     TenMinuteTime:  TenMinuteTimeRecord;
     TimeSpentByBand: ARRAY [Band160..Band10] OF INTEGER;
