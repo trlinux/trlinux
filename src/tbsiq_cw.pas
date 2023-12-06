@@ -226,7 +226,7 @@ PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
             BEGIN
             SaveAndSetActiveWindow (TBSIQ_R1_CodeSpeedWindow);
             GoToXY (9, 1);
-            Write ('TX');
+            Write ('CW');
             RestorePreviousWindow;
 
             SaveAndSetActiveWindow (TBSIQ_R2_CodeSpeedWindow);
@@ -244,7 +244,7 @@ PROCEDURE TBSIQ_CWEngineObject.ShowActiveRadio;
 
             SaveAndSetActiveWindow (TBSIQ_R2_CodeSpeedWindow);
             GoToXY (9, 1);
-            Write ('TX');
+            Write ('CW');
             RestorePreviousWindow;
             END;
         END;
@@ -428,12 +428,23 @@ VAR LowerPriorityMessageFound: BOOLEAN;
                 BEGIN
                 IF Priority = PriorityLevel THEN
                     BEGIN
-                    IF ActiveRadio <> Radio THEN
+                    { I used to do this only if ActiveRadio <> Radio }
+
+                    ActiveRadio := Radio;
+                    ActiveMode := CW;
+
+                    { I am not sure I can exactly say why this is necessary, but
+                      when using dual modes - if I send a CQ on the SSB radio and
+                      then try to send something like a Callsign or QSL message on
+                      CW, it is keying up the SSB radio.  This seems to fix it. }
+
+                    IF TBSIQDualMode THEN
                         BEGIN
-                        ActiveRadio := Radio;
-                        SetUpToSendOnActiveRadio;
+                        SendingOnRadioOne := False;
+                        SendingOnRadioTwo := False;
                         END;
 
+                    SetUpToSendOnActiveRadio;
 
                     AddStringToBuffer (Message, CWTone);
                     MessageStarted := True;
@@ -508,7 +519,7 @@ PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
   is complete }
 
     BEGIN
-    IF CWStillBeingSent  THEN Exit;   { Still sending some CW }
+    IF CWStillBeingSent  THEN Exit;  { Still sending some CW }
     IF CueHead = CueTail THEN Exit;  { Nothing to tend to }
 
     { Find the next message to send in the cue }

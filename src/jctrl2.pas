@@ -67,6 +67,7 @@ VAR LastEntry, Entry: MenuEntryType;
     END;
 
 
+
 
 PROCEDURE ProcessInput (ActiveLine: MenuEntryType);
 
@@ -572,6 +573,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       MBA: MultipleBandsEnabled   := NOT MultipleBandsEnabled;
       MMD: MultipleModesEnabled   := NOT MultipleModesEnabled;
 
+      N4S: BEGIN
+           SendBandMapCallsToN4OGW;
+           END;
+
       NFC: CASE N4OGW_Frequency_Control OF
                N4OGW_FC_VFOA: N4OGW_Frequency_Control := N4OGW_FC_VFOB;
                N4OGW_FC_VFOB: N4OGW_Frequency_Control := N4OGW_FC_AUTO;
@@ -899,6 +904,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                NormalTabMode:   TabMode := ControlFTabMode;
                ControlFTabMode: TabMode := NormalTabMode;
                END;
+
+      TBM: TBSIQDualMode := NOT TBSIQDualMode;
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: TenMinuteRule := TimeOfFirstQSO;
@@ -1322,6 +1329,8 @@ VAR FileWrite: TEXT;
                ControlFTabMode: WriteLn (FileWrite, 'CONTROLF');
                END;
 
+      TBM: WriteLn (FileWrite, TBSIQDualMode);
+
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: WriteLn (FileWrite, 'NONE');
                TimeOfFirstQSO:  WriteLn (FileWrite, 'TIME OF FIRST QSO');
@@ -1687,6 +1696,8 @@ VAR TempString: Str40;
            IF TabMode = ControlFTabMode THEN TempString := 'CONTROLF';
            END;
 
+      TBM: IF TBSIQDualMode THEN TempString := 'TRUE';
+
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: TempString := 'NONE';
                TimeOfFirstQSO:  TempString := 'TIME OF FIRST QSO';
@@ -1977,8 +1988,6 @@ VAR FirstEntryShown, MenuEntry, ActiveLine: MenuEntryType;
                     END;
 
             END;
-
-    Wait (4);  { Six meter noise suppression }
 
     UNTIL False
     END;

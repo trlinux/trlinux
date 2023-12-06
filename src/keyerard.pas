@@ -1145,17 +1145,14 @@ FUNCTION ArduinoKeyer.CWStillBeingSent: BOOLEAN;
         CASE Integer (ArduinoKeyerPort.ReadChar) OF
             0: CWStillBeingSent := False;  { PTT dropped }
 
-             { A 1 result  used to return True - but I was seeing some
-               dropouts of the PTT being asserted when using the
-               AutoCallTerminate function - so made it false so that we
-               can have more time to get the exchange (or dupe message)
-               cued up.
+             { A 1 result  used to return True -  but we had a funny
+               case where if someone forced on the PTT and was waiting
+               for CW to finish - we would lock up since PTT would never
+               drop.  So - best to report back that CW is done even if
+               the PTT is still asserted.  }
 
-               Then I set it back to True to see if things worked
-               better. }
-
-            1: CWStillBeingSent := True;  { CW buffer empty - PTT On }
-            2: CWStillBeingSent := True;   { we are indeed sending CW }
+            1: CWStillBeingSent := False;  { CW buffer empty - PTT On }
+            2: CWStillBeingSent := True    { we are indeed sending CW }
 
             END;  { of case }
         END

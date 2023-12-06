@@ -109,6 +109,7 @@ TYPE
         DisplayedMode: ModeType;
         DisplayedTXColor: TXColorType;
         DoingPTTTest: BOOLEAN;
+        DualModeMemory: BOOLEAN;    { Used to remember that a keystroke has already happened }
         DupeShown: BOOLEAN;
         DupeShownCallsign: CallString;
         DupeShownTime: TimeRecord;
@@ -161,12 +162,19 @@ TYPE
         SCPScreenFull: BOOLEAN;
         SearchAndPounceStationCalled: BOOLEAN;
         SearchAndPounceExchangeSent: BOOLEAN;
+
+        { SSBTransmissionStarted is intended to fill in the gap from when you initiate
+          a tranmission on SSB until the radio has told you it is transmitting.  This
+          typically can take a second or so.  It is used to keep the other transmitting
+          from initiating a tranmission during this gap. }
+
+        SSBTransmissionStarted: BOOLEAN;
+
         StationInformationCall: CallString;
 
         TBSIQ_ActiveWindow: TBSIQ_WindowType;
 
         TransmitCountDown: INTEGER;      { Set > 0 for # of seconds to fake "I am transmitting" }
-        TurnOffK3TXPollModeCount: INTEGER;
 
         PROCEDURE AppendCWMessageDisplay (Message: STRING);
 
@@ -193,6 +201,7 @@ TYPE
         PROCEDURE SetUpNextQSONumber;
 
         FUNCTION  IAmTransmitting: BOOLEAN;
+
         PROCEDURE InitializeQSOMachine (KBFile: CINT;
                                         RadioID: RadioType;
                                         WinX, WinY: INTEGER);
@@ -1011,6 +1020,15 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SRS' THEN
             BEGIN
+            { If someone is sending an SRS command and the mode if SSB, we should
+              probably assume they are sending a voice message.  We should set
+              the TransmitCountdown counter. }
+
+            CASE Radio OF
+                RadioOne: Radio1QSOMachine.TransmitCountdown := InitialTransmitCountdown;
+                RadioTwo: Radio2QSOMachine.TransmitCountdown := InitialTransmitCountdown;
+                END;
+
             IF Radio = radioone then
                 rig1.directcommand (filename)
             ELSE
@@ -1019,7 +1037,7 @@ VAR FileName, CommandString: Str40;
 
 
         IF CommandString = 'SRS1' THEN
-            rig1.directcommand (filename);
+            Rig1.directcommand (filename);
 
         IF CommandString = 'SRS2' THEN
             Rig2.directcommand (filename);
@@ -2362,7 +2380,6 @@ VAR Key, ExtendedKey: CHAR;
 
         END;  { of CASE }
 
-
     { Show new QSO state if diffrent and update TX indicator }
 
     IF QSOState <> LastQSOState THEN
@@ -2392,15 +2409,19 @@ VAR Key, ExtendedKey: CHAR;
 
     { We want to get to some states before the WindowEditor is called }
 
-    IF QSOState <> QST_StartSendingKeyboardCW THEN
+    IF (QSOState <> QST_StartSendingKeyboardCW) AND Not DualModeMemory THEN
         WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
 
     { This is a VERY POWERFUL command...  not totally sure of the consequences just
       yet - but basically I am trying to lock out anything being done if both rigs
       are not on CW - and there is ActionRequired while the other transmitter is
-      busy sending }
+      busy sending.
 
-    IF ActionRequired AND DisableTransmitting THEN Exit;
+      Note - whatever the key was that was pressed is forgotten - there is no
+      key memory here. }
+
+    IF ActionRequired AND DisableTransmitting THEN
+        Exit;
 
     CASE QSOState OF
 
@@ -2737,8 +2758,7 @@ VAR Key, ExtendedKey: CHAR;
                         Exit;
                         END
                     ELSE
-                        BEGIN
-
+                        BEGIN  { Call is a dupe }
                         IF Mode = CW THEN
                             BEGIN
                             ExpandedString := ExpandCrypticString (QSOBeforeMessage);
@@ -2754,6 +2774,10 @@ VAR Key, ExtendedKey: CHAR;
                             TransmitCountdown := InitialTransmitCountdown;
                             FinishRTTYTransmission (ExpandedString);
                             ShowCWMessage (ExpandedString);
+                            END;
+
+                        IF Mode = Phone THEN  { Guess I am okay doing nothing ATM }
+                            BEGIN
                             END;
 
                         QSOState := QST_Idle;
@@ -4025,10 +4049,7 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     { We are now only executing this code once a second - per radio }
 
-    { Check turning off TX polling for K4 }
-
-    IF TurnOffK3TXPollModeCount > 0 THEN
-        Dec (TurnOffK3TXPollModeCount);
+    IF TransmitCountDown > 0 THEN Dec (TransmitCountDown);
 
     { PTTTest is used for testing purposes only }
 
@@ -4053,8 +4074,6 @@ VAR FrequencyChange, TempFreq: LONGINT;
             PTTState := NOT PTTState;
             END;
         END;
-
-    IF TransmitCountDown > 0 THEN Dec (TransmitCountDown);
 
     { Update the cursor frequency of the band map and display the band map }
 
@@ -4155,6 +4174,8 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         QST_SendingKeyboardCWWaiting: Write ('Keyboard CW - waiting on other TX')
         ELSE Write ('???');
         END;
+
+    Write (' ', TransmitCountdown);
 
     RestorePreviousWindow;
     END;
@@ -4269,6 +4290,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     DisplayedMode := NoMode;
     DisplayedTXColor := NoTXColor;
     DoingPTTTest := False;
+    DualModEMemory := False;
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
@@ -4281,10 +4303,10 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     LastQSOState := QST_None;
     OkayToPutUpBandMapCall := False;
     QSOState := QST_Idle;
-
     RadioOnTheMove := False;
     SearchAndPounceExchangeSent := False;
     SearchAndPounceStationCalled := False;
+    SSBTransmissionStarted := False;
     TransmitCountDown := 0;
 
     { Setup the window locations derived from the X,Y reference }
@@ -4592,13 +4614,23 @@ PROCEDURE QSOMachineObject.DisplayTXColor;
 VAR Color: TXColorType;
 
     BEGIN
-    IF Mode = CW THEN
-        Color := TBSIQ_CW_Engine.GetTransmitColor (Radio)
-    ELSE
-        IF IAmTransmitting THEN
-            Color := TX_Red
-        ELSE
-            Color := TX_Blue;
+    { Note that the following code will have a funny result if you are sending
+      CW by hand.  While the CW is actually being generated - the TX indicator
+      will be red.  If you just send a dit - it will revert to blue really
+      fast - all before the radio has had time to come back with TX status.
+      So it will go blue again until the next poll when the radio will say
+      it is done transmitting.  Not sure this matters, but it can be fixed
+      by not looking at IAmTransmitting when in CW }
+
+    CASE Mode OF
+        CW: Color := TBSIQ_CW_Engine.GetTransmitColor (Radio);
+
+        Phone, Digital:
+            IF IAmTransmitting THEN
+                Color := TX_Red
+            ELSE
+                Color := TX_Blue;
+        END;
 
     IF DisplayedTXColor <> Color THEN
         BEGIN
@@ -4668,6 +4700,9 @@ PROCEDURE QSOMachineObject.DisplayCodeSpeed;
         Write (' ', CodeSpeed:2, ' WPM')
     ELSE
         Write ('       ');
+
+    { This is coming up at the start of the 2BSIQ.  Not sure yet how to
+      differentiate ActiveRadio and "CW" }
 
     IF ActiveRadio = Radio THEN
         Write (' TX');
@@ -4866,6 +4901,9 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
       since we can't tell if we are the active radio down this low, we just can't
       deal with anything. }
 
+    { However, if we are doing dual mode - we will want to use the footswitch
+      in an interlocked way for the SSB radio }
+
     IF NOT ((TBSIQ_KeyPressed (Radio)) OR (CharacterInput <> Chr (0))) THEN
         Exit;  { No reason to be here }
 
@@ -4881,9 +4919,14 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
             RadioTwo: rig1.directcommand ('RX;');
             END;
 
-        ActiveRadio := Radio;
-        ActiveKeyer.SetActiveRadio (Radio);   { This seems necessary }
-        TBSIQ_CW_Engine.ShowActiveRadio;
+        { For now - I am not sure I want to do this with DualMode mode }
+
+        IF NOT TBSIQDualMode THEN
+            BEGIN
+            ActiveRadio := Radio;
+            ActiveKeyer.SetActiveRadio (Radio);   { This seems necessary }
+            TBSIQ_CW_Engine.ShowActiveRadio;
+            END;
         END;
 
     DualingCQState := NoDualingCQs;
@@ -6945,31 +6988,60 @@ FUNCTION ValidFunctionKey (Key: CHAR): BOOLEAN;
 
 FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
 
-{ Typically called by the other radio to see if this one is transmitting.
-  Mostly likely used to disable some function keys when in SSB mode or for
-  dualing CQs }
+{ Typically called by the other radio to see if this one is transmitting }
 
 VAR TransmitStatus: BOOLEAN;
 
     BEGIN
     CASE Mode OF
-        CW: IAmTransmitting := NOT TBSIQ_CW_Engine.CWFinished (Radio);
+
+        { For CW - this is pretty straightforward }
+
+        CW: BEGIN
+            IAmTransmitting := NOT TBSIQ_CW_Engine.CWFinished (Radio);
+            Exit;
+
+            { So - I exited above - if I do the test below - it delays the
+              clearing of the RED flag by about a half second.  I think this
+              exposure is okay.  It just means you are NOT locked out if you
+              are sending a message by hand. }
+
+            { Let's go see if the radio is actually transmitting - maybe a
+              hand sent message?  I realize this isn't perfect - but it's
+              worth a shot }
+
+            CASE Radio OF
+                RadioOne: IAmTransmitting := Rig1.K3IsStillTalking;
+                RadioTwo: IAmTransmitting := Rig2.K3IsStillTalking;
+                END;  { of CASE }
+            END;
+
+        { For Phone or digital, we are relaying on the radio to tell us
+          if it is transmitting or not.  This is tricky, because there
+          is a significant delay from when we tell the radio to start a
+          transmmission until it will show it has started.  We need to
+          use a timer from whenever we tell the radio to do a transmission
+          to help make sure we return the right status.
+
+          That timer is TransmitCountDown and it is typically set to
+          3 seconds whenever a command is sent to the radio to start
+          a tranmisssion.  When it gets to zero - we will then start
+          relying on the radio for the status. }
+
 
         Phone, Digital:
             BEGIN
-            { We need to have an artifical result after a message is
-              started since it takes a second or two for the txon flag
-              to get set by the radio interface protocol.  }
-
             IF TransmitCountDown > 0 THEN
                 BEGIN
                 IAmTransmitting := True;
 
                 { We are going to enable faster polling of the K3 so
                   we don't have to wait for the 300 ms delay that
-                  the IF; command has on the TX status }
+                  the IF; command has on the TX status.  On December 4,
+                  2023, I added the "AND NOT K3RXPollActive" so we don't
+                  keep resending the command }
 
-                IF RadioInterfaced = K4 THEN
+                IF (RadioInterfaced = K4) AND NOT K3RXPollActive THEN
                     BEGIN
                     CASE Radio OF
                         RadioOne: Rig1.SetK3TXPollMode (True);  { Kind of a misname here }
@@ -6981,6 +7053,8 @@ VAR TransmitStatus: BOOLEAN;
 
                 Exit;
                 END;
+
+            { We drop down here if the IAmTransmitting timeout has occurred. }
 
             { We are now going to rely on the radio status }
 
@@ -6994,26 +7068,26 @@ VAR TransmitStatus: BOOLEAN;
               while before doing that as that TX state will stay true for about
               a half second }
 
-            IF K3RXPollActive THEN
+            IF TransmitStatus THEN
                 BEGIN
-                IF TransmitStatus THEN TurnOffK3TXPollModeCount := 2;
-
-                IF TurnOffK3TXPollModeCount = 0 THEN
-                    BEGIN
-                    CASE Radio OF
-                        RadioOne: Rig1.SetK3TXPollMode (False);  { Kind of a misname here }
-                        RadioTwo: Rig2.SetK3TXPollMode (False);  { Kind of a misname here }
-                        END;
-
-                    K3RXPollActive := False;
-                    END;
+                IAmTransmitting := True;
+                Exit;
                 END;
 
-            IAmTransmitting := TransmitStatus;
-            END;
+            { The radio has gone into RX - we can turn off the fast polling }
 
-        ELSE
+            IF K3RXPollActive THEN
+                BEGIN
+                CASE Radio OF
+                    RadioOne: Rig1.SetK3TXPollMode (False);
+                    RadioTwo: Rig2.SetK3TXPollMode (False);
+                    END;
+
+                K3RXPollActive := False;
+                END;
+
             IAmTransmitting := False;
+            END;
 
         END;  { of case Mode }
 
@@ -7026,7 +7100,10 @@ FUNCTION QSOMachineObject.DisableTransmitting: BOOLEAN;
 { This is used to determine if a transmission can be started NOW.  If both
   radios are on CW - the CW sending engine will deal with any conflicts.
   But if either rig is on something other than CW - then we need to be more
-  careful and not start a message when the other radio is transmitting. }
+  careful and not start a message when the other radio is transmitting.
+
+  Note that the IAmTransmitting status stakes a second or so to go TRUE
+  after starting transmission on the other radio. }
 
     BEGIN
     CASE Radio OF
@@ -7040,7 +7117,8 @@ FUNCTION QSOMachineObject.DisableTransmitting: BOOLEAN;
 
             { One radio or the other is on phone }
 
-            DisableTransmitting := Radio2QSOMachine.IAmTransmitting;
+            DisableTransmitting := Radio2QSOMachine.IAmTransmitting OR
+                                   Radio2QSOMachine.SSBTransmissionStarted;
             Exit;
             END;
 
@@ -7054,7 +7132,8 @@ FUNCTION QSOMachineObject.DisableTransmitting: BOOLEAN;
 
             { One radio or the other is on phone }
 
-            DisableTransmitting := Radio1QSOMachine.IAmTransmitting;
+            DisableTransmitting := Radio1QSOMachine.IAmTransmitting OR
+                                   Radio1QSOMachine.SSBTransmissionStarted;
             Exit;
             END;
 
@@ -7079,6 +7158,18 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
       other radio is not busy transmitting. }
 
     IF DisableTransmitting THEN Exit;
+
+    { If we are dealing with mixed modes - we need to make sure we set
+      things up for the right mode }
+
+    IF TBSIQDualMode THEN   { New for TBSIQ }
+        BEGIN
+        ActiveRadio := Radio;
+        ActiveMode := Mode;
+        ActiveKeyer.SetActiveRadio (Radio);
+        END;
+
+    { Do we get a CQ message or an Exchange one? }
 
     IF (QSOState = QST_Idle) OR (QSOState = QST_CallingCQ) OR
        (QSOState = QST_AutoCQListening) OR
@@ -7118,15 +7209,24 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                END;  { of CASE Key }
 
     { New on 30-Sep-2022 - hmm - should I do this if the message is only going
-      into the cue?  Am I doing this for SSB only? }
+      into the cue?  Am I doing this for SSB only?
+
+      And when I am trying to send a CW message when ActiveMode is Phone (dual
+      mode case) - I need to have both the ActiveRadio set to Radio and
+      ActiveMode set to CW...  so - maybe it is okay to do this all of the
+      time?  I don't need the TransmitCountDown set for CW }
 
     IF Message <> '' THEN
+        BEGIN
+        { This is what used to be here }
+
         IF (ActiveMode = Phone) OR (ActiveMode = Digital) THEN
             BEGIN
             ActiveRadio := Radio;
-            ActiveMode := Mode;
+            ActiveMode := Mode;   { We don't need this - mode never changes? }
             TransmitCountDown := InitialTransmitCountdown;
             END;
+        END;
 
     { This sends the message if you are on SSB }
 

@@ -136,6 +136,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MGR,
                       MIO,
                       MZN,
+                      N4S,
                       NFC,
                       NFE,
                       NEQ,
@@ -216,6 +217,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       SWP,
                       SWR,
                       TAB,
+                      TBM,
                       TMR,
                       TOT,
                       TDL, { TRMASTER.DTA file location }
@@ -375,6 +377,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MIO: Description := 'MY IOTA';
       MZN: Description := 'MY ZONE';
 
+      N4S: Description := 'N4OGW BANDMAP UPDATE';
       NFC: Description := 'N4OGW FREQUENCY CONTROL';
       NFE: Description := 'NAME FLAG ENABLE';
       NEQ: Description := 'NEXT QSO NUMBER';
@@ -460,6 +463,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       SWR: Description := 'SWAP RADIO RELAY SENSE';
 
       TAB: Description := 'TAB MODE';
+      TBM: Description := 'TBSIQ DUAL MODE';
       TMR: Description := 'TEN MINUTE RULE';
       TOT: Description := 'TOTAL OFF TIME';
       TDL: Description := 'TRMASTER.DTA LOCATION';
@@ -698,6 +702,8 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MGR: Write (MyGrid);
       MIO: Write (MyIOTA);
       MZN: Write (MyZone);
+      N4S: Write ();
+
       NFC: CASE N4OGW_Frequency_Control OF
                N4OGW_FC_VFOA: Write ('VFOA');
                N4OGW_FC_VFOB: Write ('VFOB');
@@ -834,6 +840,8 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
            IF TabMode = NormalTabMode   THEN Write ('NORMAL');
            IF TabMode = ControlFTabMode THEN Write ('CONTROLF');
            END;
+
+      TBM: Write (TBSIQDualMode);
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: Write ('NONE');
@@ -1383,7 +1391,9 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
       MIO: Write ('IOTA Reference Designator');
       MZN: Write ('Set by MY CALL / MY ZONE in cfg file');
 
-      NFC: CASE N4OGW_Frequency_Control OF
+      N4S: Write ('Press RETURN to send Bandmap to N4OGW');
+
+      NFC.: CASE N4OGW_Frequency_Control OF
                N4OGW_FC_VFOA: Write ('Send freq command to VFO A');
                N4OGW_FC_VFOB: Write ('Send freq command to VFO B');
                N4OGW_FC_AUTO: Write ('IF CQ mode > VFO B  S&P > VFO A');
@@ -1766,6 +1776,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                NormalTabMode:   Write ('When edit, tab moves to next field');
                ControlFTabMode: Write ('When edit, tab moves to next word');
                END;
+
+      TBM: IF TBSIQDualMode THEN
+               Write ('Radios are on different modes')
+           ELSE
+               Write ('Both radios are same mode.');
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: Write ('No ten minute display');

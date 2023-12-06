@@ -831,9 +831,32 @@ PROCEDURE Do2BSIQ;
         MilliSleep;     { This seems necessary or radio display doesn't work }
         TBSIQ_UpdateTimeAndrateDisplays;
         Radio1QSOMachine.CheckQSOStateMachine;
-        TBSIQ_CW_Engine.CheckMessages;
+
+        { This probably work for SSB }
+
+        IF TBSIQDualMode THEN
+            BEGIN
+            IF NOT ((Radio1QSOMachine.IAmTransmitting AND (Radio1QSOMachine.Mode <> CW)) OR
+                    (Radio2QSOMachine.IAmTransmitting AND (Radio2QSOMachine.Mode <> CW))) THEN
+                        TBSIQ_CW_Engine.CheckMessages;
+
+            END
+        ELSE
+            TBSIQ_CW_Engine.CheckMessages;
+
         Radio2QSOMachine.CheckQSOStateMachine;
-        TBSIQ_CW_Engine.CheckMessages;
+
+        { This probably work for SSB }
+
+        IF TBSIQDualMode THEN
+            BEGIN
+            IF NOT ((Radio1QSOMachine.IAmTransmitting AND (Radio1QSOMachine.Mode <> CW)) OR
+                    (Radio2QSOMachine.IAmTransmitting AND (Radio2QSOMachine.Mode <> CW))) THEN
+                        TBSIQ_CW_Engine.CheckMessages;
+            END
+        ELSE
+            TBSIQ_CW_Engine.CheckMessages;
+
     UNTIL False;
     END;
 

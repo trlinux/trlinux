@@ -50,7 +50,20 @@ TODO List after 2023 WPX CW:
 
  - Removed WARC bands from Continent Report
 
-Relase 0.59 - 28-Nov-2023
+05-Dec-2023
+ - Added new command TBSIQ DUAL MODE - default FALSE and it is in the ControlJ
+   menu.  This is used to enable all of the changes made to TBSIQ to handle the
+   special case of mixed mode operation.
+
+03-Dec-2023
+ - We were dropping the PTT after sending an auto start sending call before
+   the exchange was being sent.  This is because we had ripped out some of
+   the PTT Force on code - and in putting it back in - discovered a bug in
+   the Arduino where it was unasserting PTT after the timeout even if
+   PTT force on was active.  So - this results in an Arduino code update
+   in addition to some pascal code.  Also - made the arudino keyer pascal
+   code report back that CW was not being sent even if the PTT was still
+   active - to avoid being trapped there.
 
 01-Dec-2023
  - When using TWO VFO MODE and you go to a frequency that has an entry in the
@@ -58,6 +71,8 @@ Relase 0.59 - 28-Nov-2023
    it will go back to your CQ frequency.  Also made it so a dupe check with a
    dupe will update the bandmap time stamp.  Some other minor tweaks to how it
    works when finding a dupe on the other VFO.
+
+Relase 0.59 - 28-Nov-2023
 
 28-Nov-2023
  - Increased size of possible/partial call list from 200 to 600.

@@ -610,6 +610,10 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
     TempFreq: LONGINT;
 
     BEGIN
+    { If you are trying to find where the PTT is dropping out after finishing
+      an auto start send call and before the exchange is being sent - it is
+      before here. }
+
     SetSpeed (DisplayedCodeSpeed);
 
     IF Length (SendString) = 0 THEN Exit;
@@ -901,6 +905,11 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
         END;
 
     { ClearPTTForceOn;  Removed Nov-2022  }
+
+    { Hmmm - not sure how I feel about this in Dec-2023 as I am stuck with
+      the PTT stuck on after sending the CQ exchange. For now - I put that
+      somewhere else. }
+
     END;
 
 
@@ -1159,7 +1168,7 @@ PROCEDURE AddOnCQExchange;
   statement of the ActiveMode }
 
 VAR Name: Str20;
-    StationSpeed: INTEGER;
+    Count, StationSpeed: INTEGER;
 
     BEGIN
     CASE ActiveMode OF
@@ -1207,7 +1216,38 @@ VAR Name: Str20;
                 END;
 
             { ClearPTTForceOn;   Taking this out in Nov 22 }
-            END;
+
+            { I feel I still need this here in Dec-2023.  Going to try and
+              put it back in and see what happens.  So - this seems to fix
+              the issue of being stuck in TX after sending the CQ exhange
+              after I put the PTTForceOn back in when starting to send the
+              callsign in logsubs2.pas.
+
+              However, I am still seeing a PTT dropout occur after sending
+              the callsign.  Maybe this is because I am clearing this before
+              the message is getting setup properly in the Arduino?
+
+              Well - no - I put a very long delay here and I still got the
+              dropout - and ended up with along delay after the callsign
+              was sent before going to RX and dropping into the exchange
+              window.
+
+              However, I think it is prudent to add a small delay here
+              anyway. }
+
+            IF CWenabled THEN
+                BEGIN
+                Count := 0;
+
+                REPEAT
+                    millisleep;
+                    Inc (Count);
+                UNTIL Count = 100;
+
+                ClearPTTForceOn;
+                END;
+
+            END; { of CW case }
 
         Digital:
             { Digital does not use CQ EXCHANGE.  It also does not send the

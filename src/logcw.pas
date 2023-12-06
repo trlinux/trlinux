@@ -262,6 +262,19 @@ PROCEDURE FlushCWBufferAndClearPTT;
             IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
                 rig2.directcommand ('KY ' + ControlD + ';');
         END;
+
+    { Tell N4OGW that we are going to RX }
+
+    CASE ActiveRadio OF
+        RadioOne:
+            IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                N4OGW_RadioOne_BandMap.SetRXMode;
+
+        RadioTwo:
+            IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                N4OGW_RadioTwo_BandMap.SetRXMode;
+
+        END;  { of CASE ActiveRadio }
     END;
 
 
@@ -420,9 +433,8 @@ VAR CharPointer: INTEGER;
 
 
         IF CWEnable AND CWEnabled THEN
-            BEGIN
             ActiveKeyer.AddStringToBuffer (MSG, CWTone);
-            END;
+
         Exit;
         END;
 

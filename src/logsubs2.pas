@@ -851,6 +851,7 @@ VAR Frequency: LONGINT;
         REPEAT
             IF ActiveMultiPort <> nil THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
+            CWStillBEingSent;
             Packet.CheckPacket;
             IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
             millisleep;
@@ -1195,6 +1196,7 @@ VAR Key: CHAR;
 
         UpdateTimeAndRateDisplays (True, True);
         IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+        CWStillBeingSent;
 
         IF NewKeyPressed THEN
             BEGIN
@@ -1804,11 +1806,13 @@ VAR CQMemory, SendChar: CHAR;
                 {                various timeouts, etc in the polling called from UpdateTimeAndRateDisplays. }
                 UpdateTimeAndRateDisplays (True, True);
                 IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+                CWStillBeingSent;
 
                 IF ActiveMultiPort <> nil THEN CheckMultiState;
 
                 Packet.CheckPacket;
                 UpdateTimeAndRateDisplays (True, False);
+                CWStillBeingSent;
 
             //Wait (4);
 
@@ -2080,6 +2084,7 @@ VAR Result: INTEGER;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
             IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+            CWSTillBeingSent;
         UNTIL (NOT CWStillBeingSent and  not dvpmessageplaying) OR NewKeyPressed;
 
         IF NewKeyPressed THEN
@@ -2404,6 +2409,7 @@ VAR Result: INTEGER;
 
     UpdateTimeAndRateDisplays (True, True);
     IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+    CWStillBeingSent;
     END;
 
 
@@ -5714,6 +5720,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
     SearchAndPounceStatus, SpecialRadioSwap {, StationCalled}: BOOLEAN;
     EditingCallsignSent: BOOLEAN;
     TimeOut: BYTE;
+    Count: INTEGER;
 
     BEGIN
     OpMode := CQOpMode;
@@ -5769,10 +5776,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
             { Reminder - we are doing StartSendingNow }
 
-            { Sometimes, the program will not let you enter more letters and instantly
-              put you into the exchange window!! Let's see if we can get away with waiting
-              for CWStillBeingSent to be true before proceeding.  }
-
             IF Length (CallWindowString) > 0 THEN
                 BEGIN
                 IF MessageEnable THEN
@@ -5780,19 +5783,33 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                     AddStringToBuffer (CallWindowString, CWTone);
 
                     { PTTForceOn;  Removed 4-May-2022 }
+
+                    { So - as a result of removing that - I am seeing a drop
+                      out on the PTT after finishing sending the callsign
+                      before the exchange is sent.  Not sure what problem
+                      I was trying to fix by removing it - but I will try
+                      to put it back in and see what happens.  03-Dec-2023 }
+
+                    IF CWEnabled THEN PTTForceOn;
+
+                    { Okay - so if I put this back in - I still have the
+                      glitch - and then after sending the CQ exchange, I am
+                      stuck with the PTT asserted. }
+
                     END;
 
-                { Sometimes, the program will not let you enter more letters and instantly
-                  put you into the exchange window!! Let's see if we can get away with waiting
-                  for CWStillBeingSent to be true before proceeding.  }
+                { Moved this above the wait for CW to start }
+
+                IF (SCPMinimumLetters > 0) AND (NOT NewKeyPressed) THEN {KK1L: 6.73 Added ActiveRadio}
+                    VisibleLog.SuperCheckPartial (CallWindowString, True, ActiveRadio);
+
+                { We need to wait until CW starts up so that the AutoCallTerminate
+                  routine doesn't think the callsign is done before it started }
 
                 IF CWEnabled THEN
                     REPEAT
                         millisleep;
                     UNTIL CWStillBeingSent;
-
-                IF (SCPMinimumLetters > 0) AND (NOT NewKeyPressed) THEN {KK1L: 6.73 Added ActiveRadio}
-                    VisibleLog.SuperCheckPartial (CallWindowString, True, ActiveRadio);
 
                 REPEAT
 
@@ -5801,11 +5818,19 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                       be sent. }
 
                     REPEAT
+
+                        { It seems that CWStillBeingSent is finding that the
+                          PTT if unforced when we are done sending CW.  Is this
+                          an Arduino issue? }
+
                         IF (ActiveMode = CW) AND CWEnabled AND (NOT ReadInLog) AND
                             AutoCallTerminate AND NOT CWStillBeingSent THEN
                                 BEGIN
                                 CallAlreadySent := True;
                                 CallsignICameBackTo := CallWindowString;
+
+                                { Yup - PTT is cleared when we get her }
+
                                 Exit;
                                 END;
 
@@ -6827,6 +6852,7 @@ VAR MTotals: MultTotalArrayType;
     RememberInactiveCQ: BOOLEAN;
     RememberTime: TimeRecord;
     DXSpot: DXSpotType;
+    Count: INTEGER;
 
     BEGIN
     ReadInConfigFile ('');
@@ -7123,6 +7149,7 @@ VAR MTotals: MultTotalArrayType;
                         UpdateTimeAndRateDisplays (True, True);
                         IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
                         Packet.CheckPacket;
+                        CWStillBeingSent;
                     UNTIL ElaspedSec100 (RememberTime) >= 30;
 
                     ClrScr;

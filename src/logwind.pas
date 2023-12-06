@@ -829,6 +829,10 @@ VAR
     TBSIQ_R2_TransmitIndicatorWindowLX, TBSIQ_R2_TransmitIndicatorWindowLY, TBSIQ_R2_TransmitIndicatorWindowRX, TBSIQ_R2_TransmitIndicatorWindowRY: INTEGER;
     TBSIQ_R2_UserInfoWindowLX, TBSIQ_R2_UserInfoWindowLY, TBSIQ_R2_UserInfoWindowRX, TBSIQ_R2_UserInfoWindowRY: INTEGER;
 
+    TBSIQDualMode: BOOLEAN;  { Set to TRUE when dealing with the special case of
+                               attempting to use TBSIQ with one rig on CW and the
+                               other on phone. }
+
     TenMinuteRule:  TenMinuteRuleType;
     TenMinuteTime:  TenMinuteTimeRecord;
     TimeSpentByBand: ARRAY [Band160..Band10] OF INTEGER;
@@ -989,6 +993,7 @@ VAR
   PROCEDURE SetColor      (Color: INTEGER);
   PROCEDURE SaveAndSetActiveWindow (WindowName: WindowType);
   PROCEDURE SaveSetAndClearActiveWindow (WindowName: WindowType);
+  PROCEDURE SendBandMapCallsToN4OGW;
   PROCEDURE SetUpBandMapEntry (BandMapData: BandMapEntryPointer; Radio: RadioType); {KK1L: 6.73 Added Radio}
   PROCEDURE SetWindow (WindowName: WindowType);
   PROCEDURE SetActiveWindow   (WindowName: WindowType);   { Does not clear window }
@@ -3338,12 +3343,7 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
     IF Length (Temp2) < 2 THEN Temp2 := '0' + Temp2;
     IF Length (Temp3) < 2 THEN Temp3 := '0' + Temp3;
 
-    { Added # as a debug indicator of the status of BandMapEntryInCallWindow }
-
-{    IF BandMapEntryInCallWindow THEN
-        FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3 + '#'
-    ELSE}
-        FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3;
+    FullTimeString := Temp1 + ':' + Temp2 + ':' + Temp3;
 
     { We can create TimeString easily now - which looks like 23:42.  Don't forget HourString }
 
@@ -4602,19 +4602,22 @@ VAR ActiveEntry, PreviousEntry: BandMapEntryPointer;
                 ActiveEntry := PreviousEntry^.NextEntry;
                 END;
 
-            IF NOT N4OGW_Notified THEN
+           IF NOT N4OGW_Notified THEN
                 BEGIN
-                IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
-                    BEGIN
-                    N4OGW_RadioOne_BandMap.DeleteCallsign (Call);
-                    N4OGW_RadioOne_BandMap.WriteToDebugFile ('N4OGW Radio One notified of a removal');
-                    END;
 
-                IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
-                    BEGIN
-                    N4OGW_RadioTwo_BandMap.DeleteCallsign (Call);
-                    N4OGW_RadioTwo_BandMap.WriteToDebugFile ('N4OGW Radio Two notified of a removal');
-                    END;
+//                Removed this because I think it did bad things 2-Dec-2023
+
+//                IF (N4OGW_RadioOne_BandMap_Port <> 0) AND (N4OGW_RadioOne_BandMap_IP <> '') THEN
+//                  BEGIN
+//                    N4OGW_RadioOne_BandMap.DeleteCallsign (Call);
+//                   N4OGW_RadioOne_BandMap.WriteToDebugFile ('N4OGW Radio One notified of a removal');
+//                    END;
+
+//                IF (N4OGW_RadioTwo_BandMap_Port <> 0) AND (N4OGW_RadioTwo_BandMap_IP <> '') THEN
+//                    BEGIN
+//                    N4OGW_RadioTwo_BandMap.DeleteCallsign (Call);
+//                    N4OGW_RadioTwo_BandMap.WriteToDebugFile ('N4OGW Radio Two notified of a removal');
+//                    END;
 
                 { I assume N4OGW will remove all instances of the call }
                 N4OGW_Notified := True;
@@ -5018,6 +5021,47 @@ PROCEDURE GetBandMapDisplayInfo (VAR MaxEntriesPerPage: INTEGER;
         END;
   END;
 
+
+
+PROCEDURE SendBandMapCallsToN4OGW;
+
+{ Used to send all of your bandmap calls to the N4OGW band map }
+
+VAR BandMapEntryRecord: BandMapEntryPointer;
+    Band: BandType;
+    Mode: ModeType;
+
+    BEGIN
+    FOR Band := Band160 TO Band2 DO
+        FOR Mode := CW TO Phone DO
+            IF BandMapFirstEntryList [Band, Mode] <> nil THEN
+                BEGIN
+                BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];
+
+                WHIlE BandMapEntryRecord <> nil DO
+                    BEGIN
+                    IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                        WITH BandMapEntryRecord^ DO
+                            N4OGW_RadioOne_BandMap.SendBandMapCall (BigExpandedString (Call),
+                                                                    Frequency,
+                                                                    (StatusByte AND $40) = 1,
+                                                                    (StatusByte AND $80) = 1);
+
+                    IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                        WITH BandMapEntryRecord^ DO
+                            N4OGW_RadioTwo_BandMap.SendBandMapCall (BigExpandedString (Call),
+                                                                    Frequency,
+                                                                    (StatusByte AND $40) = 1,
+                                                                    (StatusByte AND $80) = 1);
+
+                    { Move to the next entry.  }
+
+                    BandMapEntryRecord := BandMapEntryRecord^.NextEntry;
+                    END;
+                END;
+    END;
+
+
 
 PROCEDURE DisplayBandMap;
 
