@@ -123,6 +123,7 @@ TYPE
         ExchangeWindowCursorPosition: INTEGER;
 
         FootSwitchDelayNeeded: BOOLEAN;
+
         Frequency: LONGINT;                 { The most current frequency for the radio }
 
         InitialExchangePutUp: BOOLEAN;
@@ -333,7 +334,7 @@ TYPE
                       TestLoopTestSmeter,
                       TestLoopStop);
 
-CONST InitialTransmitCountdown = 3;
+CONST InitialTransmitCountdown = 2;
 
 VAR DualingCQState: DualingCQStates;
     LoopCount: INTEGER;
@@ -2141,7 +2142,7 @@ PROCEDURE QSOMachineObject.DisplayAutoStartSendCharacterCount;
 
     ClrScr;
 
-    IF (AutoStartSendCharacterCount > 0) AND AutoStartSendEnable THEN
+    IF (AutoStartSendCharacterCount > 0) AND AutoStartSendEnable AND (Mode <> Phone) THEN
         BEGIN
         GoToXY (AutoStartSendCharacterCount + 1, 1);
         Write ('|');
@@ -2432,7 +2433,7 @@ VAR Key, ExtendedKey: CHAR;
 
                 IF FootswitchDelayNeeded THEN
                     BEGIN
-                    TransmitCountdown := 2;
+                    TransmitCountdown := 1;  { This is normally 2 - but we are trying to get away with this }
                     FootSwitchDelayNeeded := False;
                     END;
                 END
@@ -2440,7 +2441,7 @@ VAR Key, ExtendedKey: CHAR;
             ELSE { not pressed }
                 BEGIN
                 ActiveKeyer.PTTUnforce;  { We really don't care what radio we are setup on }
-                FootswitchDelayNeeded := True;
+                FootSwitchDelayNeeded := True;
                 END;
 
             END;
