@@ -2549,14 +2549,32 @@ VAR FileName, CommandString: Str40;
 
     CommandUseInactiveRadio := FALSE;
 
-    WHILE StringHas (SendString, ControlC) DO
+    { In December 2023 - I attempted to make this routine a bit smarter so that
+      is was possible to terminate a message with Control-D that has a Control-D
+      as part of the message.  This was necessary for people using Icom radios
+      that have a binary message format and could not access memory <04> since
+      the previous version of this parser would count that as the end of the
+      string to send to the radio.
+
+      This WHILE here probably never gets executed twice now as I am not really
+      allowing multiple commands any more }
+
+    IF StringHas (SendString, ControlC) AND StringHas (SendString, ControlD) THEN
         BEGIN
-        IF NOT StringHas (SendString, ControlD) THEN Exit;
+        FoundCommand := True;
 
-        FoundCommand := StringHas (SendString, ControlD);
+        { BracketdCommandString will look for a command between ControlC and the
+          last ControlD of the message.  Also - no longer running the SendString
+          through UpperCase }
 
-        CommandString := UpperCase (BracketedString (SendString, ControlC, ControlD));
-        Delete (SendString, Pos (ControlC, SendString), Pos (ControlD, SendString) - Pos (ControlC, SendString) + 1);
+        CommandString := BracketedCommandString (SendString);
+
+        Delete (SendString, Pos (ControlC, SendString), 1);  { Delete the ControlC }
+
+        IF CommandString <> '' THEN
+             Delete (SendString, Pos (CommandString, SendString), Length (CommandString));
+
+        Delete (SendString, Pos (ControlD, SendString), 1);  { Delete the ControlD }
 
         IF Copy (CommandString, 1, 1) = ControlA THEN
             BEGIN
@@ -2575,6 +2593,8 @@ VAR FileName, CommandString: Str40;
             FileName := PostcedingString (CommandString, '=');
             CommandString := PrecedingString (CommandString, '=');
             END;
+
+        CommandString := UpperCase (CommandString);
 
         IF CommandString = 'BANDUP'         THEN
             BEGIN
@@ -2764,10 +2784,12 @@ VAR FileName, CommandString: Str40;
 
 
         IF CommandString = 'SRS' THEN
+            BEGIN
             if activeradio = radioone then
                 rig1.directcommand(filename)
             else
                 rig2.directcommand(filename);
+            END;
 
         IF CommandString = 'SRS1' THEN
             rig1.directcommand(filename);

@@ -836,14 +836,18 @@ VAR FileName, CommandString: Str40;
 
     CommandUseInactiveRadio := FALSE; {KK1L: 6.73 Global var to support vectoring commands to inactive radio}
 
-    WHILE StringHas (SendString, ControlC) DO
+    IF StringHas (SendString, ControlC) AND StringHas (SendString, ControlD) THEN
         BEGIN
-        IF NOT StringHas (SendString, ControlD) THEN Exit;
+        FoundCommand := True;
 
-        FoundCommand := StringHas (SendString, ControlD);
+        CommandString := BracketedCommandString (SendString);
 
-        CommandString := UpperCase (BracketedString (SendString, ControlC, ControlD));
-        Delete (SendString, Pos (ControlC, SendString), Pos (ControlD, SendString) - Pos (ControlC, SendString) + 1);
+        Delete (SendString, Pos (ControlC, SendString), 1);
+
+        IF CommandString <> '' THEN
+            Delete (SendString, Pos (CommandString, SendString), Length (CommandString));
+
+        Delete (SendString, Pos (ControlD, SendString), 1);
 
         IF Copy (CommandString, 1, 1) = ControlA THEN  {KK1L: 6.73 Vector commands to inactive radio with CTRL-A}
             BEGIN
@@ -854,7 +858,7 @@ VAR FileName, CommandString: Str40;
         IF StringHas (CommandString, '=') THEN
             BEGIN
             FileName := PostcedingString (CommandString, '=');
-            CommandString := PrecedingString (CommandString, '=');
+            CommandString := UpperCase (PrecedingString (CommandString, '='));
             END;
 
         IF CommandString = 'BANDUP' THEN

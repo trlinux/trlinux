@@ -48,6 +48,13 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+
+16-Dec-2023
+ - Changed how the control-C and control-D are parsed for messages in a
+   function key memory.  The last control-D will be used to parse the
+   command, so that commands that contain a control-D can be used.  Note
+   that this means you really can only have one valid command in a message.
+
  - Removed WARC bands from Continent Report
 
 05-Dec-2023

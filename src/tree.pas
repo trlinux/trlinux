@@ -236,6 +236,7 @@ VAR CodeSpeed:  BYTE;
     PROCEDURE BigCursor;
     FUNCTION  BigExpandedString (Input: EightBytes): Str80;
     FUNCTION  BracketedString (LongString: Str160; StartString: Str80; StopString: Str80): Str80;
+    FUNCTION  BracketedCommandString (CommandString: Str160): STRING;
     FUNCTION  BYTADDR  (Call: Pointer; NumberCalls: INTEGER; A: Pointer): INTEGER;CDECL;
     FUNCTION  BYTDUPE  (Call: Pointer; NumberCalls: INTEGER; A: Pointer): BOOLEAN;CDECL;
 
@@ -841,6 +842,53 @@ VAR StartLocation, StopLocation: INTEGER;
         END;
 
     BracketedString := Copy (LongString, 1, StopLocation - 1);
+    END;
+
+
+
+FUNCTION BracketedCommandString (CommandString: Str160): STRING;
+
+{ This is special case of the BracketdString routine intended to only be used
+  for sniffing out a string that is brackted by a Control-C and Control-D.
+
+  It assume only one such string exists and will return all of the string
+  after the first control-C and before the last control-D.
+
+  This allows commands that contain a control-C or control-D to be processed. }
+
+VAR StartLocation, StopLocation: INTEGER;
+
+    BEGIN
+    { Check to make sure we have both ControlC and ControlD }
+
+    IF (CommandString = '') OR (Pos (Chr (3), CommandString) = 0) OR (Pos (Chr (4), CommandString) = 0) THEN
+        BEGIN
+        BracketedCommandString := '';
+        Exit;
+        END;
+
+    StartLocation := Pos (Chr (3), CommandString) + 1;
+
+    { Remember - start location is the first character of the message, not the
+      location of the Control-C.  If the start location is either at the end
+      of the string or one character less, there is no room for a control-D
+      and any command to return. }
+
+    IF StartLocation >= Length (CommandString) - 1 THEN
+        BEGIN
+        BracketedCommandString := '';
+        Exit;
+        END;
+
+    FOR StopLocation := Length (CommandString) DOWNTO StartLocation + 1 DO
+        IF CommandString [StopLocation] = Chr (4) THEN  { Found ControlD }
+            IF StartLocation < StopLocation - 1 THEN  { Just in case I screwed up my logic }
+                BEGIN
+                BracketedCommandString := Copy (CommandString, StartLocation, StopLocation - StartLocation);
+                Exit;
+                END;
+
+    BracketedCommandString := '';
     END;
 
 

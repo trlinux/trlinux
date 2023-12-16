@@ -621,6 +621,7 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
     CommandMode := False;
 
 //ugly patch to fix original code incrementing the for loop variable
+
     cc := 0;
     FOR CharacterCount := 1 TO Length (SendString) DO
         BEGIN
