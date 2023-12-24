@@ -1979,6 +1979,7 @@ VAR OutputFileName, InputFileName: Str40;
     LogString, ADIFString: STRING;
     OutputFile, InputFile: TEXT;
     NumberQSOs: LONGINT;
+    Key: CHAR;
 
     BEGIN
     ClearScreenAndTitle ('ADIF CONVERSION TOOL');
@@ -1993,7 +1994,20 @@ VAR OutputFileName, InputFileName: Str40;
         BEGIN
         WriteLn ('You appear to have the file LONGLOG.DAT available.  This file will be used');
         WriteLn ('for your input file since it has more accurate data than your LOG file.');
-        InputFileName := 'LONGLOG.DAT';
+
+        REPEAT
+            Key := UpCase (GetKey ('Is this okay? (Y/N or escape to abort) : '));
+            IF Key = EscapeKey THEN Exit;
+        UNTIL (Key = 'Y') OR (Key = 'N');
+        WriteLn;
+
+        IF Key = 'Y' THEN
+            InputFileName := 'LONGLOG.DAT'
+        ELSE
+            BEGIN
+            InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
+            IF InputFileName = '' THEN Exit;
+            END;
         END
     ELSE
         BEGIN
@@ -2559,13 +2573,11 @@ VAR CabrilloString, InputFileName, OutputFileName: STRING;
 
 PROCEDURE VerifyTransmitterIDs;
 
-VAR Key, ContestKey: CHAR;
+VAR ContestKey: CHAR;
     InputFileName: Str80;
     OriginalCabrilloString, FileString: STRING;
     FileRead: TEXT;
-    TRLogFile: BOOLEAN;
     NumberViolations, TX0BandChanges, TX1BandChanges: INTEGER;
-    TX0Band, TX1Band: BandType;
     TXIDString, LastHourString, DateTimeString: Str80;
     Frequency: LONGINT;
     CurrentTX0Band, CurrentTX1Band, Band: BandType;

@@ -4138,7 +4138,6 @@ PROCEDURE CallDatabase.GeneratePossibleCallList (Call: CallString; VAR List: Cal
 VAR FirstKeyPos, SecondKeyPos, CharPos: INTEGER;
     LowestCell, SecondLowestCell, ThirdLowestCell, BytesAtThisPos: LONGINT;
     LowestKeyPos, SecondLowestKeyPos, ThirdLowestKeyPos: INTEGER;
-    TempDupe: BOOLEAN;
 
     BEGIN
     List.Input := Call;

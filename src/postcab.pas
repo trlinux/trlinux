@@ -1520,7 +1520,8 @@ END-OF-LOG:
 }
 
 FUNCTION GenerateLogPortionOfCabrilloFile (CabrilloFileName: Str80;
-                                           VAR FileWrite: TEXT): BOOLEAN;
+                                           VAR FileWrite: TEXT;
+                                           UseLongLog: BOOLEAN): BOOLEAN;
 
 { This function relies on some global variables defined by the previous
   routines.  It does not know specifically which contest it is processing
@@ -1593,7 +1594,10 @@ VAR QTCFileRead, FileRead: TEXT;
 
     { See if the long log file is present and if so - open it }
 
-    LongLogFileOpen := OpenFileForRead (LongLogFileRead, LongLogFilename);
+    IF UseLongLog THEN
+        LongLogFileOpen := OpenFileForRead (LongLogFileRead, LongLogFilename)
+    ELSE
+        LongLogFileOpen := False;
 
     IF OpenFileForRead (FileRead, LogFileName) THEN
         BEGIN
@@ -2000,7 +2004,7 @@ Call fields end here for length=12                                
                   to see if there is some information there that we should incorporate into
                   the data for this QSO. }
 
-                IF LongLogFileopen THEN
+                IF LongLogFileOpen THEN
                     CheckLongLog (LongLogFileRead, OriginalFileString, CabrilloString);
 
                 WriteLn (FileWrite, CabrilloString,Chr(13));
@@ -2031,6 +2035,7 @@ PROCEDURE CreateCabrilloFile;
 
 VAR CabrilloFileName: Str40;
     CabrilloFileWrite: TEXT;
+    UseLongLogFile: BOOLEAN;
 
     BEGIN
     ClearScreenAndTitle ('CREATE CABRILLO FILE');
@@ -2043,7 +2048,20 @@ VAR CabrilloFileName: Str40;
     WriteLn ('will be saved with the active file name prefix and .CBR as the suffix.');
     WriteLn;
 
-    IF NOT OkayToProceed THEN Exit;
+    IF FileExists ('LONGLOG.DAT') THEN
+        BEGIN
+        WriteLn ('LONGLOG.DAT file found.');
+
+        REPEAT
+            Key := UpCase (GetKey ('Use it frequency information? (Y/N or escape) : '));
+            IF Key = EscapeKey THEN Exit;
+        UNTIL (Key = 'Y') OR (Key = 'N');
+        WriteLn;
+
+        UseLongLogFile := Key = 'Y';
+        END
+    ELSE
+        IF NOT OkayToProceed THEN Exit;
 
     CabrilloFileName := PrecedingString (LogFileName, '.') + '.CBR';
 
@@ -2056,7 +2074,7 @@ VAR CabrilloFileName: Str40;
     IF NOT GenerateSummaryPortionOfCabrilloFile (CabrilloFileName, CabrilloFileWrite) THEN
         Exit;
 
-    IF NOT GenerateLogPortionOfCabrilloFile (CabrilloFileName, CabrilloFileWrite) THEN
+    IF NOT GenerateLogPortionOfCabrilloFile (CabrilloFileName, CabrilloFileWrite, UseLongLogFile) THEN
         BEGIN
         Close (CabrilloFileWrite);
         Exit;

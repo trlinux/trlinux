@@ -3496,12 +3496,10 @@ FUNCTION InitialExchangeEntry (Call: CallString): Str80;
 { This function will give you an initial exchange window entry if it
   thinks it knows what the guy will send.                            }
 
-VAR Heading, CharPosition, Distance, Zone : INTEGER;
-    TempQTH: QTHRecord;
-    TestSTring, StandardCall, Command: Str20;
-    Exchange, CustomString, TempString: Str80;
+VAR Heading, CharPosition, Distance: INTEGER;
+    TestString: Str20;
+    TempString: Str80;
     TempExchange: ContestExchange;
-    Data: DatabaseEntryRecord;
 
     BEGIN
     IF NOT GoodCallSyntax (Call) THEN

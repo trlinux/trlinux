@@ -216,8 +216,6 @@ VAR SendString: Str20;
 
 PROCEDURE N4OGW_BandMap_Object.SetRXMode;
 
-VAR SendString: STRING;
-
     BEGIN
 //    IF NOT TXMode THEN
 //        BEGIN
