@@ -5742,7 +5742,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
     SearchAndPounceStatus, SpecialRadioSwap {, StationCalled}: BOOLEAN;
     EditingCallsignSent: BOOLEAN;
     TimeOut: BYTE;
-    Count: INTEGER;
 
     BEGIN
     OpMode := CQOpMode;
@@ -6874,7 +6873,6 @@ VAR MTotals: MultTotalArrayType;
     RememberInactiveCQ: BOOLEAN;
     RememberTime: TimeRecord;
     DXSpot: DXSpotType;
-    Count: INTEGER;
 
     BEGIN
     ReadInConfigFile ('');

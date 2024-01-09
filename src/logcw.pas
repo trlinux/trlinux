@@ -378,6 +378,7 @@ VAR CharPointer: INTEGER;
             FOR CharPointer := 1 TO Length (RTTYReceiveString) DO
                RTTYSendCharBuffer.AddEntry (Ord (RTTYReceiveString [CharPointer]));
 
+        Exit;
         END;
 
     { K3/K4 stuff }
@@ -386,23 +387,22 @@ VAR CharPointer: INTEGER;
         BEGIN
         IF ActiveRadio = RadioOne THEN
             IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
-                IF MSG <> '' THEN
-                    BEGIN
-                    WHILE Pos ('_', MSG) > 0 DO
-                        MSG [Pos ('_', MSG)] := ' ';
+                BEGIN
+                WHILE Pos ('_', MSG) > 0 DO
+                    MSG [Pos ('_', MSG)] := ' ';
 
-                    rig1.directcommand ('KY ' + MSG + '|;');
-                    END;
+                rig1.directcommand ('KY ' + MSG + '|;');
+                END;
+
 
         IF ActiveRadio = RadioTwo THEN
-            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
-                IF MSG <> '' THEN
-                    BEGIN
-                    WHILE Pos ('_', MSG) > 0 DO
-                        MSG [Pos ('_', MSG)] := ' ';
+            IF (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4) THEN
+                BEGIN
+                WHILE Pos ('_', MSG) > 0 DO
+                    MSG [Pos ('_', MSG)] := ' ';
 
-                    rig2.directcommand ('KY ' + MSG + '|;');
-                    END;
+                rig2.directcommand ('KY ' + MSG + '|;');
+                END;
 
         END;
 
@@ -548,30 +548,45 @@ PROCEDURE SendKeysToRTTY;
 VAR Key: CHAR;
 
     BEGIN
-    IF ActiveRTTYPort = nil THEN Exit;
+    IF (ActiveRTTYPort <> nil) THEN   { Legacy stuff }
+        BEGIN
+        QuickDisplay ('Keyboard input being sent to RTTY.  Press ESCAPE to stop.');
 
-    QuickDisplay ('Keyboard input being sent to RTTY.  Press ESCAPE to stop.');
+        ContinueRTTYTransmission (CarriageReturn);
+        ContinueRTTYTransmission (LineFeed);
 
-    ContinueRTTYTransmission (CarriageReturn);
-    ContinueRTTYTransmission (LineFeed);
-
-    REPEAT
         REPEAT
-            CheckRTTY;
-millisleep;
-        UNTIL KeyPressed;
+            REPEAT
+                CheckRTTY;
+                millisleep;
+            UNTIL KeyPressed;
 
-        Key := ReadKey;
+            Key := ReadKey;
 
-        IF Key = EscapeKey THEN
-            BEGIN
-            QuickDIsplay ('Finished sending manual input to RTTY.');
-            FinishRTTYTransmission ('');
-            Exit;
-            END;
+            IF Key = EscapeKey THEN
+                BEGIN
+                QuickDIsplay ('Finished sending manual input to RTTY.');
+                FinishRTTYTransmission ('');
+                Exit;
+                END;
 
-        ContinueRTTYTransmission (Key);
-    UNTIL False;
+            ContinueRTTYTransmission (Key);
+        UNTIL False;
+        END;
+
+    { See if we are using an Elecraft radio }
+
+    IF ActiveMode = Digital THEN
+        BEGIN
+        IF ActiveRadio = RadioOne THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                rig1.directcommand ('KY ' + ControlD + ';');
+
+        IF ActiveRadio = RadioTwo THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                rig2.directcommand ('KY ' + ControlD + ';');
+        END;
+
     END;
 
 

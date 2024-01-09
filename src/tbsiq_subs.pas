@@ -7297,7 +7297,11 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                                     Message := ExpandCrypticString (GetExMemoryString (Phone, Key));
                                 END;
 
-                       Digital: Message := ExpandCrypticString (GetExMemoryString (Digital, Key));
+                       Digital: BEGIN
+                                Message := ExpandCrypticString (GetExMemoryString (Digital, Key));
+                                SearchAndPounceExchangeSent := True;
+                                END;
+
                        END;  { of CASE Mode }
 
                ELSE

@@ -1507,7 +1507,7 @@ VAR Entry: INTEGER;
                 BEGIN
                 IF (Exchange.Mode = GetLogEntryMode (LogEntries [Entry])) OR NOT MultByMode THEN
                     BEGIN
-                    MultString := Copy (LogEntries [Entry], LogEntryMultAddress, LogentryMultWidth);
+                    MultString := Copy (LogEntries [Entry], LogEntryMultAddress, LogEntryMultWidth);
 
                     GetRidOfPrecedingSpaces (MultString);
                     MultString := ' ' + MultString + ' ';

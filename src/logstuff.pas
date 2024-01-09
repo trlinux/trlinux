@@ -2213,6 +2213,10 @@ VAR xResult: INTEGER;
 
 FUNCTION ProcessQSONumberAndNameExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
 
+{ We are adding a funny exception here to use the callsign as the domestic QTH in
+  the case of the MST test.  This is detected by having the domestic mult set as
+  WYSIWYGDomestic }
+
 VAR TempString, NumberString, NameString: Str40;
     xResult: INTEGER;
 
@@ -2240,6 +2244,11 @@ VAR TempString, NumberString, NameString: Str40;
     Val (NumberString, RXData.NumberReceived, xResult);
 
     ProcessQSONumberAndNameExchange := xResult = 0;
+
+    IF ActiveDomesticMult = WYSIWYGDomestic THEN   { MST test }
+        BEGIN
+
+        END;
     END;
 
 

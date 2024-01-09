@@ -6675,9 +6675,7 @@ VAR TempString: STRING;
     WHILE RTTYReceiveCharBuffer.GetNextByte (RTTYByte) DO
         BEGIN
         RTTYChar := Chr (RTTYByte);
-
         TempString := TempString + RTTYChar;
-
         IF Length (TempString) = 255 THEN Break;      { The rest can wait }
         END;
 
