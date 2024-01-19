@@ -4649,7 +4649,6 @@ VAR LookAddress: INTEGER;
         WriteLn ('The following messages are in the message list : ');
         END;
 
-
     IF K1EANetworkEnable THEN  { K1EA network }
         BEGIN
         IF MultMessage [2] = K1EAStationID THEN
@@ -4903,7 +4902,6 @@ FUNCTION WeHaveProcessedThisMessage (Message: STRING): BOOLEAN;
   seen this message before.  If we have, it will return TRUE.  If not, it
   will add it to the list of messages we have seen and return FALSE. }
 
-
 VAR Source, Serial: BYTE;
     ActiveMessage:  INTEGER;
     CheckSum:       WORD;
@@ -5016,7 +5014,7 @@ VAR TempString: STRING;
     { If we are using the UDP port - we are not using the character buffer.  Go see if
       we have received a message from the UDP port }
 
-    IF MultiUDPPort >= 0 THEN    { Using UDP port }
+    IF MultiUDPPort > -1 THEN    { Using UDP port }
         BEGIN
         IF NOT MultiUDPPortOpenForInput THEN
             MultiUDPPortOpenForInput := OpenUDPPortForInput (MultiUDPIP, MultiUDPPort, MultiUDPReadSocket);
@@ -5037,20 +5035,22 @@ VAR TempString: STRING;
             IF BytesRead = -1 THEN Exit;
 
             SetLength (TempString, BytesRead);
-            GetMultiPortCommand := TempString;
-            END;
-
-        Exit;
-        END;
-
-    IF K1EANetworkEnable THEN
-        BEGIN
-        IF NOT MultiReceiveCharBuffer.GetNextLine (TempString) THEN
-            Exit;
+            END
+        ELSE
+            TempString := '';
         END
-    ELSE  { TR Network }
-        IF NOT MultiReceiveCharBuffer.GetSlippedString (TempString) THEN
-            Exit;
+
+    ELSE
+        BEGIN  { Not UDP - do it the old way }
+        IF K1EANetworkEnable THEN
+            BEGIN
+            IF NOT MultiReceiveCharBuffer.GetNextLine (TempString) THEN
+                Exit;
+            END
+        ELSE  { TR Network }
+            IF NOT MultiReceiveCharBuffer.GetSlippedString (TempString) THEN
+                Exit;
+        END;
 
     IF TempString = '' THEN Exit;
 
@@ -5187,9 +5187,7 @@ VAR TempString: STRING;
     TempString [7] := Chr (Lo (CheckSum));
 
     SendMultiMessage    (TempString);
-
-    IF MultiUDPPort = -1 THEN
-        RememberSentMessage (TempString);
+    RememberSentMessage (TempString);
     END;
 
 

@@ -1490,8 +1490,6 @@ VAR MultiString, MessageString: STRING;
 
     ELSE   { N6TR Network Mode }
         BEGIN
-        { This appears to be removing the slipped data header? }
-
         MessageString [0] := MultiString [8];
         Move (MultiString [10], MessageString [1], Ord (MultiString [8]));
 

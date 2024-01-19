@@ -1396,7 +1396,6 @@ VAR CursorPosition, NewCursor, Line: INTEGER;
                 RestorePreviousWindow;
                 Exit;
                 END;
-
         UNTIL (KeyPressed);
 
         KeyChar := ReadKey;
