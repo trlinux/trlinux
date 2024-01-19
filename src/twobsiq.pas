@@ -83,7 +83,10 @@ NOTES FROM ARRL DX CW
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
 18-Jan-2023
-  - Started adding support for some network stuff in 2BSIQ.
+  - Started adding support for some network stuff in 2BSIQ. Note, when using the
+    " command to send a gab message - the program uses a low level routine to
+    get your message which is not TBSIQ aware...  so both of your keyboards will
+    only input characters to that string until you press RETURN.
 
 03-Nov-2023
 
