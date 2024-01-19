@@ -4961,7 +4961,9 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     Key, PreviousCursorChar: CHAR;
     Message, TempString: STRING;
     TempExchange: ContestExchange;
+    Dest: BYTE;
     PacketSpotCall: CallString;
+    FirstString: STRING;
 
     BEGIN
     BeSilent := False;   { Set this TRUE when exiting if you don't want CW sent }
@@ -5155,6 +5157,50 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
       CallCursorPosition or ExchangeCursorPosition. }
 
     CASE KeyChar OF
+
+        '"': IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
+                 BEGIN
+                 RITEnable := False;
+                 ClearRIT;
+
+                 TempString := QuickEditResponse ('Enter (BAND MESSAGE) : ', 50);
+                 GetRidOfPrecedingSpaces (TempString);
+
+                 IF (TempString <> '') AND (TempString <> EscapeKey) THEN
+                     BEGIN
+                     FirstString := UpperCase (PrecedingString (TempString, ' '));
+
+                     Dest := $FF;
+
+                     IF FirstString = '160' THEN Dest := MultiBandAddressArray [Band160];
+                     IF FirstString =  '80' THEN Dest := MultiBandAddressArray [Band80];
+                     IF FirstString =  '40' THEN Dest := MultiBandAddressArray [Band40];
+                     IF FirstString =  '30' THEN Dest := MultiBandAddressArray [Band30];
+                     IF FirstString =  '20' THEN Dest := MultiBandAddressArray [Band20];
+                     IF FirstString =  '17' THEN Dest := MultiBandAddressArray [Band17];
+                     IF FirstString =  '15' THEN Dest := MultiBandAddressArray [Band15];
+                     IF FirstString =  '12' THEN Dest := MultiBandAddressArray [Band12];
+                     IF FirstString =  '10' THEN Dest := MultiBandAddressArray [Band10];
+                     IF FirstString =   '6' THEN Dest := MultiBandAddressArray [Band6];
+                     IF FirstString =   '2' THEN Dest := MultiBandAddressArray [Band2];
+                     IF FirstString = '222' THEN Dest := MultiBandAddressArray [Band222];
+                     IF FirstString = '432' THEN Dest := MultiBandAddressArray [Band432];
+                     IF FirstString = '902' THEN Dest := MultiBandAddressArray [Band902];
+                     IF FirstString = '1GH' THEN Dest := MultiBandAddressArray [Band1296];
+                     IF FirstString = '2GH' THEN Dest := MultiBandAddressArray [Band2304];
+
+                     IF Dest <> $FF THEN RemoveFirstString (TempString);
+
+                     SendMultiCommand (MultiBandAddressArray [Band],
+                                       Dest,
+                                       MultiTalkMessage,
+                                       TempString);
+                     END;
+
+                 RITEnable := True;
+                 ClearKeyCache := True;  { We don't want any of our message showing up in the call window }
+                 END; { of CASE " }
+
 
         ControlDash:
             IF GetCQMemoryString (Mode, AltF1) <> '' THEN

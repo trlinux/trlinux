@@ -48,6 +48,11 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+19-Jan-2024
+  - Added new way to do multi - using UDP.  MULTI PORT = UDP <ip address> <port>.  The IP
+    address is to the next machine in the loop.  Last computer needs to loop back to the
+    first computer.
+
 08-Jan-2024
  - Some minor fixes to using RTTY in 2BSIQ mode.
  - Added MST contest.

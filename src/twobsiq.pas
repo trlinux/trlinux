@@ -82,6 +82,9 @@ NOTES FROM ARRL DX CW
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 
+18-Jan-2023
+  - Started adding support for some network stuff in 2BSIQ.
+
 03-Nov-2023
 
   - Not really a change - but played around with the footswitch and quickly
