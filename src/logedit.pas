@@ -2906,7 +2906,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
 
         IF TempString = '' THEN
             BEGIN
-            IF ActiveMultiPort <> nil THEN
+            IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                 BEGIN
                 IF UpperCase (QuickEditResponse ('Do you want to send time to computers on the network? (Y/N) : ', 1))='Y' THEN
                     BEGIN
@@ -3026,7 +3026,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
 
     SetDate (Year, Month, Day);
 
-    IF ActiveMultiPort <> nil THEN
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
         BEGIN
         IF UpperCase (QuickEditResponse ('Do you want to send time to computers on the network? (Y/N) : ', 1)) = 'Y' THEN
             BEGIN

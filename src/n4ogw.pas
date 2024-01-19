@@ -98,10 +98,10 @@ VAR
 
     N4OGW_RadioOne_BandMap_IP: STRING;             { Global variables used for config file parsing }
     N4OGW_RadioTwo_BandMap_IP: STRING;             { Global variables used for config file parsing }
-    N4OGW_RadioOne_BandMap_Port: LONGINT;          { Global variables used for config file parsing }
-    N4OGW_RadioTwo_BandMap_Port: LONGINT;          { Global variables used for config file parsing }
-    N4OGW_RadioOne_BandMap_UDP_Port: LONGINT;      { Global variables used for config file parsing }
-    N4OGW_RadioTwo_BandMap_UDP_Port: LONGINT;      { Global variables used for config file parsing }
+    N4OGW_RadioOne_BandMap_Port: LONGINT;          { Global variables - TCP port }
+    N4OGW_RadioTwo_BandMap_Port: LONGINT;          { Global variables - TCP port }
+    N4OGW_RadioOne_BandMap_UDP_Port: LONGINT;      { Global variables - UDP port for N4OGW messages }
+    N4OGW_RadioTwo_BandMap_UDP_Port: LONGINT;      { Global variables - will be the same as Radio 1 }
 
     N4OGW_RadioOne_BandMap: N4OGW_BandMap_Object;
     N4OGW_RadioTwo_BandMap: N4OGW_BandMap_Object;

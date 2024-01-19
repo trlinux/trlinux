@@ -633,7 +633,7 @@ VAR Key: CHAR;
         MarkTime (TimeMark);
 
         REPEAT
-            IF ActiveMultiPort <> nil THEN
+            IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                 IF ElaspedSec100 (TimeMark) > 3000 THEN  { 30 second timeout }
                     BEGIN
                     FlushCWBufferAndClearPTT;
@@ -1193,7 +1193,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
         REPEAT millisleep UNTIL NewKeyPressed;
         Key := Upcase (NewReadKey);
 
-        IF ActiveMultiPort <> nil THEN
+        IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
             IF ElaspedSec100 (TimeMark) > 3000 THEN
                 BEGIN
                 RemoveAndRestorePreviousWindow;
@@ -1232,7 +1232,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
                  REPEAT
                      REPEAT
-                         IF ActiveMultiPort <> nil THEN
+                         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                              IF ElaspedSec100 (TimeMark) > 3000 THEN
                                  BEGIN
                                  RemoveAndRestorePreviousWindow;
@@ -1342,7 +1342,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
                  REPEAT
                      REPEAT
-                         IF ActiveMultiPort <> nil THEN
+                         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                              IF ElaspedSec100 (TimeMark) > 3000 THEN
                                  BEGIN
                                  RemoveAndRestorePreviousWindow;
@@ -1453,7 +1453,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
                  REPEAT
                      REPEAT
-                         IF ActiveMultiPort <> nil THEN
+                         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                              IF ElaspedSec100 (TimeMark) > 3000 THEN
                                  BEGIN
                                  RemoveAndRestorePreviousWindow;

@@ -2130,11 +2130,39 @@ VAR xResult,tempint: INTEGER;
                     ActiveMultiPort := serialportx.create(tempstring);
                     addport(ActiveMultiPort);
                  end;
-           END;
 
-        IF ActiveMultiPort <> nil THEN Packet.PacketBandSpots := True;
+            IF ActiveMultiPort <> nil THEN Packet.PacketBandSpots := True;
 
-        ProcessConfigInstructions2 := (ActiveMultiPort <> nil) OR (CMD = 'NONE');
+            ProcessConfigInstructions2 := (ActiveMultiPort <> nil) OR (CMD = 'NONE');
+            Exit;
+            END;
+
+        { MULTI PORT = UDP IP Port}
+
+        IF StringHas (UpperCase (CMD), 'UDP') THEN  { Using new UDP multi interface }
+            BEGIN
+            RemoveFirstString (CMD);  { UDP }
+
+            WriteLn (CMD);
+
+            MultiUDPIP := RemoveFirstString (CMD);  { 192.168.x.x }
+
+            WritELn (MultiUDPIP);
+
+            TempString := RemoveFirstString (CMD);
+
+            WriteLn (TempString);
+
+            IF StringIsAllNumbers (TempString) THEN
+                BEGIN
+                Val (TempString, MultiUDPPort, xResult);
+                ProcessConfigInstructions2 := True;
+                Exit;
+                END;
+            END;
+
+        { We didn't find anything we were looking for.  Exit with default value of FALSE }
+
         Exit;
         END;
 

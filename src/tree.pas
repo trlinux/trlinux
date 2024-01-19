@@ -362,6 +362,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  OpenFileForAppend   (VAR FileHandle: TEXT; FIlename: Str80): BOOLEAN;
     FUNCTION  OpenFileForRead     (VAR FileHandle: TEXT; Filename: Str80): BOOLEAN;
     FUNCTION  OpenFileForWrite    (VAR FileHandle: TEXT; Filename: Str80): BOOLEAN;
+    FUNCTION  OpenUDPPortForInput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
     FUNCTION  OpenUDPPortForOutput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
     FUNCTION  OperatorEscape: BOOLEAN;
 
@@ -4340,7 +4341,7 @@ VAR TestTail: INTEGER;
 FUNCTION CharacterBuffer.GetSlippedString (VAR Entry: STRING): BOOLEAN;
 
 { Returns TRUE if a complete slipped string is found with it as parameter.
-  It will always leave a FrameEnd at the tail. }
+  It will always leave a FrameEnd at the tail of the buffer }
 
 VAR LengthOfString, CharPointer, RemainingBytes, HeadAtStart, TestTail: INTEGER;
 
@@ -4985,6 +4986,29 @@ VAR SocketAddr: TINetSockAddr;
     WriteLn ('Connect result from fpBind is ', ConnectResult);
 
     OpenUDPPortForOutput := ConnectResult = 0;
+    END;
+
+
+
+FUNCTION OpenUDPPortForInput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
+
+{ Opens up a port to listen to - no filtering on which IP address are sending the message }
+
+VAR SocketAddr: TINetSockAddr;
+    ConnectResult: INTEGER;
+    FileWrite: TEXT;
+
+    BEGIN
+    { Setup the UDP port.  }
+
+    Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (PortNumber);
+    SocketAddr.sin_addr.s_addr := INADDR_ANY;
+
+    ConnectResult := fpBind (Socket, @SocketAddr, SizeOf (SocketAddr));
+    OpenUDPPortForInput := ConnectResult = 0;
     END;
 
 

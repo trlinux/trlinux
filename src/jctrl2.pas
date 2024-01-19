@@ -1760,7 +1760,7 @@ VAR TempString: STRING;
     BEGIN
     IF K1EANetworkEnable THEN Exit;
 
-    IF ActiveMultiPort = nil THEN Exit;
+    IF (ActiveMultiPort = nil) AND (MultiUDPPort = -1) THEN Exit;
 
     TempString := ParameterToString (Line);
 
@@ -1837,7 +1837,7 @@ VAR FirstEntryShown, MenuEntry, ActiveLine: MenuEntryType;
         DisplayStatus (FirstEntryShown, ActiveLine);
         QuickDisplay  ('Arrow/pageup/pagedn keys or 1st letter to select item.  RETURN to modify');
 
-        IF ActiveMultiPort <> nil THEN
+        IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
             QuickDisplay2 ('AltW: save entry  Alt-N: to network  Alt-G: all changes to file or ESCAPE')
         ELSE
             QuickDisplay2 ('Alt-W to save to cfg file Alt-G to save all changes to file  ESCAPE exits');

@@ -341,9 +341,10 @@ VAR FileWrite: TEXT;
                END;
 
         ActiveMultiPort.setparams(MultiPortBaudRate,8,NoParity,2);
-
-        New (MultiRememberBuffer);
         END;
+
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
+        New (MultiRememberBuffer);
 
     IF IntercomFileEnable THEN
         BEGIN

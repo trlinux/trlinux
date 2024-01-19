@@ -288,7 +288,7 @@ VAR RData: ContestExchange;
     TempString: STRING;
 
     BEGIN
-    IF (ActiveMultiPort <> nil) AND SendQSOImmediately AND MyQSO THEN
+    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND SendQSOImmediately AND MyQSO THEN
         BEGIN
         GetRidOfPostcedingSpaces (LogString);
 
@@ -324,7 +324,7 @@ VAR RData: ContestExchange;
 
         IF ParseExchangeIntoContestExchange (LogString, RData) THEN
             BEGIN
-            IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
+            IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
                 BEGIN
                 IF (NOT MultiMultsOnly) OR
                    (GetLogEntryMultString (LogString) <> '') THEN
@@ -349,7 +349,7 @@ VAR RData: ContestExchange;
 
         ELSE  { QSO doesn't make sense - probably a note }
 
-            IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
+            IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
                 IF K1EANetworkEnable THEN
                     BEGIN
 
@@ -553,7 +553,6 @@ VAR MultiString, MessageString: STRING;
                     DisplayTotalScore (TotalScore);
                     DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
                     UpdateTotals;
-                    CheckAvailableMemory;
                     END;
 
                 DisplayTotalScore (TotalScore);
@@ -726,7 +725,6 @@ VAR MultiString, MessageString: STRING;
                     DisplayTotalScore (TotalScore);
                     DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
                     UpdateTotals;
-                    CheckAvailableMemory;
                     END;
 
                 DisplayTotalScore (TotalScore);
@@ -849,7 +847,7 @@ VAR Frequency: LONGINT;
         ClearWindow (ExchangeWindow);
 
         REPEAT
-            IF ActiveMultiPort <> nil THEN CheckMultiState;
+            IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             CWStillBEingSent;
             Packet.CheckPacket;
@@ -1192,7 +1190,7 @@ VAR Key: CHAR;
     MarkTime (TimeMark);
 
     REPEAT
-        IF ActiveMultiPort <> nil THEN CheckMultiState;
+        IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
 
         UpdateTimeAndRateDisplays (True, True);
         IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
@@ -1210,7 +1208,7 @@ VAR Key: CHAR;
                     IF ActivePacketPort <> nil THEN
                         SendChar (ActivePacketPort, Key)
                     ELSE
-                        IF ActiveMultiPort <> nil THEN
+                        IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                             BEGIN
                             IF K1EANetworkEnable THEN
                                 SendMultiMessage ('B' + K1EAStationID + ' ' + CommandLine)
@@ -1348,7 +1346,7 @@ VAR Key: CHAR;
 
             IF Key = CarriageReturn THEN
                 BEGIN
-                IF (ActivePacketPort = nil) AND (ActiveMultiPort <> nil) THEN
+                IF (ActivePacketPort = nil) AND ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
                     BEGIN
                     IF K1EANetworkEnable THEN
                         SendMultiMessage ('B' + K1EAStationID + ' ' + CommandLine)
@@ -1366,13 +1364,13 @@ VAR Key: CHAR;
         Packet.CheckPacketMessage;
 
         Wait (4);
-    UNTIL (ActiveMultiPort <> nil) AND (ElaspedSec100 (TimeMark) > 2000);
+    UNTIL ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (ElaspedSec100 (TimeMark) > 2000);
 
     IF PacketAutoCR AND (CommandLine <> '') THEN
         IF ActivePacketPort <> nil THEN
             SendChar (ActivePacketPort, Key)
         ELSE
-            IF ActiveMultiPort <> nil THEN
+            IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                 BEGIN
                 IF K1EANetworkEnable THEN
                     SendMultiMessage ('B' + K1EAStationID + ' ' + CommandLine)
@@ -1541,6 +1539,7 @@ VAR Key: CHAR;
             ControlB:
                 IF (ActivePacketPort <> nil) OR
                    (ActiveMultiPort <> nil) OR
+                   (MultiUDPPort <> -1) OR
                    (ActiveRTTYPort <> nil) THEN
                     BEGIN
                     PacketWindow;
@@ -1776,7 +1775,7 @@ VAR CQMemory, SendChar: CHAR;
                 LastCQMode      := ActiveMode;
                 END;
 
-            IF ActiveMultiPort <> nil THEN
+            IF (ActiveMultiPort <> nil) OR (MultiUDPPOrt > -1) THEN
                 CreateAndSendCQMultiInfoMessage;
 
             REPEAT
@@ -1808,7 +1807,7 @@ VAR CQMemory, SendChar: CHAR;
                 IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
                 CWStillBeingSent;
 
-                IF ActiveMultiPort <> nil THEN CheckMultiState;
+                IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
 
                 Packet.CheckPacket;
                 UpdateTimeAndRateDisplays (True, False);
@@ -2013,7 +2012,7 @@ VAR Result: INTEGER;
     IF QSONumberByBand THEN
         DisplayNextQSONumber (GetNextQSONumber);
 
-    IF ActiveMultiPort <> nil THEN CheckMultiState;
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
 
     IF ActiveRTTYPort <> nil THEN CheckRTTY;
 
@@ -2080,7 +2079,7 @@ VAR Result: INTEGER;
     IF Debug OR ReadInLog THEN
         BEGIN
         REPEAT
-            IF ActiveMultiPort <> nil THEN CheckMultiState;
+            IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
             IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
@@ -2977,14 +2976,14 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
         CheckForRemovedDupeSheetWindow;
 
-        IF (ActiveMultiPort <> nil) AND (MultiInfoMessage <> '') THEN
+        IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (MultiInfoMessage <> '') THEN
             MarkTime (MultiInfoMessageTimeout);
 
         { We now go into a loop waiting for a key to be pressed.  We need to give
           oxygen to some things so that they work while waiting }
 
         REPEAT
-            IF (ActiveMultiPort <> nil) AND (MultiInfoMessage <> '') THEN
+            IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (MultiInfoMessage <> '') THEN
                 IF MicroTimeElapsed (MultiInfoMessageTimeout) > 10000 THEN
                     IF NOT K1EANetworkEnable THEN
                         BEGIN
@@ -3164,7 +3163,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
         CASE KeyChar OF
 
           '"':
-              IF ActiveMultiPort <> nil THEN
+              IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                   BEGIN
                   RITEnable := False;
                   ClearRIT;
@@ -3300,6 +3299,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
           ControlB:
               IF (ActivePacketPort <> nil) OR
                  (ActiveMultiPort <> nil) OR
+                 (MultiUDPPort > -1) OR
                  (ActiveRTTYPort <> nil) THEN
                   PacketWindow;
 
@@ -4197,7 +4197,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                       END;
 
                   ControlHome:
-                      IF ActiveMultiPort <> nil THEN
+                      IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                           DisplayMultiMessageBuffer;
 
                   ControlInsert: {KK1L: 6.65 Insert BM place holder entry}
@@ -4438,7 +4438,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   Exit;
                   END;
 
-              IF (KeyChar = PacketSpotKey) AND (ActivePacketPort <> nil) OR (ActiveMultiPort <> nil) THEN
+              IF (KeyChar = PacketSpotKey) AND (ActivePacketPort <> nil) OR (ActiveMultiPort <> nil) OR (MultiUDPPOrt > -1) THEN
                   IF NOT PacketSpotDisable THEN
                       BEGIN
                       IF ActiveWindow = CallWindow THEN
@@ -4864,7 +4864,6 @@ VAR LogString: Str80;
 
     DisplayTotalScore (TotalScore);
     DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
-    CheckAvailableMemory;
 
     IF BeepEvery10QSOs AND (TotalContacts MOD 10 = 0) THEN QuickBeep;
 
@@ -4984,7 +4983,7 @@ VAR Key, ExtendedKey: CHAR;
     BandMapBand := ActiveBand;
     DisplayBandMap;
 
-    IF ActiveMultiPort <> nil THEN
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
         CreateAndSendSAPMultiInfoMessage;
 
     LogBadQSOString := '';
@@ -7165,7 +7164,7 @@ VAR MTotals: MultTotalArrayType;
                     MarkTime (RememberTime);
 
                     REPEAT
-                        IF ActiveMultiPort <> nil THEN CheckMultiState;
+                        IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
                         UpdateTimeAndRateDisplays (True, True);
                         IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
                         Packet.CheckPacket;

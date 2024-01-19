@@ -18,36 +18,6 @@
 //<http://www.gnu.org/licenses/>.
 //
 
-PROCEDURE CheckAvailableMemory;
-
-
-{ Takes the place of the old DisplayFreeMemory calls.  Tries to be more
-  proactive about impending memory problems. }
-
-VAR NewMemoryAvailable, AvailableMemory: LONGINT;
-    TempString: Str20;
-
-    BEGIN
-    AvailableMemory := MaxAvail;
-
-    IF AvailableMemory < 5000 THEN
-        IF NOT CD.SCPDisabledByApplication THEN
-            CD.SCPDisableAndDeAllocateFileBuffer;
-
-    NewMemoryAvailable := MaxAvail;
-
-    IF NewMemoryAvailable > MaxAvail THEN
-        BEGIN
-        Str (NewMemoryAvailable - MaxAvail, TempString);
-        QuickDisplay (TempString +  ' bytes of memory freed up by disabling SCP function.');
-        Tone.DoABeep (Single);
-        ReminderPostedCount := 30;
-        END;
-
-    DisplayFreeMemory;
-    END;
-
-
 
 PROCEDURE PutUpCQMenu;
 
@@ -1152,7 +1122,7 @@ VAR FileName, QSONumberString: Str20;
                                 END;
                            END;
 
-                    IF (ActiveMultiPort <> nil) AND (MultiInfoMessage <> '') THEN
+                    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (MultiInfoMessage <> '') THEN
                         CreateAndSendCQMultiInfoMessage;
 
                     END;
@@ -2121,7 +2091,7 @@ VAR Key: CHAR;
     BEGIN
     PacketMemoryRequest := False;
 
-    IF (ActivePacketPort = nil) AND (ActiveMultiPort = nil) THEN
+    IF (ActivePacketPort = nil) AND (ActiveMultiPort = nil) AND (MultiUDPPort = -1) THEN
         Exit;
 
     IF Packet.PacketMemoryStart = Packet.PacketMemoryEnd THEN Exit;

@@ -234,6 +234,7 @@ VAR
     UDPBuffer: ARRAY [0..BufferSize -1] OF CHAR;
 
     UDP_Record: UDPRecordType;
+
     QSO_UDP_Socket: LONGINT;
     QSOUDPOutputPortOpen: BOOLEAN;
 

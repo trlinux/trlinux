@@ -104,7 +104,7 @@ INTERFACE
 
 USES Dos, Printer, Tree, Country9, ZoneCont, LogSCP, trCrt, LogWind, LogCW,
      LogDupe, LogGrid, LogHelp, LogK1EA, LogDVP, LogDom, SlowTree, K1EANet,
-     n4ogw, datetimec,radio;
+     n4ogw, datetimec,radio, Sockets, BaseUnix;
 
 CONST
     { Control Byte Constants for Multi-Multi communications }
@@ -4626,7 +4626,7 @@ VAR PotentialCall, TempString: Str40;
 
 FUNCTION ISentThisMultiMessage (MultMessage: STRING): BOOLEAN;
 
-{ Works for both N6TR and K1EA network }
+{ Works for both N6TR and K1EA network and maybe even UDP }
 
 VAR LookAddress: INTEGER;
     S1: STRING;
@@ -4731,6 +4731,8 @@ PROCEDURE CheckForLostMultiMessages;
 VAR LookAddress: INTEGER;
 
     BEGIN
+    IF (MultiUDPPort > -1) OR (MultiUDPPort > -1)  THEN Exit;
+
     LookAddress := LastMultiMessage;
 
     WHILE LookAddress <> FirstMultiMessage DO
@@ -5001,12 +5003,45 @@ FUNCTION ThisIsAMultiTalkMessage (MessageString: STRING): BOOLEAN;
 FUNCTION GetMultiPortCommand: STRING;
 
 { This will retrieve a multi command string from the MultiReceiveCharBuffer.
-  It works for either K1EA or N6TR network modes!! }
+  It works for either K1EA or N6TR network modes!! And new in 2024 - supports
+  the UDP port }
 
 VAR TempString: STRING;
+    FDS: Tfdset;
+    BytesRead: INTEGER;
 
     BEGIN
     GetMultiPortCommand := '';
+
+    { If we are using the UDP port - we are not using the character buffer.  Go see if
+      we have received a message from the UDP port }
+
+    IF MultiUDPPort >= 0 THEN    { Using UDP port }
+        BEGIN
+        IF NOT MultiUDPPortOpenForInput THEN
+            MultiUDPPortOpenForInput := OpenUDPPortForInput (MultiUDPIP, MultiUDPPort, MultiUDPReadSocket);
+
+        IF MultiUDPPortOpenForInput THEN
+            BEGIN
+            { Set up FDS and inquire if there is some data available }
+
+            fpFd_zero (FDS);
+            fpFd_set (MultiUDPReadSocket, FDS);
+            fpSelect (MultiUDPReadSocket+1, @FDS, nil, nil, 0);
+
+            IF fpFD_IsSet (MultiUDPReadSocket, FDS) = 0  THEN  { No data }
+                Exit;
+
+            BytesRead := fpRecv (MultiUDPReadSocket, @TempString [1], 255, 0);
+
+            IF BytesRead = -1 THEN Exit;
+
+            SetLength (TempString, BytesRead);
+            GetMultiPortCommand := TempString;
+            END;
+
+        Exit;
+        END;
 
     IF K1EANetworkEnable THEN
         BEGIN
@@ -5152,7 +5187,9 @@ VAR TempString: STRING;
     TempString [7] := Chr (Lo (CheckSum));
 
     SendMultiMessage    (TempString);
-    RememberSentMessage (TempString);
+
+    IF MultiUDPPort = -1 THEN
+        RememberSentMessage (TempString);
     END;
 
 
@@ -5363,7 +5400,7 @@ PROCEDURE PushMultiMessageBuffer (Message: Str80);
 PROCEDURE DisplayMultiMessageBuffer;
 
     BEGIN
-    IF ActiveMultiPort <> nil THEN
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
         BEGIN
         SaveSetAndClearActiveWindow (EditableLogWindow);
         WriteLn (MultiMessageBuffer [1]);

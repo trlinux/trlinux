@@ -314,7 +314,7 @@ VAR IPAddress: Str20;
     Key: CHAR;
 
     BEGIN
-    ClearScreenAndTitle ('RTL TCP TESTING');
+    ClearScreenAndTitle ('N4OGW BANDMAP RTL TCP TESTING');
     WriteLn;
 
     IPAddress := GetResponse ('Enter IP address : ');
@@ -2056,7 +2056,7 @@ VAR Buffer: INTEGER;
         REPEAT
             UpdateTimeAndRateDisplays (False, False);
 
-        IF ActiveMultiPort <> nil THEN
+        IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
             IF ElaspedSec100 (TimeMark) > 2000 THEN
                 BEGIN
                 RestorePreviousWindow;

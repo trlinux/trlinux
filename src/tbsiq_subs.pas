@@ -1490,6 +1490,8 @@ VAR MultiString, MessageString: STRING;
 
     ELSE   { N6TR Network Mode }
         BEGIN
+        { This appears to be removing the slipped data header? }
+
         MessageString [0] := MultiString [8];
         Move (MultiString [10], MessageString [1], Ord (MultiString [8]));
 
@@ -1663,7 +1665,7 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     Packet.CheckPacket;         { See if any spots have come in for the bandmap }
 
-    IF ActiveMultiPort <> nil THEN TBSIQ_CheckMultiState;
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN TBSIQ_CheckMultiState;
 
     { Send some oxygen to the N4OGW bandmap if it is there }
 
