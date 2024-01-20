@@ -1530,22 +1530,18 @@ VAR MultiString, MessageString: STRING;
 
                 CalculateBandMode (Freq, Band, Mode);
 
-                IF (Band <> NoBand) AND (Mode <> NoMode) THEN { Added in 6.25 }
+                IF (Band <> NoBand) AND (Mode <> NoMode) THEN
                     BEGIN
                     Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
-
-                    { These didn't have the NOT in them until 6.36 }
 
                     IF NOT MultByBand THEN Band := All;
                     IF NOT MultByMode THEN Mode := Both;
 
-                    { Runtime 201 here when hitting F1s - probably on 160.
-                      Initialized Mode to Active mode before calling
-                      CalculateBandMode }
-
                     VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
                     Mult := MultString <> '';
-                                                                    { SendToMulti = False }
+
+                    { SendToMulti = False }
+
                     NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
                     END;
                 END;
@@ -1632,8 +1628,7 @@ VAR MultiString, MessageString: STRING;
         END;
     END;
 
-
-
+
 
 PROCEDURE TBSIQ_UpdateTimeAndRateDisplays;
 

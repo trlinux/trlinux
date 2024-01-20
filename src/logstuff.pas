@@ -4626,7 +4626,7 @@ VAR PotentialCall, TempString: Str40;
 
 FUNCTION ISentThisMultiMessage (MultMessage: STRING): BOOLEAN;
 
-{ Works for both N6TR and K1EA network and maybe even UDP }
+{ Works for both N6TR and K1EA network and UDP }
 
 VAR LookAddress: INTEGER;
     S1: STRING;
@@ -4725,13 +4725,12 @@ PROCEDURE CheckForLostMultiMessages;
 
 { This procedure will look at the MultiMessageMemory and see if there are
   any entries that should either be resent or deleted.  It will stop after
-  it finds one to send so it doesn't hog the computer too long. }
+  it finds one to send so it doesn't hog the computer too long.  This should
+  work with N6TR Classic, K1EA and UDP modes. }
 
 VAR LookAddress: INTEGER;
 
     BEGIN
-    IF (MultiUDPPort > -1) OR (MultiUDPPort > -1)  THEN Exit;
-
     LookAddress := LastMultiMessage;
 
     WHILE LookAddress <> FirstMultiMessage DO
