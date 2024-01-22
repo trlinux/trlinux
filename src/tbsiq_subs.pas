@@ -2361,7 +2361,8 @@ VAR Key, ExtendedKey: CHAR;
         RadioOne:
             IF N4OGW_RadioOne_BandMap_IP <> '' THEN
                 BEGIN
-                { Check to see if TX mode should be disabled }
+                { Check to see if TX mode should be disabled - CWStillBeingSent does this
+                  automatically if so. }
 
                 IF (N4OGW_RadioOne_BandMap.TXMode) THEN CWStillBeingSent;
 
@@ -2374,7 +2375,8 @@ VAR Key, ExtendedKey: CHAR;
         RadioTwo:
             IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
                 BEGIN
-                { Check to see if TX mode should be disabled }
+                { Check to see if TX mode should be disabled - CWStillBeingSent does this
+                  automatically if so. }
 
                 IF (N4OGW_RadioTwo_BandMap.TXMode) THEN CWStillBeingSent;
 

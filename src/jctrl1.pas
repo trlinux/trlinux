@@ -43,10 +43,11 @@ TYPE MenuEntryType = (NoMenuEntry,
                       AQI,
                       AQD,
                       AQR,
+                      ARC,
                       ASP,
                       ASR, {KK1L: 6.72}
-                      ARC,
                       ASC,
+                      AST,
                       ATI,
                       BEN,
                       BAB,
@@ -272,10 +273,11 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       AQI: Description := 'AUTO QSL INTERVAL';
       AQD: Description := 'AUTO QSO NUMBER DECREMENT';
       AQR: Description := 'AUTO QSY REQUEST ENABLE';
-      ASP: Description := 'AUTO S&P ENABLE';
       ARC: Description := 'AUTO RETURN TO CQ MODE';
+      ASP: Description := 'AUTO S&P ENABLE';
       ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ASC: Description := 'AUTO SEND CHARACTER COUNT';
+      AST: Description := 'AUTO SIDETONE CONTROL';
       ATI: Description := 'AUTO TIME INCREMENT';
 
       BEN: Description := 'BACKCOPY ENABLE';
@@ -521,10 +523,11 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       AQI: Write (AutoQSLInterval);
       AQD: Write (AutoQSONumberDecrement);
       AQR: Write (AutoQSYRequestEnable);
+      ARC: Write (AutoReturnToCQMode);
       ASP: Write (AutoSAPEnable);
       ASR: Write (AutoSAPEnableRate); {KK1L: 6.72}
-      ARC: Write (AutoReturnToCQMode);
       ASC: Write (AutoSendCharacterCount);
+      AST: Write (AutoSidetoneControl);
       ATI: Write (AutoTimeIncrementQSOs);
 
       BEN: Write (BackCopyEnable);
@@ -975,6 +978,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Do not ask for QSY to other run freq');
 
+      ARC: IF AutoReturnToCQMode THEN
+               Write ('CQ F1 if RETURN in S&P & blank windows')
+           ELSE
+               Write ('Stay in S&P if RETURN with blank windows');
+
       ASP: IF AutoSAPEnable THEN
                Write ('Jump into S&P mode if tuning VFO')
            ELSE
@@ -982,15 +990,15 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
 
       ASR: Write ('Auto SAP Enable Sensitivity (Hz/sec)'); {KK1L: 6.72}
 
-      ARC: IF AutoReturnToCQMode THEN
-               Write ('CQ F1 if RETURN in S&P & blank windows')
-           ELSE
-               Write ('Stay in S&P if RETURN with blank windows');
-
       ASC: IF AutoSendCharacterCount = 0 THEN
                Write ('Auto start send feature disabled')
            ELSE
                Write ('Char position where auto CW starts');
+
+      AST: IF AutoSidetoneControl THEN
+               Write ('Turn on K3/K4 sidetone for paddle CW')
+           ELSE
+               Write ('No turn on sidetone for paddle CW');
 
       ATI: IF AutoTimeIncrementQSOs > 0 THEN
                Write ('Number QSOs for auto minute increment')

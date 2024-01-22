@@ -109,6 +109,7 @@ TYPE
 
         PROCEDURE LetFootSwitchControlPTT; override;
 
+        FUNCTION  PTTAssertedStill: BOOLEAN; override;
         PROCEDURE PTTForceOn;override;
         PROCEDURE PTTUnForce;override;
 
@@ -1158,6 +1159,33 @@ FUNCTION ArduinoKeyer.CWStillBeingSent: BOOLEAN;
         END
     ELSE
         CWStillBeingSent := False;
+    END;
+
+
+
+FUNCTION ArduinoKeyer.PTTAssertedStill: BOOLEAN;
+
+{ Kind of like CWStillBeingSent, but looks for the PTT to drop before reporting
+  back with a changed status }
+
+    BEGIN
+    IF KeyerInitialized THEN
+        BEGIN
+        ClearOutAnyIncomingCharacters;
+        ArduinoKeyerPort.PutChar (Char ($0C));  { Ask if CW still being sent }
+
+        { WARNING!!  We could get trapped here }
+
+        REPEAT UNTIL ArduinoKeyerPort.CharReady;
+
+        CASE Integer (ArduinoKeyerPort.ReadChar) OF
+            0: PTTAssertedStill := False;     { PTT dropped }
+            1: PTTAssertedStill := True; { CW buffer empty - PTT On }
+            2: PTTAssertedStill := True  { we are indeed sending CW }
+            END;  { of case }
+        END
+    ELSE
+        PTTAssertedStill := False;
     END;
 
 

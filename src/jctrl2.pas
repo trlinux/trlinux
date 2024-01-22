@@ -111,6 +111,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       AQD: AutoQSONumberDecrement := NOT AutoQSONumberDecrement;
       AQR: AutoQSYRequestEnable   := NOT AutoQSYRequestEnable;
+      ARC: AutoReturnToCQMode     := NOT AutoReturnToCQMode;
       ASP: AutoSAPEnable          := NOT AutoSAPEnable;
 
       ASR: BEGIN {KK1L: 6.72}
@@ -118,7 +119,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            IF (TempInt > 9) AND (TempInt < 10001)THEN
                AutoSAPEnableRate := TempInt;
            END;
-      ARC: AutoReturnToCQMode     := NOT AutoReturnToCQMode;
 
       ASC: BEGIN
            Inc (AutoSendCharacterCount);
@@ -133,6 +133,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
            DisplayAutoSendCharacterCount;
            END;
+
+      AST: AutoSidetoneControl := NOT AutoSidetoneControl;
 
       ATI: BEGIN
            Inc (AutoTimeIncrementQSOs);
@@ -1026,10 +1028,11 @@ VAR FileWrite: TEXT;
       AQI: WriteLn (FileWrite, AutoQSLInterval);
       AQD: WriteLn (FileWrite, AutoQSONumberDecrement);
       AQR: WriteLn (FileWrite, AutoQSYRequestEnable);
+      ARC: WriteLn (FileWrite, AutoReturnToCQMode);
       ASP: WriteLn (FileWrite, AutoSAPEnable);
       ASR: WriteLn (FileWrite, AutoSAPEnableRate); {KK1L: 6.72}
-      ARC: WriteLn (FileWrite, AutoReturnToCQMode);
       ASC: WriteLn (FileWrite, AutoSendCharacterCount);
+      AST: WriteLn (FileWRite, AutoSidetoneControl);
       ATI: WriteLn (FileWrite, AutoTimeIncrementQSOs);
 
       BEN: WriteLn (FileWrite, BackCopyEnable);
@@ -1414,6 +1417,7 @@ VAR TempString: Str40;
       ASP: IF AutoSAPEnable THEN TempString := 'TRUE';
       ASR: Str (AutoSAPEnableRate, TempString); {KK1L: 6.72}
       ASC: Str (AutoSendCharacterCount, TempString);
+      AST: IF AutoSideToneControl THEN TempString := 'TRUE';
       ATI: Str (AutoTimeIncrementQSOs, TempString);
 
       BEN: IF BackCopyEnable THEN TempString := 'TRUE';

@@ -52,6 +52,7 @@ PROCEDURE SetConfigurationDefaultValues;
     AutoSAPEnable          := False;
     AutoSAPEnableRate      := 1000; {KK1L 6.72}
     AutoSendCharacterCount := 0;
+    AutoSidetoneControl    := False;
     AutoTimeIncrementQSOs  := 0;
 
     BandMapAllBands         := False;

@@ -42,6 +42,7 @@ TYPE
 VAR
     AutoCQDelayTime: INTEGER;
     AutoCQMemory:    CHAR;
+    AutoSidetoneControl: BOOLEAN;  { Used to turn on side tone for manually sent CW }
 
     CorrectedCallMessage:      Str80;
     CorrectedCallPhoneMessage: Str80;
@@ -52,10 +53,13 @@ VAR
     CQPhoneExchangeNameKnown: Str80;
     CWEnable:                 BOOLEAN;
     CWMessageCommand:         CWMessageCommandType;
+    CWMessageDone:            BOOLEAN;  { Indicates that if you were sending a message - it is done now }
     CWSpeedFromDataBase:      BOOLEAN;
     CWTone: INTEGER;
 
     CQMemory:  FunctionKeyMemoryArray;
+    DetectedPaddleActivityR1: BOOLEAN;
+    DetectedPaddleActivityR2: BOOLEAN;
 
     EXMemory:  FunctionKeyMemoryArray;
 
@@ -124,6 +128,7 @@ VAR
     PROCEDURE SendKeyboardInput;
     PROCEDURE SendKeysToRTTY;
     PROCEDURE SendStringAndStop (MSG: Str160);
+    PROCEDURE SetCWMonitorLevel (Level: INTEGER);
     PROCEDURE SetSpeed (Speed: INTEGER);
     PROCEDURE SetCQMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
     PROCEDURE SetEXMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
@@ -205,6 +210,26 @@ PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
         BEGIN
         ActiveKeyer.AddStringToBuffer (Msg, Tone);
         ActiveKeyer.SetCountsSinceLastCW(0);
+
+        CWMessageDone := False;  { Shows that the message being sent was started here }
+
+        CASE ActiveRadio OF
+            RadioOne:
+                IF AutoSideToneControl AND DetectedPaddleActivityR1 THEN
+                    BEGIN
+                    DetectedPaddleActivityR1 := False;
+                    SetCWMonitorLevel (0);
+                    END;
+
+            RadioTwo:
+                IF AutoSideToneControl AND DetectedPaddleActivityR2 THEN
+                    BEGIN
+                    DetectedPaddleActivityR2 := False;
+                    SetCWMonitorLevel (0);
+                    END;
+
+            END; { of CASE ActiveRadio }
+
         END;
     END;
 
@@ -213,10 +238,45 @@ FUNCTION CWStillBeingSent: BOOLEAN;
 
     BEGIN
     IF ActiveKeyer.CWStillBeingSent THEN
-        CWStillBeingSent := True
+        BEGIN
+        CWStillBeingSent := True;
+
+        CASE ActiveRadio OF
+
+            RadioOne:
+                IF AutoSidetoneControl AND CWMessageDone AND NOT DetectedPaddleActivityR1 THEN  { Is this CW being sent from the paddle? }
+                    BEGIN
+                    SetCWMonitorLevel (50);
+                    DetectedPaddleActivityR1 := True;
+                    END;
+
+            RadioTwo:
+                IF AutoSidetoneControl AND CWMessageDone AND NOT DetectedPaddleActivityR2 THEN  { Is this CW being sent from the paddle? }
+                    BEGIN
+                    SetCWMonitorLevel (50);
+                    DetectedPaddleActivityR2 := True;
+                    END;
+
+            END; { of CASE ActiveRadio }
+
+        END
     ELSE
         BEGIN
+        { When sending F9 with a question mark - it seems that sometimes we end up here
+          thinking the transmission is done even before it is.  This might be an issue
+          where the CW engine is reporting that CWStillBeingSent is false - even though
+          some CW is still being sent.  I do remember making some changes to this at
+          some point - in that I wasn't waiting for the PTT to drop before reporting
+          back that CW is finished.  It seems maybe I need to report back CW is still
+          being sent even if the CW Buffer is empty - but there is a character being
+          sent?  }
+
+        IF ActiveKeyer = ArdKeyer THEN
+            IF ActiveKeyer.PTTAssertedStill THEN   { Not done yet }
+                Exit;
+
         CWStillBeingSent := False;
+        CWMessageDone := True;
 
         CASE ActiveRadio OF
             RadioOne:
@@ -277,6 +337,28 @@ PROCEDURE FlushCWBufferAndClearPTT;
         END;  { of CASE ActiveRadio }
     END;
 
+
+
+
+PROCEDURE SetCWMonitorLevel (Level: INTEGER);
+
+VAR LevelString: Str20;
+
+    BEGIN
+    Str (Level, LevelString);
+    WHILE Length (LevelString) < 3 DO LevelString := '0' + LevelString;
+
+    IF ActiveRadio = RadioOne THEN
+        IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+            rig1.directcommand ('ML0' + LevelString + ';');
+
+    IF ActiveRadio = RadioTwo THEN
+        IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+            rig2.directcommand ('ML0' + LevelString + ';');
+
+    END;
+
+
 
 PROCEDURE StartRTTYTransmission (MSG: Str160);
 
@@ -433,7 +515,7 @@ VAR CharPointer: INTEGER;
 
 
         IF CWEnable AND CWEnabled THEN
-            ActiveKeyer.AddStringToBuffer (MSG, CWTone);
+            AddStringToBuffer (MSG, CWTone);  { Use generic procedure please }
 
         Exit;
         END;
@@ -2151,9 +2233,12 @@ VAR TempKey: CHAR;
         END;
 
     AutoCQMemory := NullCharacter;
+    DetectedPaddleActivityR1 := False;
+    DetectedPaddleActivityR2 := False;
     KeyPressedMemory := Chr (0);
     KeyersSwapped := False;
     LastRSTSent := '';
+    CWMessageDone := True;
     CWMessageCommand := NoCWCommand;
     NeedToSetCQMode := False; {KK1L: 6.69 This variable is used to leap around some AutoS&PMode code.}
     RTTYTransmissionStarted := False;

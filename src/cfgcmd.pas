@@ -187,6 +187,13 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'AUTO PARTIAL CALL FETCH' THEN
+        BEGIN
+        AutoPartialCallFetch := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
     IF ID = 'AUTO QSL INTERVAL' THEN
         BEGIN
         Val (CMD, AutoQSLInterval, xResult);
@@ -223,13 +230,6 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
-    IF ID = 'AUTO PARTIAL CALL FETCH' THEN
-        BEGIN
-        AutoPartialCallFetch := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions1 := True;
-        Exit;
-        END;
-
     IF ID = 'AUTO S&P ENABLE SENSITIVITY' THEN {KK1L: 6.72}
         BEGIN
         Val (CMD, AutoSAPEnableRate, xResult);
@@ -247,6 +247,12 @@ VAR xResult, Speed, TempValue: INTEGER;
         Val (CMD, AutoSendCharacterCount, xResult);
         ProcessConfigInstructions1 := xResult = 0;
         Exit;
+        END;
+
+    IF ID = 'AUTO SIDETONE CONTROL' THEN
+        BEGIN
+        AutoSideToneControl := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
         END;
 
     IF ID = 'AUTO TIME INCREMENT' THEN
@@ -2120,6 +2126,13 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'MULTI PORT' THEN
         BEGIN
         ActiveMultiPort := nil;
+
+        IF (UpperCase (CMD) = 'NONE') OR (UpperCase (CMD) = 'NIL') THEN
+            BEGIN
+            ActiveMultiPort := nil;
+            ProcessConfigInstructions2 := True;
+            Exit;
+            END;
 
         IF StringHas(UpperCase(CMD),'SERIAL') THEN
            BEGIN

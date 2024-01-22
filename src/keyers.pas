@@ -44,8 +44,9 @@ TYPE
         PROCEDURE PTTForceOn;virtual;abstract;
         PROCEDURE PTTUnForce;virtual;abstract;
         PROCEDURE SetSpeed (Speed: INTEGER);virtual;abstract;
-        Function GetSpeed:INTEGER;virtual;abstract;
+        Function  GetSpeed:INTEGER;virtual;abstract;
         PROCEDURE UnInitializeKeyer;virtual;abstract;
+        FUnCTION  PTTAssertedStill: BOOLEAN;virtual;abstract;
         PROCEDURE SetPaddlePttHoldCount(Count: INTEGER);virtual;abstract;
         PROCEDURE SetPaddleBug(On: Boolean);virtual;abstract;
         PROCEDURE SetPaddleMonitorTone(tone: Integer);virtual;abstract;

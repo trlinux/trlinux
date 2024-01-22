@@ -1021,7 +1021,7 @@ VAR FileName, QSONumberString: Str20;
                ELSE
 
                    { I am not sure exactly why this is here.  I notice when I press
-                     a function key memoery, I end up flushing the buffer and
+                     a function key memory, I end up flushing the buffer and
                      unasserting PTT.  I am not really sure this is necessary, but
                      I will leave it here as it doesn't seem to do any harm.  }
 

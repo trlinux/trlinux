@@ -838,7 +838,7 @@ PROCEDURE Do2BSIQ;
         TBSIQ_UpdateTimeAndrateDisplays;
         Radio1QSOMachine.CheckQSOStateMachine;
 
-        { This probably work for SSB }
+        { This probably works for SSB }
 
         IF TBSIQDualMode THEN
             BEGIN
@@ -852,7 +852,7 @@ PROCEDURE Do2BSIQ;
 
         Radio2QSOMachine.CheckQSOStateMachine;
 
-        { This probably work for SSB }
+        { This probably works for SSB }
 
         IF TBSIQDualMode THEN
             BEGIN
