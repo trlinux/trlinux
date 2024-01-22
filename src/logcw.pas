@@ -349,12 +349,19 @@ VAR LevelString: Str20;
     WHILE Length (LevelString) < 3 DO LevelString := '0' + LevelString;
 
     IF ActiveRadio = RadioOne THEN
-        IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
-            rig1.directcommand ('ML0' + LevelString + ';');
+        IF Radio1Type = K3 THEN
+            rig1.directcommand ('ML' + LevelString + ';')
+        ELSE
+            IF Radio1Type = K4 THEN
+                rig1.directcommand ('ML0' + LevelString + ';');
+
 
     IF ActiveRadio = RadioTwo THEN
-        IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
-            rig2.directcommand ('ML0' + LevelString + ';');
+        IF Radio2Type = K3 THEN
+            rig2.directcommand ('ML' + LevelString + ';')
+        ELSE
+            IF Radio2Type = K4 THEN
+                rig2.directcommand ('ML0' + LevelString + ';');
 
     END;
 

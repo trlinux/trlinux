@@ -52,9 +52,8 @@ TODO List after 2023 WPX CW:
   - Added new command - AUTO SIDETONE ENABLE (default = FALSE).  When enabled, this will
     attempt to enable the radio sidetone for manually sent CW and then silence the sidetone
     when going back to sending a programmed message.  This likely only works if you are
-    using the Arduino Keyer and an Elecraft K3/K4 or other radio that supports the ML
-    command.  It is primarily designed for 2BSIQ - but I believe it works in the classic
-    mode as well.
+    using the Arduino Keyer and only with dn Elecraft K3/K4.  It is primarily designed
+    for 2BSIQ operation but seems to work fine in classic mode even with two radios.
 
 19-Jan-2024
   - Added new way to do multi - using UDP.  MULTI PORT = UDP <ip address> <port>.  The IP
