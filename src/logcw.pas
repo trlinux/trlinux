@@ -194,6 +194,8 @@ PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
 
 { We hope ActiveRadio is correct for N4OGW }
 
+VAR Count: INTEGER;
+
     BEGIN
     CASE ActiveRadio OF
         RadioOne:
@@ -208,17 +210,13 @@ PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
 
     IF CWEnable AND CWEnabled THEN
         BEGIN
-        ActiveKeyer.AddStringToBuffer (Msg, Tone);
-        ActiveKeyer.SetCountsSinceLastCW(0);
-
-        CWMessageDone := False;  { Shows that the message being sent was started here }
-
         CASE ActiveRadio OF
             RadioOne:
                 IF AutoSideToneControl AND DetectedPaddleActivityR1 THEN
                     BEGIN
                     DetectedPaddleActivityR1 := False;
                     SetCWMonitorLevel (0);
+                    FOR Count := 1 TO 50 DO milliSleep;
                     END;
 
             RadioTwo:
@@ -226,9 +224,15 @@ PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
                     BEGIN
                     DetectedPaddleActivityR2 := False;
                     SetCWMonitorLevel (0);
+                    FOR Count := 1 TO 50 DO milliSleep;
                     END;
 
             END; { of CASE ActiveRadio }
+
+        ActiveKeyer.AddStringToBuffer (Msg, Tone);
+        ActiveKeyer.SetCountsSinceLastCW(0);
+
+        CWMessageDone := False;  { Shows that the message being sent was started here }
 
         END;
     END;
