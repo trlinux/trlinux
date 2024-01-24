@@ -266,19 +266,6 @@ FUNCTION CWStillBeingSent: BOOLEAN;
         END
     ELSE
         BEGIN
-        { When sending F9 with a question mark - it seems that sometimes we end up here
-          thinking the transmission is done even before it is.  This might be an issue
-          where the CW engine is reporting that CWStillBeingSent is false - even though
-          some CW is still being sent.  I do remember making some changes to this at
-          some point - in that I wasn't waiting for the PTT to drop before reporting
-          back that CW is finished.  It seems maybe I need to report back CW is still
-          being sent even if the CW Buffer is empty - but there is a character being
-          sent?  }
-
-        IF ActiveKeyer = ArdKeyer THEN
-            IF ActiveKeyer.PTTAssertedStill THEN   { Not done yet }
-                Exit;
-
         CWStillBeingSent := False;
         CWMessageDone := True;
 

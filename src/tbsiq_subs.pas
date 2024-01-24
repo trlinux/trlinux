@@ -3087,6 +3087,12 @@ VAR Key, ExtendedKey: CHAR;
 
                 IF InitialExchangeOverwrite THEN
                     InitialExchangePutUp := ExchangeWindowString <> '';
+                END
+            ELSE
+                BEGIN
+                InitialExchangePutUp := False;
+                ExchangeWindowString := '';
+                ExchangeWindowCursorPosition := 1;
                 END;
 
             QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;

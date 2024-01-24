@@ -3300,12 +3300,14 @@ VAR CustomString, Exchange, Command, TempString: STRING;
                         END;
 
                 IF Command = 'NAME' THEN
-                    IF CD.GetEntry (StandardCall, Data) AND (Data.Name <> '') THEN
-                        Exchange := Exchange + Data.Name + ' ';
+                    IF CD.GetEntry (StandardCall, Data) THEN
+                        IF Data.Name <> '' THEN
+                            Exchange := Exchange + Data.Name + ' ';
 
                 IF Command = 'QTH' THEN
-                    IF CD.GetEntry (Call, Data) AND (Data.QTH <> '') THEN
-                        Exchange := Exchange + Data.QTH + ' ';
+                    IF CD.GetEntry (Call, Data) THEN
+                        IF Data.QTH <> '' THEN
+                            Exchange := Exchange + Data.QTH + ' ';
 
                 IF Command = 'SECTION' THEN
                     IF CD.GetEntry (Call, Data) AND (Data.Section <> '') THEN
@@ -3346,8 +3348,9 @@ VAR CustomString, Exchange, Command, TempString: STRING;
                         END;
 
                 IF Command = 'FOC' THEN
-                    IF CD.GetEntry (StandardCall, Data) AND (Data.FOC <> '') THEN
-                        Exchange := Exchange + Data.FOC + ' ';
+                    IF CD.GetEntry (StandardCall, Data) THEN
+                        IF Data.FOC <> '' THEN
+                            Exchange := Exchange + Data.FOC + ' ';
 
                 IF Command = 'CHECK' THEN
                     IF CD.GetEntry (Call, Data) AND (Data.Check <> '') THEN
@@ -3363,10 +3366,11 @@ VAR CustomString, Exchange, Command, TempString: STRING;
 
                 END;
 
-            GetInitialExchangeFromTRMASTER := ' ' + Exchange; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
+            IF Exchange <> '' THEN   { Only added leading space if there is something }
+                GetInitialExchangeFromTRMASTER := ' ' + Exchange; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
 
-{               IF InitialExchangeOverwrite THEN
-                InitialExchangePutUp := True;} {KK1L: 6.70 For custom typing any character overwrites the whole exchange.}
+//          IF InitialExchangeOverwrite THEN
+//          InitialExchangePutUp := True;} {KK1L: 6.70 For custom typing any character overwrites the whole exchange.}
 
             Exit;
             END;
@@ -3552,6 +3556,9 @@ VAR Heading, CharPosition, Distance: INTEGER;
 
     IF TempString = '' THEN
         TempString := GetInitialExchangeFromTRMASTER (Call);
+
+    InitialExchangeEntry := TempString;
+    Exit;  { testing }
 
     IF TempString <> '' THEN
         BEGIN
