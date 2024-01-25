@@ -345,7 +345,6 @@ VAR RData: ContestExchange;
                         END
                     ELSE
                         BEGIN
-                        write ('2');
                         SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                           $FF, MultiQSOData, LogString);
                         END;
