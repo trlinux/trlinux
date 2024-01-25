@@ -456,7 +456,7 @@ VAR MultiString, MessageString: STRING;
             'C': { Band map message }
                 BEGIN
 
-{ C1 599 Freq QSX UnixTime 0 band mode call * 0 1 0 0 }
+                { C1 599 Freq QSX UnixTime 0 band mode call * 0 1 0 0 }
 
                 RemoveFirstString (MultiString);  { C1 }
                 RemoveFirstString (MultiString);  { 599 }
@@ -719,7 +719,12 @@ VAR MultiString, MessageString: STRING;
                 IF SendQSOImmediately THEN
                     PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
                 ELSE
+                    BEGIN
                     PutContactIntoLogFile (MessageString);
+                    SaveSetAndClearActiveWindow (QuickCommandWindow);
+                    Write (Copy (MessageString, 1, 71));
+                    RestorePreviousWindow;
+                    END;
 
                 Inc (NumberContactsThisMinute);
                 NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
