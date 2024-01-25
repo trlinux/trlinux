@@ -121,6 +121,7 @@ CONST
     MultiTimeMessage           = 7; { TR6.75 - Reception only from CT Network }
     MultiInformationMessage    = 8;
     MultiConfigurationMessage  = 9; { Not supported on CT Network }
+    MultiInstantQSOMessage     = 10; { Used to show QSO and not get echoed on sending screen }
 
     DefaultTimeToLive = 30;
     LookForDupes = True;

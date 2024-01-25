@@ -285,7 +285,7 @@ PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80;
                                                       MyQSO: BOOLEAN);
 
 VAR RData: ContestExchange;
-    TempString: STRING;
+    OldLogString, TempString: STRING;
 
     BEGIN
     { If this is a QSO made on this instance of the program - send it off to the network
@@ -310,11 +310,18 @@ VAR RData: ContestExchange;
                    END
                ELSE
                    BEGIN
-                   write ('1');
                    SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                      $FF, MultiQSOData, LogString);
                    END;
         END;
+
+    { We do this so people can see what we worked without it being in the editable window }
+
+    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
+        SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                          $FF,
+                          MultiInstantQSOMessage,
+                          Copy (LogString, 1, 68));
 
     LogString := VisibleLog.PushLogEntry (LogString);
 
@@ -347,6 +354,7 @@ VAR RData: ContestExchange;
                         BEGIN
                         SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                           $FF, MultiQSOData, LogString);
+
                         END;
                 END;
             END
@@ -362,7 +370,6 @@ VAR RData: ContestExchange;
                     END
                 ELSE
                     BEGIN
-                    write ('3');
                     SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                       $FF, MultiQSOData, LogString);
                     END;
@@ -702,6 +709,19 @@ VAR MultiString, MessageString: STRING;
             MultiPacketReceivedMessage:
                 Packet.ProcessPacketMessageFromNetWork (MessageString);
 
+            MultiInstantQSOMessage:
+                BEGIN
+                MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
+                QuickDisplay (MessageString);
+                Tone.DoABeep (BeepCongrats);
+                ReminderPostedCount := 60;
+
+                PushMultiMessageBuffer (MessageString);
+
+                IF IntercomFileOpen THEN
+                    WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+                END;
+
             MultiPacketMessageToSend:
                 IF ActivePacketPort <> nil THEN SendPacketMessage (MessageString);
 
@@ -719,12 +739,7 @@ VAR MultiString, MessageString: STRING;
                 IF SendQSOImmediately THEN
                     PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
                 ELSE
-                    BEGIN
                     PutContactIntoLogFile (MessageString);
-                    SaveSetAndClearActiveWindow (QuickCommandWindow);
-                    Write (Copy (MessageString, 1, 71));
-                    RestorePreviousWindow;
-                    END;
 
                 Inc (NumberContactsThisMinute);
                 NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
