@@ -288,6 +288,9 @@ VAR RData: ContestExchange;
     TempString: STRING;
 
     BEGIN
+    { If this is a QSO made on this instance of the program - send it off to the network
+      if and only if we are sending QSOs immediately }
+
     IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND SendQSOImmediately AND MyQSO THEN
         BEGIN
         GetRidOfPostcedingSpaces (LogString);
@@ -307,6 +310,7 @@ VAR RData: ContestExchange;
                    END
                ELSE
                    BEGIN
+                   write ('1');
                    SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                      $FF, MultiQSOData, LogString);
                    END;
@@ -341,11 +345,12 @@ VAR RData: ContestExchange;
                         END
                     ELSE
                         BEGIN
+                        write ('2');
                         SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                           $FF, MultiQSOData, LogString);
                         END;
+                END;
             END
-
 
         ELSE  { QSO doesn't make sense - probably a note }
 
@@ -358,10 +363,10 @@ VAR RData: ContestExchange;
                     END
                 ELSE
                     BEGIN
+                    write ('3');
                     SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                       $FF, MultiQSOData, LogString);
                     END;
-            END;
         END;
     END;
 
@@ -744,9 +749,8 @@ VAR MultiString, MessageString: STRING;
                 IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
                     BEGIN
                     UpdateBandMapMultiplierStatus;
-                    UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
+                    UpdateBandMapDupeStatus (Call, Band, Mode, True);
                     END;
-
                 END;
 
             MultiConfigurationMessage:

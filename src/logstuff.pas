@@ -4999,9 +4999,8 @@ FUNCTION ThisIsAMultiTalkMessage (MessageString: STRING): BOOLEAN;
 
 FUNCTION GetMultiPortCommand: STRING;
 
-{ This will retrieve a multi command string from the MultiReceiveCharBuffer.
-  It works for either K1EA or N6TR network modes!! And new in 2024 - supports
-  the UDP port }
+{ This will retrieve a multi command string from the MultiReceiveCharBuffer
+  or UDP Port.  }
 
 VAR TempString: STRING;
     FDS: Tfdset;
@@ -5031,12 +5030,21 @@ VAR TempString: STRING;
 
             BytesRead := fpRecv (MultiUDPReadSocket, @TempString [1], 255, 0);
 
+            { If nothing there - we are done }
+
             IF BytesRead = -1 THEN Exit;
 
             SetLength (TempString, BytesRead);
             END
         ELSE
-            TempString := '';
+            BEGIN
+            IF NetDebug THEN
+                BEGIN
+                TempString := '*** UNABLE TO OPEN UDP PORT FOR INPUT ***';
+                BlockWrite (NetDebugBinaryInput, TempString [1], Length (TempString));
+                END;
+            Exit;
+            END;
         END
 
     ELSE
@@ -5063,7 +5071,6 @@ VAR TempString: STRING;
             TempString := '*** NOT VALID CHECKSUM ***';
             BlockWrite (NetDebugBinaryInput, TempString [1], Length (TempString));
             END;
-
         Exit;
         END;
 
