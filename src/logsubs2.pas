@@ -285,7 +285,7 @@ PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80;
                                                       MyQSO: BOOLEAN);
 
 VAR RData: ContestExchange;
-    OldLogString, TempString: STRING;
+    TempString: STRING;
 
     BEGIN
     { If this is a QSO made on this instance of the program - send it off to the network
@@ -3086,7 +3086,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         DupeCheckOnInactiveRadio;
 
                     StartSending:
-                        IF ActiveMode = CW THEN
+                        IF (ActiveMode = CW) AND (Length (CallWindowString) >= 1) THEN
                             BEGIN
                             KeyChar := StartSendingNowKey;
                             Exit;
@@ -5809,6 +5809,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
             ELSE
                 WindowEditor (ExchangeWindowString, Key, ExtendedKey);
 
+        { Note that the Window Editor will return with the Key = StartSendingNowKey even if the
+          AutoStartSend feature is what started the CW }
+
         IF (Key = StartSendingNowKey) AND (ActiveWindow = CallWindow) AND (Length (CallWindowString) >= 1) THEN
             BEGIN
             IF ReminderPostedCount = 0 THEN
@@ -6008,7 +6011,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                         EscapeKey:
                             BEGIN
-
                             IF ((ActiveMode = CW) AND CWStillBeingSent) OR
                                ((ActiveMode = Phone) AND (DVPMessagePlaying OR DVKMessagePlaying)) THEN
                                 BEGIN
@@ -6032,13 +6034,16 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 FlushCWBufferAndClearPTT;
                                 EscapeDeletedCallEntry := CallWindowString;
                                 CallWindowString := '';
+                                CallAlreadySent := False;   { New in Jan 2024 }
                                 ClrScr;
                                 RemoveWindow (ExchangeWindow);
+
                                 IF NOT VisibleDupeSheetEnable THEN
                                     BEGIN
                                     RemoveWindow (QSOInformationWindow);
                                     RemoveWindow (MultiplierInformationWindow);
                                     END;
+
                                 NameCallsignPutUp := '';
                                 RemoveWindow (QuickCommandWindow);
                                 CleanUpDisplay;
@@ -6137,7 +6142,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
             SpaceBar:
                 BEGIN
-                { We are using Alt-D to check a call on the other radio and want to go call them now }
+                { Alt-D call on the other radio ready and want to go call them now }
 
                 IF (AltDDupeCheckDisplayedCall <> '') AND (CallWindowString = '') THEN
                     BEGIN

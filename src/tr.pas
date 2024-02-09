@@ -48,6 +48,15 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+30-Jan-2024
+ - When the footswitch mode is to start sending - I won't do it if there is nothing in the
+   call window now (same behavior as when you press the auto start send key
+
+ - If you escaped out of sending a callsign with auto start send and cleared the window,
+   the auto start send will be re-enabled.   Hopefully this was enough to fix the issue
+   of it not being enabled some of the time.  However, I will also re-enable it if you
+   press F1 or F2 to call CQ.  I think this isn't a bug in 2BSIQ.
+
 22-Jan-2024
   - Added new command - AUTO SIDETONE ENABLE (default = FALSE).  When enabled, this will
     attempt to enable the radio sidetone for manually sent CW and then silence the sidetone

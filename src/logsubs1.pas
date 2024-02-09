@@ -984,7 +984,12 @@ VAR FileName, QSONumberString: Str20;
                    MessageKey := Chr (Ord (Key) - 35);
 
            IF OpMode = CQOpMode THEN
-               Message := GetCQMemoryString (ActiveMode, MessageKey) {KK1L: 6.73 Added mode}
+               BEGIN
+               Message := GetCQMemoryString (ActiveMode, MessageKey); {KK1L: 6.73 Added mode}
+
+               IF (Key = F1) OR (Key = F2) THEN   { Likely CQ called - new in Jan 2024 }
+                   CallAlreadySent := False;  { Re-arm AutoStartSend }
+               END
            ELSE
                Message := GetEXMemoryString (ActiveMode, MessageKey); {KK1L: 6.73 Added mode}
 
