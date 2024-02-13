@@ -2242,9 +2242,14 @@ VAR InputFileName, FieldCommand, OutputFileName: Str40;
 
         WHILE FileString <> '' DO
             BEGIN
+            RSTSent := '';
+            RSTReceived := '';
+
             FieldCommand := BracketedString (FileString, '<', '>');
 
-            IF FieldCommand = 'EOR' THEN Break;
+            IF (FieldCommand = 'EOR') OR (FieldCommand = '') THEN Break;
+
+            { Clean up FileString so the FieldCommand and brackets are removed }
 
             Delete (FileString, 1, Length (FieldCommand) + 2);
 
@@ -2270,10 +2275,24 @@ VAR InputFileName, FieldCommand, OutputFileName: Str40;
                 BEGIN
                 ModeString := Copy (FileString, 1, StringLength);
                 Delete (FileString, 1, StringLength);
+
+                IF (ModeString = 'CW') OR StringHas (ModeString, 'RTTY') THEN
+                    BEGIN
+                    RSTSent := '599';
+                    RSTReceived := '599';
+                    END
+                ELSE
+                    BEGIN
+                    RSTSent := '59';
+                    RSTReceived := '59';
+                    END;
+
                 END;
 
             IF FieldID = 'QSO_DATE' THEN
                 BEGIN
+                { <QSO_DATE>20240204 }
+
                 DateString := Copy (FileString, 1, StringLength);
                 Delete (FileString, 1, StringLength);
 
@@ -2300,7 +2319,6 @@ VAR InputFileName, FieldCommand, OutputFileName: Str40;
                 DateString := DateString + YearString;
                 END;
 
-
             IF FIeldID = 'TIME_ON' THEN
                 BEGIN
                 TimeString := Copy (FileString, 1, StringLength);
@@ -2311,7 +2329,6 @@ VAR InputFileName, FieldCommand, OutputFileName: Str40;
                 Insert (':', TimeString, 3);
                 Delete (FileString, 1, StringLength);
                 END;
-
 
             IF FieldID = 'RST_SENT' THEN
                 BEGIN
@@ -2325,8 +2342,6 @@ VAR InputFileName, FieldCommand, OutputFileName: Str40;
                 Delete (FileString, 1, StringLength);
                 END;
 
-
-            IF FieldID = 'EOR' THEN Break;
             END;
 
         IF Callsign <> '' THEN
