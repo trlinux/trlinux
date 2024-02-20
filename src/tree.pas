@@ -235,7 +235,7 @@ VAR CodeSpeed:  BYTE;
     PROCEDURE BigCompressFormat (Call: CallString; VAR CompressedBigCall: EightBytes);
     PROCEDURE BigCursor;
     FUNCTION  BigExpandedString (Input: EightBytes): Str80;
-    FUNCTION  BracketedString (LongString: Str160; StartString: Str80; StopString: Str80): Str80;
+    FUNCTION  BracketedString (LongString: STRING; StartString: Str80; StopString: Str80): Str80;
     FUNCTION  BracketedCommandString (CommandString: Str160): STRING;
     FUNCTION  BYTADDR  (Call: Pointer; NumberCalls: INTEGER; A: Pointer): INTEGER;CDECL;
     FUNCTION  BYTDUPE  (Call: Pointer; NumberCalls: INTEGER; A: Pointer): BOOLEAN;CDECL;
@@ -807,7 +807,7 @@ VAR TempBytes: TwoBytes;
 
 
 
-FUNCTION BracketedString (LongString: Str160; StartString: Str80; StopString: Str80): Str80;
+FUNCTION BracketedString (LongString: STRING; StartString: Str80; StopString: Str80): Str80;
 
 { This function will return any string sits between the StartString and the
   StopString.  The shortest possible string to meet this criteria is
