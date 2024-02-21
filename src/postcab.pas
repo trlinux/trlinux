@@ -2050,10 +2050,20 @@ VAR CabrilloFileName: Str40;
 
     IF FileExists ('LONGLOG.DAT') THEN
         BEGIN
-        WriteLn ('LONGLOG.DAT file found.');
+        WriteLn ('You have the file LONGLOG.DAT available.  This file has frequency');
+        WriteLn ('information that can be used in your Cabrilllo log.  You can try to fold');
+        WriteLn ('that information in now - but if there is a mismatch in the QSO data');
+        WriteLn ('between the LONGLOG and normal .DAT file, the process will abort and');
+        WriteLn ('require you to resolve the conflight.');
+        WriteLn;
+        WriteLn ('There is also the option to fold the frequency into the Cabrillo file');
+        WriteLn ('after it is generated using the POST U P command.  This proccess can be');
+        WriteLn ('used multiple times to merge in the data from multiple LONGLOG.DAT files,');
+        WriteLn ('one from each of the computers used.');
+        WriteLn;
 
         REPEAT
-            Key := UpCase (GetKey ('Use it frequency information? (Y/N or escape) : '));
+            Key := UpCase (GetKey ('Use it frequency information now? (Y/N or escape) : '));
             IF Key = EscapeKey THEN Exit;
         UNTIL (Key = 'Y') OR (Key = 'N');
         WriteLn;
