@@ -1183,8 +1183,7 @@ VAR Key: CHAR;
     UNTIL False;
     END;
 
-
-
+
 
 PROCEDURE PacketWindow;
 
@@ -1279,7 +1278,10 @@ VAR Key: CHAR;
                   AltD: IF K1EANetworkEnable THEN
                             PassStationToCTNetwork
                         ELSE
+                            BEGIN
+                            Write ('A');
                             DupeCheckOnInactiveRadio;
+                            END;
 
                   AltK: ToggleCW (True);
 
@@ -1444,7 +1446,10 @@ VAR Key: CHAR;
                     AltD: IF K1EANetworkEnable THEN
                               PassStationToCTNetwork
                           ELSE
+                              BEGIN
+                              Write ('D');
                               DupeCheckOnInactiveRadio;
+                              END;
 
                     AltE: BEGIN
                           RITEnable := False;
@@ -1541,7 +1546,7 @@ VAR Key: CHAR;
 
                     ControlInsert: {KK1L: 6.65 Insert BM place holder entry}
                         BEGIN
-                        AddBandMapPlaceHolder;
+                        { AddBandMapPlaceHolder; }
                         END;
 
                     ControlDelete: {KK1L: 6.65 Delete BM entry while logging}
@@ -3083,7 +3088,10 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         GoToNextMultDisplayedBandMapFrequency;
 
                     FootSwitchDupeCheck:
+                        BEGIN
                         DupeCheckOnInactiveRadio;
+                        Write ('F');
+                        END;
 
                     StartSending:
                         IF (ActiveMode = CW) AND (Length (CallWindowString) >= 1) THEN
@@ -3986,7 +3994,10 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   AltD: IF K1EANetworkEnable THEN
                             PassStationToCTNetwork
                         ELSE
+                            BEGIN
+                            Write ('W');
                             DupeCheckOnInactiveRadio;
+                            END;
 
                   AltE: BEGIN
                         RITEnable := False;
@@ -5975,7 +5986,10 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 AltD: IF K1EANetworkEnable THEN
                                           PassStationToCTNetwork
                                       ELSE
+                                          BEGIN
+                                          Write ('X');
                                           DupeCheckOnInactiveRadio;
+                                          END;
 
                                 AltG: SwapMultDisplay;
                                 AltK: ToggleCW (True);

@@ -3077,15 +3077,18 @@ begin
    else
       WriteLn(nf,' Serial ports found:');
    TextColor (Cyan);
+
    if (nf > nd) then
    begin
       writeln('more ports found than can be printed ',nf,' ',nd);
       nf := nd;
    end;
+
    for i := 0 to nf-1 do
    begin
       writeln(buf[i]);
    end;
+
    WriteLn;
    nf := findparallel(buf,nch,nd);
    TextColor (Yellow);

@@ -2387,6 +2387,7 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'PACKET PORT' THEN
         BEGIN
         ActivePacketPort := nil;
+
         IF StringHas(UpperCase(CMD),'SERIAL') THEN
            BEGIN
               tempstring := wordafter(CMD,'SERIAL');

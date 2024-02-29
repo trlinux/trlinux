@@ -48,6 +48,9 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+29-Feb-2024
+ - Disabled the ControlInsert command - which adds a placeholder to the bandmap
+
 30-Jan-2024
  - When the footswitch mode is to start sending - I won't do it if there is nothing in the
    call window now (same behavior as when you press the auto start send key

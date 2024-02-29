@@ -29,7 +29,9 @@ const buflen = 16384;
 
 type
   ParityType = (NoParity, EvenParity, OddParity);
+
   buftype = array [0..(buflen-1)] of char;
+
   keyerportx = class
     function devname: string; virtual; abstract;
     procedure key(on: boolean); virtual; abstract;
@@ -39,6 +41,7 @@ type
     function footswitch: boolean; virtual; abstract;
     procedure relayhigh(on: boolean); virtual; abstract;
   end;
+
   nullportx = class(keyerportx)
      public
      constructor create;
@@ -51,6 +54,7 @@ type
      procedure relayhigh(on: boolean); override;
      destructor destroy;override;
   end;
+
   serialportx = class(keyerportx)
     private
        fd: longint;
@@ -105,7 +109,9 @@ type
     procedure relayhigh(on: boolean); override;
   end;
 
+
 // linked list of ports
+
   portlinkpointer = ^portlink;
   portlink = record
      port: keyerportx;
