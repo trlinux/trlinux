@@ -969,7 +969,8 @@ VAR MultString: Str20;
         IF VisibleLog.CallIsADupe (Call, Band, Mode) THEN
             BEGIN
             IF BandMapEnable THEN                              {Dupe, Mult}                 {Send to mult}
-                NewBandMapEntry (Call, Frequency, QSXFrequency, Mode, True, False, BandMapDecayTime, False);
+                IF (PacketSpots = AllSpots) THEN
+                    NewBandMapEntry (Call, Frequency, QSXFrequency, Mode, True, False, BandMapDecayTime, False);
             Exit;
             END;
 
