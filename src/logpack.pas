@@ -962,9 +962,6 @@ VAR MultString: Str20;
     BEGIN
     WITH DXSpot DO
         BEGIN
-        IF (Band = Band160) AND StringHas (MyCall, 'N6TR') THEN
-            CheckForNewCountryForTreeOn160 (Call);
-
         { We ignore dupes, except to put on the band map if enabled.  We
           don't send this around to the network because they will get the
           information themselves from the packet spot. }
@@ -985,7 +982,8 @@ VAR MultString: Str20;
             END;
 
         IF BandMapEnable THEN
-            NewBandMapEntry (Call, Frequency, QSXFrequency, Mode, False, Mult, BandMapDecayTime, False);
+            IF (PacketSpots = AllSpots) OR Mult THEN
+                NewBandMapEntry (Call, Frequency, QSXFrequency, Mode, False, Mult, BandMapDecayTime, False);
 
         IF (NOT PacketBandSpots) OR (Band = ActiveBand) THEN
             IF (PacketSpots <> MultSpots) OR Mult THEN

@@ -125,7 +125,6 @@ VAR BigRemainingList:    BOOLEAN;
 
 
     FUNCTION  ARRLSectionCountry (CountryID: Str20): BOOLEAN;
-    PROCEDURE CheckForNewCountryForTreeOn160 (Call: CallString);
     PROCEDURE CountryInit;
     FUNCTION  DXCall (Call: CallString): BOOLEAN;
     FUNCTION  GetFirstSuffixLetter (Call: CallString): CHAR;
@@ -153,13 +152,6 @@ FUNCTION ARRLSectionCountry (CountryID: Str20): BOOLEAN;
                           (CountryID = 'KH9') OR (CountryID = 'KP1') OR
                           (CountryID = 'KP2') OR (CountryID = 'KP3') OR
                           (CountryID = 'KP4') OR (CountryID = 'KP5');
-    END;
-
-
-
-PROCEDURE CheckForNewCountryForTreeOn160 (Call: CallString);
-
-    BEGIN
     END;
 
 

@@ -1453,7 +1453,7 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Display incoming spots without beep');
 
       PF8: IF Packet.FT8SpotEnable THEN
-               Write ('Spots on FT8 frequencies dhown')
+               Write ('Spots on FT8 frequencies shown')
            ELSE
                Write ('FT8 frequency spots not shown');
 
