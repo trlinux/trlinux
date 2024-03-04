@@ -2515,7 +2515,7 @@ LABEL StationFound;
 
 VAR FileName: Str40;
     FileString: STRING;
-    Call, Name, QTH: Str20;
+    TestString, Call, Name, QTH: Str20;
     Exchange, NumberStations, Entry: INTEGER;
     FileRead: TEXT;
 
@@ -2560,7 +2560,10 @@ VAR FileName: Str40;
 
             Call := RemoveFirstString (FileString);
 
-            RemoveFirstString (FileString);  { Sent RST }
+            TestString := RemoveFirstString (FileString);  { Sent RST or * }
+
+            IF TestString = '*' THEN
+                RemoveFirstString (FileString);  { Sent RST }
 
             Name := RemoveFirstString (FileString);  { Is really RX RST }
             QTH  := RemoveFirstString (FileString);  { Is really power }
