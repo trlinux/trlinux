@@ -98,12 +98,10 @@ TYPE
         END;
 
     NAQPStationDatabaseType = RECORD
-        Stations: ARRAY [0..750] OF NAQPExchangeRecord;
+        Stations: ARRAY [0..3000] OF NAQPExchangeRecord;
         END;
 
     NAQPStationDatabasePointer = ^NAQPStationDatabaseType;
-
-
 
 VAR Buffer: FileBufferPointer;
     CheckCallBuffer: CallBufferPointer;
@@ -2508,6 +2506,138 @@ VAR FileName: Str40;
 
 
 
+PROCEDURE ARRLDXExchangeChecker;
+
+{ Checks a .DAT file for the ARRL DX - showing anything inconsistent and anything
+  that has a power other than 1, 5, 10, 50, or multiples of 100 }
+
+LABEL StationFound;
+
+VAR FileName: Str40;
+    FileString: STRING;
+    Call, Name, QTH: Str20;
+    Exchange, NumberStations, Entry: INTEGER;
+    FileRead: TEXT;
+
+    BEGIN
+    ClearScreenAndTitle ('ARRL DX EXCHANGE CHECKER');
+    WriteLn;
+    WriteLn ('Checks a .DAT file for the ARRL DX - showing anything inconsistent and');
+    WriteLn ('anything that has a power other than 1, 5, 10, 50, or multiples of 100.');
+    WriteLn;
+
+    FileName := GetResponse ('Enter file to process (none to abort) : ');
+
+    IF FileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (FileRead, FileName) THEN
+        BEGIN
+        WriteLn ('Unable to open that file');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    New (NAQPStationDatabase);  { We use the same data structure as NAQP }
+
+    WITH NAQPStationDatabase^ DO
+        BEGIN
+        NumberStations:= 0;
+
+        { Suck up the data into the database }
+
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+            GetRidOfPrecedingSpaces (FileString);
+
+            IF NOT StringHas (FileString, '-') THEN Continue;
+            IF NOT StringHas (FileSTring, ':') THEN Continue;
+
+            RemoveFirstString (FileString);  { 10CW }
+            RemoveFirstString (FileString);  { Date }
+            RemoveFirstString (FileString);  { Time }
+            RemoveFirstString (FileString);  { QSO Number }
+
+            Call := RemoveFirstString (FileString);
+
+            RemoveFirstString (FileString);  { Sent RST }
+
+            Name := RemoveFirstString (FileString);  { Is really RX RST }
+            QTH  := RemoveFirstString (FileString);  { Is really power }
+
+            { See if we have this entry already in the database }
+
+            IF NumberStations > 0 THEN
+                FOR Entry := 0 TO NumberStations - 1 DO
+                    WITH Stations [Entry] DO
+                        IF Callsign = Call THEN
+                            BEGIN
+                            ExchangesFound [NumberExchanges] :=  QTH; { is power }
+                            Inc (NumberExchanges);
+                            Goto StationFound;
+                            END;
+
+                { Callsign not worked before - add new entry }
+
+            WITH Stations [NumberStations] DO
+                BEGIN
+                Callsign := Call;
+                ExchangesFound [0] := QTH;  { is power }
+                NumberExchanges := 1;
+                END;
+
+            Inc (NumberStations);
+  StationFound:
+            END;
+
+        WriteLn ('There were ', NumberStations, ' stations found');
+
+        { Now look at the data and highlight any exchanges that are inconsistent
+          or do not looks like a normal power exchange. }
+
+        IF NumberStations = 0 THEN
+            BEGIN
+            WriteLn ('There were no QSOs found');
+            WaitForKeyPressed;
+            Exit;
+            END;
+
+        FOR Entry := 0 TO NumberStations - 1 DO
+            WITH Stations [Entry] DO
+                IF NumberExchanges > 1 THEN
+                    BEGIN
+                    FOR Exchange := 1 TO NumberExchanges - 1 DO
+                        IF ExchangesFound [0] <> ExchangesFound [Exchange] THEN
+                            BEGIN
+                            WriteLn ('inconsisten exchange found with ', Callsign);
+                            WriteLn (ExchangesFound [0], ' ', ExchangesFound [Exchange]);
+                            END;
+
+                    IF (ExchangesFound [Exchange] <> '1') AND
+                       (ExchangesFound [Exchange] <> '5') AND
+                       (ExchangesFound [Exchange] <> '10') AND
+                       (ExchangesFound [Exchange] <> '50') AND
+                       (ExchangesFound [Exchange] <> '050') AND
+                       (ExchangesFound [Exchange] <> '100') AND
+                       (ExchangesFound [Exchange] <> '200') AND
+                       (ExchangesFound [Exchange] <> '400') AND
+                       (ExchangesFound [Exchange] <> '500') AND
+                       (ExchangesFound [Exchange] <> '1000') AND
+                       (ExchangesFound [Exchange] <> 'K') AND
+                       (ExchangesFound [Exchange] <> 'KW') THEN
+                           BEGIN
+                           Write ('Strange power found with ', Callsign, ' = ');
+                           WriteLn (ExchangesFound [Exchange]);
+                           END;
+                    END;
+         END;
+
+    Dispose (NAQPStationDatabase);
+    WaitForKeyPressed;
+    END;
+
+
+
 FUNCTION GetBandFromCabrilloFrequency (Frequency: LONGINT): BandType;
 
     BEGIN
@@ -2827,7 +2957,6 @@ PROCEDURE PullFrequencyData;
 VAR LongLogFileName, OutputFileName, CabrilloFileName: Str40;
     FirstEntry, TimeString, DateString, MonthString: Str20;
     CabrilloFileString, LongLogFileString: STRING;
-    CabrilloData, CabrilloTime, CabrilloFrequency, CabrilloCall: Str20;
     CabrilloFileRead, LongLogFileRead, OutputFile: TEXT;
 
     BEGIN
@@ -3058,6 +3187,7 @@ VAR Key: CHAR;
     WriteLn ('  N - NameEdit (old NAMES.CMQ database editor).');
     WriteLn ('  P - Pull Frequency Data from LONGLOG.DAT into Cabrillo.');
     WriteLn ('  Q - NAQP exchange checker');
+    WriteLn ('  R - ARRL DX exchange checker');
     WriteLn ('  S - Show contents of RESTART.BIN file.');
     WriteLn ('  T - Transmitter ID assign by band for Cabrillo.');
     WriteLn ('  V - Verify two transmiter band changes.');
@@ -3085,6 +3215,7 @@ VAR Key: CHAR;
             'N': BEGIN NameEditor;           Exit; END;
             'P': BEGIN PullFrequencyData;    Exit; END;
             'Q': BEGIN NAQPExchangeChecker;  Exit; END;
+            'R': BEGIN ARRLDXExchangeChecker;  Exit; END;
             'T': BEGIN TransmitterIDAssign;  Exit; END;
             'V': BEGIN VerifyTransmitterIDs; Exit; END;
             'Y': BEGIN DownloadCtyFile;      Exit; END;
