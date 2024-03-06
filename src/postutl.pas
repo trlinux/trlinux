@@ -2889,7 +2889,7 @@ PROCEDURE AddFrequencyDataFromLongLogData (VAR CabrilloString: STRING);
   ends with three zeros, it will look through the LONGLOG data to see if a more
   exact frequency is available - and if so - substitue it into the QSO entry }
 
-VAR CabrilloFrequencyString: Str20;
+VAR CabrilloFrequencyString: STRING;
     CabrilloDate, CabrilloTime, CabrilloCall: Str20;
     Address: INTEGER;
 
@@ -2898,8 +2898,6 @@ VAR CabrilloFrequencyString: Str20;
 
     CabrilloFrequencyString := Copy (CabrilloString, 6, 5);
     GetRidOfPrecedingSpaces (CabrilloFrequencyString);
-
-    WriteLn (CabrilloFrequencyString);
 
     { Check to see if the frequency data is already updated }
 
@@ -2946,7 +2944,6 @@ VAR CabrilloFrequencyString: Str20;
 
                     Delete (CabrilloString, 6, 5);
                     Insert (Frequency, CabrilloString, 6);
-                    WriteLn (CabrilloString);
                     Inc (NumberCabrilloEntriesModified);
                     Exit;
                     END;
@@ -2959,8 +2956,9 @@ PROCEDURE PullFrequencyData;
 
 VAR LongLogFileName, OutputFileName, CabrilloFileName: Str40;
     FirstEntry, TimeString, DateString, MonthString: Str20;
-    CabrilloFileString, LongLogFileString: STRING;
+    OriginalCabrilloString, CabrilloFileString, LongLogFileString: STRING;
     CabrilloFileRead, LongLogFileRead, OutputFile: TEXT;
+    NumberUnmatchedQSOs: INTEGER;
 
     BEGIN
     ClearScreenAndTitle ('PULL FREQUENCY DATA OUT OF LONGLOG.DAT FILE');
@@ -3123,6 +3121,8 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName: Str40;
 
     UNTIL (FirstEntry = 'QSO:');
 
+    NumberUnmatchedQSOs := 0;
+
     { We now have the first QSO entry in CabrilloString - take care of processing it }
 
     NumberCabrilloEntriesModified := 0;
@@ -3136,7 +3136,9 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName: Str40;
         BEGIN
         ReadLn (CabrilloFileRead, CabrilloFileString);
 
-        IF CabrilloFileString = 'END-OF-LOG:' THEN
+        OriginalCabrilloString := CabrilloFileString;
+
+        IF Length (CabrilloFileString) < 15 THEN
             BEGIN
             WriteLn (OutputFile, CabrilloFileString);
 
@@ -3144,11 +3146,25 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName: Str40;
             Close (OutputFile);
 
             WriteLn ('Operation complete.  There were ', NumberCabrilloEntriesModified, ' entries updated.');
+
+            IF NumberUnmatchedQSOs > 0 THEN
+                BEGIN
+                WriteLn (NumberUnmatchedQSOs, ' QSOs did not match up and have the default frequency.');
+                WriteLn ('Those QSOs were printed out above');
+                END;
+
             WaitForKeyPressed;
             Exit;
             END;
 
         AddFrequencyDataFromLongLogData (CabrilloFileString);
+
+        IF UpperCase (CabrilloFileString) = UpperCase (OriginalCabrilloString) THEN
+            BEGIN
+            WriteLn (OriginalCabrilloString);
+            Inc (NumberUnmatchedQSOs);
+            END;
+
         WriteLn (OutputFile, CabrilloFileString);
         END;
 
