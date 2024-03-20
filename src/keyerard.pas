@@ -85,6 +85,8 @@ TYPE
         FUNCTION  DeleteLastCharacter: BOOLEAN;override;
         PROCEDURE dvpptt(on: boolean);override;                 { Not yet implemented in Arduino }
 
+        PROCEDURE FootSwitch2BSIQSSB; override;
+
         PROCEDURE FlushCWBuffer;override;
 
         Function  GetCountsSinceLastCW:integer;override;
@@ -1051,6 +1053,21 @@ PROCEDURE ArduinoKeyer.SetFootSwitch (F: FootSwitchX);
     BEGIN
     Footsw := F;
     END;
+
+PROCEDURE ArduinoKeyer.FootSwitch2BSIQSSB;
+
+{ Puts the Arduino into the 2BSIQ SSB MODE }
+
+    BEGIN
+    Write ('.');
+    IF KeyerInitialized THEN
+        BEGIN
+        ArduinoKeyerPort.PutChar (Char ($19));  { Footswitch mode command }
+        ArduinoKeyerPort.PutChar (Char ($02))   { 2BSIQ SSB Mode }
+        END;
+    END;
+
+
 
 PROCEDURE ArduinoKeyer.LetFootSwitchControlPTT;
 

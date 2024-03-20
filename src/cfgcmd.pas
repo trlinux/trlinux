@@ -1385,6 +1385,10 @@ VAR xResult,tempint: INTEGER;
         CMD := UpperCase (CMD);
 
         IF CMD = 'NORMAL'                  THEN FootSwitchMode := Normal;
+
+        IF CMD = 'TBSIQSSB' THEN
+            ArdKeyer.FootSwitch2BSIQSSB;
+
         IF CMD = 'F1'                      THEN FootSwitchMode := FootSwitchF1;
         IF CMD = 'LAST CQ FREQ'            THEN FootSwitchMode := FootSwitchLastCQFreq;
         IF CMD = 'NEXT BANDMAP'            THEN FootSwitchMode := FootSwitchNextBandMap;
@@ -1398,14 +1402,15 @@ VAR xResult,tempint: INTEGER;
         IF CMD = 'CONTROL ENTER'           THEN FootSwitchMode := FootSwitchControlEnter;
         IF CMD = 'START SENDING'           THEN FootSwitchMode := StartSending;
         IF CMD = 'SWAP RADIOS'             THEN FootSwitchMode := SwapRadio;
-        IF CMD = 'CW GRANT'                THEN
-        Begin
+
+        IF CMD = 'CW GRANT' THEN
+            BEGIN
             FootSwitchMode := CWGrant;
             ArdKeyer.setCWGrant (True);
             CPUKeyer.setCwGrant(true);
             WinKey.setCwGrant(true);
             YcccKey.setCwGrant(true);
-        End;
+            END;
 
         ProcessConfigInstructions2 := (FootSwitchMode <> FootSwitchDisabled) OR
                                     (CMD = 'DISABLED');
@@ -2228,12 +2233,27 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-    IF ID = 'N1MM UDP PORT' THEN
+    IF (ID = 'N1MM UDP PORT') OR (ID = 'N1MM IMPORT UDP PORT') THEN
         BEGIN
         Val (Cmd, N1MM_UDP_Port, xResult);
         ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
+
+    IF ID = 'N1MM EXPORT IP ADDRESS' THEN
+        BEGIN
+        N1MM_QSO_Portal.Output_IPAddress := Cmd;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'N1MM EXPORT OPERATOR' THEN
+        BEGIN
+        N1MM_QSO_Portal.ContestOp := Cmd;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
 
     IF ID = 'N4OGW FREQUENCY CONTROL' THEN
         BEGIN

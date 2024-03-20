@@ -631,6 +631,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
                StartSending:                        Write ('START SENDING');
                SwapRadio:                           Write ('SWAP RADIOS');
                CWGrant:                             Write ('CW GRANT');
+               TBSIQSSB:                            Write ('2BSIQ SSB MODE');
                END;
 
       FA1: Write (Radio1FrequencyAdder);
@@ -1230,6 +1231,7 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                StartSending:                        Write ('Start sending call in call window on CW');
                SwapRadio:                           Write ('Swaps radios (like Alt-R command)');
                CWGrant:                             Write ('CW Grant mode - no CW until pressed');
+               TBSIQSSB:                            Write ('Arudino in 2BSIQ SSB mode');
                END;
 
       FA1: IF Radio1FrequencyAdder <> 0 THEN

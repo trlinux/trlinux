@@ -7662,12 +7662,22 @@ VAR LogString: Str80;
         UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
         END;
 
+    { New for Jan 2023 - send QSO data to UDP port }
 
     IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
         BEGIN
         RXData.Date := GetFullDateString;
         SendQSOToUDPPort (RXData);
         END;
+
+    { New for Mar 2024 - send to N1MM using WSJT port }
+
+    IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+        BEGIN
+        RXData.Date := GetFullDateString;
+        N1MM_QSO_Portal.SendQSOToN1MM (RXData);
+        END;
+
     END;
 
 

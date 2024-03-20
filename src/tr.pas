@@ -48,6 +48,12 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+18-March-2024
+ - Added ability to send QSOs to N1MM using a UDP port.  To enable this, we need to
+   enter the IP address for the machine running N1MM using N1MM EXPORT IP ADDRESS.
+   This is currently only coded for CQ-WPX-SSB.  Additionally, you can use N1MM
+   EXPORT OPERATOR to indicate the operator callsign.
+
 1-March-2024
  - Fixed PACKET SPOTS = MULT not working
 

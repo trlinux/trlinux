@@ -364,16 +364,25 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                QSOQuick:                           FootSwitchMode := FootSwitchControlEnter;
                FootSwitchControlEnter:             FootSwitchMode := StartSending;
                StartSending:                       FootSwitchMode := SwapRadio;
+
                SwapRadio:
-                  Begin
-                    FootSwitchMode := CWGrant;
-                    ActiveKeyer.setCwGrant(true);
-                  End;
+                   BEGIN
+                   FootSwitchMode := CWGrant;
+                   ActiveKeyer.setCwGrant(true);
+                   END;
+
                CWGrant:
-                  Begin
-                    FootSwitchMode := FootSwitchDisabled;
-                    ActiveKeyer.setCwGrant(false);
-                  End;
+                   BEGIN
+                   FootSwitchMode := TBSIQSSB;
+                   ArdKeyer.FootSwitch2BSIQSSB;
+                   END;
+
+               TBSIQSSB:
+                   BEGIN
+                   FootSwitchMode := FootSwitchDisabled;
+                   ArdKeyer.ClearFootSwitchControlPTT;
+                   END;
+
                END;
 
            IF FootSwitchMode <> PreviousFootSwitchMode THEN
@@ -384,9 +393,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
                    IF ActiveKeyer = ArdKeyer THEN
                        ArdKeyer.LetFootSwitchControlPTT;
-                   END
-               ELSE
-                   IF ActiveKeyer = ArdKeyer THEN
+                   END;
+
+               IF ActiveKeyer = ArdKeyer THEN
+                   IF FootSwitchMode <> TBSIQSSB THEN
                        ArdKeyer.ClearFootSwitchControlPTT;
 
                PreviousFootSwitchMode := FootSwitchMode;
@@ -1121,6 +1131,7 @@ VAR FileWrite: TEXT;
                StartSending:                        WriteLn (FileWrite, 'START SENDING');
                SwapRadio:                           WriteLn (FileWrite, 'SWAP RADIOS');
                CWGrant:                             WriteLn (FileWrite, 'CW GRANT');
+               TBSIQSSB:                            WriteLn (FileWrite, '2BSIQSSB');
                END;
 
       FA1: WriteLn (FileWrite, Radio1FrequencyAdder);
@@ -1507,6 +1518,7 @@ VAR TempString: Str40;
                StartSending:                        TempString := 'START SENDING';
                SwapRadio:                           TempString := 'SWAP RADIOS';
                CWGrant:                             TempString := 'CW GRANT';
+               TBSIQSSB:                            TempString := '2BSIQSSB';
                END;
 
       FA1: Str (Radio1FrequencyAdder, TempString);

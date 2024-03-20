@@ -22,7 +22,7 @@ UNIT N1MM;
 
 { Here we have various routines that are used when interfacing to N1MM over
   the LAN. Currently - the only operation that can be performmed is to listen
-  to a UDP port for QSO information.
+  to a UDP port for QSO information.  NEW is 2024 - we can send QSOs too.
 
   The necessary routine to log the QSO is also here. }
 
@@ -38,12 +38,26 @@ CONST UDPBufferSize = 4096;
 
 TYPE
     N1MM_Object = OBJECT
-        NumberCharsInUDPBuffer: INTEGER;
+        ContestID: STRING;   { Used when outputing QSO data to N1MM }
+        ContestOp: STRING;   { Used when outputing QSO data to N1MM }
+
+        Output_IPAddress: STRING;   { Set to something useful to enable output to N1MM }
+        Output_Socket: LONGINT;
+
+        N1MM_Output_Open: BOOLEAN;
+        N1MM_Output_LastCallsign: CallString;
+        N1MM_Output_LastBand: BandType;
+        N1MM_Output_LastMode: ModeType;
+
         Socket: LONGINT;
+
         UDP_PortNumber: LONGINT;
         UDP_Socket: LONGINT;
-        UDPBuffer: ARRAY [0..UDPBufferSize -1] OF CHAR;
 
+        UDPBuffer: ARRAY [0..UDPBufferSize -1] OF CHAR;
+        NumberCharsInUDPBuffer: INTEGER;
+
+        PROCEDURE AddStringToUDPBuffer (AddString: STRING);
         FUNCTION  Check_UDP_Port: BOOLEAN;
         FUNCTION  CreateRXDataFromUDPMessage (VAR RXData: ContestExchange): BOOLEAN;
         PROCEDURE GetBandAndModeFromUDPMessage (VAR RXData: ContestExchange);
@@ -59,13 +73,298 @@ TYPE
         FUNCTION  NextBytesMatchString (Address: INTEGER; Pattern: STRING): BOOLEAN;
         PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
         PROCEDURE PutContactIntoLogFile (LogString: Str80);
+        PROCEDURE SqueezeStringInUDPBufferStart (AddString: STRING);
+        PROCEDURE SendQSOToN1MM (RXData: ContestExchange);
         END;
 
 VAR  N1MM_QSO_Portal: N1MM_Object;
 
 IMPLEMENTATION
 
+Uses radio, sysutils;
+
 CONST N1MM_DebugFileName = 'N1MM_debug.txt';
+
+
+
+PROCEDURE N1MM_Object.AddStringToUDPBuffer (AddString: STRING);
+
+VAR Count, StringIndex: INTEGER;
+
+    BEGIN
+    IF AddString = '' THEN Exit;
+
+    FOR Count := 1 TO 3 DO
+        AddString := ' ' + AddSTring;
+
+    AddString := AddString + ControlM + ControlJ;
+
+    IF Length (AddString) > 0 THEN
+        FOR StringIndex := 1 TO Length (AddString) DO
+            BEGIN
+            UDPBuffer [NumberCharsInUDPBuffer] := AddString [StringIndex];
+            Inc (NumberCharsInUDPBuffer);
+            END;
+    END;
+
+PROCEDURE N1MM_Object.SqueezeStringInUDPBufferStart (AddString: STRING);
+
+VAR BaseAddress, Offset: INTEGER;
+
+    BEGIN
+    AddString := AddString + ControlM + ControlJ;
+
+    Offset := Length (AddString);
+
+    IF Offset > 0 THEN
+        BEGIN
+        FOR BaseAddress := NumberCharsInUDPBuffer - 1 DOWNTO 0 DO
+            UDPBuffer [BaseAddress + Offset] := UDPBuffer [BaseAddress];
+
+        FOR BaseAddress := 0 TO Offset - 1 DO
+            UDPBuffer [BaseAddress] := AddString [BaseAddress + 1];
+
+        NumberCharsInUDPBuffer := NumberCharsInUDPBuffer + Offset;
+        END;
+    END;
+
+
+
+PROCEDURE MakeADIFFreq (VAR ADIFString: STRING; ID: STRING; FreqMHz: REAL);
+
+VAR FreqStr, LenStr: STRING;
+
+    BEGIN
+    FreqStr := FormatFloat ('######.000###', FreqMhz);
+    Str (Length (FreqStr), LenStr);
+    ADIFString := '<' + ID + ':' + LenStr +'>' + FreqStr;
+    END;
+
+
+
+PROCEDURE MakeADIFBand (VAR ADIFString: STRING; ID: STRING; Band: BandType);
+
+VAR DataLength: INTEGER;
+    BandString, DataLengthString: Str20;
+
+    BEGIN
+    CASE Band OF
+        Band160: BandString := '160M';
+        Band80:  BandString := '80M';
+        Band40:  BandString := '40M';
+        Band30:  BandString := '30M';
+        Band20:  BandString := '20M';
+        Band17:  BandString := '17M';
+        Band15:  BandString := '15M';
+        Band12:  BandString := '12M';
+        Band10:  BandString := '10M';
+        Band6:   BandString := '6M';
+        Band2:   BandString := '2M';
+        ELSE     BandString := '???';
+        END;
+
+    DataLength := Length (BandString);
+    Str (DataLength, DataLengthString);
+
+    ADIFString := '<' + ID + ':' + DataLengthString + '>' + BandString;
+    END;
+
+
+
+PROCEDURE MakeADIFDate (VAR ADIFString: STRING; ID: STRING; RXDataDateString: STRING);
+
+{ Turns dd-mmm-yy into yyyymmdd }
+
+VAR DataLength: INTEGER;
+    DateString, YearString, MonthString, DayString, DataLengthString: Str20;
+
+    BEGIN
+    IF RXDataDateString = '' THEN Exit;
+
+    YearString := Copy (RXDataDateString, 1, 4);
+
+    MonthString := UpperCase (Copy (RXDataDateString, 6, 2));
+
+    DayString := Copy (RXDataDateString, 9, 2);
+
+    DateString := YearString + MonthString + DayString;
+    DataLength := Length (DateString);
+    Str (DataLength, DataLengthString);
+
+    ADIFString := '<' + ID + ':' + DataLengthString + '>' + DateString;
+    END;
+
+
+
+PROCEDURE MakeADIFTime (VAR ADIFString: STRING; ID: STRING; Time: LONGINT);
+
+{ Takes integer minutes and makes it an ADIF string }
+
+VAR DataLength: INTEGER;
+    DataLengthString, TimeString: Str20;
+
+    BEGIN
+    Str (Time, TimeString);
+
+    WHILE Length (TimeString) < 4 DO
+        TimeString := '0' + TimeString;
+
+    TimeString := TimeString + '00';   { We aren't doing seconds }
+
+    DataLength := Length (TimeString);
+    Str (DataLength, DataLengthString);
+
+    ADIFString := '<' + ID + ':' + DataLengthString + '>' + TimeString;
+    END;
+
+
+
+PROCEDURE MakeADIFInteger (VAR ADIFString: STRING; ID: STRING; Data: INTEGER);
+
+VAR DataLength: INTEGER;
+    NumberString, DataLengthString: Str20;
+
+    BEGIN
+    Str (Data, NumberString);
+
+    DataLength := Length (NumberString);
+    Str (DataLength, DataLengthString);
+
+    ADIFString := '<' + ID + ':' + DataLengthString + '>' + NumberString;
+    END;
+
+
+PROCEDURE MakeADIFField (VAR ADIFString: STRING; ID: STRING; Data: STRING);
+
+VAR DataLength: INTEGER;
+    DataLengthString: Str20;
+
+    BEGIN
+    ADIFString := '';
+    DataLength := Length (Data);
+
+    IF DataLength > 0 THEN
+        BEGIN
+        ID := UpperCase (ID);
+        Str (DataLength, DataLengthString);
+        ADIFString := '<' + ID + ':' + DataLengthString + '>' + Data;
+        END;
+    END;
+
+
+
+PROCEDURE N1MM_Object.SendQSOToN1MM (RXData: ContestExchange);
+
+{ Takes the data in RXData and sends it to N1MM+ via a UDP port.  It is assumed
+  that you have enabled QSO imports on port 2237.  The format for the packet is
+  essentially ADIF with a field added at the start with "Log". }
+
+VAR ADIFString: STRING;
+    ADIFLengthString: Str20;
+
+    BEGIN
+    NumberCharsInUDPBuffer := 0;
+
+    WITH RXData DO
+        BEGIN
+        MakeADIFField   (ADIFString, 'CALL', Callsign);
+        AddStringToUDPBuffer (ADIFString);
+
+        N1MM_Output_LastCallsign := Callsign;
+        N1MM_Output_LastBand := Band;
+        N1MM_Output_LastMode := Mode;
+
+        MakeADIFDate    (ADIFString, 'QSO_DATE', Date);
+        AddStringToUDPBuffer (ADIFString);
+
+        MakeADIFTime    (ADIFString, 'TIME_ON', Time);
+        AddStringToUDPBuffer (ADIFString);
+
+        MakeADIFTime    (ADIFString, 'TIME_OFF', Time);
+        AddStringToUDPBuffer (ADIFString);
+
+        MakeADIFBand    (ADIFString, 'BAND', Band);
+        AddStringToUDPBuffer (ADIFString);
+
+        MakeADIFFreq    (ADIFString, 'FREQ', Frequency / 1000000.0);  { Convert from Hz to MHz }
+        AddStringToUDPBuffer (ADIFString);
+
+        CASE Mode OF
+            CW:      MakeADIFField (ADIFString, 'MODE', 'CW');
+            Phone:   MakeADIFField (ADIFString, 'MODE', 'SSB');
+            Digital: MakeADIFField (ADIFString, 'MODE', 'RTTY');
+            END;
+        AddStringToUDPBuffer (ADIFString);
+
+        MakeADIFField   (ADIFString, 'RST_RCVD', RSTReceived);
+        AddStringToUDPBuffer (ADIFString);
+
+        MakeADIFField   (ADIFString, 'RST_SENT', RSTSent);
+        AddStringToUDPBuffer (ADIFString);
+
+        MakeADIFInteger (ADIFString, 'SRX', NumberReceived);
+        AddStringToUDPBuffer (ADIFString);
+
+        MakeADIFInteger (ADIFString, 'STX', NumberSent);
+        AddStringToUDPBuffer (ADIFString);
+
+        { We have all of the entries for the ADIF record }
+
+        AddStringTOUDPBuffer ('<EOR>');
+
+        { We now have a complete ADIF record in UDP Buffer}
+
+        Str (NumberCharsInUDPBuffer, ADIFLengthString);
+        ADIFString := '<command:3>Log<parameters:' + ADIFLengthString + '>';
+
+        SqueezeStringInUDPBufferStart (ADIFString);
+
+        { These are left over fields we haven't addressed
+
+          Age:            Str20;
+          Chapter:        Str20;
+          Check:          Str20;
+          Classs:         Str20;
+          DomesticMult:   BOOLEAN;
+          DomMultQTH:     DomesticMultiplierString;
+          DomesticQTH:    Str20;
+          DXMult:         BOOLEAN;
+          DXQTH:          DXMultiplierString;
+          InhibitMults:   BOOLEAN;
+          Kids:           Str40;
+          Name:           Str20;
+          NameSent:       BOOLEAN;
+          NumberReceived: INTEGER;
+          NumberSent:     INTEGER;
+          PostalCode:     Str20;
+          Power:          Str20;
+          Precedence:     Str20;
+          Prefecture:     INTEGER;
+          PrefixMult:     BOOLEAN;
+          Prefix:         PrefixMultiplierString;
+          QSOPoints:      INTEGER;
+          QTH:            QTHRecord;
+          QTHString:      STRING [30];
+          RandomCharsSent:     STRING [10];
+          RandomCharsReceived: STRING [10];
+          SearchAndPounce: BOOLEAN;
+          Source:          ContestExchangeSourceType;
+          TenTenNum:       LONGINT;
+          TimeSeconds:     INTEGER;
+          Zone:            ZoneMultiplierString;
+          ZoneMult:        BOOLEAN;                       }
+
+        END;
+
+    { Now we have to send the message using UDP using port 2237 }
+
+    IF NOT N1MM_Output_Open THEN
+        N1MM_Output_Open := OpenUDPPortForOutput (Output_IPAddress, 2237, Output_Socket);
+
+    IF N1MM_Output_Open THEN
+        FPSend (Output_Socket, @UDPBuffer, NumberCharsInUDPBuffer, 0);
+
+    END;
 
 
 
@@ -174,11 +473,15 @@ VAR SocketAddr: TINetSockAddr;
     FileWrite: TEXT;
 
     BEGIN
+    ContestID := '';
+    ContestOp := '';
+    N1MM_Output_Open := False;
+
     NumberCharsinUDPBuffer := 0;
 
     UDP_PortNumber := N1MM_UDP_Port;
 
-    { Setup the UDP port.  }
+    { Setup the UDP port for input of N1MM QSO packets  }
 
     UDP_Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -365,13 +668,37 @@ PROCEDURE N1MM_Object.LogN1MMContact (RXData: ContestExchange);
   was removed from it.
 
   One possible trouble area here has to do with QSO numbers - but I can't worry too
-  much about this at the moment }
+  much about this at the moment.
+
+  Another issue found after I enabled sending QSOs to N1MM is that the QSO I sent
+  would be reflected back.  I added a check to see if the new entry is basically
+  the same as the existing "bottom" QSO in the Editable Log Window - and if so, I
+  ignore logging it. }
 
 VAR LogString: Str80;
 
     BEGIN
+    { Squelch out any echo coming back from N1MM for a QSO we sent them }
+
+    WITH RXData DO
+        IF (N1MM_Output_LastCallsign = Callsign) AND
+           (N1MM_Output_LastBand = Band) AND
+           (N1MM_Output_LastMode = Mode) THEN Exit;
+
     IF RXData.QSOPoints = -1 THEN
         CalculateQSOPoints (RXData);
+
+    { This is simplified from LOGSUBS2 }
+
+    IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) THEN
+        RXData.QSOPoints := 0
+    ELSE
+        VisibleLog.ProcessMultipliers (RXData);  { This is in LOGEDIT.PAS }
+
+    LogString := MakeLogString (RXData);  { This is in LOGSTUFF.PAS }
+
+    { The next stuff until the Push Log were moved down so they don't get executed if
+      was a reflection from N1MM }
 
     VisibleDupeSheetChanged := True;
 
@@ -382,15 +709,6 @@ VAR LogString: Str80;
 
     IF TenMinuteRule <> NoTenMinuteRule THEN
         UpdateTenMinuteDate (RXData.Band, RXData.Mode);
-
-    { This is simplified from LOGSUBS2 }
-
-    IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) THEN
-        RXData.QSOPoints := 0
-    ELSE
-        VisibleLog.ProcessMultipliers (RXData);  { This is in LOGEDIT.PAS }
-
-    LogString := MakeLogString (RXData);  { This is in LOGSTUFF.PAS }
 
     IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
         Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
@@ -700,4 +1018,16 @@ VAR RXData: ContestExchange;
 
     BEGIN
     N1MM_UDP_Port := 0;    { Declared in logwind.pas }
+
+    { Some things to initlialize for outputing stuff to N1MM }
+
+    WITH N1MM_QSO_Portal DO
+        BEGIN
+        ContestID := 'CQ-WPX-SSB';
+        N1MM_Output_Open := False;
+        Output_IPAddress := '';       { Set this to something to enable QSO outputs }
+        N1MM_Output_LastCallsign := '';
+        N1MM_Output_LastBand := NoBand;
+        N1MM_Output_LastMode := NoMode;
+        END;
     END.

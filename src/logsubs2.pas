@@ -4938,6 +4938,14 @@ VAR LogString: Str80;
         RXData.Date := GetFullDateString;
         SendQSOToUDPPort (RXData);
         END;
+
+    { New for Mar 2024 - send to N1MM using WSJT port }
+
+    IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+        BEGIN
+        RXData.Date := GetFullDateString;
+        N1MM_QSO_Portal.SendQSOToN1MM (RXData);
+        END;
     END;
 
 
