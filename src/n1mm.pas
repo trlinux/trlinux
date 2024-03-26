@@ -45,6 +45,11 @@ TYPE
         Output_Socket: LONGINT;
 
         N1MM_Output_Open: BOOLEAN;
+
+        N1MM_Input_LastCallsign: CallString;
+        N1MM_Input_LastBand: BandType;
+        N1MM_Input_LastMode: ModeType;
+
         N1MM_Output_LastCallsign: CallString;
         N1MM_Output_LastBand: BandType;
         N1MM_Output_LastMode: ModeType;
@@ -685,6 +690,19 @@ VAR LogString: Str80;
            (N1MM_Output_LastBand = Band) AND
            (N1MM_Output_LastMode = Mode) THEN Exit;
 
+    { It also seems that sometimes we get two QSOs from N1MM that are the same }
+
+    WITH RXData DO
+        BEGIN
+        IF (N1MM_Input_LastCallsign = Callsign) AND
+           (N1MM_Input_LastBand = Band) AND
+           (N1MM_Input_LastMode = Mode) THEN Exit;
+
+        N1MM_Input_LastCallsign := Callsign;
+        N1MM_Input_LastBand := Band;
+        N1MM_Input_LastMode := Mode;
+        END;
+
     IF RXData.QSOPoints = -1 THEN
         CalculateQSOPoints (RXData);
 
@@ -1026,6 +1044,9 @@ VAR RXData: ContestExchange;
         ContestID := 'CQ-WPX-SSB';
         N1MM_Output_Open := False;
         Output_IPAddress := '';       { Set this to something to enable QSO outputs }
+        N1MM_Input_LastCallsign := '';
+        N1MM_Input_LastBand := NoBand;
+        N1MM_Input_LastMode := NoMode;
         N1MM_Output_LastCallsign := '';
         N1MM_Output_LastBand := NoBand;
         N1MM_Output_LastMode := NoMode;
