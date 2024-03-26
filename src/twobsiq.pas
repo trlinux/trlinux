@@ -761,7 +761,7 @@ INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
      LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
-     timer,LogSCP,datetimec,radio,KeyCode,TBSIQ_CW;
+     timer,LogSCP,datetimec,radio,KeyCode,TBSIQ_CW, foot;
 
 PROCEDURE TwoBandSIQ;
 
@@ -772,6 +772,11 @@ USES TBSIQ_Subs;
 PROCEDURE Initialize2BSIQOperatorInterface;
 
     BEGIN
+    { Make sure the Arduino is in sync if it is in 2BSIQSSB mode }
+
+    IF FootSwitchMode = TBSIQSSB THEN
+        ArdKeyer.FootSwitch2BSIQSSB;
+
     { We need to trick the QSONumber generator into giving us the last QSO
       Number given out again.  NextQSONumberToGiveOut should be at least
       equal to 2, but we check just in case }

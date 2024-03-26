@@ -466,8 +466,6 @@ VAR FileWrite: TEXT;
     ActiveKeyer.debug(keyerdebug);
     InitializeKeyer;
 
-    ActiveKeyer.SetMonitorTone(CWTone);
-
     IF ActiveRadio = RadioOne THEN
         BEGIN
         ActiveKeyer.SetActiveRadio(RadioOne);
@@ -480,6 +478,13 @@ VAR FileWrite: TEXT;
         ActiveMode  := ModeMemory [RadioTwo];
         ActiveBand  := BandMemory [RadioTwo];
         END;
+
+    ActiveKeyer.SetMonitorTone(CWTone);
+
+    { Speical footswitch mode will be lost with Initlialize }
+
+    IF FootSwitchMode = TBSIQSSB THEN
+        ArdKeyer.FootSwitch2BSIQSSB;
 
     DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
 
