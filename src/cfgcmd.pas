@@ -1387,7 +1387,10 @@ VAR xResult,tempint: INTEGER;
         IF CMD = 'NORMAL'                  THEN FootSwitchMode := Normal;
 
         IF (CMD = '2BSIQSSB') OR (CMD = 'TBSIQSSB') THEN
+            BEGIN
             ArdKeyer.FootSwitch2BSIQSSB;
+            FootSwitchMode := TBSIQSSB;
+            END;
 
         IF CMD = 'F1'                      THEN FootSwitchMode := FootSwitchF1;
         IF CMD = 'LAST CQ FREQ'            THEN FootSwitchMode := FootSwitchLastCQFreq;
