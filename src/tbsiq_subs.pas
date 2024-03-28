@@ -1034,17 +1034,18 @@ VAR FileName, CommandString: Str40;
               probably assume they are sending a voice message.  We should set
               the TransmitCountdown counter. }
 
-            CASE Radio OF
-                RadioOne: Radio1QSOMachine.TransmitCountdown := InitialTransmitCountdown;
-                RadioTwo: Radio2QSOMachine.TransmitCountdown := InitialTransmitCountdown;
-                END;
+            { It seems someone else is doing this }
+
+//          CASE Radio OF
+//              RadioOne: Radio1QSOMachine.TransmitCountdown := InitialTransmitCountdown;
+//              RadioTwo: Radio2QSOMachine.TransmitCountdown := InitialTransmitCountdown;
+//              END;
 
             IF Radio = radioone then
                 rig1.directcommand (filename)
             ELSE
                 rig2.directcommand (filename);
             END;
-
 
         IF CommandString = 'SRS1' THEN
             Rig1.directcommand (filename);
@@ -2228,6 +2229,8 @@ PROCEDURE QSOMachineObject.ListenToOtherRadio;
     BEGIN
     IF NOT EnableHeadphoneSwitching THEN Exit;
 
+    IF FootSwitchMode = TBSIQSSB THEN Exit;  { Fixes buzzing issue }
+
     IF Radio = RadioOne THEN
         BEGIN
         IF TBSIQ_CW_Engine.CWBeingSent (RadioTwo) THEN Exit;
@@ -2419,9 +2422,10 @@ VAR Key, ExtendedKey: CHAR;
        CheckRadio := RadioOne;
 
    IF TBSIQDualMode AND (Mode = Phone) THEN
+     IF FootSwitchMode <> TBSIQSSB THEN  { this doesn't fix my buzz }
         IF (NOT TBSIQFootSwitchLockout) OR TBSIQ_CW_Engine.CWFinished (CheckRadio) THEN
             BEGIN
-            IF TBSIQ_FootSwitchPressed THEN
+            IF TBSIQ_FootSwitchPressed THEN  { This should never be true in TBSIQSSB }
                 BEGIN
                 { Need to make sure we are connected to the correct radio }
 
