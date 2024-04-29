@@ -1000,11 +1000,16 @@ VAR TempChar:   CHAR;
 
    IF FootSwitchMode <> PreviousFootSwitchMode THEN
        BEGIN
-       IF FootSwitchMode = Normal THEN
-           ActiveKeyer.LetFootSwitchControlPTT  { This does nothing for YCCC }
-       ELSE
-           IF ActiveKeyer = ArdKeyer THEN
+       CASE FootSwitchMode OF
+           Normal:  ActiveKeyer.LetFootSwitchControlPTT;  { This does nothing for YCCC }
+
+           CWGrant: ArdKeyer.SetCWGrant (True);
+
+           TBSIQSSB: ArdKeyer.FootSwitch2BSIQSSB;
+
+           ELSE
                ArdKeyer.ClearFootSwitchControlPTT;
+           END;
 
        PreviousFootSwitchMode := FootSwitchMode;
        END;

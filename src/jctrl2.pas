@@ -374,6 +374,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                CWGrant:
                    BEGIN
                    FootSwitchMode := TBSIQSSB;
+                   ActiveKeyer.setCWGrant (false);
                    ArdKeyer.FootSwitch2BSIQSSB;
                    END;
 
@@ -396,8 +397,24 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                    END;
 
                IF ActiveKeyer = ArdKeyer THEN
-                   IF FootSwitchMode <> TBSIQSSB THEN
-                       ArdKeyer.ClearFootSwitchControlPTT;
+                   BEGIN
+                   CASE FootSwitchMode OF
+
+                       TBSIQSSB: BEGIN
+                                 ArdKeyer.setCWGrant (false);
+                                 ArdKeyer.FootSwitch2BSIQSSB;
+                                 END;
+
+                       CWGrant:  BEGIN
+                                 ArdKeyer.ClearFootSwitchControlPTT;
+                                 ArdKeyer.setCWGrant (true);
+                                 END;
+
+                       ELSE
+                           IF FootSwitchMode <> TBSIQSSB THEN
+                               ArdKeyer.ClearFootSwitchControlPTT;
+                       END;
+                   END;
 
                PreviousFootSwitchMode := FootSwitchMode;
                END;

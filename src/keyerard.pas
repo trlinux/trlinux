@@ -519,9 +519,9 @@ VAR DelayLoops: INTEGER;
 
             IF Length (Version) = 7 THEN  { We have enough characters }
                 BEGIN
-                IF Copy (Version, 1, 7) <> 'TRCW V4' THEN
+                IF Copy (Version, 1, 7) <> 'TRCW V5' THEN
                     BEGIN
-                    WriteLn ('Expected TRCW V4 response from SO2R Mini.  Received ', Version);
+                    WriteLn ('Expected TRCW V5 response from SO2R Mini.  Received ', Version);
                     WaitForKeyPressed;
                     Halt;
                     END;
@@ -1087,11 +1087,40 @@ PROCEDURE ArduinoKeyer.SetPaddleSpeed (Speed: INTEGER);
 
 PROCEDURE ArduinoKeyer.SetCwGrant (On: BOOLEAN);
 
-{ Does nothing for now.  Probably W9CF used this in the timer routine. }
+{ When this is set to TRUE - the Arduino will set the footswitch mode to FS_Lockout
+  which will prevent multiple Arduinos from sending CW at the same time if their
+  footswtich connectors are tied together }
 
     BEGIN
     FsCwGrant := On;
+
+    IF On THEN
+        BEGIN
+        IF KeyerInitialized THEN
+            BEGIN
+            ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
+            ArduinoKeyerPort.PutChar (Char($03));   { Lockout mode }
+            END;
+
+        AppendDebugFile ('Set footswitch lockout mode');
+        END
+    ELSE
+        BEGIN
+        IF KeyerInitialized THEN
+            BEGIN
+            ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
+
+            IF FootSwitchControlPTT THEN
+                ArduinoKeyerPort.PutChar (Char($01))   { Normal PTT mode }
+            ELSE
+                ArduinoKeyerPort.PutChar (Char($00));  { No PTT mode }
+            END;
+
+        AppendDebugFile ('Clear footswitch lockout mode');
+        END;
     END;
+
+
 
 PROCEDURE ArduinoKeyer.SetFootSwitch (F: FootSwitchX);
 
@@ -1138,7 +1167,7 @@ PROCEDURE ArduinoKeyer.LetFootSwitchControlPTT;
 
 PROCEDURE ArduinoKeyer.ClearFootSwitchControlPTT;
 
-{ Put the SO2R in the mode of only returnning the footswitch state without affecting
+{ Put the SO2R mini in the mode of only returning the footswitch state without affecting
   PTT. }
 
     BEGIN
@@ -1330,5 +1359,5 @@ PROCEDURE ArduinoKeyer.FlushCWBuffer;
     END;
 
     BEGIN
-    ArduinoDebug := False;  { Set to true to get some debug data }
+    ArduinoDebug := True;  { Set to true to get some debug data }
     END.
