@@ -903,16 +903,12 @@ PROCEDURE CalculateBandMode (Freq: LONGINT; VAR Band: BandType; VAR Mode: ModeTy
         Exit;
         END;
 
-    IF (Freq >= 3490000) AND (Freq < 3530000) THEN
+    { May 2024 - changed this to include 3500 - 3600 }
+
+    IF (Freq >= 3490000) AND (Freq < 3600000) THEN
         BEGIN
         Band := Band80;
         Mode := CW;
-        Exit;
-        END;
-
-    IF (Freq >= 3530000) AND (Freq < 3600000) THEN
-        BEGIN
-        Band := Band80;     { Leave mode alone }
         Exit;
         END;
 
@@ -923,7 +919,7 @@ PROCEDURE CalculateBandMode (Freq: LONGINT; VAR Band: BandType; VAR Mode: ModeTy
         Exit;
         END;
 
-    IF (Freq >= 6990000) AND (Freq < 7030000) THEN
+    IF (Freq >= 6990000) AND (Freq < 7040000) THEN
         BEGIN
         Band := Band40;
         Mode := CW;

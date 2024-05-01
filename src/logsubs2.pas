@@ -4927,7 +4927,7 @@ VAR LogString: Str80;
     IF BandMapEnable THEN
         BEGIN
         UpdateBandMapMultiplierStatus;
-        {KK1L: 6.64 Need to change dupe status for this contact as well}
+        {KK1L: 6.64 Need to change dupe status for this contact as well - does the new display }
         UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
         END;
 

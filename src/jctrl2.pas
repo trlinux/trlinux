@@ -191,7 +191,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
            END;
 
-      BCQ: BandMapDisplayCQ := NOT BandMapDisplayCQ;
+      BCQ: BEGIN
+           BandMapDisplayCQ := NOT BandMapDisplayCQ;
+           DisplayBandMap;
+           END;
 
       BME: BEGIN
            BandMapEnable := NOT BandMapEnable;
@@ -987,6 +990,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            END;
 
       VDE: VGADisplayEnable := NOT VGADisplayEnable;
+
       VBE: BEGIN
            VHFBandsEnabled := NOT VHFBandsEnabled;
            DisplayBandMap;

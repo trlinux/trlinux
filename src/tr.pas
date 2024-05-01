@@ -48,6 +48,11 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+1-May-2024
+ - Some clean up on Bandmap display stuff.  Tried to make sure that the dupe display
+   or not is cleaned up and updated when changing states.  Also - replaced the ambigious
+   * for displaying dupes in the bandmap with a lower case d.
+
 18-March-2024
  - Added ability to send QSOs to N1MM using a UDP port.  To enable this, we need to
    enter the IP address for the machine running N1MM using N1MM EXPORT IP ADDRESS.
