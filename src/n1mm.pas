@@ -709,7 +709,14 @@ VAR LogString: Str80;
     { This is simplified from LOGSUBS2 }
 
     IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) THEN
-        RXData.QSOPoints := 0
+        BEGIN
+        { Check to see if this was the last QSO I received from somewhere }
+
+        IF GetLogEntryCall (VisibleLog.LogEntries [5]) = RXData.Callsign THEN
+            Exit;
+
+        RXData.QSOPoints := 0;
+        END
     ELSE
         VisibleLog.ProcessMultipliers (RXData);  { This is in LOGEDIT.PAS }
 

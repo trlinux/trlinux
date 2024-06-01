@@ -1,4 +1,4 @@
-//
+ //
 //Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015.
 //
 //This file is part of TR log for linux.
@@ -25,8 +25,8 @@ UNIT JCtrl2;
 INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
-     LogCfg, LogDom, LogDVP, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, K1EANet, N4OGW;
+     LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
+     SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, N4OGW;
 
 PROCEDURE DisplayStatus (FirstEntryDisplayed: MenuEntryType; ActiveEntry: MenuEntryType);
 FUNCTION  GetActiveLineFromEntryString (EntryString: Str80): MenuEntryType;
@@ -142,20 +142,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                AutoTimeIncrementQSOs := 0;
            END;
 
-      BEN: BEGIN
-           IF DVPEnable THEN
-               BEGIN
-               BackCopyEnable := NOT BackCopyEnable;
-               IF (BackCopyEnable) AND DVPActive THEN
-                   StartBackCopy
-               ELSE
-                   StopBackCopy;
-               END
-           ELSE
-               BackCopyEnable := False;
-           END;
-
-
       BAB: BEGIN
            BandMapAllBands         := NOT BandMapAllBands;
            DisplayBandMap;
@@ -214,19 +200,16 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
 
       BNA: Tone.SetBeepEnable(NOT Tone.GetBeepEnable);
+
       BSA: BEGIN
-              BeepSoundCardEnable := NOT BeepSoundCardEnable;
-              IF BeepSoundCardEnable THEN
+           BeepSoundCardEnable := NOT BeepSoundCardEnable;
+           IF BeepSoundCardEnable THEN
               begin
                  soundmode(0);
-                 dvpenable := false;
               end
-              else soundmode(1);
-              IF not dvpsetup then
-              begin
-                 IF BeepSoundCardEnable then beginsound else endsound;
-              end;
+           else soundmode(1);
            END;
+
       BET: BeepEvery10QSOs  := NOT BeepEvery10QSOs;
 
       BRL: BEGIN
@@ -316,22 +299,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       DSE: Sheet.DupeSheetEnable := NOT Sheet.DupeSheetEnable;
 
       DVC: DVKControlKeyRecord := NOT DVKControlKeyRecord;
-
-      DVE: BEGIN
-           IF NOT DVPActive THEN
-               BEGIN
-               Tone.DoABeep (ThreeHarmonics);
-               QuickDisplay ('SORRY!  DVPTSR was not loaded.');
-               Wait (3000);
-               END;
-
-           DVPEnable := (NOT DVPEnable) AND DVPActive;
-           IF DVPEnable THEN DVPInit
-           ELSE
-               RemoveWindow (CodeSpeedWindow);
-           END;
-
-      DVP: DVPPath := QuickEditResponse ('Enter new DVP PATH = ', 40);
 
       EES: EscapeExitsSearchAndPounce := NOT EscapeExitsSearchAndPounce;
 
@@ -518,24 +485,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            ELSE
                InitialExchangeCursorPos := AtEnd;
 
-      KNE: K1EANetworkEnable := NOT K1EANetworkEnable;
-
-      KSI: BEGIN
-           TempString := UpperCase (QuickEditResponse ('Enter station ID character : ', 1));
-
-           IF Length (TempString) > 0 THEN
-               BEGIN
-               TempChar := TempString [1];
-
-               IF (TempChar >= '0') AND (TempChar <= 'Z') THEN
-                   K1EAStationID := TempChar
-               ELSE
-                   K1EAStationID := Chr (0);
-               END
-           ELSE
-               K1EAStationID := Chr (0);
-           END;
-
       KCM: KeypadCWMemories        := NOT KeypadCWMemories;
 
       LDZ: CASE LeadingZeros OF
@@ -595,6 +544,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            END;
 
       MMO: MultiMultsOnly        := NOT MultiMultsOnly;
+      MRQ: MultiRequestQSONumber := NOT MultiRequestQSONumber;
 
       MRT: BEGIN
            TempInt := QuickEditInteger ('Enter new multi retry timeout (minimum 3 seconds) : ', 6);
@@ -1066,7 +1016,6 @@ VAR FileWrite: TEXT;
       AST: WriteLn (FileWRite, AutoSidetoneControl);
       ATI: WriteLn (FileWrite, AutoTimeIncrementQSOs);
 
-      BEN: WriteLn (FileWrite, BackCopyEnable);
       BAB: WriteLn (FileWrite, BandMapAllBands);
       BAM: WriteLn (FileWrite, BandMapAllModes);
       {BMO: WriteLn (FileWrite, BandMapMultsOnly);} {KK1L: 6.xx}
@@ -1126,8 +1075,6 @@ VAR FileWrite: TEXT;
       DSE: WriteLn (FileWrite, Sheet.DupeSheetEnable);
 
       DVC: WriteLn (FileWrite, DVKControlKeyRecord);
-      DVE: WriteLn (FileWrite, DVPEnable);
-      DVP: WriteLn (FileWrite, DVPPath);
 
       EES: WriteLn (FileWrite, EscapeExitsSearchAndPounce);
       EME: WriteLn (FileWrite, ExchangeMemoryEnable);
@@ -1201,8 +1148,6 @@ VAR FileWrite: TEXT;
            ELSE
                WriteLn (FileWrite, 'AT END');
 
-      KNE: WriteLn (FileWrite, K1EANetworkEnable);
-      KSI: WriteLn (FileWrite, K1EAStationID);
       KCM: WriteLn (FileWrite, KeypadCWMemories);
 
       LDZ: WriteLn (FileWrite, LeadingZeros);
@@ -1224,6 +1169,7 @@ VAR FileWrite: TEXT;
       MIM: WriteLn (FileWrite, MultiInfoMessage);
 
       MMO: WriteLn (FileWrite, MultiMultsOnly);
+      MRQ: WriteLn (FileWrite, MultiRequestQSONumber);
       MRT: WriteLn (FileWrite, MultiRetryTime);
       MUM: WriteLn (FileWrite, MultiUpdateMultDisplay);
       MBA: WriteLn (FileWrite, MultipleBandsEnabled);
@@ -1452,7 +1398,6 @@ VAR TempString: Str40;
       AST: IF AutoSideToneControl THEN TempString := 'TRUE';
       ATI: Str (AutoTimeIncrementQSOs, TempString);
 
-      BEN: IF BackCopyEnable THEN TempString := 'TRUE';
       BAB: IF BandMapAllBands THEN TempString := 'TRUE';
       BAM: IF BandMapAllModes THEN TempString := 'TRUE';
       {BMO: IF BandMapMultsOnly THEN TempString := 'TRUE';} {KK1L: 6.xx}
@@ -1514,8 +1459,6 @@ VAR TempString: Str40;
       DSE: IF Sheet.DupeSheetEnable THEN TempString := 'TRUE';
 
       DVC: IF DVKControlKeyRecord THEN TempString := 'TRUE';
-      DVE: IF DVPEnable THEN TempString := 'TRUE';
-      DVP: TempString := DVPPath;
       EES: IF EscapeExitsSearchAndPounce THEN TempString := 'TRUE';
       EME: IF ExchangeMemoryEnable THEN TempString := 'TRUE';
       FWE: IF ActiveKeyer.GetFarnsworthEnable THEN TempString := 'TRUE';
@@ -1588,8 +1531,6 @@ VAR TempString: Str40;
                AtEnd:   TempString := 'AT END';
                END;
 
-      KNE: IF K1EANetworkEnable THEN TempString := 'TRUE';
-      KSI: TempString := K1EAStationID;
       KCM: IF KeyPadCWMemories THEN TempString := 'TRUE';
       LDZ: Str (LeadingZeros, TempString);
       LZC: TempString := LeadingZeroCharacter;
@@ -1605,6 +1546,7 @@ VAR TempString: Str40;
       MRM: Str (MultReportMinimumBands, TempString);
       MIM: TempString := MultiInfoMessage;
       MMO: IF MultiMultsOnly THEN TempString := 'TRUE';
+      MRQ: IF MultiRequestQSONumber THEN TempString := 'TRUE';
       MRT: Str (MultiRetryTime, TempString);
       MUM: IF MultiUpdateMultDisplay THEN TempString := 'TRUE';
       MBA: IF MultipleBandsEnabled THEN TempString := 'TRUE';
@@ -1795,8 +1737,6 @@ PROCEDURE SendParameterToNetwork (Line: MenuEntryType);
 VAR TempString: STRING;
 
     BEGIN
-    IF K1EANetworkEnable THEN Exit;
-
     IF (ActiveMultiPort = nil) AND (MultiUDPPort = -1) THEN Exit;
 
     TempString := ParameterToString (Line);

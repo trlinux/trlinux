@@ -29,9 +29,9 @@ UNIT TBSIQ_Subs;
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     slowtree, so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     slowtree, so2r, LogCW, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW,
-     cfgcmd, k1eanet, foot, N4OGW, N1MM, LogUDP;
+     cfgcmd, foot, N4OGW, N1MM, LogUDP;
 
 TYPE
 
@@ -153,7 +153,7 @@ TYPE
         PTTState: BOOLEAN;
         PTTTestTimer: INTEGER;
 
-        QSONumberForThisQSO: INTEGER;
+        QSONumberForThisQSO: INTEGER;        { Gets set from ReserveNextQSONumber somewhere in the QSO process }
         QSONumberForPreviousQSO: INTEGER;
         QSONumberUnused: BOOLEAN;
 
@@ -350,26 +350,25 @@ PROCEDURE QSOMachineObject.SetUpNextQSONumber;
   never steal a QSO number that is less than the one we just sent.
 
   However, if QSONumberByBand is true - we can short circuit all of this logic and
-  just generate a QSO number that is one more than the QSO totals for the ActiveBand }
+  just generate a QSO number that is one more than the QSO totals for the ActiveBand.
 
-VAR TempQSOTotals: QSOTotalArray;
+  We have not yet implemented using the multi network to get QSO numbers from a master
+  computer.  We will however use the new procedures in logstuff to get QSO numbers. }
 
     BEGIN
     IF QSONumberByBand THEN
         BEGIN
-        TempQSOTotals := QSOTotals;    { Get global QSO totals in dupesheet }
-        VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);  { Add in EditableLog QSOs }
-        QSONumberForThisQSO := TempQSOTotals [Band, Both] + 1;
+        QSONumberForThisQSO := ReserveNextQSONumberLocal (Band);  { from LOGWIND }
         Exit;
         END;
 
     CASE Radio OF
         RadioOne:
-            IF Radio2QSOMachine.QSONumberUnused THEN   { Steal QSO number from Radio 2 }
+            IF Radio2QSOMachine.QSONumberUnused THEN   { Steal QSO number from Radio 2? }
                 IF Radio2QSOMachine.QSONumberForThisQSO > QSONumberForThisQSO THEN
                     BEGIN
                     QSONumberForThisQSO := Radio2QSOMachine.QSONumberForThisQSO;
-                    Radio2QSOMachine.QSONumberForThisQSO := GetNextQSONumber;
+                    Radio2QSOMachine.QSONumberForThisQSO := ReserveNextQSONumberLocal (All);
                     Radio2QSOMachine.DisplayQSONumber;
                     Exit;
                     END;
@@ -379,7 +378,7 @@ VAR TempQSOTotals: QSOTotalArray;
                 IF Radio1QSOMachine.QSONumberForThisQSO > QSONumberForthisQSO THEN
                     BEGIN
                     QSONumberForThisQSO := Radio1QSOMachine.QSONumberForThisQSO;
-                    Radio1QSOMachine.QSONumberForThisQSO := GetNextQSONumber;
+                    Radio1QSOMachine.QSONumberForThisQSO := ReserveNextQSONumberLocal (All);
                     Radio1QSOMachine.DisplayQSONumber;
                     Exit;
                     END;
@@ -388,7 +387,7 @@ VAR TempQSOTotals: QSOTotalArray;
 
     { We can't steal the QSO number from the other radio - so get our own new number }
 
-    QSONumberForThisQSO := GetNextQSONumber;   { from LOGWIND }
+    QSONumberForThisQSO := ReserveNextQSONumberLocal (All);   { from LOGWIND }
     QSONumberUnused := True;
     END;
 
@@ -972,7 +971,7 @@ VAR FileName, CommandString: Str40;
                 BEGIN
                 Val (CommandString, TempInt);
                 SetSpeed (TempInt);
-                DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                 END
             ELSE
                 BEGIN
@@ -983,7 +982,7 @@ VAR FileName, CommandString: Str40;
                     IF CodeSpeed < 99 THEN
                         BEGIN
                         SetSpeed (CodeSpeed + 1);
-                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                         END;
                     END;
 
@@ -994,7 +993,7 @@ VAR FileName, CommandString: Str40;
                     IF CodeSpeed > 1 THEN
                         BEGIN
                         SetSpeed (CodeSpeed - 1);
-                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                         END;
                     END;
                 END;
@@ -1134,8 +1133,6 @@ VAR TempString: Str160;
     TempString := QuickEditResponse ('Do you really want to exit the program? (Y/N) : ', 1);
     IF UpperCase (TempString) <> 'Y' THEN Exit;
 
-    IF BackCopyEnable THEN StopBackCopy;
-
     IF NetDebug THEN
         BEGIN
         Close (NetDebugBinaryOutput);
@@ -1146,8 +1143,6 @@ VAR TempString: Str160;
     NormVideo;
     TextMode (OriginalTextMode);
     ClrScr;
-
-    IF DVPEnable THEN DVPUnInit;
 
     IF BandMapEnable THEN SaveBandMap;
 
@@ -1288,345 +1283,156 @@ VAR RadioThatShouldHaveFocus: RadioType;
 PROCEDURE TBSIQ_CheckMultiState;
 
 VAR MultiString, MessageString: STRING;
-    ModeString, MultString, Call: CallString;
+    MultString, Call: CallString;
     Band: BandType;
     Mode: ModeType;
     Points: INTEGER;
     Freq, QSX: LONGINT;
     ControlByte: BYTE;
     RXData: ContestExchange;
-    Year, Month, Day, DayOfWeek, Hour, Minute, Second, Sec100: WORD;
-    NewYear, NewMonth, NewDay, NewHour, NewMinute, NewSecond: WORD;
+    Year, Month, Day, Hour, Minute, Second: WORD;
     Dupe, Mult, FirstCommand, NewMult: BOOLEAN;
     FileWrite: TEXT;
-    SplitByte: BYTE;
 
     BEGIN
-    IF NOT K1EANetworkEnable THEN CheckForLostMultiMessages;
+    CheckForLostMultiMessages;
 
     MultiString := GetMultiPortCommand;
 
     IF MultiString = '' THEN Exit;
 
-    IF K1EANetworkEnable THEN
-        BEGIN
+    MessageString [0] := MultiString [8];
+    Move (MultiString [10], MessageString [1], Ord (MultiString [8]));
 
-        { Message string to not have message type, source or checksum }
+    ControlByte := Ord (MultiString [3]);
 
-        MessageString := MultiString;
-        RemoveFirstString (MessageString);  { Delete message type & source }
-        Delete (MessageString, Length (MessageString), 1); { Delete checksum }
+    CASE ControlByte OF
+        MultiInformationMessage:
+            BEGIN
+            Band := RemoveBand (MessageString);
+            Mode := RemoveMode (MessageString);
+            if ((Mode < Low(ModeType)) or (Mode > High(ModeType))) then
+               Mode := NoMode;
 
-        CASE MultiString [1] OF
+            IF MultiStatus [Band, Mode] = nil THEN New (MultiStatus [Band, Mode]);
+            MultiStatus [Band, Mode]^ := MessageString;
+            END;
 
-            'B': Packet.ProcessPacketMessageFromNetWork (MessageString);
+        MultiTimeMessage:
+            BEGIN
+            Year   := RemoveFirstLongInteger (MessageString);
+            Month  := RemoveFirstLongInteger (MessageString);
+            Day    := RemoveFirstLongInteger (MessageString);
+            Hour   := RemoveFirstLongInteger (MessageString);
+            Minute := RemoveFirstLongInteger (MessageString);
+            Second := RemoveFirstLongInteger (MessageString);
 
-            'C': { Band map message }
+            SetTime (Hour, Minute, Second, 0);
+            SetDate (Year, Month, Day);
+            END;
+
+        MultiBandMapMessage:
+            BEGIN
+            Call := RemoveFirstString (MessageString);
+            Freq := RemoveFirstLongInteger (MessageString);
+            QSX  := RemoveFirstLongInteger (MessageString);
+
+            Mode := ActiveMode;
+
+            CalculateBandMode (Freq, Band, Mode);
+
+            IF (Band <> NoBand) AND (Mode <> NoMode) THEN
                 BEGIN
+                Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
 
-{ C1 599 Freq QSX UnixTime 0 band mode call * 0 1 0 0 }
+                IF NOT MultByBand THEN Band := All;
+                IF NOT MultByMode THEN Mode := Both;
 
-                RemoveFirstString (MultiString);  { C1 }
-                RemoveFirstString (MultiString);  { 599 }
+                VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
+                Mult := MultString <> '';
 
-                Freq := RemoveFirstLongInteger (MultiString);
-                QSX  := RemoveFirstLongInteger (MultiString);
+                { SendToMulti = False }
 
-                RemoveFirstString (MultiString);  { UnixTime }
-                SplitByte := RemoveFirstLongInteger (MultiString);  { 0 or 1 }
-                RemoveFirstString (MultiString);  { band }
-
-                SplitByte := SplitByte AND $01;
-
-                IF SplitByte = 0 THEN QSX := 0;
-
-                ModeString := RemoveFirstString (MultiString);  { mode }
-
-                Call := RemoveFirstString (MultiString);
-
-                { Set mode to a safe value in case it can't be calculated }
-
-                IF ModeString = '1' THEN
-                    Mode := CW
-                ELSE
-                    Mode := Phone;
-
-                CalculateBandMode (Freq, Band, Mode);
-
-                IF (Band <> NoBand) AND (Mode <> NoMode) THEN { Added in 6.25 }
-                    BEGIN
-                    Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
-
-                    { These didn't have the NOT in them until 6.36 }
-
-                    IF NOT MultByBand THEN Band := All;
-                    IF NOT MultByMode THEN Mode := Both;
-
-                    { Runtime 201 here when hitting F1s - probably on 160.
-                      Initialized Mode to Active mode before calling
-                      CalculateBandMode }
-
-                    VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
-                    Mult := MultString <> '';
-
-                    { SendToMulti = False }
-
-                    NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
-                    END;
-
+                NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
                 END;
+            END;
 
-            'G': BEGIN  { Pass frequency information }
-                 UpdateK1EAStationInfo (Pass, MultiString [2], MessageString);
-                 END;
+        MultiTalkMessage:
+            BEGIN
+            MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
+            QuickDisplay (MessageString);
+            ReminderPostedCount := 60;
 
-            'L', 'U':
-                BEGIN  { Log QSO }
-                MultiString := ConvertK1EANetworkLogMessageToN6TRLogString (MultiString);
-                ParseExchangeIntoContestExchange (MultiString, RXData);
+            PushMultiMessageBuffer (MessageString);
 
-               { These next steps are unique for K1EA network entries that
-                  have no QSO point information, multiplier information or
-                  even the sent QSO Number when they come in. }
+            IF IntercomFileOpen THEN
+                WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+            END;
 
-                LocateCall (RXData.Callsign, RXData.QTH, True);
-                IF DoingDXMults THEN GetDXQTH (RXData);
-                CalculateQSOPoints (RXData);
-                VisibleLog.ProcessMultipliers (RXData);
-                RXData.NumberSent := TotalContacts + 1;
+        MultiPacketReceivedMessage:
+            Packet.ProcessPacketMessageFromNetWork (MessageString);
 
-                { Need to convert RXData back to a N6TR Log Entry string }
+        MultiPacketMessageToSend:
+            IF ActivePacketPort <> nil THEN SendPacketMessage (MessageString);
 
-                MessageString := MakeLogString (RXData);
+        MultiQSOData:
+            BEGIN
+            Call   := GetLogEntryCall      (MessageString);
+            Band   := GetLogEntryBand      (MessageString);
+            Mode   := GetLogEntryMode      (MessageString);
+            Points := GetLogEntryQSOPoints (MessageString);
 
-                { Now you can do everything that is normally done with a
-                  TR Log entry }
+            CheckBand (Band);
 
-                Call   := GetLogEntryCall      (MessageString);
-                Band   := GetLogEntryBand      (MessageString);
-                Mode   := GetLogEntryMode      (MessageString);
-                Points := GetLogEntryQSOPoints (MessageString);
+            NewMult := GetLogEntryMultString (MessageString) <> '';
 
-                CheckBand (Band);
+            IF SendQSOImmediately THEN
+                TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
+            ELSE
+                TBSIQ_PutContactIntoLogFile (MessageString);
 
-                NewMult := GetLogEntryMultString (MessageString) <> '';
+            Inc (NumberContactsThisMinute);
+            NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
 
-                IF SendQSOImmediately THEN
-                    TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
-                ELSE
-                    TBSIQ_PutContactIntoLogFile (MessageString);
-
-                Inc (NumberContactsThisMinute);
-                NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
-
-                IF ActiveWindow <> DupeSheetWindow THEN { no packet }
-                    BEGIN
-                    DisplayTotalScore (TotalScore);
-                    DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
-                    UpdateTotals;
-                    END;
-
+            IF ActiveWindow <> DupeSheetWindow THEN { no packet }
+                BEGIN
                 DisplayTotalScore (TotalScore);
-                DisplayInsertMode (InsertMode);
-
-                DisplayNextQSONumber (QSONumberForThisQSO);
-
-                IF FloppyFileSaveFrequency > 0 THEN
-                    IF QSOTotals [All, Both] > 0 THEN
-                        IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
-                            SaveLogFileToFloppy;
-
-                IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
-
-                IF MultiUpdateMultDisplay AND NewMult THEN
-                    VisibleLog.ShowRemainingMultipliers;
-
-                IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
-                    BEGIN
-                    UpdateBandMapMultiplierStatus;
-                    UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
-                    END;
-
+                UpdateTotals;
                 END;
 
-            'M': BEGIN  { Run frequency information }
-                 UpdateK1EAStationInfo (Run, MultiString [2], MessageString);
-                 END;
+            DisplayTotalScore (TotalScore);
 
-            'T', 'P':   { Talk or pass message }
-                 BEGIN
-                 QuickDisplay (MessageString);
-                 ReminderPostedCount := 60;
+            IF FloppyFileSaveFrequency > 0 THEN
+                IF QSOTotals [All, Both] > 0 THEN
+                    IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
+                        SaveLogFileToFloppy;
 
-                 PushMultiMessageBuffer (MessageString);
+            IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
 
-                 IF IntercomFileOpen THEN
-                     WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+            IF MultiUpdateMultDisplay AND NewMult THEN
+                VisibleLog.ShowRemainingMultipliers;
 
-                 END;
-
-            'Y': BEGIN  { DOS time sync message }
-                 NewHour   := RemoveFirstLongInteger (MessageString);
-                 NewMinute := RemoveFirstLongInteger (MessageString);
-                 NewSecond := RemoveFirstLongInteger (MessageString);
-                 NewDay    := RemoveFirstLongInteger (MessageString);
-                 NewMonth  := RemoveFirstLongInteger (MessageString);
-                 NewYear   := RemoveFirstLongInteger (MessageString);
-
-                 GetDate (Year, Month, Day, DayOfWeek);
-
-                 IF (Year <> NewYear) OR (Month <> NewMonth) OR (Day <> NewDay) THEN
-                     SetDate (NewYear, NewMonth, NewDay);
-
-                 GetTime (Hour, Minute, Second, Sec100);
-
-                 IF (Hour <> NewHour) OR (Minute <> NewMinute) OR (Abs (Second - NewSecond) > 3) THEN
-                     SetTime (NewHour, NewMinute, NewSecond, 0);
-                 END;
-
-
-            END;  { of CASE MultiString [1] }
-
-        END
-
-    ELSE   { N6TR Network Mode }
-        BEGIN
-        MessageString [0] := MultiString [8];
-        Move (MultiString [10], MessageString [1], Ord (MultiString [8]));
-
-        ControlByte := Ord (MultiString [3]);
-
-        CASE ControlByte OF
-            MultiInformationMessage:
+            IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
                 BEGIN
-                Band := RemoveBand (MessageString);
-                Mode := RemoveMode (MessageString);
-                if ((Mode < Low(ModeType)) or (Mode > High(ModeType))) then
-                   Mode := NoMode;
-
-                IF MultiStatus [Band, Mode] = nil THEN New (MultiStatus [Band, Mode]);
-                MultiStatus [Band, Mode]^ := MessageString;
+                UpdateBandMapMultiplierStatus;
+                UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
                 END;
 
-            MultiTimeMessage:
+            END;
+
+        MultiConfigurationMessage:
+            BEGIN
+            FirstCommand := False;
+            ProcessConfigInstruction (MessageString, FirstCommand);
+
+            IF OpenFileForAppend (FileWrite, LogConfigFileName) THEN
                 BEGIN
-                Year   := RemoveFirstLongInteger (MessageString);
-                Month  := RemoveFirstLongInteger (MessageString);
-                Day    := RemoveFirstLongInteger (MessageString);
-                Hour   := RemoveFirstLongInteger (MessageString);
-                Minute := RemoveFirstLongInteger (MessageString);
-                Second := RemoveFirstLongInteger (MessageString);
-
-                SetTime (Hour, Minute, Second, 0);
-                SetDate (Year, Month, Day);
+                WriteLn (FileWrite, MessageString);
+                Close (FileWrite);
                 END;
+            END;
 
-            MultiBandMapMessage:
-                BEGIN
-                Call := RemoveFirstString (MessageString);
-                Freq := RemoveFirstLongInteger (MessageString);
-                QSX  := RemoveFirstLongInteger (MessageString);
-
-                Mode := ActiveMode;
-
-                CalculateBandMode (Freq, Band, Mode);
-
-                IF (Band <> NoBand) AND (Mode <> NoMode) THEN
-                    BEGIN
-                    Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
-
-                    IF NOT MultByBand THEN Band := All;
-                    IF NOT MultByMode THEN Mode := Both;
-
-                    VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
-                    Mult := MultString <> '';
-
-                    { SendToMulti = False }
-
-                    NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
-                    END;
-                END;
-
-            MultiTalkMessage:
-                BEGIN
-                MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
-                QuickDisplay (MessageString);
-                ReminderPostedCount := 60;
-
-                PushMultiMessageBuffer (MessageString);
-
-                IF IntercomFileOpen THEN
-                    WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
-                END;
-
-            MultiPacketReceivedMessage:
-                Packet.ProcessPacketMessageFromNetWork (MessageString);
-
-            MultiPacketMessageToSend:
-                IF ActivePacketPort <> nil THEN SendPacketMessage (MessageString);
-
-            MultiQSOData:
-                BEGIN
-                Call   := GetLogEntryCall      (MessageString);
-                Band   := GetLogEntryBand      (MessageString);
-                Mode   := GetLogEntryMode      (MessageString);
-                Points := GetLogEntryQSOPoints (MessageString);
-
-                CheckBand (Band);
-
-                NewMult := GetLogEntryMultString (MessageString) <> '';
-
-                IF SendQSOImmediately THEN
-                    TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
-                ELSE
-                    TBSIQ_PutContactIntoLogFile (MessageString);
-
-                Inc (NumberContactsThisMinute);
-                NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
-
-                IF ActiveWindow <> DupeSheetWindow THEN { no packet }
-                    BEGIN
-                    DisplayTotalScore (TotalScore);
-                    DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
-                    UpdateTotals;
-                    END;
-
-                DisplayTotalScore (TotalScore);
-                DisplayInsertMode (InsertMode);
-                DisplayNextQSONumber (QSONumberForThisQSO);
-
-                IF FloppyFileSaveFrequency > 0 THEN
-                    IF QSOTotals [All, Both] > 0 THEN
-                        IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
-                            SaveLogFileToFloppy;
-
-                IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
-
-                IF MultiUpdateMultDisplay AND NewMult THEN
-                    VisibleLog.ShowRemainingMultipliers;
-
-                IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
-                    BEGIN
-                    UpdateBandMapMultiplierStatus;
-                    UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
-                    END;
-
-                END;
-
-            MultiConfigurationMessage:
-                BEGIN
-                FirstCommand := False;
-                ProcessConfigInstruction (MessageString, FirstCommand);
-
-                IF OpenFileForAppend (FileWrite, LogConfigFileName) THEN
-                    BEGIN
-                    WriteLn (FileWrite, MessageString);
-                    Close (FileWrite);
-                    END;
-                END;
-
-            END;   { of case }
-        END;
+        END;   { of case }
     END;
 
 
@@ -2576,7 +2382,7 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             IF WindowString = 'UPDATEQSONR' THEN
                                 BEGIN
-                                QSONumberForThisQSO := GetNextQSONumber;   { from LOGEDIT }
+                                QSONumberForThisQSO := ReserveNextQSONumberLocal (Band);   { from LOGEDIT }
                                 QSONumberUnused := True;
                                 DisplayQSONumber;
                                 CallwindowString := '';
@@ -4617,7 +4423,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
     { Get the next QSO Number }
 
-    QSONumberForThisQSO := GetNextQSONumber;   { Comes from LOGWIND }
+    QSONumberForThisQSO := ReserveNextQSONumberLocal (Band);   { Comes from LOGWIND }
 
     DisplayQSONumber;
     QSONumberUnused := True;
@@ -7486,12 +7292,7 @@ VAR I: INTEGER;
         RData.Time       := Hours * 100 + Minutes;
         RData.Band       := Band;
         RData.Mode       := Mode;
-
-        IF QSONumberSent > 0 THEN
-            RData.NumberSent := QSONumberSent
-        ELSE
-            RData.NumberSent := TotalContacts + 1;
-
+        RData.NumberSent := QSONumberSent;
         RData.Frequency  := Freq;
 
         IF RData.Mode = PHONE THEN
@@ -7547,12 +7348,7 @@ VAR I: INTEGER;
     RData.Time       := Hours * 100 + Minutes;
     RData.Band       := Band;
     RData.Mode       := Mode;
-
-    IF QSONumberSent > 0 THEN
-        RData.NumberSent := QSONumberSent
-    ELSE
-        RData.NumberSent := TotalContacts + 1;
-
+    RData.NumberSent := QSONumberSent;
     RData.Frequency  := Freq;
 
     IF RData.RSTSent = '' THEN
@@ -7688,8 +7484,7 @@ VAR LogString: Str80;
 
 PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
 
-VAR TempString: STRING;
-    TempData: ContestExchange;
+VAR TempData: ContestExchange;
 
     BEGIN
     { Leveraged from LOGSUBS2.PAS }
@@ -7700,22 +7495,8 @@ VAR TempString: STRING;
 
         IF ((LogString <> '') AND NOT MultiMultsOnly) OR
            (GetLogEntryMultString (LogString) <> '') THEN
-               IF K1EANetworkEnable THEN
-                   BEGIN
-
-                   { Don't send notes }
-
-                   IF Copy (LogString, 1, 1) <> ';' THEN
-                       BEGIN
-                       TempString := ConvertN6TRLogStringToK1EANetworkFormat (LogString);
-                       SendMultiMessage (TempString);
-                       END;
-                   END
-               ELSE
-                   BEGIN
-                   SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                     $FF, MultiQSOData, LogString);
-                   END;
+               SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                 $FF, MultiQSOData, LogString);
         END;
 
 
@@ -7734,43 +7515,18 @@ VAR TempString: STRING;
         IF ParseExchangeIntoContestExchange (LogString, TempData) THEN
             BEGIN
             IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
-                BEGIN
                 IF (NOT MultiMultsOnly) OR
                    (GetLogEntryMultString (LogString) <> '') THEN
-                    IF K1EANetworkEnable THEN
-                        BEGIN
-
-                        { Don't send notes }
-
-                        IF Copy (LogString, 1, 1) <> ';' THEN
-                            BEGIN
-                            TempString := ConvertN6TRLogStringToK1EANetworkFormat (LogString);
-                            SendMultiMessage (TempString);
-                            END;
-                        END
-                    ELSE
-                        BEGIN
                         SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                           $FF, MultiQSOData, LogString);
-                        END;
             END
 
 
         ELSE  { QSO doesn't make sense - probably a note }
 
             IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
-                IF K1EANetworkEnable THEN
-                    BEGIN
-
-                    { I don't know how to do this on the K1EA network }
-
-                    END
-                ELSE
-                    BEGIN
                     SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                       $FF, MultiQSOData, LogString);
-                    END;
-            END;
         END;
 
     END;

@@ -703,7 +703,7 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     Exchange.Name             := '';
     Exchange.NameSent         := False;
     Exchange.NumberReceived   := -1;
-    Exchange.NumberSent       := -1;
+    Exchange.NumberSent       := -1;  { Means that we don't have one requested }
     Exchange.PostalCode       := '';
     Exchange.Power            := '';
     Exchange.Precedence       := NullCharacter;

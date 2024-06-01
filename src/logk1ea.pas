@@ -188,7 +188,6 @@ VAR ActiveDVKPort:     parallelportx;
     RadioTwoIcomFilterByte:      BYTE;
     RadioOneResponseTimeout: LONGINT;
     RadioTwoResponseTimeout: LONGINT;
-    K1EANetworkEnable: BOOLEAN;
 
     MultiPortBaudRate:      LONGINT;
     MultiReceiveCharBuffer: CharacterBuffer;
@@ -680,7 +679,7 @@ PROCEDURE SetRelayForActiveRadio (Radio: RadioType);
 
 PROCEDURE SendMultiMessage (Message: STRING);
 
-{ Works for both N6TR and K1EA Network modes and new in 2024 - UDP mode }
+{ Works for both N6TR and new in 2024 - UDP mode }
 
 VAR CharPointer: INTEGER;
 
@@ -700,21 +699,7 @@ VAR CharPointer: INTEGER;
         Exit;
         END;
 
-    { We are using the serial port for either N6TR or K1EA messages }
-
-    IF K1EANetworkEnable THEN
-        BEGIN
-        { We add the checksum and new line unless we already find
-        the new line there }
-
-        IF Message [Length (Message)] <> LineFeed THEN
-            BEGIN
-            AddK1EACheckSumToString (Message);
-            Message := Message + LineFeed;
-            END;
-        END
-    ELSE
-        Message := SlipMessage (Message);    { We use slip format for N6TR messages }
+    Message := SlipMessage (Message);    { We use slip format for N6TR messages }
 
     { If we don't have enough room for the message, we will have to
       wait until we do as we have no other choice.  }

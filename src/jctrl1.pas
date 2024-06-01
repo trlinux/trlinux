@@ -25,8 +25,8 @@ UNIT JCtrl1;
 INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
-     LogCfg, LogDom, LogDVP, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, K1EANet, N4OGW;
+     LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
+     SlowTree, LogWAE, LogPack, LogDDX, N4OGW;
 
 
 TYPE MenuEntryType = (NoMenuEntry,
@@ -49,7 +49,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       ASC,
                       AST,
                       ATI,
-                      BEN,
                       BAB,
                       BAM,
                       BCW,
@@ -86,7 +85,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       DVC,
                       DVK,
                       DVE,
-                      DVP,
                       EES,
                       EME,
                       FWE,
@@ -109,8 +107,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       IXO, {KK1L: 6.70}
                       IEC,
                       IFE,
-                      KNE,
-                      KSI,
                       KCM,
                       LDZ,
                       LZC,
@@ -126,6 +122,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MRM,
                       MIM,
                       MMO,
+                      MRQ,
                       MRT,
                       MUM,
                       MBA,
@@ -280,7 +277,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       AST: Description := 'AUTO SIDETONE CONTROL';
       ATI: Description := 'AUTO TIME INCREMENT';
 
-      BEN: Description := 'BACKCOPY ENABLE';
       BAB: Description := 'BAND MAP ALL BANDS';
       BAM: Description := 'BAND MAP ALL MODES';
       BCW: Description := 'BAND MAP CALL WINDOW ENABLE';
@@ -318,8 +314,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       DSE: Description := 'DUPE SHEET ENABLE';
       DVK: Description := 'DVK PORT';
       DVC: Description := 'DVK CONTROL KEY RECORD';
-      DVE: Description := 'DVP ENABLE';
-      DVP: Description := 'DVP PATH';
 
       EES: Description := 'ESCAPE EXITS SEARCH AND POUNCE';
       EME: Description := 'EXCHANGE MEMORY ENABLE';
@@ -348,8 +342,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       IXO: Description := 'INITIAL EXCHANGE OVERWRITE'; {KK1L: 6.70}
       IEC: Description := 'INITIAL EXCHANGE CURSOR POS';
 
-      KNE: Description := 'K1EA NETWORK ENABLE';
-      KSI: Description := 'K1EA STATION ID';
       KCM: Description := 'KEYPAD CW MEMORIES';
 
       LDZ: Description := 'LEADING ZEROS';
@@ -368,6 +360,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MRM: Description := 'MULT REPORT MINIMUM BANDS';
       MIM: Description := 'MULTI INFO MESSAGE';
       MMO: Description := 'MULTI MULTS ONLY';
+      MRQ: Description := 'MULTI REQUEST QSO NUMBER';
       MRT: Description := 'MULTI RETRY TIME';
       MUM: Description := 'MULTI UPDATE MULT DISPLAY';
       MBA: Description := 'MULTIPLE BANDS';
@@ -530,7 +523,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       AST: Write (AutoSidetoneControl);
       ATI: Write (AutoTimeIncrementQSOs);
 
-      BEN: Write (BackCopyEnable);
       BAB: Write (BandMapAllBands);
       BAM: Write (BandMapAllModes);
       {BMO: Write (BandMapMultsOnly); }{KK1L: 6.xx}
@@ -606,8 +598,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
             write(ActiveDVKPort.devname);
       end;
 
-      DVE: Write (DVPEnable);
-      DVP: Write (DVPPath);
       EES: Write (EscapeExitsSearchAndPounce);
       EME: Write (ExchangeMemoryEnable);
       FWE: Write (ActiveKeyer.GetFarnsworthEnable);
@@ -680,8 +670,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       IXO: Write (InitialExchangeOverwrite); {KK1L: 6.70}
 
-      KNE: Write (K1EANetworkEnable);
-      KSI: Write (K1EAStationID);
       KCM: Write (KeyPadCWMemories);
       LDZ: Write (LeadingZeros);
       LZC: Write (LeadingZeroCharacter);
@@ -697,6 +685,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MRM: Write (MultReportMinimumBands);
       MIM: Write (MultiInfoMessage);
       MMO: Write (MultiMultsOnly);
+      MRQ: Write (MultiRequestQSONumber);
       MRT: Write (MultiRetryTime);
       MUM: Write (MultiUpdateMultDisplay);
       MBA: Write (MultipleBandsEnabled);
@@ -1006,11 +995,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Auto time increment disabled');
 
-      BEN: IF BackCopyEnable THEN
-               Write ('DVP BackCopy is enabled')
-           ELSE
-               Write ('DVP BackCopy is disabled');
-
       BAB: IF BandMapAllBands THEN
                Write ('All bands shown on band map')
            ELSE
@@ -1179,18 +1163,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('DVK enabled on the port shown');
 
-      DVE: IF DVPEnable THEN
-           begin
-               Write ('DVP is enabled');
-               if not dvpsetup then dvpinit;
-           end
-           ELSE
-           begin
-               Write ('DVP is not enabled');
-           end;
-
-      DVP: Write ('DVP PATH = ');
-
       EES: IF EscapeExitsSearchAndPounce THEN
                Write ('ESCAPE key will exit S&P mode')
            ELSE
@@ -1312,13 +1284,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                AtEnd:   Write ('Cursor at end of initial exhange');
                END;
 
-      KNE: IF K1EANetworkEnable THEN
-               Write ('Use K1EA network protocol')
-           ELSE
-               Write ('Use N6TR network protocol');
-
-      KSI: Write ('Station ID used on K1EA network');
-
       KCM: IF KeyPadCWMemories THEN
                Write ('Numeric keypad sends CQ Ctrl-F1 to F10')
            ELSE
@@ -1378,6 +1343,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Only mult QSOs are passed to other stns')
            ELSE
                Write ('All QSOs are passed to other stns');
+
+      MRQ: IF MultiRequestQSONumber THEN
+               Write ('Request QSO numbers from other computer')
+           ELSE
+               Write ('Generate QSO numbers locally');
 
       MRT: Write ('Multi network retry time in seconds');
 

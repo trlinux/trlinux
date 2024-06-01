@@ -27,8 +27,8 @@ UNIT CfgCMD;
 INTERFACE
 
 USES SlowTree, Tree, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
-     LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
-     LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt, K1EANet,
+     LogGrid, LogDom, FContest, Country9, LogEdit, LogDDX,
+     LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt,
      N1MM, communication, linuxsound, N4OGW, LogUDP;
 
 
@@ -262,13 +262,6 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
-    IF ID = 'BACKCOPY ENABLE' THEN
-        BEGIN
-        BackCopyEnable := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions1 := True;
-        Exit;
-        END;
-
     IF ID = 'BAND' THEN
         BEGIN
         ActiveBand := NoBand;
@@ -395,7 +388,6 @@ VAR xResult, Speed, TempValue: INTEGER;
        BeepSoundCardEnable := UpCase (CMD [1]) = 'T';
        ProcessConfigInstructions1 := True;
        soundmode(0);
-       if not dvpsetup then beginsound;
        Exit;
        END;
 
@@ -941,7 +933,6 @@ VAR xResult, Speed, TempValue: INTEGER;
             SetEXMemoryString (Phone, AltF9,  '');
             SetEXMemoryString (Phone, AltF10, '');
 
-            DVPOn := True;
             END;
 
         ProcessConfigInstructions1 := (ActiveDVKPort <> nil) OR (CMD = 'NONE');
@@ -952,7 +943,6 @@ VAR xResult, Speed, TempValue: INTEGER;
         BEGIN
         DVKRadioEnable := UpCase (CMD [1]) = 'T';
         DVKEnable := DVKRadioEnable;
-        DVPOn := DVKEnable;
         ProcessConfigInstructions1 := True;
         Exit;
         END;
@@ -1061,21 +1051,6 @@ VAR xResult, Speed, TempValue: INTEGER;
         ProcessConfigInstructions1 := True;
         Exit;
         END;
-
-    IF ID = 'DVP ENABLE' THEN
-        BEGIN
-        DVPEnable := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions1 := True;
-        Exit;
-        END;
-
-    IF ID = 'DVP PATH' THEN
-        BEGIN
-        CfgDvpPath := CMD;
-        ProcessConfigInstructions1 := True;
-        Exit;
-        END;
-
 
     IF ID = 'EIGHT BIT PACKET PORT' THEN
         BEGIN
@@ -1731,20 +1706,6 @@ VAR xResult,tempint: INTEGER;
         END;
 
 
-    IF ID = 'K1EA NETWORK ENABLE' THEN
-        BEGIN
-        K1EANetworkEnable := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions2 := True;
-        Exit;
-        END;
-
-    IF ID = 'K1EA STATION ID' THEN
-        BEGIN
-        K1EAStationID := UpCase (CMD [1]);
-        ProcessConfigInstructions2 := True;
-        Exit;
-        END;
-
     IF ID = 'WINKEYER PORT' THEN
         BEGIN
         tempport := nil;
@@ -2191,6 +2152,13 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         Val (CMD, MultiPortBaudRate, xResult);
         ProcessConfigInstructions2 := (xResult = 0) AND (MultiPortBaudRate <= 4800);
+        Exit;
+        END;
+
+    IF ID = 'MULTI REQUEST QSO NUMBER' THEN
+        BEGIN
+        MultiRequestQSONumber := Upcase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
         Exit;
         END;
 

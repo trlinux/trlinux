@@ -56,6 +56,8 @@ TODO LIST
 
   - Serial number needs better way to start off if recording freqs
 
+  - If I change bands - how does the QSO number thing get updated if QSO# by band?
+
 NOTES FROM SSCW:
 
     > character in CW messages clears RIT on wrong radio
@@ -760,7 +762,7 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     LogCW, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      timer,LogSCP,datetimec,radio,KeyCode,TBSIQ_CW, foot;
 
 PROCEDURE TwoBandSIQ;

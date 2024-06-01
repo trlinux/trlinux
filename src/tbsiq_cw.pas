@@ -28,7 +28,7 @@ UNIT TBSIQ_CW;
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     timer,LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     timer,LogCW, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      keycode,jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb;
 
 

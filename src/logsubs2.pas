@@ -63,11 +63,8 @@ VAR TempStr1, TempStr2, TempString: Str80;
             END
         ELSE
             BEGIN
-            IF K1EANetworkEnable THEN
-                SendMultiMessage ('B' + K1EAStationID + ' ' + TempString)
-            ELSE
-                SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                  $FF, MultiPacketMessageToSend, TempString + CarriageReturn);
+            SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                              $FF, MultiPacketMessageToSend, TempString + CarriageReturn);
 
             QuickDisplay ('Sent to packet via network : ' + TempString);
             END;
@@ -285,7 +282,7 @@ PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80;
                                                       MyQSO: BOOLEAN);
 
 VAR RData: ContestExchange;
-    TempString: STRING;
+
 
     BEGIN
     { If this is a QSO made on this instance of the program - send it off to the network
@@ -297,22 +294,8 @@ VAR RData: ContestExchange;
 
         IF ((LogString <> '') AND NOT MultiMultsOnly) OR
            (GetLogEntryMultString (LogString) <> '') THEN
-               IF K1EANetworkEnable THEN
-                   BEGIN
-
-                   { Don't send notes }
-
-                   IF Copy (LogString, 1, 1) <> ';' THEN
-                       BEGIN
-                       TempString := ConvertN6TRLogStringToK1EANetworkFormat (LogString);
-                       SendMultiMessage (TempString);
-                       END;
-                   END
-               ELSE
-                   BEGIN
-                   SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                     $FF, MultiQSOData, LogString);
-                   END;
+               SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                 $FF, MultiQSOData, LogString);
         END;
 
     { We do this so people can see what we worked without it being in the editable window }
@@ -339,40 +322,16 @@ VAR RData: ContestExchange;
                 BEGIN
                 IF (NOT MultiMultsOnly) OR
                    (GetLogEntryMultString (LogString) <> '') THEN
-                    IF K1EANetworkEnable THEN
-                        BEGIN
-
-                        { Don't send notes }
-
-                        IF Copy (LogString, 1, 1) <> ';' THEN
-                            BEGIN
-                            TempString := ConvertN6TRLogStringToK1EANetworkFormat (LogString);
-                            SendMultiMessage (TempString);
-                            END;
-                        END
-                    ELSE
-                        BEGIN
-                        SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                          $FF, MultiQSOData, LogString);
-
-                        END;
+                       SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                         $FF, MultiQSOData, LogString);
                 END;
             END
 
         ELSE  { QSO doesn't make sense - probably a note }
 
             IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
-                IF K1EANetworkEnable THEN
-                    BEGIN
-
-                    { I don't know how to do this on the K1EA network }
-
-                    END
-                ELSE
-                    BEGIN
-                    SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                      $FF, MultiQSOData, LogString);
-                    END;
+                   SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                     $FF, MultiQSOData, LogString);
         END;
     END;
 
@@ -381,27 +340,13 @@ VAR RData: ContestExchange;
 PROCEDURE ProcessCallWindowCommand (Command: Str80);
 
 { This procedure gets called if a command in the call window was typed in
-  starting with a \ character. }
-
-VAR Freq: LONGINT;
-    TempString: Str80;
+  starting with a \ character.  This used to get used only to send pass
+  frequency information to the K1EA network - so there is nothing here
+  as of May 2024.  However, I will leave it here in case I come up for
+  a use for it someday. }
 
     BEGIN
-    Delete (Command, 1, 1);
-
-    IF (Command = 'PASSFREQ') AND K1EANetworkEnable THEN
-        BEGIN
-        Freq := QuickEditFreq ('Enter pass freq in kHz : ', 10);
-        Str (Freq, TempString);
-
-        { Make sure my display is updated }
-
-        UpdateK1EAStationInfo (Pass, K1EAStationID, TempString);
-
-        { Send to K1EA network }
-
-        SendMultiMessage ('G' + K1EAStationId + ' ' + TempString);
-        END;
+    Delete (Command, 1, 1);  { Remove the backslash }
     END;
 
 
@@ -427,365 +372,251 @@ VAR QSOCount: INTEGER;
 PROCEDURE CheckMultiState;
 
 VAR MultiString, MessageString: STRING;
-    ModeString, MultString, Call: CallString;
+    MultString, Call: CallString;
     Band: BandType;
     Mode: ModeType;
     Points: INTEGER;
     Freq, QSX: LONGINT;
+    ReturnedQSONumber, ReservedQSONumber: INTEGER;
+    MessageOriginator: BYTE;
     ControlByte: BYTE;
-    RXData: ContestExchange;
-    Year, Month, Day, DayOfWeek, Hour, Minute, Second, Sec100: WORD;
-    NewYear, NewMonth, NewDay, NewHour, NewMinute, NewSecond: WORD;
+    Year, Month, Day, Hour, Minute, Second: WORD;
     Dupe, Mult, FirstCommand, NewMult: BOOLEAN;
     FileWrite: TEXT;
-    SplitByte: BYTE;
 
     BEGIN
-    IF NOT K1EANetworkEnable THEN CheckForLostMultiMessages;
+    { K1EA network support removed in May 2024 }
 
     MultiString := GetMultiPortCommand;
-
     IF MultiString = '' THEN Exit;
 
-    IF K1EANetworkEnable THEN
-        BEGIN
+    { Save who sent this message in case we need to respond just to them }
 
-        { Message string to not have message type, source or checksum }
+    MessageOriginator := Ord (Multistring [1]);
 
-        MessageString := MultiString;
-        RemoveFirstString (MessageString);  { Delete message type & source }
-        Delete (MessageString, Length (MessageString), 1); { Delete checksum }
+    { Unpack the message }
 
-        CASE MultiString [1] OF
+    MessageString [0] := MultiString [8];
+    Move (MultiString [10], MessageString [1], Ord (MultiString [8]));
 
-            'B': Packet.ProcessPacketMessageFromNetWork (MessageString);
+    ControlByte := Ord (MultiString [3]);
 
-            'C': { Band map message }
+    CASE ControlByte OF
+        MultiInformationMessage:
+            BEGIN
+            Band := RemoveBand (MessageString);
+            Mode := RemoveMode (MessageString);
+            if ((Mode < Low(ModeType)) or (Mode > High(ModeType))) then
+               Mode := NoMode;
+
+            IF MultiStatus [Band, Mode] = nil THEN New (MultiStatus [Band, Mode]);
+            MultiStatus [Band, Mode]^ := MessageString;
+            END;
+
+        MultiTimeMessage:
+            BEGIN
+            Year   := RemoveFirstLongInteger (MessageString);
+            Month  := RemoveFirstLongInteger (MessageString);
+            Day    := RemoveFirstLongInteger (MessageString);
+            Hour   := RemoveFirstLongInteger (MessageString);
+            Minute := RemoveFirstLongInteger (MessageString);
+            Second := RemoveFirstLongInteger (MessageString);
+
+            SetTime (Hour, Minute, Second, 0);
+            SetDate (Year, Month, Day);
+            END;
+
+        MultiBandMapMessage:
+            BEGIN
+            Call := RemoveFirstString (MessageString);
+            Freq := RemoveFirstLongInteger (MessageString);
+            QSX  := RemoveFirstLongInteger (MessageString);
+
+            Mode := ActiveMode;
+
+            CalculateBandMode (Freq, Band, Mode);
+
+            IF (Band <> NoBand) AND (Mode <> NoMode) THEN { Added in 6.25 }
                 BEGIN
+                Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
 
-                { C1 599 Freq QSX UnixTime 0 band mode call * 0 1 0 0 }
+                { These didn't have the NOT in them until 6.36 }
 
-                RemoveFirstString (MultiString);  { C1 }
-                RemoveFirstString (MultiString);  { 599 }
+                IF NOT MultByBand THEN Band := All;
+                IF NOT MultByMode THEN Mode := Both;
 
-                Freq := RemoveFirstLongInteger (MultiString);
-                QSX  := RemoveFirstLongInteger (MultiString);
+                { Runtime 201 here when hitting F1s - probably on 160.
+                  Initialized Mode to Active mode before calling
+                  CalculateBandMode }
 
-                RemoveFirstString (MultiString);  { UnixTime }
-                SplitByte := RemoveFirstLongInteger (MultiString);  { 0 or 1 }
-                RemoveFirstString (MultiString);  { band }
+                VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
 
-                SplitByte := SplitByte AND $01;
-
-                IF SplitByte = 0 THEN QSX := 0;
-
-                ModeString := RemoveFirstString (MultiString);  { mode }
-
-                Call := RemoveFirstString (MultiString);
-
-                { Set mode to a safe value in case it can't be calculated }
-
-                IF ModeString = '1' THEN
-                    Mode := CW
-                ELSE
-                    Mode := Phone;
-
-                CalculateBandMode (Freq, Band, Mode);
-
-                IF (Band <> NoBand) AND (Mode <> NoMode) THEN { Added in 6.25 }
-                    BEGIN
-                    Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
-
-                    { These didn't have the NOT in them until 6.36 }
-
-                    IF NOT MultByBand THEN Band := All;
-                    IF NOT MultByMode THEN Mode := Both;
-
-                    { Runtime 201 here when hitting F1s - probably on 160.
-                      Initialized Mode to Active mode before calling
-                      CalculateBandMode }
-
-                    VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
-
-                    Mult := MultString <> '';
-
-                    { SendToMulti = False }
-
-                    NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
-                    END;
-
+                Mult := MultString <> '';
+                                                                { SendToMulti = False }
+                NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
                 END;
+            END;
 
-            'G': BEGIN  { Pass frequency information }
-                 UpdateK1EAStationInfo (Pass, MultiString [2], MessageString);
-                 END;
+        MultiTalkMessage:
+            BEGIN
+            MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
+            QuickDisplay (MessageString);
+            Tone.DoABeep (BeepCongrats);
+            ReminderPostedCount := 60;
 
-            'L', 'U':
-                BEGIN  { Log QSO }
-                MultiString := ConvertK1EANetworkLogMessageToN6TRLogString (MultiString);
-                ParseExchangeIntoContestExchange (MultiString, RXData);
+            PushMultiMessageBuffer (MessageString);
 
-               { These next steps are unique for K1EA network entries that
-                  have no QSO point information, multiplier information or
-                  even the sent QSO Number when they come in. }
+            IF IntercomFileOpen THEN
+                WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+            END;
 
-                LocateCall (RXData.Callsign, RXData.QTH, True);
-                IF DoingDXMults THEN GetDXQTH (RXData);
-                CalculateQSOPoints (RXData);
-                VisibleLog.ProcessMultipliers (RXData);
-                RXData.NumberSent := TotalContacts + 1;
+        MultiPacketReceivedMessage:
+            Packet.ProcessPacketMessageFromNetWork (MessageString);
 
-                { Need to convert RXData back to a N6TR Log Entry string }
+        MultiInstantQSOMessage:
+            BEGIN
+            MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
+            QuickDisplay (MessageString);
+            Tone.DoABeep (BeepCongrats);
+            ReminderPostedCount := 60;
 
-                MessageString := MakeLogString (RXData);
+            PushMultiMessageBuffer (MessageString);
 
-                { Now you can do everything that is normally done with a
-                  TR Log entry }
+            IF IntercomFileOpen THEN
+                WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+            END;
 
-                Call   := GetLogEntryCall      (MessageString);
-                Band   := GetLogEntryBand      (MessageString);
-                Mode   := GetLogEntryMode      (MessageString);
-                Points := GetLogEntryQSOPoints (MessageString);
+        MultiPacketMessageToSend:
+            IF ActivePacketPort <> nil THEN SendPacketMessage (MessageString);
 
-                CheckBand (Band);
+        MultiQSOData:
+            BEGIN
+            Call   := GetLogEntryCall      (MessageString);
+            Band   := GetLogEntryBand      (MessageString);
+            Mode   := GetLogEntryMode      (MessageString);
+            Points := GetLogEntryQSOPoints (MessageString);
 
-                NewMult := GetLogEntryMultString (MessageString) <> '';
+            CheckBand (Band);
 
-                IF SendQSOImmediately THEN
-                    PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
-                ELSE
-                    PutContactIntoLogFile (MessageString);
+            NewMult := GetLogEntryMultString (MessageString) <> '';
 
-                Inc (NumberContactsThisMinute);
-                NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
+            IF SendQSOImmediately THEN
+                PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
+            ELSE
+                PutContactIntoLogFile (MessageString);
 
-                IF ActiveWindow <> DupeSheetWindow THEN { no packet }
-                    BEGIN
-                    DisplayTotalScore (TotalScore);
-                    DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
-                    UpdateTotals;
-                    END;
+            Inc (NumberContactsThisMinute);
+            NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
 
+            IF ActiveWindow <> DupeSheetWindow THEN { no packet }
+                BEGIN
                 DisplayTotalScore (TotalScore);
-                DisplayInsertMode (InsertMode);
-
-                DisplayNextQSONumber (QSONumberForThisQSO);
-
-                IF FloppyFileSaveFrequency > 0 THEN
-                    IF QSOTotals [All, Both] > 0 THEN
-                        IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
-                            SaveLogFileToFloppy;
-
-                IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
-
-                IF MultiUpdateMultDisplay AND NewMult THEN
-                    VisibleLog.ShowRemainingMultipliers;
-
-                IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
-                    BEGIN
-                    UpdateBandMapMultiplierStatus;
-                    UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
-                    END;
-
+                UpdateTotals;
                 END;
 
-            'M': BEGIN  { Run frequency information }
-                 UpdateK1EAStationInfo (Run, MultiString [2], MessageString);
-                 END;
+            DisplayTotalScore (TotalScore);
+            DisplayInsertMode (InsertMode);
 
-            'T', 'P':   { Talk or pass message }
-                 BEGIN
-                 QuickDisplay (MessageString);
-                 Tone.DoABeep (BeepCongrats);
-                 ReminderPostedCount := 60;
+            { If we are getting QSO Numbers from the multi network, we don't display a
+              QSO numbers until we need them.  It could be that we are in the middle of
+              a QSo as well that doesn't need a new number yet. }
 
-                 PushMultiMessageBuffer (MessageString);
+            IF NOT MultiRequestQSONumber THEN
+                DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
-                 IF IntercomFileOpen THEN
-                     WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+            IF FloppyFileSaveFrequency > 0 THEN
+                IF QSOTotals [All, Both] > 0 THEN
+                    IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
+                        SaveLogFileToFloppy;
 
-                 END;
+            IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
 
-            'Y': BEGIN  { DOS time sync message }
-                 NewHour   := RemoveFirstLongInteger (MessageString);
-                 NewMinute := RemoveFirstLongInteger (MessageString);
-                 NewSecond := RemoveFirstLongInteger (MessageString);
-                 NewDay    := RemoveFirstLongInteger (MessageString);
-                 NewMonth  := RemoveFirstLongInteger (MessageString);
-                 NewYear   := RemoveFirstLongInteger (MessageString);
+            IF MultiUpdateMultDisplay AND NewMult THEN
+                VisibleLog.ShowRemainingMultipliers;
 
-                 GetDate (Year, Month, Day, DayOfWeek);
+            IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
+                BEGIN
+                UpdateBandMapMultiplierStatus;
+                UpdateBandMapDupeStatus (Call, Band, Mode, True);
+                END;
+            END;
 
-                 IF (Year <> NewYear) OR (Month <> NewMonth) OR (Day <> NewDay) THEN
-                     SetDate (NewYear, NewMonth, NewDay);
+        MultiConfigurationMessage:
+            BEGIN
+            FirstCommand := False;
+            ProcessConfigInstruction (MessageString, FirstCommand);
 
-                 GetTime (Hour, Minute, Second, Sec100);
+            IF OpenFileForAppend (FileWrite, LogConfigFileName) THEN
+                BEGIN
+                WriteLn (FileWrite, MessageString);
+                Close (FileWrite);
+                END;
+            END;
 
-                 IF (Hour <> NewHour) OR (Minute <> NewMinute) OR (Abs (Second - NewSecond) > 3) THEN
-                     SetTime (NewHour, NewMinute, NewSecond, 0);
-                 END;
+        { Someone asking for a QSO number.  We should only respond if we do not have
+          MultiRequestQSONumber = TRUE on this instance.  }
 
-
-            END;  { of CASE MultiString [1] }
-
-        END
-
-    ELSE   { N6TR Network Mode }
-        BEGIN
-        MessageString [0] := MultiString [8];
-        Move (MultiString [10], MessageString [1], Ord (MultiString [8]));
-
-        ControlByte := Ord (MultiString [3]);
-
-        CASE ControlByte OF
-            MultiInformationMessage:
+        MultiQSONumberRequest:
+            IF NOT MultiRequestQSONumber THEN  { Only respond if we are the "master" }
                 BEGIN
                 Band := RemoveBand (MessageString);
-                Mode := RemoveMode (MessageString);
-                if ((Mode < Low(ModeType)) or (Mode > High(ModeType))) then
-                   Mode := NoMode;
 
-                IF MultiStatus [Band, Mode] = nil THEN New (MultiStatus [Band, Mode]);
-                MultiStatus [Band, Mode]^ := MessageString;
-                END;
+                ReservedQSONumber := ReserveNextQSONumberLocal (Band);
+                Str (ReservedQSONumber, TempString);
 
-            MultiTimeMessage:
+                TempString := AddBand (Band) + TempString;
+
+                SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                  MessageOriginator,   { Send only to station requesting it }
+                                  MultiQSONumberResponse,
+                                  TempString);
+
+               QuickDisplay ('Sent QSO#' + TempString + ' to multi network.');
+               END;
+
+        MultiQSONumberResponse: { If we asked for it - we need to process it. }
+            BEGIN
+            QuickDisplay ('Entering MultiQSONumberResponse');
+
+            IF NOT WeAskedForAQSONumber THEN Exit;
+
+            QuickDisplay ('MultiQSONumberResponse = ' + MessageString);
+
+            { Get the band }
+
+            Band := RemoveBand (MessageString);
+
+            { We are just going to assume for now that the response is for us and not
+              check band or destinations or anything like that }
+
+            Val (MessageString, QSONumberFromNetwork);
+            WeAskedForAQSONumber := False;
+
+            { Update our local matrix so if someone calls GetNextQSONumber, they get
+              the right number }
+
+            QSONumberMatrix [Band] := QSONumberFromNetwork;
+
+            { So - now we are in the state of having QSONumberForThisQSO = 0 and
+              QSONumberFromNetwork > 0.  Somebody needs to notice that and
+              update the QSONumberForThisQSO.  I guess for now - I will do it
+              here and see if that is okay }
+
+            QSONumberForThisQSO := QSONumberFromNetwork;
+            END;
+
+        MultiQSONumberReturn: { Attempts to return an unused QSO number.  We don't care if it didn't work }
+            BEGIN
+            IF NOT MultiRequestQSONumber THEN
                 BEGIN
-                Year   := RemoveFirstLongInteger (MessageString);
-                Month  := RemoveFirstLongInteger (MessageString);
-                Day    := RemoveFirstLongInteger (MessageString);
-                Hour   := RemoveFirstLongInteger (MessageString);
-                Minute := RemoveFirstLongInteger (MessageString);
-                Second := RemoveFirstLongInteger (MessageString);
-
-                SetTime (Hour, Minute, Second, 0);
-                SetDate (Year, Month, Day);
+                Band := RemoveBand (MessageString);
+                Val (MessageString, ReturnedQSONumber);  { QSO number to return }
+                ReturnQSONumber (Band, ReturnedQSONumber);
                 END;
+            END;
 
-            MultiBandMapMessage:
-                BEGIN
-                Call := RemoveFirstString (MessageString);
-                Freq := RemoveFirstLongInteger (MessageString);
-                QSX  := RemoveFirstLongInteger (MessageString);
+        END; { of CASE }
 
-                Mode := ActiveMode;
-
-                CalculateBandMode (Freq, Band, Mode);
-
-                IF (Band <> NoBand) AND (Mode <> NoMode) THEN { Added in 6.25 }
-                    BEGIN
-                    Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
-
-                    { These didn't have the NOT in them until 6.36 }
-
-                    IF NOT MultByBand THEN Band := All;
-                    IF NOT MultByMode THEN Mode := Both;
-
-                    { Runtime 201 here when hitting F1s - probably on 160.
-                      Initialized Mode to Active mode before calling
-                      CalculateBandMode }
-
-                    VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
-
-                    Mult := MultString <> '';
-                                                                    { SendToMulti = False }
-                    NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
-                    END;
-                END;
-
-            MultiTalkMessage:
-                BEGIN
-                MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
-                QuickDisplay (MessageString);
-                Tone.DoABeep (BeepCongrats);
-                ReminderPostedCount := 60;
-
-                PushMultiMessageBuffer (MessageString);
-
-                IF IntercomFileOpen THEN
-                    WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
-                END;
-
-            MultiPacketReceivedMessage:
-                Packet.ProcessPacketMessageFromNetWork (MessageString);
-
-            MultiInstantQSOMessage:
-                BEGIN
-                MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
-                QuickDisplay (MessageString);
-                Tone.DoABeep (BeepCongrats);
-                ReminderPostedCount := 60;
-
-                PushMultiMessageBuffer (MessageString);
-
-                IF IntercomFileOpen THEN
-                    WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
-                END;
-
-            MultiPacketMessageToSend:
-                IF ActivePacketPort <> nil THEN SendPacketMessage (MessageString);
-
-            MultiQSOData:
-                BEGIN
-                Call   := GetLogEntryCall      (MessageString);
-                Band   := GetLogEntryBand      (MessageString);
-                Mode   := GetLogEntryMode      (MessageString);
-                Points := GetLogEntryQSOPoints (MessageString);
-
-                CheckBand (Band);
-
-                NewMult := GetLogEntryMultString (MessageString) <> '';
-
-                IF SendQSOImmediately THEN
-                    PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
-                ELSE
-                    PutContactIntoLogFile (MessageString);
-
-                Inc (NumberContactsThisMinute);
-                NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
-
-                IF ActiveWindow <> DupeSheetWindow THEN { no packet }
-                    BEGIN
-                    DisplayTotalScore (TotalScore);
-                    DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
-                    UpdateTotals;
-                    END;
-
-                DisplayTotalScore (TotalScore);
-                DisplayInsertMode (InsertMode);
-                DisplayNextQSONumber (QSONumberForThisQSO);
-
-                IF FloppyFileSaveFrequency > 0 THEN
-                    IF QSOTotals [All, Both] > 0 THEN
-                        IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
-                            SaveLogFileToFloppy;
-
-                IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
-
-                IF MultiUpdateMultDisplay AND NewMult THEN
-                    VisibleLog.ShowRemainingMultipliers;
-
-                IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
-                    BEGIN
-                    UpdateBandMapMultiplierStatus;
-                    UpdateBandMapDupeStatus (Call, Band, Mode, True);
-                    END;
-                END;
-
-            MultiConfigurationMessage:
-                BEGIN
-                FirstCommand := False;
-                ProcessConfigInstruction (MessageString, FirstCommand);
-
-                IF OpenFileForAppend (FileWrite, LogConfigFileName) THEN
-                    BEGIN
-                    WriteLn (FileWrite, MessageString);
-                    Close (FileWrite);
-                    END;
-                END;
-
-            END;   { of case }
-        END;
     END;
 
 
@@ -1046,7 +877,8 @@ PROCEDURE DeleteLastContact;
 
     { This maybe can be refined to reuse the serial number }
 
-    DisplayNextQSONumber (QSONumberForThisQSO);
+    IF NOT MultiRequestQSONumber THEN
+        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
     IF VisibleDupeSheetEnable THEN
         BEGIN
@@ -1054,39 +886,6 @@ PROCEDURE DeleteLastContact;
         VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
         END;
     END;
-
-
-
-PROCEDURE LogBackCopy (Seconds: INTEGER);
-
-VAR SecString, TempString: Str80;
-
-    BEGIN
-    Str (Seconds, SecString);
-    Str (TotalContacts + 1, TempString);
-
-    TempString := '; Backcopy made for QSO #' + TempString + ' at ' +
-                  GetTimeString + ' for ' + SecString + ' seconds.';
-
-    PushLogStringIntoEditableLogAndLogPopedQSO (TempString, True);
-    END;
-
-
-
-PROCEDURE PlayLastSeconds (Seconds: INTEGER);
-
-VAR FileRead: TEXT;
-
-    BEGIN
-    SaveBackCopyFile (DVPPath + 'TEMP.BCP', Seconds);
-    REPEAT millisleep UNTIL OpenFileForRead (FileRead, DVPPath + 'TEMP.BCP');
-    Wait (100);
-
-    Close (FileRead);
-
-    DVPListenMessage ('TEMP.BCP', True);
-    END;
-
 
 
 PROCEDURE ExitProgram;
@@ -1119,8 +918,6 @@ VAR TempString: Str160;
     TempString := QuickEditResponse ('Do you really want to exit the program? (Y/N) : ', 1);
     IF UpperCase (TempString) <> 'Y' THEN Exit;
 
-    IF BackCopyEnable THEN StopBackCopy;
-
     IF NetDebug THEN
         BEGIN
         Close (NetDebugBinaryOutput);
@@ -1137,8 +934,6 @@ VAR TempString: Str160;
     NormVideo;
     TextMode (OriginalTextMode);
     ClrScr;
-
-    IF DVPEnable THEN DVPUnInit;
 
     IF BandMapEnable THEN SaveBandMap;
 
@@ -1231,13 +1026,8 @@ VAR Key: CHAR;
                         SendChar (ActivePacketPort, Key)
                     ELSE
                         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
-                            BEGIN
-                            IF K1EANetworkEnable THEN
-                                SendMultiMessage ('B' + K1EAStationID + ' ' + CommandLine)
-                            ELSE
-                                SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF,
-                                                  MultiPacketMessageToSend , CommandLine);
-                            END;
+                            SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF,
+                                              MultiPacketMessageToSend , CommandLine);
 
                 RestorePreviousWindow;
 
@@ -1275,10 +1065,7 @@ VAR Key: CHAR;
                         BandUp;
                         END;
 
-                  AltD: IF K1EANetworkEnable THEN
-                            PassStationToCTNetwork
-                        ELSE
-                            DupeCheckOnInactiveRadio;
+                  AltD: DupeCheckOnInactiveRadio;
 
                   AltK: ToggleCW (True);
 
@@ -1369,13 +1156,8 @@ VAR Key: CHAR;
             IF Key = CarriageReturn THEN
                 BEGIN
                 IF (ActivePacketPort = nil) AND ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
-                    BEGIN
-                    IF K1EANetworkEnable THEN
-                        SendMultiMessage ('B' + K1EAStationID + ' ' + CommandLine)
-                    ELSE
-                        SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF,
-                                          MultiPacketMessageToSend , CommandLine);
-                    END;
+                    SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF,
+                                      MultiPacketMessageToSend , CommandLine);
 
                 CommandLine := '';
                 END;
@@ -1393,13 +1175,8 @@ VAR Key: CHAR;
             SendChar (ActivePacketPort, Key)
         ELSE
             IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
-                BEGIN
-                IF K1EANetworkEnable THEN
-                    SendMultiMessage ('B' + K1EAStationID + ' ' + CommandLine)
-                ELSE
-                    SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF,
-                                      MultiPacketMessageToSend , CommandLine);
-                END;
+                SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF,
+                                  MultiPacketMessageToSend , CommandLine);
 
     RestorePreviousWindow;
 
@@ -1440,10 +1217,7 @@ VAR Key: CHAR;
                               VisibleLog.SuperCheckPartial (CallWindowString, False, ActiveRadio);
                               {KK1L: 6.73 Added ActiveRadio}
 
-                    AltD: IF K1EANetworkEnable THEN
-                              PassStationToCTNetwork
-                          ELSE
-                              DupeCheckOnInactiveRadio;
+                    AltD: DupeCheckOnInactiveRadio;
 
                     AltE: BEGIN
                           RITEnable := False;
@@ -1455,7 +1229,8 @@ VAR Key: CHAR;
                           DisplayTotalScore (TotalScore);
                           DisplayInsertMode (InsertMode);
 
-                          DisplayNextQSONumber (QSONumberForThisQSO);
+                          IF NOT MultiRequestQSONumber THEN
+                              DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
                           IF VisibleDupeSheetEnable THEN
                               BEGIN
@@ -1643,11 +1418,10 @@ PROCEDURE AutoCQResume (SkipFirstMessage: BOOLEAN);
 
 VAR CQMemory, SendChar: CHAR;
     CharacterCount: INTEGER;
-    FileName, TempString: Str80;
+    TempString: Str80;
     QSONumberString: Str20;
     LastDisplayedTimeElasped, Count, TimeElasped: INTEGER;
     StartOfLastPhoneMessage: TimeRecord;
-    TimeOut: BYTE; {KK1L: 6.71b}
 
     BEGIN
     LastDisplayedTimeElasped := 0;
@@ -1719,65 +1493,15 @@ VAR CQMemory, SendChar: CHAR;
                 BEGIN
                 TempString := GetCQMemoryString (ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
 
-                {KK1L: 6.72 Pulled out the DVK code from the REPEAT...UNTIL. Can't tell end of DVK message}
-                {REPEAT }{KK1L: 6.71}
-                {    IF DVPEnable THEN}
-                {        BEGIN}
-                {        WHILE TempString <> '' DO}
-                {            BEGIN}
-                {            FileName := RemoveFirstString (TempString);}
-                {            GetRidOfPrecedingSpaces (FileName);}
-                {            IF NOT SkipFirstMessage THEN DVPPlayMessage (FileName);}
-                {            END;}
-                {        END}
-                {    ELSE}
-                {        IF (NOT SkipFirstMessage) AND (ActiveDVKPort <> NoPort) THEN} {KK1L: 6.71 added DVK check}
-                {            SendDVKMessage (TempString); }
-                { }
-                {    IF CheckNullKeys = EscapeKey THEN Exit;} {KK1L: 6.71a Check if key fell out of loop or escape}
-                { }
-                {    Wait (20); } {KK1L: 6.71}
-                {UNTIL NOT (DVPMessagePlaying OR DVKMessagePlaying); }{KK1L: 6.71 should start timer at END of message}
-
-                {KK1L: 6.72 Replaced above with this}
-                IF DVPEnable THEN
-                    REPEAT
-                        WHILE TempString <> '' DO
-                            BEGIN
-                            FileName := RemoveFirstString (TempString);
-                            GetRidOfPrecedingSpaces (FileName);
-                            IF NOT SkipFirstMessage THEN DVPPlayMessage (FileName);
-                            END;
-
-                        IF CheckNullKeys = EscapeKey THEN
-                            BEGIN
-                            IF DVPEnable AND DVPMessagePlaying THEN {KK1L: 6.71b Kill DVP}
-                                BEGIN
-                                TimeOut := 0;
-
-                                DVPStopPlayback;
-                                REPEAT
-                                    Wait (5);
-                                    Inc (TimeOut);
-                                UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 30);
-                                END;
-                            Exit;
-                            END;
-
-                    Wait (20);
-                    UNTIL NOT DVPMessagePlaying
+                IF (NOT SkipFirstMessage) AND DVKEnable THEN
+                    SendDVKMessage (TempString)
                 ELSE
-                    BEGIN
-                    IF (NOT SkipFirstMessage) AND DVKEnable THEN
-                        SendDVKMessage (TempString)
-                    ELSE
-                        FoundCommand(TempString);
+                    FoundCommand(TempString);
 
-                    IF CheckNullKeys = EscapeKey THEN
-                        BEGIN
-                        IF DVKEnable THEN StartDVK(0); {KK1L: 6.71b Kill DVK}
-                        Exit;
-                        END;
+                IF CheckNullKeys = EscapeKey THEN
+                    BEGIN
+                    IF DVKEnable THEN StartDVK(0); {KK1L: 6.71b Kill DVK}
+                    Exit;
                     END;
 
                 MarkTime (StartOfLastPhoneMessage); {KK1L: 6.72 Or End in the case of DVP}
@@ -1788,7 +1512,7 @@ VAR CQMemory, SendChar: CHAR;
             {KK1L: 6.68 From here to REPEAT added to put autoCQ in band map and send multi info message.}
             IF BandMapEnable AND (LastDisplayedFreq[RadioOne] <> 0) AND (OpMode = CQOpMode) AND BandMapDisplayCQ THEN
                 BEGIN
-                Str (TotalContacts + 1, QSONumberString);
+                Str (GetNextQSONumber (All), QSONumberString);
                 BandMapCursorFrequency := DisplayedFrequency;
                 NewBandMapEntry ('CQ/' + QSONumberString,
                                  DisplayedFrequency, 0, ActiveMode,
@@ -1881,11 +1605,7 @@ VAR Time: INTEGER;
         ClrScr;
 
         IF ActiveMode = Phone THEN
-            IF DVPEnable THEN {KK1L: 6.72 Now need to differentiate DVP and DVK}
-            {Write ('Number of seconds between start of transmissions : ')} {KK1L: 6.71 fixed this in AutoCQResume}
-                Write ('Number of seconds of listening time : ') {KK1L: 6.71 fixed this in AutoCQResume}
-            ELSE
-                Write ('Number of seconds between start of transmissions : ') {KK1L: 6.72}
+            Write ('Number of seconds between start of transmissions : ') {KK1L: 6.72}
         ELSE
             Write ('Number of seconds of listening time : ');
 
@@ -2028,12 +1748,6 @@ VAR Result: INTEGER;
             END;
         END;
 
-    { If we are doing QSO Numbers by band - we want to make sure we have the right number displayed
-      regardless of whom might have changed bands }
-
-    IF QSONumberByBand THEN
-        DisplayNextQSONumber (GetNextQSONumber);
-
     IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
 
     IF ActiveRTTYPort <> nil THEN CheckRTTY;
@@ -2073,6 +1787,42 @@ VAR Result: INTEGER;
             END;
         END;
 
+    { Let's see if we need to update the QSO Number display }
+
+    IF (QSONumberForThisQSO <> LastDisplayedQSONumber) OR (ActiveBand <> LastDisplayedQSONumberBand) THEN
+        BEGIN
+        { If the radio changed bands on its own - we need to manage the QSO number }
+
+        IF ActiveBand <> LastDisplayedQSONumberBand THEN
+            BEGIN
+            IF QSONumberForThisQSO > 0 THEN
+                ReturnQSONumber (LastDisplayedQSONumberBand, QSONumberForThisQSO);
+
+            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+            DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+            END;
+
+        DisplayQSONumber (QSONumberforthisQSO, ActiveBand);
+        END;
+
+    IF QSONumberByBand AND (ActiveBand <> LastDisplayedQSONumberBand) THEN
+        IF QSONumberForThisQSO > 0 THEN
+            BEGIN
+            ReturnQSONumber (LastDisplayedQSONumberBand, GetNextQSONumber (LastDisplayedQSONumberBand));
+            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+            DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+            END;
+
+    { Hack }
+
+    IF QSONumberForThisQSO <= 0 THEN
+        BEGIN
+        QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);;
+        END;
+
+
+
     IF (ActiveBand <> RememberBand) OR (ActiveMode <> RememberMode) THEN
         BEGIN
         UpdateTotals;
@@ -2096,6 +1846,7 @@ VAR Result: INTEGER;
 
         IF VisibleDupeSheetEnable THEN
             VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
+
         END;
 
     IF Debug OR ReadInLog THEN
@@ -2106,7 +1857,7 @@ VAR Result: INTEGER;
             Packet.CheckPacket;
             IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
             CWSTillBeingSent;
-        UNTIL (NOT CWStillBeingSent and  not dvpmessageplaying) OR NewKeyPressed;
+        UNTIL (NOT CWStillBeingSent) OR NewKeyPressed;
 
         IF NewKeyPressed THEN
             BEGIN
@@ -2176,24 +1927,13 @@ VAR Result: INTEGER;
     { Check dualing CQ state machine.  If it is active and a message
       has finished, do something }
 
-    IF (DualingCQState <> NoDualingCQs) AND NOT (CWStillBeingSent OR DVPMessagePlaying OR DVKMessagePlaying OR K3IsStillTalking) THEN
+    IF (DualingCQState <> NoDualingCQs) AND NOT (CWStillBeingSent OR DVKMessagePlaying OR K3IsStillTalking) THEN
         CASE DualingCQState OF
 
             DualSendingQSL, SendingDupeMessage:
                 BEGIN
                 SwapRadios;
                 SendCrypticMessage (GetCQMemoryString (ActiveMode, AltF1)); {KK1L: 6.73 Added mode}
-
-                IF (ActiveMode = Phone) AND DVPActive THEN
-                    BEGIN
-                    TimeOut := 0;
-
-                    REPEAT
-                        Wait (5);
-                        Inc (TimeOut);
-                    UNTIL DVPMessagePlaying OR (TimeOut > 60) OR DVKMessagePlaying;
-                    END;
-
                 DualingCQState := DualSendingCQ;
                 InactiveRigCallingCQ := False;
                 QuickDisplay ('Dualing CQ mode active.  Use Control-Dash to cancel');
@@ -2206,16 +1946,6 @@ VAR Result: INTEGER;
                      {KK1L: 6.73 Added mode}
                     SendCrypticMessage (ControlA + ControlB + GetCQMemoryString (ActiveMode, AltF2));
                     QuickDisplay ('Dualing CQ mode active.  Sending dummy CQ on inactive radio');
-
-                    IF (ActiveMode = Phone) AND DVPActive THEN
-                        BEGIN
-                        TimeOut := 0;
-
-                        REPEAT
-                            Wait (5);
-                            Inc (TimeOut);
-                        UNTIL DVPMessagePlaying OR (TimeOut > 60) OR DVKMessagePlaying;
-                        END;
                     END
                 ELSE
                     QuickDisplay ('Dualing CQ mode active.  No CQ found in AltF2 to send on inactive radio.');
@@ -2234,12 +1964,6 @@ VAR Result: INTEGER;
 
                     IF ActiveMode = Phone THEN
                         BEGIN
-                        IF DVPActive THEN
-                            REPEAT
-                                Wait (5);
-                                Inc (TimeOut);
-                            UNTIL DVPMessagePlaying OR (TimeOut > 60) OR DVKMessagePlaying;
-
                         IF ActiveRadio = RadioOne THEN
                             IF (Radio1Type = K3) OR (Radio1Type = K4) THEN
                                 REPEAT
@@ -2266,7 +1990,6 @@ VAR Result: INTEGER;
 
         IF (ActiveMode = Phone) THEN
             BEGIN
-            IF DVPActive AND NOT DVPMessagePlaying THEN SetUpToSendOnActiveRadio;
             IF DVKEnable AND NOT DVKMessagePlaying THEN SetUpToSendOnActiveRadio;
             END;
         END;
@@ -2751,7 +2474,7 @@ VAR FileName, CommandString: Str40;
                 BEGIN
                 Val (CommandString, TempInt);
                 SetSpeed (TempInt);
-                DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                 END
             ELSE
                 BEGIN
@@ -2762,7 +2485,7 @@ VAR FileName, CommandString: Str40;
                     IF CodeSpeed < 99 THEN
                         BEGIN
                         SetSpeed (CodeSpeed + 1);
-                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                         END;
                     END;
 
@@ -2773,7 +2496,7 @@ VAR FileName, CommandString: Str40;
                     IF CodeSpeed > 1 THEN
                         BEGIN
                         SetSpeed (CodeSpeed - 1);
-                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                         END;
                     END;
                 END;
@@ -3007,11 +2730,10 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
         REPEAT
             IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (MultiInfoMessage <> '') THEN
                 IF MicroTimeElapsed (MultiInfoMessageTimeout) > 10000 THEN
-                    IF NOT K1EANetworkEnable THEN
-                        BEGIN
-                        SendMultiInfoMessage (ActiveBand, ActiveMode, 'OpeRATor is asleep!');
-                        MarkTime (MultiInfoMessageTimeout);
-                        END;
+                    BEGIN
+                    SendMultiInfoMessage (ActiveBand, ActiveMode, 'OpeRATor is asleep!');
+                    MarkTime (MultiInfoMessageTimeout);
+                    END;
 
             { CheckEverything gives oxygen to many things - time/rate display, polling, etc }
 
@@ -3217,13 +2939,10 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                       IF Dest <> $FF THEN RemoveFirstString (TempString);
 
-                      IF K1EANetworkEnable THEN
-                          SendMultiMessage ('T' + K1EAStationID + '0 ' + TempString)
-                      ELSE
-                          SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                            Dest,
-                                            MultiTalkMessage,
-                                            TempString);
+                      SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                        Dest,
+                                        MultiTalkMessage,
+                                        TempString);
                       END;
 
                   RITEnable := True;
@@ -3261,7 +2980,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   END
               ELSE
                   IF ((ActiveMode = CW) AND CWStillBeingSent) OR
-                     ((ActiveMode = Phone) AND DVPEnable AND (DVPMessagePlaying OR DVKMessagePlaying)) OR
+                     ((ActiveMode = Phone) AND (DVKMessagePlaying)) OR
                      (ActiveMode = Phone) AND DVKEnable AND
                       DVKRecentlyStarted (400) THEN  { Within 4 seconds }
                           BEGIN
@@ -3272,20 +2991,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                               QuickDisplay ('ENTER a callsign.  SPACE for dupecheck.  Alt-H for help.');
                               END
                           ELSE
-                              IF DVPEnable AND DVPActive THEN
-                                  BEGIN
-                                  DVPStopPlayback;
-
-                                  TimeOut := 0;
-
-                                  IF ActiveMode = Phone THEN
-                                      REPEAT
-                                          Wait (5);
-                                          Inc (TimeOut);
-                                      UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 60);
-                                  END
-                              ELSE
-                                  SendDVKMessage('DVK0'); {Kills message}
+                              SendDVKMessage('DVK0'); {Kills message}
                           END
                       ELSE
                           BEGIN
@@ -3331,7 +3037,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
               IF CursorPosition <= Length (WindowString) THEN
                   GoToXY (CursorPosition + 1, WhereY);
 
-          ControlE: IF (MultiInfoMessage <> '') OR K1EANetworkEnable THEN
+          ControlE: IF MultiInfoMessage <> '' THEN
                         DisplayMultiMessages
                     ELSE
                         Exit;
@@ -3660,14 +3366,6 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                                    BEGIN
                                    TimeOut := 0;
 
-                                   IF DVPActive THEN
-                                       REPEAT
-                                           Wait (5);
-                                           Inc (TimeOut);
-                                       UNTIL DVPMessagePlaying OR (TimeOut > 60) OR DVKMessagePlaying;
-
-                                   { If we are using a K3 or K4 - we need to wait for the message to start }
-
                                    IF ActiveRadio = RadioOne THEN
                                        IF (Radio1Type = K3) OR (Radio1Type = K4) THEN
                                            REPEAT
@@ -3877,75 +3575,8 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
               ExtendedKeyChar := NewReadKey;
 
               CASE ExtendedKeyChar OF
-                  Alt1: IF BackCopyEnable THEN
-                            PlayLastSeconds (2)
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (1);
 
-                  Alt2: IF BackCopyEnable THEN
-                            PlayLastSeconds (3)
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (2);
-
-                  Alt3: IF BackCopyEnable THEN
-                            PlayLastSeconds (4)
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (3);
-
-                  Alt4: IF BackCopyEnable THEN
-                            PlayLastSeconds (8)
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (4);
-
-                  Alt5: IF BackCopyEnable THEN
-                            PlayLastSeconds (16)
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (5);
-
-                  Alt6: IF BackCopyEnable THEN
-                            BEGIN
-                            SaveBackCopy (TotalContacts + 1, 5);
-                            LogBackCopy (5);
-                            END
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (6);
-
-                  Alt7: IF BackCopyEnable THEN
-                            BEGIN
-                            SaveBackCopy (TotalContacts + 1, 10);
-                            LogBackCopy (10);
-                            END
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (7);
-
-                  Alt8: IF BackCopyEnable THEN
-                            BEGIN
-                            SaveBackCopy (TotalContacts + 1, 15);
-                            LogBackCopy (15);
-                            END
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (8);
-
-                  Alt9: IF BackCopyEnable THEN
-                            BEGIN
-                            SaveBackCopy (TotalContacts + 1, 20);
-                            LogBackCopy (20);
-                            END
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (9);
-
-                  Alt0: IF BackCopyEnable THEN
-                            BEGIN
-                            SaveBackCopy (TotalContacts + 1, 30);
-                            LogBackCopy (30);
-                            END
-                        ELSE
-                            IF IncrementTimeEnable THEN IncrementTime (10);
-
-                  AltEqual:
-                      IF (ActiveMode = Phone) AND DVPActive THEN
-                          ReviewBackCopyFiles
-                      ELSE
+                   AltEqual:
                           IF CWTone <> 0 THEN
                               BEGIN
                               OldCWTone := CWTone;
@@ -3982,10 +3613,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         BandUp;
                         END;
 
-                  AltD: IF K1EANetworkEnable THEN
-                            PassStationToCTNetwork
-                        ELSE
-                            DupeCheckOnInactiveRadio;
+                  AltD: DupeCheckOnInactiveRadio;
 
                   AltE: BEGIN
                         RITEnable := False;
@@ -3997,7 +3625,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                         DisplayTotalScore (TotalScore);
                         DisplayInsertMode (InsertMode);
 
-                        DisplayNextQSONumber (QSONumberForThisQSO);
+                        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
                         IF VisibleDupeSheetEnable THEN
                             BEGIN
@@ -4320,7 +3948,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                               DisplayTotalScore (TotalScore);
                               DisplayInsertMode (InsertMode);
 
-                              DisplayNextQSONumber (QSONumberForThisQSO);
+                              DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                               END
                           ELSE
                               Exit;
@@ -4686,9 +4314,7 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                 IF KeyRecentlyPressed (F1, 150) THEN  { 1.5 seconds }
                     BEGIN
                     IF ActiveMode = CW THEN
-                        FlushCWBufferAndClearPTT
-                    ELSE
-                        IF DVPActive THEN DVPStopPlayback;
+                        FlushCWBufferAndClearPTT;
 
                     KeyStamp (NullKey);
                     Exit;
@@ -4781,6 +4407,9 @@ VAR LogString: Str80;
     Address: INTEGER;
 
     BEGIN
+    RXData.NumberSent := QSONumberForThisQSO;
+    QSONumberForThisQSO := -1;
+
     RXData.TimeSeconds := GetTimeSeconds;    { Add seconds for better resolution for those who want it }
     RXData.Radio := ActiveRadio;
 
@@ -4877,17 +4506,10 @@ VAR LogString: Str80;
 
     IF Trace THEN Write ('*');
 
-    { Here is where we get the next QSO Number for the first QSO }
-
-    QSONumberForThisQSO := GetNextQSONumber;
-
     Inc (NumberContactsThisMinute);
     NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + RXData.QSOPoints;
 
     DisplayTotalScore (TotalScore);
-    DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
-
-    IF BeepEvery10QSOs AND (TotalContacts MOD 10 = 0) THEN QuickBeep;
 
     IF Trace THEN Write ('(');
 
@@ -4903,21 +4525,13 @@ VAR LogString: Str80;
     BeSilent := False;
     NameCallsignPutUp := '';
 
-    IF CheckLogFileSize THEN
-        IF NOT LogFileLooksOkay THEN
-            BEGIN
-            QuickDisplay ('LOG FILE SIZE CHECK FAILED!!!!');
-            Tone.DoABeep (Warning);
-            ReminderPostedCount := 60;
-            END;
-
     IF Trace THEN Write ('-');
 
     IF CWSpeedFromDataBase AND (RememberCWSpeed <> 0) THEN
         BEGIN
         SetSpeed (RememberCWSpeed);
         RememberCWSpeed := 0;
-        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
         END;
 
     IF (DDXState <> Off) AND Debug AND (CWTone = 0) THEN
@@ -4971,7 +4585,7 @@ VAR Hours, Minutes, Seconds, Hundreths: Word;
 
     WITH LastQSOLogged DO
         BEGIN
-        NumberSent := TotalContacts + 1;
+        NumberSent := GetNextQSONumber (ActiveBand);
         Band := ActiveBand;
         Mode := ActiveMode;
         Time := Hours * 100 + Minutes;
@@ -5370,9 +4984,6 @@ ControlEnterCommand1:
                                            END
                                        ELSE
                                            BEGIN
-                                           IF DVPEnable AND MessageEnable AND NOT BeSilent THEN
-                                               SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
-
                                            IF DVKEnable AND NOT BeSilent THEN
                                                {KK1L: 6.73 Added mode to GetExMemoryString}
                                                SendDVKMessage (GetEXMemoryString (ActiveMode, F1));
@@ -5458,11 +5069,11 @@ ControlEnterCommand1:
                                            ReceivedData) THEN
                             BEGIN
                             ReceivedData.SearchAndPounce := True;
-
                             LogContact (ReceivedData);
-
                             ShowStationInformation (ReceivedData.Callsign);
                             UpdateTotals;
+
+                            { We are done with this QSO number }
 
                             IF ReceivedData.DomesticMult OR
                                ReceivedData.DXMult OR
@@ -5481,6 +5092,12 @@ ControlEnterCommand1:
                             ExchangeWindowString := '';
                             ClearWindow (ExchangeWindow);
                             ResetSavedWindowListAndPutUpCallWindow;
+
+                            IF NOT MultiRequestQSONumber THEN
+                                BEGIN
+                                QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+                                DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                                END;
 
                             IF SprintQSYRule THEN
                                 QuickDisplay ('SPRINT QSY RULE!!!');
@@ -5503,7 +5120,6 @@ ControlEnterCommand1:
                                                      Mult,
                                                      BandMapDecayTime, True);
                                     END;
-
 
                             DDX (QSLMyExchange);
 
@@ -5705,10 +5321,12 @@ ControlEnterCommand2:
                         ReceivedData.SearchAndPounce := True;
 
                         LogContact (ReceivedData);
-
                         ShowStationInformation (ReceivedData.Callsign);
-
                         UpdateTotals;
+
+                        { We are done with the QSO Number }
+
+                        QSONumberForThisQSO := -1;
 
                         IF ReceivedData.DomesticMult OR
                            ReceivedData.DXMult OR
@@ -5724,6 +5342,12 @@ ControlEnterCommand2:
                         ExchangeWindowString := '';
                         RemoveWindow (ExchangeWindow);
                         ResetSavedWindowListAndPutUpCallWindow;
+
+                        IF NOT MultiRequestQSONumber THEN
+                            BEGIN
+                            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+                            DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                            END;
 
                         IF SprintQSYRule THEN
                             QuickDisplay ('SPRINT QSY RULE!!!');
@@ -5770,7 +5394,6 @@ PROCEDURE GetInitialCall;
 VAR Key, TempKey, ExtendedKey : CHAR;
     SearchAndPounceStatus, SpecialRadioSwap {, StationCalled}: BOOLEAN;
     EditingCallsignSent: BOOLEAN;
-    TimeOut: BYTE;
 
     BEGIN
     OpMode := CQOpMode;
@@ -5979,10 +5602,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                       BandUp;
                                       END;
 
-                                AltD: IF K1EANetworkEnable THEN
-                                          PassStationToCTNetwork
-                                      ELSE
-                                          DupeCheckOnInactiveRadio;
+                                AltD: DupeCheckOnInactiveRadio;
 
                                 AltG: SwapMultDisplay;
                                 AltK: ToggleCW (True);
@@ -6019,22 +5639,10 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                         EscapeKey:
                             BEGIN
                             IF ((ActiveMode = CW) AND CWStillBeingSent) OR
-                               ((ActiveMode = Phone) AND (DVPMessagePlaying OR DVKMessagePlaying)) THEN
+                               ((ActiveMode = Phone) AND (DVKMessagePlaying)) THEN
                                 BEGIN
                                 IF ActiveMode = CW THEN
-                                    FlushCWBufferAndClearPTT
-                                ELSE
-                                    IF DVPActive THEN
-                                        BEGIN
-                                        DVPStopPlayback;
-
-                                        TimeOut := 0;
-
-                                        REPEAT
-                                            Wait (5);
-                                            Inc (TimeOut);
-                                        UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 60);
-                                        END;
+                                    FlushCWBufferAndClearPTT;
                                 END
                             ELSE
                                 BEGIN
@@ -6096,22 +5704,10 @@ VAR Key, TempKey, ExtendedKey : CHAR;
             EscapeKey:
                 BEGIN
                 IF ((ActiveMode = CW) AND CWStillBeingSent) OR
-                   ((ActiveMode = Phone) AND (DVPMessagePlaying OR DVKMessagePlaying)) THEN
+                   ((ActiveMode = Phone) AND (DVKMessagePlaying)) THEN
                        BEGIN
                        IF ActiveMode = CW THEN
-                          FlushCWBufferAndClearPTT
-                       ELSE
-                          IF DVPActive THEN
-                              BEGIN
-                              DVPStopPlayback;
-
-                              TimeOut := 0;
-
-                              REPEAT
-                                  Wait (5);
-                                  Inc (TimeOut);
-                              UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 60);
-                          END;
+                          FlushCWBufferAndClearPTT;
                        END
                    ELSE
                        IF ActiveWindow = ExchangeWindow THEN
@@ -6154,7 +5750,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 IF (AltDDupeCheckDisplayedCall <> '') AND (CallWindowString = '') THEN
                     BEGIN
                     FlushCWBufferAndClearPTT;
-                    if dvpenable and dvpactive then dvpstopplayback;
                     if DVKEnable then senddvkmessage('DVK0');
 
                     IF (TwoRadioState = CallReady) THEN
@@ -6194,10 +5789,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                         REPEAT
                             PutUpExchangeWindow;
-
-                            DisplayNextQSONumber (QSONumberForThisQSO);
-
+                            DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                             ClearContestExchange (ReceivedData);
+                            QSONumberForthisQSO := -1;
                             ExchangeHasBeenSent := False;
                             SearchAndPounceStatus := SearchAndPounce;
                         UNTIL (NOT SearchAndPounceStatus) OR (TwoRadioState = SendingExchange);
@@ -6245,8 +5839,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                     REPEAT
                         PutUpExchangeWindow;
-                        DisplayNextQSONumber (QSONumberForThisQSO);
+                        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                         ClearContestExchange (ReceivedData);
+                        QSONumberForThisQSO := -1;
                         ExchangeHasBeenSent := False;
                     UNTIL NOT SearchAndPounce;
 
@@ -6288,10 +5883,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                     REPEAT
                         PutUpExchangeWindow;
-
-                        DisplayNextQSONumber (QSONumberForThisQSO);
-
+                        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                         ClearContestExchange (ReceivedData);
+                        QSONumberForThisQSO := -1;
                         ExchangeHasBeenSent := False;
                     UNTIL NOT SearchAndPounce;
 
@@ -6325,9 +5919,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 BEGIN
                 REPEAT
                     PutUpExchangeWindow;
-
-                    DisplayNextQSONumber (QSONumberForThisQSO);
-
+                    DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                     ClearContestExchange (ReceivedData);
                     ExchangeHasBeenSent := False;
                 UNTIL NOT SearchAndPounce;
@@ -6385,9 +5977,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                             REPEAT
                                 PutUpExchangeWindow;
-
-                                DisplayNextQSONumber (QSONumberForThisQSO);
-
+                                DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                                 ClearContestExchange (ReceivedData);
                                 ExchangeHasBeenSent := False;
                             UNTIL NOT SearchAndPounce;
@@ -6448,7 +6038,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
 
                             UpArrow: RestorePreviousWindow;
 
-//                            AltC: IF (ActiveMode = CW) OR DVKEnable OR DVPEnable THEN
                               AltC:
                                       BEGIN
                                       AutoCQResume (False);
@@ -6460,7 +6049,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                           END;
                                       END;
 
-//                            AltQ: IF (ActiveMode = CW) OR DVKEnable OR (DVPEnable) THEN
                               AltQ:
                                       BEGIN
                                       EscapeDeletedCallEntry := CallWindowString;
@@ -6496,7 +6084,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                     END
                 ELSE
                     IF Length (CallWindowString) = 0 THEN
-//                        IF (ActiveMode = CW) OR DVPEnable OR DVKEnable THEN
                         IF (true) THEN
                             BEGIN
                             InactiveRigCallingCQ := False;
@@ -6898,7 +6485,7 @@ ControlEnterCommand2:
     UNTIL FALSE;
     END;
 
-
+
 
 PROCEDURE OperateContest;
 
@@ -7058,15 +6645,19 @@ VAR MTotals: MultTotalArrayType;
         AddBandMapEntry ('TI9CF',  1840000,       0, Phone, False, False, 10);
         END;
 
-    IF SayHiEnable THEN
-        DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
-
     SetStereoPin (StereoControlPin, StereoPinState); {KK1L: 6.71}
     DisplayRadio (ActiveRadio);
     DisplayTotalScore (TotalScore);
     ClearContestExchange (ReceivedData);
     SetUpToSendOnActiveRadio;
-    QSONumberForThisQSO := GetNextQSONumber;
+
+    { We should get a QSO number up if we can }
+
+    IF NOT MultiRequestQSONumber THEN
+        BEGIN
+        QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+        END;
 
     REPEAT
         SeventyThreeMessageSent := False;
@@ -7235,6 +6826,17 @@ VAR MTotals: MultTotalArrayType;
 
         ELSE       { not a dupe or not AutoDupeEnable }
             BEGIN
+            { We need to get a serial number if we don't have one yet }
+
+            IF QSONumberForThisQSO = -1 THEN   { We need one }
+                BEGIN
+                QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+                DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                END;
+
+            { The QSONumberForThisQSO will either be real - or equal to zero
+              if we are waiting for the network to come back with one }
+
             IF MessageEnable AND NOT BeSilent THEN
                 IF NOT (Debug AND (CWTone = 0)) THEN
                     AddOnCQExchange;
@@ -7344,11 +6946,17 @@ VAR MTotals: MultTotalArrayType;
                         BEGIN
                         ReceivedData.SearchAndPounce := False;
                         LogContact (ReceivedData);
-                        END;
 
+                        IF NOT MultiRequestQSONumber THEN
+                            BEGIN
+                            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+                            DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                            END;
+
+                        END;
                     END;
                 END
-            ELSE
+            ELSE   { Not got exchange }
                 IF CWSpeedFromDatabase AND (RememberCWSpeed > 0) THEN
                     BEGIN
                     SetSpeed (RememberCWSpeed);
@@ -7357,6 +6965,4 @@ VAR MTotals: MultTotalArrayType;
             END;
     UNTIL False;
     END;
-
-
 

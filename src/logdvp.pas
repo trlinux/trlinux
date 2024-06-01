@@ -19,7 +19,7 @@
 //
 
 unit logdvp;
-{$mode objfpc}  
+{$mode objfpc}
 
 interface
 
@@ -35,7 +35,6 @@ var
     procedure stopbackcopy;
     procedure savebackcopy (qsonumber: integer; seconds: integer);
     procedure savebackcopyfile (filename: str40; seconds: integer);
-    function  dvpactive: boolean;
     procedure dvplistenmessage (filename: str80; usedvppath: boolean);
     procedure dvprecordmessage (filename: str80; onair: boolean);
     procedure dvpplaymessage (filename: str80);

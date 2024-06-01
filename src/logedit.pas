@@ -28,7 +28,7 @@ UNIT LogEdit;
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     LogCW, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      LogSCP,datetimec,radio,n4ogw;
 
 TYPE
@@ -146,8 +146,6 @@ PROCEDURE DisplayBandTotals (Band: BandType);
 
 PROCEDURE FlagDupesInList (Band: Bandtype; Mode: ModeType; VAR List: CallListRecord);
 
-FUNCTION  GetNextQSONumber: INTEGER;  { This works for both states of QSONumberByBand }
-
 PROCEDURE GoToLastCQFrequency;
 PROCEDURE GoToNextBandMapFrequency;
 PROCEDURE GoToNextDisplayedBandMapFrequency;
@@ -168,9 +166,6 @@ PROCEDURE SwapMultDisplay;
 
 PROCEDURE ToggleModes;
 PROCEDURE ToggleStereoPin; {KK1L: 6.71}
-FUNCTION  TotalContacts: INTEGER;
-FUNCTION  TotalCWContacts: INTEGER;
-FUNCTION  TotalPhoneContacts: INTEGER;
 FUNCTION  TotalScore: LONGINT;
 
 {KK1L: 6.64 Added to keep BM up to date with changes made while logging}
@@ -223,51 +218,7 @@ PROCEDURE SwapMultDisplay;
         END;
     END;
 
-
-
-
-FUNCTION TotalCWContacts: INTEGER;
-
-VAR Band: BandType;
-    Total: INTEGER;
-    TempQSOTotals: QSOTotalArray;
-
-    BEGIN
-    TempQSOTotals := QSOTotals;
-
-    VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
-
-    Total := 0;
-
-    FOR Band := Band160 TO Band10 DO
-        Total := Total + TempQSOTotals [Band, CW];
-
-    TotalCWContacts := Total;
-    END;
-
-
-
-
-FUNCTION TotalPhoneContacts: INTEGER;
-
-VAR Band: BandType;
-    Total: INTEGER;
-    TempQSOTotals: QSOTotalArray;
-
-    BEGIN
-    TempQSOTotals := QSOTotals;
-
-    VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
-
-    Total := 0;
-
-    FOR Band := Band160 TO Band10 DO
-        Total := Total + TempQSOTotals [Band, Phone];
-
-    TotalPhoneContacts := Total;
-    END;
-
-
+
 
 PROCEDURE Send88Message;
 
@@ -285,7 +236,7 @@ PROCEDURE CleanUpDisplay;
     RemoveWindow (NameSentWindow);
     RemoveWindow (PossibleCallWindow);
 
-    DisplayNextQSONumber (QSONumberForThisQSO);
+    DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
     DisplayBandMode      (ActiveBand, ActiveMode, False);
     DisplayFreeMemory;
@@ -294,7 +245,6 @@ PROCEDURE CleanUpDisplay;
         VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
 
     RemoveWindow (CountryNameWindow);
-    DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
     DisplayInsertMode (InsertMode);
 
     IF GridSquareListShown THEN VisibleLog.SetUpEditableLog;
@@ -303,27 +253,6 @@ PROCEDURE CleanUpDisplay;
     END;
 
 
-
-FUNCTION TotalContacts: INTEGER;
-
-{ This is the original function that generated the next QSO number.  It got ignored
-  for awhile after the new QSONumber methodology was introduced (mainly to support
-  TBSIQ).  However, it needs to be used in the special case when QSONumberByBand is
-  True, }
-
-VAR TempQSOTotals: QSOTotalArray;
-
-    BEGIN
-    TempQSOTotals := QSOTotals;
-    VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
-
-    IF QSONumberByBand THEN
-        TotalContacts := TempQSOTotals [ActiveBand, Both]
-    ELSE
-        TotalContacts := TempQSOTotals [All, Both];
-    END;
-
-
 
 PROCEDURE DisplayBandTotals (Band: BandType);
 
@@ -682,8 +611,12 @@ PROCEDURE UpdateTotals;
 
 PROCEDURE BandUp;
 
+VAR PreviousBand: BandType;
+
     BEGIN
-    IF (MultipleBandsEnabled) OR (TotalContacts = 0) THEN
+    PreviousBand := ActiveBand;
+
+    IF (MultipleBandsEnabled) OR (GetNextQSONumber (All) = 0) THEN
         BEGIN
         IF CommandUseInactiveRadio THEN {KK1L: 6.73 Band change on inactive radio via command}
             BEGIN
@@ -720,9 +653,6 @@ PROCEDURE BandUp;
 
             BandMapBand := ActiveBand;
             DisplayBandMap;
-
-            IF QSONumberByBand THEN
-                DisplayNextQSONumber (QSONumberForThisQSO);
             END;
         END;
     END;
@@ -730,8 +660,12 @@ PROCEDURE BandUp;
 
 PROCEDURE BandDown;
 
+VAR PreviousBand: BandType;
+
     BEGIN
-    IF (MultipleBandsEnabled) OR (TotalContacts = 0) THEN
+    PreviousBand := ActiveBand;
+
+    IF (MultipleBandsEnabled) OR (QSONumberForThisQSO = 0) THEN
         BEGIN
         IF CommandUseInactiveRadio THEN {KK1L: 6.73 Band change on inactive radio via command}
             BEGIN
@@ -768,10 +702,6 @@ PROCEDURE BandDown;
 
             BandMapBand := ActiveBand;
             DisplayBandMap;
-
-            IF QSONumberByBand THEN
-                DisplayNextQSONumber (QSONumberForThisQSO);
-
             END;
         END;
     END;
@@ -3855,7 +3785,7 @@ PROCEDURE DeleteLastContact;
 
     { Not sure yet about dealing with getting the QSO Number back }
 
-    DisplayNextQSONumber (QSONumberForThisQSO);
+    DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
     IF VisibleDupeSheetEnable THEN
         BEGIN
@@ -4029,7 +3959,7 @@ PROCEDURE ToggleStereoPin; {KK1L: 6.71}
 PROCEDURE ToggleModes;
 
     BEGIN
-    IF (MultipleModesEnabled) OR (TotalContacts = 0) THEN
+    IF (MultipleModesEnabled) OR (QSONumberForThisQSO = 0) THEN
         BEGIN
         IF (ActiveMode = Phone) AND (ActiveBand >= Band6) AND (NOT FMMode) THEN
             FMMode := True
@@ -4058,7 +3988,7 @@ PROCEDURE ToggleModes;
                          (ActiveBand <= Band10) OR (ActiveBand = Band30) OR
                          (ActiveBand = Band17) OR (ActiveBand = Band12));
 
-        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
 
         {KK1L: 6.73 This gets done in UpdateTimeAndRateDisplay. Only do if no radio connected.}
         IF (ActiveRadio = RadioOne) AND ((Radio1ControlPort = nil) OR (NOT PollRadioOne)) THEN
@@ -4079,30 +4009,6 @@ PROCEDURE ToggleModes;
         BandMapBand := ActiveBand;
         BandMapMode := ActiveMode; {KK1L: 6.68 BM now tracks mode with no radio connected on mode change}
         DisplayBandMap;
-        END;
-    END;
-
-
-
-FUNCTION GetNextQSONumber: INTEGER;
-
-VAR TempQSOTotals: QSOTotalArray;
-
-{ Returns next available serial number.  Note that this probably never should be called
-  without QSONumberByBand = True unless you are being very careful to store it away in
-  QSONumberForThisQSO since doing so will increment the NextQSONumbertoGiveOut. }
-
-    BEGIN
-    IF QSONumberByBand THEN
-        BEGIN
-        TempQSOTotals := QSOTotals;
-        VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
-        GetNextQSONumber := TempQSOTotals [ActiveBand, Both] + 1;
-        END
-    ELSE
-        BEGIN
-        GetNextQSONumber := NextQSONumberToGiveOut;
-        Inc (NextQSONumberToGiveOut);
         END;
     END;
 

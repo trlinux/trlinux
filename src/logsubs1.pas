@@ -18,6 +18,10 @@
 //<http://www.gnu.org/licenses/>.
 //
 
+{ Some stuff called from here but contained in LOGSUBS2 }
+
+PROCEDURE CheckMultiState; FORWARD;
+
 
 PROCEDURE PutUpCQMenu;
 
@@ -53,39 +57,12 @@ PROCEDURE PossibleCallCursorLeft;
     END;
 
 
-
-
-PROCEDURE SendCrypticDVPString (SendString: Str160);
-
-VAR FileName: Str80;
-    TimeOut: INTEGER;
-
-    BEGIN
-    IF (NOT DVPEnable) OR (NOT CWEnabled) THEN Exit;
-
-    WHILE SendString <> '' DO
-        BEGIN
-        FileName := RemoveFirstString (SendString);
-        GetRidOfPrecedingSpaces (FileName);
-        {QuickDisplay2('SendCrypticDVPString');}
-        DVPPlayMessage (FileName);
-        END;
-
-    Timeout := 0;
-
-    REPEAT
-        Inc (TimeOut);
-        Delay (2);
-    UNTIL DVPMessagePlaying OR (TimeOut > 100);
-    END;
-
-
 PROCEDURE SendCrypticDigitalStringToK3 (SendString: Str160);
 
 { Doesn't send the characters one by one.  }
 
 VAR StringPointer, QSONumber: INTEGER;
-    Result, Entry, Offset: INTEGER;
+    Result, Offset: INTEGER;
     SendChar, TempChar: CHAR;
     TempCall: CallString;
     TempString: Str80;
@@ -102,7 +79,27 @@ VAR StringPointer, QSONumber: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 QSONumber := QSONumberForThisQSO;
+                 IF QSONumberForThisQSO <= 0 THEN  { We don't have a QSO number yet }
+                     BEGIN
+                     QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+
+                     { If we are getting the QSO from the multi network, we will need to wait
+                       for it to show up before we can send it. }
+
+                     IF MultiRequestQSONumber THEN
+                         BEGIN
+                         REPEAT
+                             CheckMultiState;
+                             UpdateTimeAndRateDisplays (True, True);
+                         UNTIL QSONumberFromNetwork > 0;
+
+                         QSONumberForThisQSO := QSONumberFromNetwork;
+                         END;
+
+                     DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                     END;
+
+                 QSONumber := QSONumberForThisQSO;  { So the code below is unchanged }
 
                  IF TailEnding THEN Inc (QSONumber);
 
@@ -183,28 +180,6 @@ VAR StringPointer, QSONumber: INTEGER;
 
             ')': OutputString := OutputString + VisibleLog.LastCallsign;
 
-            '(': IF TotalContacts = 0 THEN
-                     BEGIN
-                     IF MyName <> '' THEN
-                         OutputString := OutputString + MyName
-                     ELSE
-                         OutputString := OutputString + MyPostalCode;
-                     END
-                 ELSE
-                     BEGIN
-                     TempString := '';
-                     Entry := 5;
-
-                     WHILE (TempString= '') AND (Entry > 0) DO
-                         BEGIN
-                         TempString := VisibleLog.LastName (Entry);
-                         Dec (Entry);
-                         END;
-
-                     OutputString := OutputString + TempString;
-                     END;
-
-
             ControlW: OutputString := OutputString + VisibleLog.LastName (4);
 
             ControlR: BEGIN
@@ -259,7 +234,7 @@ PROCEDURE SendCrypticDigitalString (SendString: Str160);
 
 VAR CharacterCount, QSONumber: INTEGER;
     cc: integer;
-    Result, Entry, Offset: INTEGER;
+    Result, Offset: INTEGER;
     Key, SendChar, TempChar: CHAR;
     TempCall: CallString;
     WarningSounded: BOOLEAN;
@@ -300,7 +275,27 @@ VAR CharacterCount, QSONumber: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 QSONumber := QSONumberForThisQSO;  { Get the # that was reserved }
+                 IF QSONumberForThisQSO <= 0 THEN  { We don't have a QSO number yet }
+                     BEGIN
+                     QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+
+                     { If we are getting the QSO from the multi network, we will need to wait
+                       for it to show up before we can send it. }
+
+                     IF MultiRequestQSONumber THEN
+                         BEGIN
+                         REPEAT
+                             CheckMultiState;
+                             UpdateTimeAndRateDisplays (True, True);
+                         UNTIL QSONumberFromNetwork > 0;
+
+                         QSONumberForThisQSO := QSONumberFromNetwork;
+                         END;
+
+                     DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                     END;
+
+                 QSONumber := QSONumberForThisQSO;  { So the code below is unchanged }
 
                  IF TailEnding THEN Inc (QSONumber);
 
@@ -448,28 +443,6 @@ VAR CharacterCount, QSONumber: INTEGER;
 
             ')': ContinueRTTYTransmission (VisibleLog.LastCallsign);
 
-            '(': IF TotalContacts = 0 THEN
-                     BEGIN
-                     IF MyName <> '' THEN
-                         ContinueRTTYTransmission (MyName)
-                     ELSE
-                         ContinueRTTYTransmission (MyPostalCode);
-                     END
-                 ELSE
-                     BEGIN
-                     TempString := '';
-                     Entry := 5;
-
-                     WHILE (TempString= '') AND (Entry > 0) DO
-                         BEGIN
-                         TempString := VisibleLog.LastName (Entry);
-                         Dec (Entry);
-                         END;
-
-                     ContinueRTTYTransmission (TempString);
-                     END;
-
-
             ControlW: ContinueRTTYTransmission (VisibleLog.LastName (4));
 
             ControlR: BEGIN
@@ -572,7 +545,7 @@ PROCEDURE SendCrypticCWString (SendString: Str160);
 
 VAR CharPointer, CharacterCount, QSONumber: INTEGER;
     cc: integer;
-    Result, Entry, Offset: INTEGER;
+    Result, Offset: INTEGER;
     Key, SendChar, TempChar: CHAR;
     CommandMode, WarningSounded: BOOLEAN;
     TempCall: CallString;
@@ -615,7 +588,27 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 QSONumber := TotalContacts + 1;
+                 IF QSONumberForThisQSO <= 0 THEN  { We don't have a QSO number yet }
+                     BEGIN
+                     QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+
+                     { If we are getting the QSO from the multi network, we will need to wait
+                       for it to show up before we can send it. }
+
+                     IF MultiRequestQSONumber THEN
+                         BEGIN
+                         REPEAT
+                             CheckMultiState;
+                             UpdateTimeAndRateDisplays (True, True);
+                         UNTIL QSONumberFromNetwork > 0;
+
+                         QSONumberForThisQSO := QSONumberFromNetwork;
+                         END;
+
+                     DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                     END;
+
+                 QSONumber := QSONumberForThisQSO;  { So the code below is unchanged }
 
                  IF TailEnding THEN Inc (QSONumber);
 
@@ -801,27 +794,6 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
 
             ')': AddStringToBuffer (VisibleLog.LastCallsign, CWTone);
 
-            '(': IF TotalContacts = 0 THEN
-                     BEGIN
-                     IF MyName <> '' THEN
-                         AddStringToBuffer (MyName, CWTone)
-                     ELSE
-                         AddStringToBuffer (MyPostalCode, CWTone);
-                     END
-                 ELSE
-                     BEGIN
-                     TempString := '';
-                     Entry := 5;
-
-                     WHILE (TempString= '') AND (Entry > 0) DO
-                         BEGIN
-                         TempString := VisibleLog.LastName (Entry);
-                         Dec (Entry);
-                         END;
-
-                     AddStringToBuffer (TempString, CWTone);
-                     END;
-
             ControlQ:   { Send frequency of other radio }
                 BEGIN
                 IF ActiveRadio = RadioOne THEN
@@ -887,21 +859,8 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
 
 PROCEDURE SendCrypticMessage (Message: Str160);
 
-VAR TimeOut: BYTE;
-
     BEGIN
     IF FoundCommand (Message) AND (Message = '') THEN Exit;
-
-    IF (ActiveMode = Phone) AND DVPEnable AND DVPMessagePlaying THEN
-        BEGIN
-        TimeOut := 0;
-
-        DVPStopPlayback;
-        REPEAT
-            Wait (5);
-            Inc (TimeOut);
-        UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 30);
-        END;
 
     InactiveRigCallingCQ := False;
 
@@ -942,15 +901,8 @@ VAR TimeOut: BYTE;
     CASE ActiveMode OF
         Phone:
             BEGIN
-            IF DVPEnable THEN
-                BEGIN
-                {DoABeep(Warning);}
-                {QuickDisplay2('Ready to SendCrypticDVPString');}
-                SendCrypticDVPString (Message);
-                END
-            ELSE
-                IF DVKEnable THEN
-                    SendDVKMessage (Message);
+            IF DVKEnable THEN
+                SendDVKMessage (Message);
             END;
 
         CW: SendCrypticCWString (Message);
@@ -961,10 +913,9 @@ VAR TimeOut: BYTE;
 
 PROCEDURE SendFunctionKeyMessage (Key: CHAR; OpMode: OpModeType);
 
-VAR FileName, QSONumberString: Str20;
+VAR QSONumberString: Str20;
     MessageKey: CHAR;
     Message: Str160;
-    TimeOut: BYTE;
 
     BEGIN
     IF ((Key >= F1)         AND (Key <= F10)) OR
@@ -978,7 +929,7 @@ VAR FileName, QSONumberString: Str20;
            BEGIN
            MessageKey := Key;
 
-           IF (ActiveMode = Phone) AND (DVPEnable OR DVKEnable) THEN
+           IF (ActiveMode = Phone) AND DVKEnable THEN
                IF (Key >= ControlF1) AND (Key <= ControlF10)
                    and dvkcontrolkeyrecord then
                    MessageKey := Chr (Ord (Key) - 35);
@@ -997,18 +948,6 @@ VAR FileName, QSONumberString: Str20;
 
            IF Message = '' THEN Exit;    { Nothing left }
 
-           IF (ActiveMode = Phone) AND DVPEnable AND DVPMessagePlaying THEN
-               BEGIN
-               TimeOut := 0;
-
-               DVPStopPlayback;
-
-               REPEAT
-                   Wait (5);
-                   Inc (TimeOut);
-               UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 30);
-               END;
-
            InactiveRigCallingCQ := False;
 
            SetUpToSendOnActiveRadio;
@@ -1016,7 +955,7 @@ VAR FileName, QSONumberString: Str20;
            IF ActiveMode = CW THEN
                BEGIN
                CWEnabled := True;
-               DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+               DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
 
                IF AllCWMessagesChainable THEN
                    BEGIN
@@ -1033,34 +972,6 @@ VAR FileName, QSONumberString: Str20;
                    IF Pos (ControlD, Message) = 0 THEN FlushCWBufferAndClearPTT;
                END;
 
-           { Special short cut way to program DVP }
-
-           IF (ActiveMode = Phone) AND DVPEnable AND (Key >= ControlF1) AND (Key <= ControlF10) THEN
-               BEGIN
-               IF OpMode = CQOpMode THEN
-                   BEGIN
-                   FileName := GetCQMemoryString (ActiveMode, Chr (Ord (Key) - 35)); {KK1L: 6.73 Added mode}
-
-                   WHILE Copy (FileName, 1, 1) < ControlZ DO
-                       Delete (FileName, 1, 1);
-
-                   QuickDisplay ('Recording DVP.  Press ESCAPE or RETURN to stop.');
-                   DVPRecordMessage (FileName, True)
-                   END
-               ELSE
-                   BEGIN
-                   {KK1L: 6.73 Added mode to GetEXMemoryString}
-                   FileName := GetEXMemoryString (ActiveMode, Chr (Ord (Key) - 35));
-
-                   WHILE Copy (FileName, 1, 1) < ControlZ DO
-                       Delete (FileName, 1, 1);
-
-                   QuickDisplay ('Recording DVP.  Press ESCAPE or RETURN to stop.');
-                   DVPRecordMessage (FileName, True);
-                   END;
-
-               Exit;
-               END;
 
            {QuickDisplay2('SendFunctionKeyMessage..1..2..3..4');}
 
@@ -1173,7 +1084,7 @@ VAR Name: Str20;
                     BEGIN
                     RememberCWSpeed := CodeSpeed;
                     SetSpeed (StationSpeed);
-                    DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                    DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                     END;
                 END;
 
@@ -1325,21 +1236,6 @@ VAR TimeOut: INTEGER;
         Exit;
         END;
 
-    { If a DVPMessage is playing - wait for it to end }
-
-    IF (ActiveMode = Phone) AND DVPMessagePlaying THEN
-        BEGIN
-        DVPStopPlayback;
-
-        TimeOut := 0;
-
-        REPEAT
-            Wait (5);
-            Inc (TimeOut)
-        UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 30);
-        END
-
-    ELSE
         IF (ActiveMode = Phone) AND DVKMessagePlaying THEN
             BEGIN
             SendDVKMessage('DVK0');
@@ -1368,7 +1264,20 @@ VAR TimeOut: INTEGER;
         InactiveRadio   := RadioOne;
         CodeSpeed       := SpeedMemory[RadioTwo];
         SetSpeed (CodeSpeed);
-        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
+
+        { If we have reserved a QSO number - try to give it back }
+
+        IF QSONumberByBand AND (BandMemory [RadioOne] <> BandMemory [RadioTwo]) THEN
+            BEGIN
+            IF QSONumberForThisQSO > 0 THEN
+                ReturnQSONumber (BandMemory [RadioOne], QSONumberForThisQSO);
+
+            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+            END;
+
+
+
         END
     ELSE
         BEGIN
@@ -1379,13 +1288,18 @@ VAR TimeOut: INTEGER;
         InactiveRadio   := RadioTwo;
         CodeSpeed       := SpeedMemory[RadioOne];
         SetSpeed (CodeSpeed);
-        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
+
+        { If we have reserved a QSO number - try to give it back }
+
+        IF QSONumberByBand AND (BandMemory [RadioOne] <> BandMemory [RadioTwo]) THEN
+            BEGIN
+            IF QSONumberForThisQSO > 0 THEN
+                ReturnQSONumber (BandMemory [RadioTwo], QSONumberForThisQSO);
+
+            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+            END;
         END;
-
-    { We need to update the QSO number sent displayed if QSONumberByBand }
-
-    IF QSONumberByBand THEN
-        DisplayNextQSONumber (99);
 
     { RX Audio affected before here }
 
@@ -1394,8 +1308,7 @@ VAR TimeOut: INTEGER;
     DisplayBandMode (ActiveBand, ActiveMode, False);
     UpdateTotals;
 
-    IF QSONumberByBand THEN
-        DisplayNextQSONumber (QSONumberForThisQSO);
+    DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
     IF MultByBand THEN
         BEGIN
@@ -1430,27 +1343,17 @@ VAR TimeOut: INTEGER;
         Exit;
         END;
 
-    IF (ActiveMode = Phone) AND DVPMessagePlaying THEN
+    IF (ActiveMode = Phone) AND DVKMessagePlaying THEN
         BEGIN
-        DVPStopPlayback;
+        SendDVKMessage('DVK0');
+
         TimeOut := 0;
+
         REPEAT
             Wait (5);
             Inc (TimeOut)
-        UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 30);
-        END
-    ELSE
-        IF (ActiveMode = Phone) AND DVKMessagePlaying THEN
-            BEGIN
-            SendDVKMessage('DVK0');
-
-            TimeOut := 0;
-
-            REPEAT
-                Wait (5);
-                Inc (TimeOut)
-            UNTIL (NOT DVKMessagePlaying) OR (TimeOut > 30);
-            END;
+        UNTIL (NOT DVKMessagePlaying) OR (TimeOut > 30);
+        END;
 
     IF ActiveMode = CW THEN FlushCWBufferAndClearPTT;
 
@@ -1506,14 +1409,14 @@ VAR TimeOut: INTEGER;
     } {KK1L: 6.71 Alread done for us in SetUpToSendOnActiveRadio}
 
     SetSpeed (CodeSpeed);
-    DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+    DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
     SetUpToSendOnActiveRadio;
     DisplayRadio (ActiveRadio);
     DisplayBandMode (ActiveBand, ActiveMode, False);
     UpdateTotals;
 
     IF QSONumberByBand THEN
-        DisplayNextQSONumber (QSONumberForThisQSO);
+        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
     IF MultByBand THEN
         BEGIN
@@ -1532,7 +1435,6 @@ VAR TimeOut: INTEGER;
 PROCEDURE CheckTwoRadioState (Action: TwoRadioAction);
 
 VAR Key: CHAR;
-    TimeOut: BYTE;
 
     BEGIN
     IF SingleRadioMode THEN
@@ -1580,16 +1482,10 @@ VAR Key: CHAR;
                         IF ActiveMode = Digital THEN
                             SendStringAndStop (CallWindowString + ' DE ' + MyCall + ' KK ')
                         ELSE
-                            IF DVPEnable THEN
-                                BEGIN
-                                SendCrypticMessage ('MYCALL.DVP');
-                                Wait (50);
-                                END
-                            ELSE
-                                IF DVKEnable THEN
-                                    {KK1L: 6.73 Added mode to GetEXMemoryString}
-                                    SendCrypticMessage (GetExMemoryString (ActiveMode, F1));
-//                                    SendDVKMessage (GetExMemoryString (ActiveMode, F1));
+                            IF DVKEnable THEN
+                                {KK1L: 6.73 Added mode to GetEXMemoryString}
+                                SendCrypticMessage (GetExMemoryString (ActiveMode, F1));
+//                              SendDVKMessage (GetExMemoryString (ActiveMode, F1));
 
                     TwoRadioState := StationCalled;
 
@@ -1599,7 +1495,7 @@ VAR Key: CHAR;
                       Radio }
 
                     {KK1L: 6.71 Added DoingDVK so DVKDelay is used too!}
-                    IF DVPEnable OR (ActiveMode = CW) OR DVKEnable THEN
+                    IF (ActiveMode = CW) OR DVKEnable THEN
                         BEGIN
                         REPEAT
                             IF KeyPressed THEN
@@ -1609,7 +1505,6 @@ VAR Key: CHAR;
                                 IF Key = EscapeKey THEN
                                     BEGIN
                                     FlushCWBufferAndClearPTT;
-                                    DVPStopPlayback;
 
                                     SwapRadios;  { Goes back to original display }
 
@@ -1646,7 +1541,7 @@ VAR Key: CHAR;
                             millisleep;
 
                         UNTIL (((ActiveMode = CW)    AND NOT CWStillBeingSent) OR
-                               ((ActiveMode = Phone) AND NOT (DVPMessagePlaying OR DVKMessagePlaying)));
+                               ((ActiveMode = Phone) AND NOT (DVKMessagePlaying)));
 
                         { Now launch a CQ on the "inactive" rig (which was
                           the one we were CQing on.  }
@@ -1657,18 +1552,6 @@ VAR Key: CHAR;
                             BEGIN
                             {KK1L: 6.73 Added mode to GetCQMemoryString}
                             SendCrypticMessage (ControlA + GetCQMemoryString (ModeMemory[InactiveRadio], AltF3));
-
-                            {IF DVPEnable AND (ActiveMode = Phone) AND DVPActive THEN}
-                            {KK1L: 6.73 Need to check mode of the inactive radio!!}
-                            IF DVPEnable AND (ModeMemory[InactiveRadio] = Phone) AND DVPActive THEN
-                                BEGIN
-                                Timeout := 0;
-
-                                REPEAT
-                                    Wait (5);
-                                    Inc (TimeOut);
-                                UNTIL DVPMessagePlaying OR (Timeout > 30);
-                                END;
                             END;
 
                         END;
@@ -1699,30 +1582,6 @@ VAR Key: CHAR;
                         END
                     ELSE
                         BEGIN
-                        IF DVPEnable AND DVPMessagePlaying THEN
-                            BEGIN
-                            TimeOut := 0;
-
-                            DVPStopPlayback;
-
-                            REPEAT
-                                Wait (5);
-                                Inc (TimeOut);
-                            UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 50);
-                            END;
-
-                        IF DVPEnable THEN
-                            BEGIN
-                            SendCrypticMessage ('MYCALL.DVP');
-
-                            TimeOut := 0;
-
-                            REPEAT
-                                Wait (5);
-                                Inc (TimeOut);
-                            UNTIL DVPMessagePlaying OR (TimeOut > 30);
-                            END;
-
                         IF DVKEnable THEN
                             {SendDVKMessage (GetEXMemoryString (F2));} {KK1L: 6.71 removed}
                             {KK1L: 6.73 Added mode to GetEXMemoryString}
@@ -1771,7 +1630,7 @@ VAR Key: CHAR;
 
                             millisleep;
                         UNTIL (((ActiveMode = CW)    AND NOT CWStillBeingSent) OR
-                               ((ActiveMode = Phone) AND NOT (DVPMessagePlaying OR DVKMessagePlaying)));
+                               ((ActiveMode = Phone) AND NOT (DVKMessagePlaying)));
 
                         {KK1L: 6.73 Added CalledFromCQMode}
                         {KK1L: 6.73 Added mode to GetCQMemoryString}
@@ -1779,16 +1638,6 @@ VAR Key: CHAR;
                             BEGIN
                             {KK1L: 6.73 Added mode to GetCQMemoryString}
                             SendCrypticMessage (ControlA + GetCQMemoryString (ModeMemory[InactiveRadio], AltF3));
-
-                            IF (ActiveMode = Phone) AND DVPActive THEN
-                                BEGIN
-                                TimeOut := 0;
-
-                                REPEAT
-                                    Wait (5);
-                                    Inc (TimeOut)
-                                UNTIL DVPMessagePlaying OR (TimeOut > 30);
-                                END;
                             END;
                         END;
 
@@ -1929,7 +1778,7 @@ VAR Key: CHAR;
                         millisleep;
 
                     UNTIL (((ActiveMode = CW)    AND NOT CWStillBeingSent) OR
-                           ((ActiveMode = Phone) AND NOT (DVPMessagePlaying OR DVKMessagePlaying)));
+                           ((ActiveMode = Phone) AND NOT (DVKMessagePlaying)));
                     END;
 
                 SwapRadios;  { Back to main radio band and mode }
@@ -1938,16 +1787,6 @@ VAR Key: CHAR;
                 IF (ControlBMemory = '') AND (OnDeckCall = '') AND (CalledFromCQMode) THEN
                     {KK1L: 6.73 Added mode to GetCQMemoryString}
                     SendCrypticMessage (GetCQMemoryString (ActiveMode, F1));  { Launch a real CQ }
-
-                IF DVPEnable AND (ActiveMode = Phone) AND DVPActive THEN
-                    BEGIN
-                    Timeout := 0;
-
-                    REPEAT
-                        Wait (5);
-                        Inc (TimeOut);
-                    UNTIL DVPMessagePlaying OR (Timeout > 30);
-                    END;
 
                 TwoRadioState := Idle;
                 END;

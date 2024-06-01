@@ -253,6 +253,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  ControlKeyPressed: BOOLEAN;
     FUNCTION  CopyWord (LongString: STRING; Index: INTEGER): Str80;
 
+    PROCEDURE DecodeBandModeString (BandModeString: STRING; VAR Band: BandType; VAR Mode: ModeType);
     PROCEDURE DecrementASCIIInteger (VAR ASCIIString: Str80);
     PROCEDURE DelayOrKeyPressed (DelayTime: INTEGER);
     FUNCTION  DeleteMult (VAR LogString: Str80; MultString: Str20): BOOLEAN;
@@ -708,6 +709,8 @@ FUNCTION  NUMBYTES (Call1: Pointer; Call2: Pointer): INTEGER;CDECL;EXTERNAL;
 
 FUNCTION AddBand (Band: BandType): CHAR;
 
+{ Adds a band byte to a multi message - use RemoveBand to get it back }
+
 VAR TempChar: CHAR;
 
     BEGIN
@@ -716,6 +719,8 @@ VAR TempChar: CHAR;
     END;
 
 FUNCTION AddMode (Mode: ModeType): CHAR;
+
+{ Adds a mode byte to a message - use RemoveMode to get it back }
 
 VAR TempChar: CHAR;
 
@@ -1257,6 +1262,29 @@ FUNCTION CopyWord (LongString: STRING; Index: INTEGER): Str80;
     Delete (LongString, 1, Index - 1);
 
     CopyWord := GetFirstString (LongString);
+    END;
+
+
+
+PROCEDURE DecodeBandModeString (BandModeString: STRING; VAR Band: BandType; VAR Mode: ModeType);
+
+{ Note - this only works for the six HF contest bands and shortcuts FM into Phone }
+
+    BEGIN
+    Band := NoBand;
+    Mode := NoMode;
+
+    IF StringHas (BandModeString, '160') THEN Band := Band160;
+    IF StringHas (BandModeString, '80')  THEN Band := Band80;
+    IF StringHas (BandModeString, '40')  THEN Band := Band40;
+    IF StringHas (BandModeString, '20')  THEN Band := Band20;
+    IF StringHas (BandModeString, '15')  THEN Band := Band15;
+    IF StringHas (BandModeString, '10')  THEN Band := Band10;
+
+    IF StringHas (BandModeString, 'FM') THEN Mode := Phone;
+    IF StringHas (BandModeString, 'CW') THEN Mode := CW;
+    IF StringHas (BandModeString, 'DIG') THEN Mode := Digital;
+    IF StringHas (BandModeString, 'SSB') THEN Mode := Phone;
     END;
 
 
@@ -3451,6 +3479,8 @@ VAR Position: INTEGER;
 
 FUNCTION RemoveBand (VAR LongString: STRING): BandType;
 
+{ Used to removed band from a multi message assuming it is the first byte }
+
 VAR TempByte: BYTE;
 
     BEGIN
@@ -3465,6 +3495,8 @@ VAR TempByte: BYTE;
 
 
 FUNCTION RemoveMode (VAR LongString: STRING): ModeType;
+
+{ Used to removed mode from a multi message assuming it is the first byte }
 
 VAR TempByte: BYTE;
 
@@ -3553,7 +3585,7 @@ VAR CharCount: INTEGER;
         END;
 
     FirstWordFound := False;
-    FirstWordCursor := 0;//Silence the uninitialize compiler note
+    FirstWordCursor := 0;        //Silence the uninitialize compiler note
 
     FOR CharCount := 1 TO Length (LongString) DO
         IF FirstWordFound THEN

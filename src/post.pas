@@ -22,6 +22,10 @@
 //<http://www.gnu.org/licenses/>.
 //
 
+// To make this file - use make -f Makefile.post and then to install it
+// use make -f Makefile.post install
+
+
 {$linklib curl}
 {$linklib X11}
 {$linklib c}

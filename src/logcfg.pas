@@ -25,7 +25,7 @@ UNIT LogCfg;
 INTERFACE
 
 USES trcrt, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
-     LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
+     LogGrid, LogDom, FContest, Country9, LogEdit, LogDDX,
      LogWAE, LogHP, LogPack, LogK1EA, DOS, LogHelp, LogProm, CfgCmd,
      SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound,N4OGW, N1MM;
 
@@ -190,17 +190,10 @@ VAR FileWrite: TEXT;
         BEGIN
         CodeSpeed := 99;
         CWTone := 0;
-        DVPEnable := False;
         AutoDupeEnableCQ := False;
         AutoDupeEnableSAndP := False;
         PollRadioOne := FALSE; {KK1L: 6.73}
         PollRadioTwo := FALSE; {KK1L: 6.73}
-        END;
-
-    IF DVPEnable THEN
-        BEGIN
-        WriteLn ('DVP Initialization in process...');
-        DVPInit;
         END;
 
     BandMemory [RadioOne] := ActiveBand;
@@ -486,7 +479,7 @@ VAR FileWrite: TEXT;
     IF FootSwitchMode = TBSIQSSB THEN
         ArdKeyer.FootSwitch2BSIQSSB;
 
-    DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+    DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
 
     {RadioOneSpeed := CodeSpeed;}
     {RadioTwoSpeed := CodeSpeed;}
@@ -728,6 +721,7 @@ PROCEDURE LookForCommands;
 VAR ParameterCount: INTEGER;
     LastPushedLogName: Str20; {KK1L: 6.71}
     TempString: Str40;
+    Key: CHAR;
 
     BEGIN
     PacketFile := False;
@@ -899,6 +893,17 @@ VAR ParameterCount: INTEGER;
             ReadInLog := True;
             ReadInLogFileName := ParamStr (ParameterCount + 1);
             Inc (ParameterCount);
+
+            REPEAT
+                Key := UpCase (GetKey ('Do you really want to read in ' + ReadInLogFilename + '? (Y/N) : '));
+                IF Key = EscapeKey THEN Halt;
+            UNTIL (Key = 'Y') OR (Key = 'N');
+
+            IF Key = 'N' THEN
+                BEGIN
+                ReadInLog := False;
+                ReadInLogFileName := '';
+                END;
             END;
 
         {KK1L: 6.71 Added as a multiplier and dupe check}

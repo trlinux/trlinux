@@ -90,7 +90,6 @@ PROCEDURE SetConfigurationDefaultValues;
     CallsignUpdateEnable    := False;
     CallWindowPosition      := NormalCallWindowPosition;
     CallWindowShowAllSpots  := False;
-    CFGDVPPath              := '';
     CheckLogFileSize        := False;
     CodeSpeed               := 35;
     ColumnDupeSheetEnable   := False;
@@ -101,15 +100,12 @@ PROCEDURE SetConfigurationDefaultValues;
     ContinentString         := '';
     CorrectedCallMessage    := '} OK %';
 
-    CorrectedCallPhoneMessage := 'CORCALL.DVP';
     CountDomesticCountries    := False;
     CountryInformationFile    := '';
     CountryString   := '';
     CQExchange          := '';
     CQExchangeNameKnown := '';
     CQMenu := 'F1/2-CQ F3-Ex F4-73 F5-Call F6-DECall F7-WkdB4 F8-Agn F9-? F10-Keyboard CW';
-    CQPhoneExchange := 'CQECXHNG.DVP';
-    CQPhoneExchangeNameKnown := 'CQEXNAME.DVP';
     CustomInitialExchangeString := '';
     CustomUserString            := '';
     CWEnable  := True;
@@ -126,8 +122,6 @@ PROCEDURE SetConfigurationDefaultValues;
     DoingColors             := False;
     DomesticQTHDataFileName := '';
     DupeCheckSound          := DupeCheckBeepIfDupe;
-    DVPEnable               := False;
-
 
     DVKEnable               := False;
     DVKRadioEnable          := False;
@@ -220,7 +214,6 @@ PROCEDURE SetConfigurationDefaultValues;
     InsertMode               := True;
     IntercomFileEnable       := False;
 
-    K1EANetworkEnable       := False;
     KeyPadCWMemories        := False;
 
     LeaveCursorInCallWindow := False;
@@ -242,6 +235,7 @@ PROCEDURE SetConfigurationDefaultValues;
     MultipleBandsEnabled   := True;
     MultipleModesEnabled   := True;
     MultiPortBaudRate      := 4800;
+    MultiRequestQSONumber  := False;
     MultiRetryTime         := 30;
     MultiUpdateMultDisplay := True;
     MultReportMinimumBands := 4;
@@ -310,9 +304,7 @@ PROCEDURE SetConfigurationDefaultValues;
     YcccKey.SetPTTEnable(True);
 
     QSLMessage             := '73 \ TEST';
-    QSLPhoneMessage        := 'QSL.DVP';
     QSOBeforeMessage       := ' SRI QSO B4 73 \ TEST';
-    QSOBeforePhoneMessage  := 'QSOB4.DVP';
     QTCMinutes             := False;
     QTCsEnabled            := False;
     QSONumberByBand        := False;
@@ -327,7 +319,6 @@ PROCEDURE SetConfigurationDefaultValues;
     QuickQSLKey2           := '=';
     QuickQSLMessage1       := 'TU';
     QuickQSLMessage2       := 'EE';
-    QuickQSLPhoneMessage   := 'QUICKQSL.DVP';
 
     Radio1BaudRate := 4800;
     Radio2BaudRate := 4800;
@@ -357,7 +348,6 @@ PROCEDURE SetConfigurationDefaultValues;
     RemainingMultDisplayMode := HiLight;
     RememberDDXCallsign := '';
     RepeatSearchAndPounceExchange := '';
-    RepeatSearchAndPouncePhoneExchange := 'RPTSPEX.DVP';
 
     RTTYReceiveString := ControlR;
     RTTYSendString    := ControlT;
@@ -370,7 +360,6 @@ PROCEDURE SetConfigurationDefaultValues;
     SCPMinimumLetters := 0;
 
     SearchAndPounceExchange      := '';
-    SearchAndPouncePhoneExchange := 'SAPEXCHG.DVP';
     SendAltDSpotsToPacket        := False;
     SendCompleteFourLetterCall   := False;
     SendQSOImmediately           := True;
@@ -389,39 +378,6 @@ PROCEDURE SetConfigurationDefaultValues;
     SetExMemoryString (CW, AltF1, 'UR CALL?');
     SetExMemoryString (CW, AltF2, 'AGN?');
     SetExMemoryString (CW, AltF10, 'IS UR CALL @?');
-
-    SetCQMemoryString (Phone, F1,  'CQF1.DVP');
-    SetCQMemoryString (Phone, F2,  'CQF2.DVP');
-    SetCQMemoryString (Phone, F3,  'CQF3.DVP');
-    SetCQMemoryString (Phone, F4,  'CQF4.DVP');
-    SetCQMemoryString (Phone, F5,  'CQF5.DVP');
-    SetCQMemoryString (Phone, F6,  'CQF6.DVP');
-    SetCQMemoryString (Phone, F7,  'CQF7.DVP');
-    SetCQMemoryString (Phone, F8,  'CQF8.DVP');
-    SetCQMemoryString (Phone, F9,  'CQF9.DVP');
-    SetCQMemoryString (Phone, F10, 'CQF10.DVP');
-
-    SetEXMemoryString (Phone, F1,  'MYCALL.DVP');
-    SetEXMemoryString (Phone, F2,  'EXF2.DVP');
-    SetEXMemoryString (Phone, F3,  'EXF3.DVP');
-    SetEXMemoryString (Phone, F4,  'EXF4.DVP');
-    SetEXMemoryString (Phone, F5,  'EXF5.DVP');
-    SetEXMemoryString (Phone, F6,  'EXF6.DVP');
-    SetEXMemoryString (Phone, F7,  'EXF7.DVP');
-    SetEXMemoryString (Phone, F8,  'EXF8.DVP');
-    SetEXMemoryString (Phone, F9,  'EXF9.DVP');
-    SetEXMemoryString (Phone, F10, 'EXF10.DVP');
-
-    SetEXMemoryString (Phone, AltF1,  'ALTEXF1.DVP');
-    SetEXMemoryString (Phone, AltF2,  'ALTEXF2.DVP');
-    SetEXMemoryString (Phone, AltF3,  'ALTEXF3.DVP');
-    SetEXMemoryString (Phone, AltF4,  'ALTEXF4.DVP');
-    SetEXMemoryString (Phone, AltF5,  'ALTEXF5.DVP');
-    SetEXMemoryString (Phone, AltF6,  'ALTEXF6.DVP');
-    SetEXMemoryString (Phone, AltF7,  'ALTEXF7.DVP');
-    SetEXMemoryString (Phone, AltF8,  'ALTEXF8.DVP');
-    SetEXMemoryString (Phone, AltF9,  'ALTEXF9.DVP');
-    SetEXMemoryString (Phone, AltF10, 'ALTEXF10.DVP');
 
     Sheet.DupeSheetEnable := True;
 
@@ -474,7 +430,6 @@ PROCEDURE SetConfigurationDefaultValues;
     TabMode         := NormalTabMode;
     TailEndKey      := ']';
     TailEndMessage  := 'R';
-    TailEndPhoneMessage := 'TAILEND.DVP';
     TenMinuteRule   := NoTenMinuteRule;
     CPUKeyer.SetTuneWithDits(False);
     Winkey.SetTuneWithDits(False);

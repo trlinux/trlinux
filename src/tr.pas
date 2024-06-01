@@ -43,10 +43,45 @@ TODO List after 2023 WPX CW:
 
  - Bandmap is challenged indicating mult status of portable callsigns (prefix)
  - Some bandmap confusion on which band is dispayed with TBSIQ
- - Update whole bandmap when any QSO made - am seeing lots of calls not disappearing
+   grep  - Update whole bandmap when any QSO made - am seeing lots of calls not disappearing
    when they are now dupes.
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
+
+23-May-2024
+ - Discovered I broke the bandmap on 1-May and reverted back to a LOGWIND.PAS that was
+   committed before that.  Then merged the new QSO number stuff into that file and it
+   seems to be okay now.  Saved a copy of the bad logwind file to inspect after WPX CW.
+   It's brokenbandmap.pas or something like that.
+
+22-May-2024
+ - Added support to pull QSO numbers over the network from a "master" computer.  To enable
+   this - you need to set MULTI REQUEST QSO NUMBER = TRUE on the slave computers.  When you
+   enable this - QSO numbers will only be reserved when you need them.  This basically
+   means you won't see the QSO number until your exchange window comes up.  Note that there
+   could be a delay to this if the computer giving out the QSO numbers is busy or down.
+
+   This is mostly intended for non 2BSIQ applications - but will hopefully work in that
+   mode as well at some point.
+
+ - Removed display of name percentage - just not worth trying to figure out the right
+   denomintor with the changes to QSO numbers.
+
+ - Removed DVP support.  Some risk that I affected DVK support which I tried to leave in.
+
+19-May-2024
+ - Decided to remove any support for the K1EA network.  This was pretty much used one
+   time and not for 20 years.
+
+17-May-2024
+ - Added MULTI REQUEST QSO NUMBER.  This will force a program to request QSO numbers from
+   a TR networked computer when it needs one.  If there are multiple computers on the network,
+   you should set up all computers but one to have MULTI REQUEST QSO NUMBER = TRUE.  This
+   will result in only one computer supplying QSO numbers.  The QSO number will be requested
+   when the exchange window becomes active (or the $ character is found in a CW message).  The
+   instance getting the QSO number should make every effort to use that QSO number eventually
+   in case the first QSO is somehow aborted.  There is no mechanism to "return" a QSO number.
+   It will just be skipped in the log if not eventually used.
 
 1-May-2024
  - Some clean up on Bandmap display stuff.  Tried to make sure that the dupe display
@@ -3884,7 +3919,6 @@ Uses
      LogDom,
      LogDupe,
      LogDDX,
-     LogDVP,
      LogEdit,
      LogGrid,
      LogHelp,
@@ -3910,7 +3944,6 @@ Uses
      memlinux,
      linuxsound,
      timer,
-     K1EANet,
      datetimec,
      beep,
      foot,
@@ -3946,13 +3979,13 @@ TYPE QTCActionType = (NoQTCAction, AbortThisQTC, SaveThisQTC);
 
 VAR TempString: Str20;
 
+{ Some stuff called from here but contained in LOGSUBS2 }
+
 PROCEDURE LogLastCall; FORWARD;
 PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR); FORWARD;
 FUNCTION  FoundCommand (VAR SendString: Str160): BOOLEAN; FORWARD;
 
 {$I LogSubs1}
-
-
 
 FUNCTION ParametersOkay (Call: CallString;
                          ExchangeString: Str80;
@@ -4040,7 +4073,6 @@ VAR I: INTEGER;
         RData.Time       := Hours * 100 + Minutes;
         RData.Band       := Band;
         RData.Mode       := Mode;
-        RData.NumberSent := TotalContacts + 1;
         RData.Frequency  := Freq;
 
         IF ActiveMode = PHONE THEN
@@ -4095,7 +4127,6 @@ VAR I: INTEGER;
     RData.Time       := Hours * 100 + Minutes;
     RData.Band       := Band;
     RData.Mode       := Mode;
-    RData.NumberSent := TotalContacts + 1;
     RData.Frequency  := Freq;
 
     IF RData.RSTSent = '' THEN
