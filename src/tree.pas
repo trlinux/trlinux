@@ -5004,15 +5004,10 @@ VAR SocketAddr: TINetSockAddr;
 
     BEGIN
     Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
     SocketAddr.sin_family := AF_INET;
     SocketAddr.sin_port := htons (PortNumber);
     SocketAddr.sin_addr := StrToNetAddr (IPAddress);
-
     ConnectResult := fpConnect (Socket, @SocketAddr, SizeOf (SocketAddr));
-
-    WriteLn ('Connect result from fpBind is ', ConnectResult);
-
     OpenUDPPortForOutput := ConnectResult = 0;
     END;
 

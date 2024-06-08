@@ -307,7 +307,9 @@ PROCEDURE SetConfigurationDefaultValues;
     QSOBeforeMessage       := ' SRI QSO B4 73 \ TEST';
     QTCMinutes             := False;
     QTCsEnabled            := False;
-    QSONumberByBand        := False;
+
+    QNumber.QSONumberByBand := False;
+
     QSOPointsDomesticCW    := -1;
     QSOPointsDomesticPhone := -1;
     QSOPointsDXCW          := -1;

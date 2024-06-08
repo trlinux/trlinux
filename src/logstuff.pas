@@ -104,7 +104,7 @@ INTERFACE
 
 USES Dos, Printer, Tree, Country9, ZoneCont, LogSCP, trCrt, LogWind, LogCW,
      LogDupe, LogGrid, LogHelp, LogK1EA, LogDom, SlowTree,
-     n4ogw, datetimec,radio, Sockets, BaseUnix;
+     n4ogw, datetimec,radio, Sockets, BaseUnix, LogQSONr;
 
 CONST
     LongLogFileName = 'LONGLOG.DAT';
@@ -127,6 +127,8 @@ CONST
     MultiQSONumberRequest      = 11; { Request next QSO number.  Includes band/mode }
     MultiQSONumberResponse     = 12; { Response to above request.  Includes band/mode }
     MultiQSONumberReturn       = 13; { Attempts to return an unused QSO number }
+    MultiPingRequest           = 14;
+    MultiPingResponse          = 15;
 
     DefaultTimeToLive = 30;
     LookForDupes = True;
@@ -369,8 +371,8 @@ VAR
 
     QSONumberForThisQSO: INTEGER;   { Used for classic mode QSOs }
     QSONumberFromNetwork: INTEGER;  { Loop on this if waiting for a QSO number.  =0 means nothing yet }
+    QSONumberFromNetworkTImeStamp: TimeRecord;  { Marks time when request was made }
 
-    QSONumberByBand: BOOLEAN;
     QSXEnable:       BOOLEAN;
 
     QuickQSL:     QuickQSLKeyType;   { to indicate a quick QSL is desired }
@@ -557,7 +559,7 @@ VAR
     PROCEDURE RandomCharsSentAndReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE RandomCharsSentAndReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    FUNCTION  ReserveNextQSONumber (Band: BandType): INTEGER;
+    FUNCTION  ReserveNewQSONumber (Band: BandType): INTEGER;
     FUNCTION  ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
 
     PROCEDURE RSTReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
@@ -728,7 +730,6 @@ PROCEDURE BandChange (VAR ActiveBand: BandType;
                              (BandMemory [RadioTwo] = ActiveBand)) THEN
                                  BandChange (ActiveBand, Direction);
       END;
-
 
     IF ((ActiveRadio = RadioOne) AND (Radio1Type <> NoInterfacedRadio)) OR
        ((ActiveRadio = RadioTwo) AND (Radio2Type <> NoInterfacedRadio)) THEN
@@ -7004,28 +7005,35 @@ VAR Call, FrequencyString: STRING;
 
 
 
-FUNCTION ReserveNextQSONumber (Band: BandType): INTEGER;
+FUNCTION ReserveNewQSONumber (Band: BandType): INTEGER;
 
 { This is a high level function that will produce a reserved QSO number.  If
   MULTI REQUEST QSO NUMBER is TRUE, it will go to the network and get the QSO
   number (note - this could cause a delay if the computer that assigns QSO
   numbers is busy).  Otherwise, it gets the QSO number from the "local" function
-  in LogWind that uses our own matrix for the QSO numbers. }
+  in LogQSONr that uses our own matrix for the QSO numbers. }
 
 VAR TempString: STRING;
 
     BEGIN
+    { We expect the result of this function to be assigned to QSONumberForThisQSO
+      by whoemver called this function }
+
     IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
         IF MultiRequestQSONumber THEN
             BEGIN
+            QuickDisplay ('Asking for a QSO number on the network ' + GetFullTimeString);
+            QSONumberForThisQSO := 0;  { Probably redundant since the function result will likely used to set this }
+
             TempString := AddBand (Band);
             SendMultiCommand (MultiBandAddressArray [Band], $FF, MultiQSONumberRequest, TempString);
 
             { Prepare things to receive the number }
 
             QSONumberFromNetwork := 0;
+            MarkTime (QSONumberFromNetworkTimeStamp);
             WeAskedForAQSONumber := True;
-            ReserveNextQSONumber := 0;
+            ReserveNewQSONumber := 0;
 
             { Someone needs to watch QSONumberFromNetwork now to see when the QSO
               number is received.  It is received in LOGSUBS2 in the CheckMultiState
@@ -7034,12 +7042,24 @@ VAR TempString: STRING;
             Exit;
             END;
 
-    ReserveNextQSONumber := ReserveNextQSONumberLocal (Band);
+    { Got get the QSO Number locally from the nice QNumber object }
+
+    ReserveNewQSONumber := QNumber.ReserveNewQSONumber (Band);
     END;
 
 
 
 FUNCTION ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
+
+{ This is the high level way for the classic UI to return an unused QSO
+  number.  This will either use the local copy of the QNumber object or
+  if MultiRequestQSONumber is TRUE, it will try to return the QSO number
+  over the network to whichever computer doesn't have MultiRequestQSONumber
+  set to TRUE.
+
+  We will set the QSONumberForThisQSO to minus one in any case, indicating
+  that we no longer have a QSO number assigned for the next QSO to be made
+  in the classic interface. }
 
 VAR TempString: STRING;
 
@@ -7050,13 +7070,12 @@ VAR TempString: STRING;
             Str (QSONumber, TempString);
             TempString := AddBand (Band) + TempString;
             SendMultiCommand (MultiBandAddressArray [Band], $FF, MultiQSONumberReturn, TempString);
-            QSONumberForThisQSO := -1;
-            Exit;
             END;
 
-    { We assume someone is going to reserve a new QSO number }
+    { I guess we can return it locally too if possible }
 
-    ReturnQSONumber := ReturnQSONumberLocal (Band, QSONumber);
+    QNumber.ReturnQSONumber (Band, QSONumber);
+    QSONumberForThisQSO := -1;
     END;
 
 

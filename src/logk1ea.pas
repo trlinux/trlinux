@@ -192,6 +192,7 @@ VAR ActiveDVKPort:     parallelportx;
     MultiPortBaudRate:      LONGINT;
     MultiReceiveCharBuffer: CharacterBuffer;
     MultiSendCharBuffer:    CharacterBuffer;
+    MultiSendTimeStamp:     TimeRecord;          { Gets set whenever a message is sent }
 
     MultiUDPIP:   STRING;
     MultiUDPPort: LONGINT;
@@ -271,6 +272,7 @@ VAR ActiveDVKPort:     parallelportx;
 
     rig1,rig2 :radioctl;
 
+    WeSentPing: BOOLEAN;
 
 PROCEDURE ClearRIT;
 
@@ -685,6 +687,8 @@ VAR CharPointer: INTEGER;
 
     BEGIN
     IF Message = '' THEN Exit;
+
+    MarkTime (MultiSendTimeStamp);
 
     { If sending messages via UDP - just send it - don't bother with slip format or buffer }
 
@@ -1450,4 +1454,5 @@ VAR Ticks: LONGINT;
     DVKControlKeyRecord := true;
 
     PreviousFootSwitchMode := SwapRadio;  { pretty safe }
+    WeSentPing := False;
     END.

@@ -371,13 +371,13 @@ VAR QSOCount: INTEGER;
 
 PROCEDURE CheckMultiState;
 
-VAR MultiString, MessageString: STRING;
+VAR TimeString, MultiString, MessageString: STRING;
     MultString, Call: CallString;
     Band: BandType;
     Mode: ModeType;
     Points: INTEGER;
     Freq, QSX: LONGINT;
-    ReturnedQSONumber, ReservedQSONumber: INTEGER;
+    Time, ReturnedQSONumber, ReservedQSONumber: INTEGER;
     MessageOriginator: BYTE;
     ControlByte: BYTE;
     Year, Month, Day, Hour, Minute, Second: WORD;
@@ -516,13 +516,7 @@ VAR MultiString, MessageString: STRING;
 
             DisplayTotalScore (TotalScore);
             DisplayInsertMode (InsertMode);
-
-            { If we are getting QSO Numbers from the multi network, we don't display a
-              QSO numbers until we need them.  It could be that we are in the middle of
-              a QSo as well that doesn't need a new number yet. }
-
-            IF NOT MultiRequestQSONumber THEN
-                DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+            DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
             IF FloppyFileSaveFrequency > 0 THEN
                 IF QSOTotals [All, Both] > 0 THEN
@@ -561,7 +555,9 @@ VAR MultiString, MessageString: STRING;
                 BEGIN
                 Band := RemoveBand (MessageString);
 
-                ReservedQSONumber := ReserveNextQSONumberLocal (Band);
+                { Get the QSO Number locally - this updates the QSONumberMatrix }
+
+                ReservedQSONumber := QNumber.ReserveNewQSONumber (Band);
                 Str (ReservedQSONumber, TempString);
 
                 TempString := AddBand (Band) + TempString;
@@ -574,46 +570,58 @@ VAR MultiString, MessageString: STRING;
                QuickDisplay ('Sent QSO#' + TempString + ' to multi network.');
                END;
 
-        MultiQSONumberResponse: { If we asked for it - we need to process it. }
+        MultiQSONumberResponse:
             BEGIN
-            QuickDisplay ('Entering MultiQSONumberResponse');
+            IF NOT WeAskedForAQSONumber THEN Exit;  { Someone else asked for one }
+            WeAskedForAQSONumber := False;
 
-            IF NOT WeAskedForAQSONumber THEN Exit;
-
-            QuickDisplay ('MultiQSONumberResponse = ' + MessageString);
+            QuickDisplay ('MultiQSONumberResponse = ' + MessageString + ' ' + GetFullTimeString);
 
             { Get the band }
 
             Band := RemoveBand (MessageString);
-
-            { We are just going to assume for now that the response is for us and not
-              check band or destinations or anything like that }
-
             Val (MessageString, QSONumberFromNetwork);
-            WeAskedForAQSONumber := False;
 
-            { Update our local matrix so if someone calls GetNextQSONumber, they get
-              the right number }
+            { Update our local matrix so if someone calls GetCurrentQSONumber, they get
+              the right number - even though I don't think anyone will }
 
-            QSONumberMatrix [Band] := QSONumberFromNetwork;
+            QNumber.SetCurrentQSONumber (Band, QSONumberFromNetwork);
 
             { So - now we are in the state of having QSONumberForThisQSO = 0 and
               QSONumberFromNetwork > 0.  Somebody needs to notice that and
               update the QSONumberForThisQSO.  I guess for now - I will do it
-              here and see if that is okay }
+              here and see if that is okay - and I might as well display it too }
 
             QSONumberForThisQSO := QSONumberFromNetwork;
+            DisplayQSONumber (QSONumberForthisQSO, Band);
             END;
 
-        MultiQSONumberReturn: { Attempts to return an unused QSO number.  We don't care if it didn't work }
+        MultiQSONumberReturn: { Someone is trying to return a QSO Number }
             BEGIN
-            IF NOT MultiRequestQSONumber THEN
+            IF NOT MultiRequestQSONumber THEN  { We are the master }
                 BEGIN
                 Band := RemoveBand (MessageString);
                 Val (MessageString, ReturnedQSONumber);  { QSO number to return }
-                ReturnQSONumber (Band, ReturnedQSONumber);
+                IF QNumber.ReturnQSONumber (Band, ReturnedQSONumber) THEN
+                    QuickDisplay ('QSONumber ' + MessageString + ' has been returned ' + GetFullTimeString );
                 END;
             END;
+
+        MultiPingRequest:
+            BEGIN
+            Band := RemoveBand (MessageString);
+            SendMultiCommand (MultiBandAddressArray [Band],
+                              $FF, MultiPingResponse, '');
+            END;
+
+        MultiPingResponse:
+            IF WeSentPing THEN
+                BEGIN
+                WeSentPing := False;
+                Time := ElaspedSec100 (MultiSendTimeStamp);
+                Str (Time * 10, TimeString);
+                QuickDisplay ('Ping received from network = ' + TimeString + ' ms.');
+                END;
 
         END; { of CASE }
 
@@ -875,10 +883,9 @@ PROCEDURE DeleteLastContact;
     DisplayTotalScore (TotalScore);
     DisplayInsertMode (InsertMode);
 
-    { This maybe can be refined to reuse the serial number }
+    { Not sure the QSO number for this QSO will be changed - but left this in here }
 
-    IF NOT MultiRequestQSONumber THEN
-        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+    DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
     IF VisibleDupeSheetEnable THEN
         BEGIN
@@ -893,6 +900,9 @@ PROCEDURE ExitProgram;
 VAR TempString: Str160;
 
     BEGIN
+    IF MultiRequestQSONumber THEN
+        ReturnQSONumber (LastDisplayedQSONumberBand, QSONumberForThisQSO);
+
     IF (ParamCount > 0) AND (ParamStr (1) = 'EXIT') THEN
         BEGIN
         SetWindow (WholeScreenWindow);
@@ -1228,9 +1238,7 @@ VAR Key: CHAR;
                           VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
                           DisplayTotalScore (TotalScore);
                           DisplayInsertMode (InsertMode);
-
-                          IF NOT MultiRequestQSONumber THEN
-                              DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                          DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
                           IF VisibleDupeSheetEnable THEN
                               BEGIN
@@ -1512,7 +1520,7 @@ VAR CQMemory, SendChar: CHAR;
             {KK1L: 6.68 From here to REPEAT added to put autoCQ in band map and send multi info message.}
             IF BandMapEnable AND (LastDisplayedFreq[RadioOne] <> 0) AND (OpMode = CQOpMode) AND BandMapDisplayCQ THEN
                 BEGIN
-                Str (GetNextQSONumber (All), QSONumberString);
+                Str (QSONumberForThisQSO, QSONumberString);
                 BandMapCursorFrequency := DisplayedFrequency;
                 NewBandMapEntry ('CQ/' + QSONumberString,
                                  DisplayedFrequency, 0, ActiveMode,
@@ -1787,41 +1795,51 @@ VAR Result: INTEGER;
             END;
         END;
 
-    { Let's see if we need to update the QSO Number display }
+    { Let's see if we are lacking a QSO number and need to request one }
 
-    IF (QSONumberForThisQSO <> LastDisplayedQSONumber) OR (ActiveBand <> LastDisplayedQSONumberBand) THEN
+    IF QSONumberForThisQSO = -1 THEN    { We have no QSO number and one hasn't been requested }
         BEGIN
-        { If the radio changed bands on its own - we need to manage the QSO number }
-
-        IF ActiveBand <> LastDisplayedQSONumberBand THEN
-            BEGIN
-            IF QSONumberForThisQSO > 0 THEN
-                ReturnQSONumber (LastDisplayedQSONumberBand, QSONumberForThisQSO);
-
-            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
-            DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
-            END;
-
-        DisplayQSONumber (QSONumberforthisQSO, ActiveBand);
+        QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
+        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
         END;
 
-    IF QSONumberByBand AND (ActiveBand <> LastDisplayedQSONumberBand) THEN
+    IF QSONumberForThisQSO = 0 THEN     { We have requested a QSO number but have not received it }
+        IF WeAskedForAQSONumber THEN
+            BEGIN
+            IF ElaspedSec100 (QSONumberFromNetworkTimeStamp) > 100 THEN
+                BEGIN
+                QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
+                QuickDisplay ('Asked again for a QSO number');
+                END;
+            END
+        ELSE
+            BEGIN
+            Write ('Ugh!!');
+            Halt;
+            END;
+
+
+    { Let's see if we have changed bands and need a new QSO number }
+
+    IF QNumber.QSONumberByBand AND (ActiveBand <> LastDisplayedQSONumberBand) THEN
+        BEGIN
         IF QSONumberForThisQSO > 0 THEN
-            BEGIN
-            ReturnQSONumber (LastDisplayedQSONumberBand, GetNextQSONumber (LastDisplayedQSONumberBand));
-            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
-            DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
-            END;
+            ReturnQSONumber (LastDisplayedQSONumberBand, QSONumberForThisQSO);
 
-    { Hack }
-
-    IF QSONumberForThisQSO <= 0 THEN
-        BEGIN
-        QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
-        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);;
+        QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
+        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
         END;
 
+    { Let's see if we need a QSO number for this QSO - note that if QSONumberForThisQSO
+      is zero - it means we have asked for a QSO number from the network and haven't
+      gotten a response yet }
 
+    IF QSONumberForThisQSO = -1 THEN   { Nobody has assigned one }
+        BEGIN
+        QuickDisplay ('ZZ2ZZ');
+        QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
+        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+        END;
 
     IF (ActiveBand <> RememberBand) OR (ActiveMode <> RememberMode) THEN
         BEGIN
@@ -4585,7 +4603,7 @@ VAR Hours, Minutes, Seconds, Hundreths: Word;
 
     WITH LastQSOLogged DO
         BEGIN
-        NumberSent := GetNextQSONumber (ActiveBand);
+        NumberSent := ReserveNewQSONumber (ActiveBand);
         Band := ActiveBand;
         Mode := ActiveMode;
         Time := Hours * 100 + Minutes;
@@ -5095,7 +5113,7 @@ ControlEnterCommand1:
 
                             IF NOT MultiRequestQSONumber THEN
                                 BEGIN
-                                QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+                                QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
                                 DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                                 END;
 
@@ -5345,7 +5363,7 @@ ControlEnterCommand2:
 
                         IF NOT MultiRequestQSONumber THEN
                             BEGIN
-                            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+                            QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
                             DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                             END;
 
@@ -6069,6 +6087,17 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                     END; { of null key case }
 
             CarriageReturn:
+                BEGIN
+                IF UpperCase (CallWindowString) = 'PING' THEN
+                    BEGIN
+                    SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF, MultiPingRequest, '');
+                    QuickDisplay ('PING request sent to multi port');
+                    WeSentPing := True;
+                    CallWindowString := '';
+                    ClrScr;
+                    Continue;
+                    END;
+
                 IF Length (CallWindowString) > 1 THEN
                     BEGIN
                     IF AutoPartialCallFetch AND (Length (CallWindowString) <= 3) THEN
@@ -6101,6 +6130,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 DDX (MaybeSendANewCall);
                                 END
                             END;
+
+                END;  { of CarriageReturn }
+
             END;  { of case }
     UNTIL FALSE;
     END;
@@ -6496,6 +6528,8 @@ VAR MTotals: MultTotalArrayType;
     DXSpot: DXSpotType;
 
     BEGIN
+    QSONumberForThisQSO := -1;
+
     ReadInConfigFile ('');
 
     IF FakePacket THEN
@@ -6651,14 +6685,6 @@ VAR MTotals: MultTotalArrayType;
     ClearContestExchange (ReceivedData);
     SetUpToSendOnActiveRadio;
 
-    { We should get a QSO number up if we can }
-
-    IF NOT MultiRequestQSONumber THEN
-        BEGIN
-        QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
-        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
-        END;
-
     REPEAT
         SeventyThreeMessageSent := False;
         ExchangeHasBeenSent := False;
@@ -6678,6 +6704,7 @@ VAR MTotals: MultTotalArrayType;
             BEGIN
             Sheet.MultSheetTotals (MTotals);
             UpdateTotals;
+
             IF ReceivedData.DomesticMult OR ReceivedData.DXMult OR ReceivedData.ZoneMult THEN
                 VisibleLog.ShowRemainingMultipliers;
 
@@ -6686,7 +6713,7 @@ VAR MTotals: MultTotalArrayType;
 
             ClearContestExchange (ReceivedData);
 
-            GetInitialCall;
+            GetInitialCall;   { This will come back when we have a callsign }
 
             IF CallsignICameBackTo = '2BSIQ' THEN
                 BEGIN
@@ -6830,7 +6857,7 @@ VAR MTotals: MultTotalArrayType;
 
             IF QSONumberForThisQSO = -1 THEN   { We need one }
                 BEGIN
-                QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+                QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
                 DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                 END;
 
@@ -6946,13 +6973,8 @@ VAR MTotals: MultTotalArrayType;
                         BEGIN
                         ReceivedData.SearchAndPounce := False;
                         LogContact (ReceivedData);
-
-                        IF NOT MultiRequestQSONumber THEN
-                            BEGIN
-                            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
-                            DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
-                            END;
-
+                        QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
+                        DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                         END;
                     END;
                 END

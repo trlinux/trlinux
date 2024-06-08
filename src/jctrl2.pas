@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, N4OGW;
+     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, N4OGW;
 
 PROCEDURE DisplayStatus (FirstEntryDisplayed: MenuEntryType; ActiveEntry: MenuEntryType);
 FUNCTION  GetActiveLineFromEntryString (EntryString: Str80): MenuEntryType;
@@ -657,7 +657,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                QSLAndLog:      ParameterOkayMode := Standard;
                END;
 
-      QNB: QSONumberByBand := NOT QSONumberByBand;
+      QNB: QNumber.QSONumberByBand := NOT QNumber.QSONumberByBand;
       QSX: QSXEnable       := NOT QSXEnable;
 
       QES: QTCExtraSpace := NOT QTCExtraSpace;
@@ -1231,7 +1231,7 @@ VAR FileWrite: TEXT;
                QSLAndLog:      WriteLn (FileWrite, 'QSL AND LOG');
                END;
 
-      QNB: WriteLn (FileWrite, QSONumberByBand);
+      QNB: WriteLn (FileWrite, QNumber.QSONumberByBand);
       QSX: WriteLn (FileWrite, QSXEnable);
       QES: WriteLn (FileWrite, QTCExtraSpace);
       QRS: WriteLn (FileWrite, QTCQRS);
@@ -1610,7 +1610,7 @@ VAR TempString: Str40;
                QSLAndLog:      TempString := 'QSL and log';
                END;
 
-      QNB: IF QSONumberByBand THEN TempString := 'TRUE';
+      QNB: IF QNumber.QSONumberByBand THEN TempString := 'TRUE';
       QSX: IF QSXEnable THEN TempString := 'TRUE';
       QMC: TempString := QuestionMarkChar;
 

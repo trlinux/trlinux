@@ -27,7 +27,7 @@ INTERFACE
 USES trcrt, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, Country9, LogEdit, LogDDX,
      LogWAE, LogHP, LogPack, LogK1EA, DOS, LogHelp, LogProm, CfgCmd,
-     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound,N4OGW, N1MM;
+     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound,N4OGW, N1MM, logqsonr;
 
 
     FUNCTION  LoadInSeparateConfigFile (FileName: STRING;
@@ -514,7 +514,11 @@ VAR FileWrite: TEXT;
             END;
         END;
 
-    InitializeNextQSONumber;
+    { Look through the two log files to get the highest QSO numbers sent thus far }
+
+    QNumber.Init;  { Set all QSO numbers to zero }
+    QNumber.InitializeQSONumbersFromLogFile (LogFileName);
+    QNumber.InitializeQSONumbersFromLogFile (LogTempFileName);
     END;
 
 

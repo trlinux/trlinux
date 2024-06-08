@@ -48,6 +48,21 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+08-Jun-2024
+ - Improved QSO number over network.  Now providing the ability to send the QSO number
+   back to the master computer when exiting an instance of the program that has
+   MultiRequestQSONumber set to TRUE.  Sometimes, it seems there is some delay on
+   getting an initial QSO number when starting up the program, but I have put retries
+   in and it will eventually get it.  After that - it seems solid.
+
+   There are status messages on both sides of the request/response with time stamps
+   to provide visability on what is actually happening.
+
+ - Added PING command ih the call window.  Enter PING and RETURN and see if there
+   is someone answering you on the other side of the network.  The delay time only
+   has 10 ms resolution - so is typically shown as zero.  This is non blocking, so
+   if there is no response - life goes on.
+
 23-May-2024
  - Discovered I broke the bandmap on 1-May and reverted back to a LOGWIND.PAS that was
    committed before that.  Then merged the new QSO number stuff into that file and it
@@ -3926,6 +3941,7 @@ Uses
      LogMenu,
      LogPack,
      LogProm,
+     LogQSONr,
      LogSCP,
      LogStuff,
      LogUDP,

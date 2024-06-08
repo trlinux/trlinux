@@ -29,7 +29,7 @@ INTERFACE
 USES SlowTree, Tree, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, Country9, LogEdit, LogDDX,
      LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt,
-     N1MM, communication, linuxsound, N4OGW, LogUDP;
+     logqsonr, N1MM, communication, linuxsound, N4OGW, LogUDP;
 
 
     FUNCTION  ProcessConfigInstruction (FileString: STRING; VAR FirstCommand: BOOLEAN): BOOLEAN;
@@ -2702,7 +2702,7 @@ VAR xResult,tempint: INTEGER;
 
     IF ID = 'QSO NUMBER BY BAND' THEN
         BEGIN
-        QSONumberByBand := UpCase (CMD [1]) = 'T';
+        QNumber.QSONumberByBand := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions2 := True;
         Exit;
         END;

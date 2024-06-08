@@ -79,26 +79,6 @@ VAR StringPointer, QSONumber: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 IF QSONumberForThisQSO <= 0 THEN  { We don't have a QSO number yet }
-                     BEGIN
-                     QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
-
-                     { If we are getting the QSO from the multi network, we will need to wait
-                       for it to show up before we can send it. }
-
-                     IF MultiRequestQSONumber THEN
-                         BEGIN
-                         REPEAT
-                             CheckMultiState;
-                             UpdateTimeAndRateDisplays (True, True);
-                         UNTIL QSONumberFromNetwork > 0;
-
-                         QSONumberForThisQSO := QSONumberFromNetwork;
-                         END;
-
-                     DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
-                     END;
-
                  QSONumber := QSONumberForThisQSO;  { So the code below is unchanged }
 
                  IF TailEnding THEN Inc (QSONumber);
@@ -275,26 +255,6 @@ VAR CharacterCount, QSONumber: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 IF QSONumberForThisQSO <= 0 THEN  { We don't have a QSO number yet }
-                     BEGIN
-                     QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
-
-                     { If we are getting the QSO from the multi network, we will need to wait
-                       for it to show up before we can send it. }
-
-                     IF MultiRequestQSONumber THEN
-                         BEGIN
-                         REPEAT
-                             CheckMultiState;
-                             UpdateTimeAndRateDisplays (True, True);
-                         UNTIL QSONumberFromNetwork > 0;
-
-                         QSONumberForThisQSO := QSONumberFromNetwork;
-                         END;
-
-                     DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
-                     END;
-
                  QSONumber := QSONumberForThisQSO;  { So the code below is unchanged }
 
                  IF TailEnding THEN Inc (QSONumber);
@@ -588,26 +548,6 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
 
         CASE SendChar OF
             '#': BEGIN
-                 IF QSONumberForThisQSO <= 0 THEN  { We don't have a QSO number yet }
-                     BEGIN
-                     QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
-
-                     { If we are getting the QSO from the multi network, we will need to wait
-                       for it to show up before we can send it. }
-
-                     IF MultiRequestQSONumber THEN
-                         BEGIN
-                         REPEAT
-                             CheckMultiState;
-                             UpdateTimeAndRateDisplays (True, True);
-                         UNTIL QSONumberFromNetwork > 0;
-
-                         QSONumberForThisQSO := QSONumberFromNetwork;
-                         END;
-
-                     DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
-                     END;
-
                  QSONumber := QSONumberForThisQSO;  { So the code below is unchanged }
 
                  IF TailEnding THEN Inc (QSONumber);
@@ -1268,16 +1208,13 @@ VAR TimeOut: INTEGER;
 
         { If we have reserved a QSO number - try to give it back }
 
-        IF QSONumberByBand AND (BandMemory [RadioOne] <> BandMemory [RadioTwo]) THEN
+        IF QNumber.QSONumberByBand AND (BandMemory [RadioOne] <> BandMemory [RadioTwo]) THEN
             BEGIN
             IF QSONumberForThisQSO > 0 THEN
                 ReturnQSONumber (BandMemory [RadioOne], QSONumberForThisQSO);
 
-            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+            QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
             END;
-
-
-
         END
     ELSE
         BEGIN
@@ -1292,12 +1229,12 @@ VAR TimeOut: INTEGER;
 
         { If we have reserved a QSO number - try to give it back }
 
-        IF QSONumberByBand AND (BandMemory [RadioOne] <> BandMemory [RadioTwo]) THEN
+        IF QNumber.QSONumberByBand AND (BandMemory [RadioOne] <> BandMemory [RadioTwo]) THEN
             BEGIN
             IF QSONumberForThisQSO > 0 THEN
                 ReturnQSONumber (BandMemory [RadioTwo], QSONumberForThisQSO);
 
-            QSONumberForThisQSO := ReserveNextQSONumber (ActiveBand);
+            QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
             END;
         END;
 
@@ -1415,7 +1352,7 @@ VAR TimeOut: INTEGER;
     DisplayBandMode (ActiveBand, ActiveMode, False);
     UpdateTotals;
 
-    IF QSONumberByBand THEN
+    IF QNumber.QSONumberByBand THEN
         DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
     IF MultByBand THEN

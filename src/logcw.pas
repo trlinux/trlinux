@@ -1975,8 +1975,6 @@ PROCEDURE UnInitializeKeyer;
 
 PROCEDURE SetUpToSendOnActiveRadio;
 
-VAR TimeOut: BYTE;
-
     BEGIN
     IF ActiveRadio = RadioOne THEN
         BEGIN
@@ -2014,8 +2012,6 @@ PROCEDURE SetUpToSendOnInactiveRadio;
 
 { This used to swap ActiveRadio as well, but I decided not to do that
   anymore.  }
-
-VAR TimeOut: BYTE;
 
     BEGIN
     IF KeyersSwapped THEN Exit;        { Already swapped to inactive rig }

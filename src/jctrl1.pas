@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, N4OGW;
+     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, N4OGW;
 
 
 TYPE MenuEntryType = (NoMenuEntry,
@@ -756,7 +756,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
                QSLAndLog:      Write ('QSL and log');
                END;
 
-      QNB: Write (QSONumberByBand);
+      QNB: Write (QNumber.QSONumberByBand);
       QES: Write (QTCExtraSpace);
       QRS: Write (QTCQRS);
       QSX: Write (QSXEnable);
@@ -1529,7 +1529,7 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                QSLAndLog:      Write ('No syntax checking of exchange');
                END;
 
-      QNB: IF QSONumberByBand THEN
+      QNB: IF QNumber.QSONumberByBand THEN
                Write ('Separate QSO numbers sent by band')
            ELSE
                Write ('Total QSOs used for QSO number');

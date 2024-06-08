@@ -611,12 +611,8 @@ PROCEDURE UpdateTotals;
 
 PROCEDURE BandUp;
 
-VAR PreviousBand: BandType;
-
     BEGIN
-    PreviousBand := ActiveBand;
-
-    IF (MultipleBandsEnabled) OR (GetNextQSONumber (All) = 0) THEN
+    IF (MultipleBandsEnabled) OR (QSONumberForThisQSO = 1) THEN
         BEGIN
         IF CommandUseInactiveRadio THEN {KK1L: 6.73 Band change on inactive radio via command}
             BEGIN
@@ -660,11 +656,7 @@ VAR PreviousBand: BandType;
 
 PROCEDURE BandDown;
 
-VAR PreviousBand: BandType;
-
     BEGIN
-    PreviousBand := ActiveBand;
-
     IF (MultipleBandsEnabled) OR (QSONumberForThisQSO = 0) THEN
         BEGIN
         IF CommandUseInactiveRadio THEN {KK1L: 6.73 Band change on inactive radio via command}

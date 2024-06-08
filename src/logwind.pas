@@ -38,8 +38,6 @@ CONST
     MaximumReminderRecords = 100;
     MaxExchangeTemplateEntries = 20;
 
-    QSONumberFileName = 'QSOARRAY.DAT';
-
     QSOInformationWindowLX = 55;
     QSOInformationWindowLY =  4;
     QSOInformationWindowRX = 80;
@@ -663,14 +661,13 @@ VAR
     LastDisplayedFreq:             ARRAY [RadioType] of LONGINT; {KK1L: 6.73}
     LastDisplayedMode:             ModeType;
     LastDisplayedQSONumber:        LONGINT;
+    LastDisplayedQSONumberBand:    BandType;
     LastDisplayedTime:             Str20;
     LastDisplayedHour:             Str20;
     LastEditedBandMapEntry: INTEGER;
     LastFullTimeString:  Str20;
     LastSecond100:       WORD;    {KK1L: 6.71a Will store the hundredths of seconds since UpdateTimeAndRateDisplays }
                                   {           was called. Used to support wicked fast radio checking               }
-
-    LastDisplayedQSONumberBand: BandType;  { important if QSO # By Band is true }
 
     LastHeadingShown:    INTEGER;
     LastQTCTimeSent:     Str20;
@@ -746,7 +743,6 @@ VAR
     PreviousRadioOneFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}
     PreviousRadioTwoFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}
 
-    QSONumberMatrix:        ARRAY [BandType] OF INTEGER;  { No contests with QSO # by mode }
     QSOPointsDomesticCW:    INTEGER;
     QSOPointsDomesticPhone: INTEGER;
     QSOPointsDXCW:          INTEGER;
@@ -922,6 +918,11 @@ VAR
   PROCEDURE DisplayMultiMessages;
   PROCEDURE DisplayNameSent (Name: Str80);
   PROCEDURE DisplayNamePercentage (TotalNamesSent: INTEGER; QSONumber: INTEGER);
+
+  { We ask for the band when displaying a QSO number to make it easier to determine if
+    we need to detect that the QSO number needs updating when we are doing QSONumberByBand
+    and the radio chanegs bands on its own. }
+
   PROCEDURE DisplayQSONumber (QSONumber: INTEGER; Band: BandType);
 
   { The following routine works for the Classi UI }
@@ -953,8 +954,6 @@ VAR
                                              VAR Band: BandType;
                                              VAR Mode: ModeType);
 
-  FUNCTION  GetNextQSONumber (Band: BandType): INTEGER;
-
   {KK1L: 6.64 created a function for this step used in EditBandMap}
   FUNCTION  GetRecordForBandMapCursor (VAR Entry: BandMapEntryPointer;
                                           CursorEntryNumber: INTEGER) : BOOLEAN;
@@ -962,7 +961,6 @@ VAR
   FUNCTION  GetUserInfoString (Call: CallString): STRING;
 
   PROCEDURE IncrementTime (Count: INTEGER);
-  PROCEDURE InitializeNextQSONumber;
 
   PROCEDURE LoadBandMap;
   PROCEDURE LookForOnDeckCall (VAR ExchangeString: Str80);
@@ -991,11 +989,9 @@ VAR
 
   PROCEDURE RemoveAndRestorePreviousWindow;
   PROCEDURE RemoveWindow (WindowName: WindowType);
-  FUNCTION  ReserveNextQSONumberLocal (Band: BandType): INTEGER;
   PROCEDURE ResetBandMapTimes; {KK1L: 6.70}
   PROCEDURE ResetSavedWindowListAndPutUpCallWindow;
   PROCEDURE RestorePreviousWindow;
-  FUNCTION  ReturnQSONumberLocal (Band: BandType; QSONumber: INTEGER): BOOLEAN;
 
   PROCEDURE SaveActiveWindow;
   PROCEDURE SaveBandMap;
@@ -2542,19 +2538,27 @@ VAR Percentage: REAL;
 PROCEDURE DisplayQSONumber (QSONumber: INTEGER; Band: BandType);
 
     BEGIN
-    IF (QSONumber = LastDisplayedQSONumber) AND (Band = LastDisplayedQSONumberBand) THEN Exit;
-    LastDisplayedQSONumber := QSONumber;
+    { We save this so people can tell if the band got changed by magic }
+
     LastDisplayedQSONumberBand := Band;
+
+    { See if we have already displayed this QSO number }
+
+    IF QSONumber = LastDisplayedQSONumber THEN Exit;
+    LastDisplayedQSONumber := QSONumber;
 
     SaveSetAndClearActiveWindow (QSONumberWindow);
 
-    IF QSONumber <= 0 THEN  { If getting from multi - we don't have it yet }
-        Write (' ----')
+    IF QSONumber = -1 THEN
+        write ('  -1 ')
     ELSE
-        IF QSONumber > 9999 THEN
-            Write (QSONumber:5)
+        IF QSONumber = 0 THEN  { If getting from multi - we might not have it yet }
+            Write (' ----')
         ELSE
-            Write (QSONumber:4);
+            IF QSONumber > 9999 THEN
+                Write (QSONumber:5)
+            ELSE
+                Write (QSONumber:4);
 
     { Create a clear space after the number }
 
@@ -6752,6 +6756,7 @@ VAR Band: BandType;
     FirstDisplayedBandMapFrequency := 0; {KK1L: 6.64}
 
     FrequencyDisplayed     := False;
+    LastDisplayedQSONumberBand := NoBand;
 
     Rig1FreqPollRate           := 250;
     Rig2FreqPollRate           := 250;
@@ -6776,7 +6781,6 @@ VAR Band: BandType;
     LastDisplayedHour      := '';
     LastDisplayedMode      := NoMode;
     LastDisplayedQSONumber := -1;
-    LastDisplayedQSONumberBand := NoBand;
     LastDisplayedTime      := '';
 
     LastEditedBandMapEntry := 0;
@@ -6840,176 +6844,6 @@ VAR Band: BandType;
 
     VisibleDupeSheetChanged     := True;
     WakeUpCount                 := 0;
-    END;
-
-
-
-PROCEDURE InitializeNextQSONumber;
-
-{ Looks though the log file and editable log file to figure out what the
-  next QSO Number is that should be sent. This used to just be an integer,
-  but has been expanded to include band/mode information in the matrix
-  QSONumberMatrix.  Also - instead of actually having the next QSO number
-  in that matrix - it has the last QSO number given out. }
-
-VAR FileRead: TEXT;
-    BandModeString, QSONumberString, FileString: STRING;
-    QSONumber: INTEGER;
-    Band, LogEntryBand: BandType;
-    LogEntryMode: ModeType;
-
-    BEGIN
-    { Intialize matrix with zeros }
-
-    FOR Band := Band160 TO All DO
-        QSONumberMatrix [Band] := 0;
-
-    { Look at the LogTempFile and get highest QSO numbers by band/mode }
-
-    IF OpenFileForRead (FileRead, LogTempFileName) THEN
-        BEGIN
-        WHILE NOT Eof (FileRead) DO
-            BEGIN
-            ReadLn (FileRead, FileString);
-
-            BandModeString := RemoveFirstString (FileString);   { Band/Mode }
-
-            DecodeBandModeString (BandModeString, LogEntryBand, LogEntryMode);  { In tree.pas }
-
-            RemoveFirstString (FileString);   { Date }
-            RemoveFirstString (FileString);   { Time }
-
-            IF FileString <> '' THEN
-                BEGIN
-                QSONumberString := RemoveFirstString (FileString);  { QSO Number }
-
-                IF StringIsAllNumbers (QSONumberString) THEN
-                    BEGIN
-                    Val (QSONumberString, QSONumber);
-
-                    { We increment totals for the band and all bands }
-
-                    IF QSONumber > QSONumberMatrix [All] THEN
-                        QSONumberMatrix [All] := QSONumber;
-
-                    IF QSONumber > QSONumberMatrix [LogEntryBand] THEN
-                        QSONumberMatrix [LogEntryBand] := QSONumber;
-                    END;
-                END;
-            END;
-
-        Close (FileRead);
-        END;
-
-    { Look through the log file to make sure there isn't a larger number
-      hiding in there }
-
-  IF OpenFileForRead (FileRead, LogFileName) THEN
-        BEGIN
-        WHILE NOT Eof (FileRead) DO
-            BEGIN
-            ReadLn (FileRead, FileString);
-
-            BandModeString := RemoveFirstString (FileString);   { Band/Mode }
-
-            DecodeBandModeString (BandModeString, LogEntryBand, LogEntryMode);  { In tree.pas }
-
-            RemoveFirstString (FileString);   { Date }
-            RemoveFirstString (FileString);   { Time }
-
-            IF FileString <> '' THEN
-                BEGIN
-                QSONumberString := RemoveFirstString (FileString);  { QSO Number }
-
-                IF StringIsAllNumbers (QSONumberString) THEN
-                    BEGIN
-                    Val (QSONumberString, QSONumber);
-
-                    { Factor QSONumberByBand and QSONumberByMode in }
-
-                    IF QSONumber > QSONumberMatrix [All] THEN
-                        QSONumberMatrix [All] := QSONumber;
-
-                    IF QSONumber > QSONumberMatrix [LogEntryBand] THEN
-                        QSONumberMatrix [LogEntryBand] := QSONumber;
-                    END;
-                END;
-            END;
-
-        Close (FileRead);
-        END;
-    END;
-
-
-
-FUNCTION GetNextQSONumber (Band: BandType): INTEGER;
-
-{ Similar to ReserveNextQSONumberLocal except it returns the current QSO number
-  without reserving a new one.  In other words, it will return the last
-  reserved number for the band/mode.
-
-  Note that it is expected that if the reserved QSO number came from the network
-  in LogStuff - that the value in the "local" matrix was updated so that if
-  someone called this routine - they will get the same QSO number that they
-  received over the network when it was reserved. }
-
-    BEGIN
-    IF NOT QSONumberByBand THEN Band := All;
-    GetNextQSONumber := QSONumberMatrix [Band];
-    END;
-
-
-
-FUNCTION ReserveNextQSONumberLocal (Band: BandType): INTEGER;
-
-{ Used to be GetNextQSONumber - but now clearly indicates that the number
-  returned will be reserved - and thus never given out again.  This new
-  procedure requires the band and mode that are to be used to generate
-  the number.  This was done to support requests over the network and
-  also to make 2BSIQ operation more understandable.
-
-  The global QSONumberByMode and QSONumberByBand are both used to determine
-  if the band or mode needs to be factored into the process.
-
-  The initial contents of the array used to keep track of QSO numbers is
-  all zeros with a new log.  If a log is loaded in, the highest QSO number
-  for each "slot" is computed looking at the sent QSO numbers in the log
-  and set to the last QSO number sent on each band/mode.  If you are not
-  using QSOByBand or QSOByMode - you will look at All (for band) and Both
-  (for mode) }
-
-
-    BEGIN
-    IF NOT QSONumberByBand THEN Band := All;
-
-    { We need to first increment to the new QSO number since the totals in this array
-      are what was sent previously }
-
-    Inc (QSONumberMatrix [Band]);
-    ReserveNextQSONumberLocal := QSONumberMatrix [Band];
-    END;
-
-
-
-FUNCTION ReturnQSONumberLocal (Band: BandType; QSONumber: INTEGER): BOOLEAN;
-
-{ Will try to return an unused QSO number so someone else can use it. Returns
-  TRUE is successful }
-
-
-    BEGIN
-    IF NOT QSONumberByBand THEN Band := All;
-
-    IF QSONumberMatrix [Band] = QSONumber THEN  { Okay to return it }
-        IF QSONumber > 0 THEN
-            BEGIN
-            Dec (QSONumberMatrix [Band]);
-            ReturnQSONumberLocal := True;
-            Exit;
-            END;
-
-    ReturnQSONumberLocal := False;
-    QSONumberForThisQSO := -1;
     END;
 
 
