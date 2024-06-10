@@ -1274,17 +1274,137 @@ PROCEDURE DecodeBandModeString (BandModeString: STRING; VAR Band: BandType; VAR 
     Band := NoBand;
     Mode := NoMode;
 
-    IF StringHas (BandModeString, '160') THEN Band := Band160;
-    IF StringHas (BandModeString, '80')  THEN Band := Band80;
-    IF StringHas (BandModeString, '40')  THEN Band := Band40;
-    IF StringHas (BandModeString, '20')  THEN Band := Band20;
-    IF StringHas (BandModeString, '15')  THEN Band := Band15;
-    IF StringHas (BandModeString, '10')  THEN Band := Band10;
-
     IF StringHas (BandModeString, 'FM') THEN Mode := Phone;
     IF StringHas (BandModeString, 'CW') THEN Mode := CW;
     IF StringHas (BandModeString, 'DIG') THEN Mode := Digital;
     IF StringHas (BandModeString, 'SSB') THEN Mode := Phone;
+
+    IF StringHas (BandModeString, '160') THEN
+        BEGIN
+        Band := Band160;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '80')  THEN
+        BEGIN
+        Band := Band80;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '60')  THEN
+        BEGIN
+        Band := Band80;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '40')  THEN
+        BEGIN
+        Band := Band40;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '30')  THEN
+        BEGIN
+        Band := Band30;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '20')  THEN
+        BEGIN
+        Band := Band20;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '17')  THEN
+        BEGIN
+        Band := Band20;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '15')  THEN
+        BEGIN
+        Band := Band15;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '12')  THEN
+        BEGIN
+        Band := Band12;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '902')  THEN
+        BEGIN
+        Band := Band902;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '1GH') THEN
+        BEGIN
+        Band := Band1296;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '1GH') THEN
+        BEGIN
+        Band := Band1296;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '2GH') THEN
+        BEGIN
+        Band := Band2304;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '3GH') THEN
+        BEGIN
+        Band := Band3456;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '5GH') THEN
+        BEGIN
+        Band := Band5760;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '10G')  THEN
+        BEGIN
+        Band := Band10G;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '10') THEN
+        BEGIN
+        Band := Band10;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '24G')  THEN
+        BEGIN
+        Band := Band24G;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '6') THEN
+        BEGIN
+        Band := Band6;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '2') THEN
+        BEGIN
+        Band := Band2;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, 'LGT')  THEN
+        BEGIN
+        Band := BandLight;
+        Exit;
+        END;
+
     END;
 
 
