@@ -730,12 +730,12 @@ VAR ParameterCount: INTEGER;
     BEGIN
     PacketFile := False;
 
-//    FOR ParameterCount := 1 TO ParamCount DO
+    ParameterCount := 0;    { Zero based list }
 
-    ParameterCount := 0;
-    while ((ParameterCount + 1) <= ParamCount) do
+    WHILE ((ParameterCount + 1) <= ParamCount) do
         BEGIN
         inc(ParameterCount);
+
         IF UpperCase (ParamStr (ParameterCount)) = 'B64DECODE' THEN
             BEGIN
             Bin64Decode;
@@ -829,7 +829,9 @@ VAR ParameterCount: INTEGER;
             Halt;
             END;
 
-        IF UpperCase (ParamStr (ParameterCount)) = 'NETDEBUG' THEN NetDebug := True;
+        IF UpperCase (ParamStr (ParameterCount)) = 'NETDEBUG' THEN
+            NetDebug := True;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'NOSTDCFG' THEN NoStdcfg := True;
 
         IF UpperCase (ParamStr (ParameterCount)) = 'PACKET' THEN

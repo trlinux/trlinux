@@ -196,8 +196,6 @@ VAR ActiveDVKPort:     parallelportx;
 
     MultiUDPIP:   STRING;
     MultiUDPPort: LONGINT;
-    MultiUDPPortOpenForInput: BOOLEAN;
-    MultiUDPPortOpenForOutput: BOOLEAN;
 
     MultiUDPReadSocket: LONGINT;
     MultiUDPWriteSocket: LONGINT;
@@ -207,7 +205,8 @@ VAR ActiveDVKPort:     parallelportx;
 
     NetDebugBinaryOutput: FILE;
     NetDebugBinaryInput:  FILE;
-
+    NetDebugTextOutput: TEXT;
+    NetDebugTextInput:  TEXT;
 
     PacketReceiveCharBuffer: CharacterBuffer;
     PacketSendCharBuffer:    CharacterBuffer;
@@ -690,18 +689,15 @@ VAR CharPointer: INTEGER;
 
     MarkTime (MultiSendTimeStamp);
 
-    { If sending messages via UDP - just send it - don't bother with slip format or buffer }
+    { If sending messages via UDP - just send it - don't bother with slip format or serial buffer }
 
     IF MultiUDPPort > 0 THEN
         BEGIN
-        IF NOT MultiUDPPortOpenForOutput THEN
-            MultiUDPPortOpenForOutput := OpenUDPPortForOutput (MultiUDPIP, MultiUDPPort, MultiUDPWriteSocket);
-
-        IF MultiUDPPortOpenForOutput THEN
-            FPSend (MultiUDPWriteSocket, @Message [1], Length (Message), 0);
-
+        FPSend (MultiUDPWriteSocket, @Message [1], Length (Message), 0);
         Exit;
         END;
+
+    { Now using old method using serial buffer and slip format }
 
     Message := SlipMessage (Message);    { We use slip format for N6TR messages }
 
@@ -1232,7 +1228,6 @@ PROCEDURE TimerInit;
             BEGIN
             Assign  (NetDebugBinaryOutput, 'NETOUT.BIN');
             Rewrite (NetDebugBinaryOutput, 1);
-
             Assign  (NetDebugBinaryInput,  'NETIN.BIN');
             Rewrite (NetDebugBinaryInput, 1);
             END;
@@ -1409,8 +1404,6 @@ VAR Ticks: LONGINT;
     LastRadioOneFreq := 0; {KK1L: 6.71 Used LastRadioOneFreq here instead of LOGWIND.PAS}
     LastRadioTwoFreq := 0; {KK1L: 6.71 Used LastRadioTwoFreq here instead of LOGWIND.PAS}
 
-    MultiUDPPortOpenForOutput := False;
-    MultiUDPPortOpenForInput := False;
     MultiUDPPort := -1;
     MultiUDPIP := '';
 

@@ -563,19 +563,20 @@ VAR TimeString, MultiString, MessageString: STRING;
                 TempString := AddBand (Band) + TempString;
 
                 SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                  MessageOriginator,   { Send only to station requesting it }
+                                  $FF,  { Trying everybody to see if this makes it more solid }
                                   MultiQSONumberResponse,
                                   TempString);
 
-               QuickDisplay ('Sent QSO#' + TempString + ' to multi network.');
+               QuickDisplay ('Sent QSO#' + TempString + ' network ' + GetFullMicroTimeString);
                END;
 
         MultiQSONumberResponse:
             BEGIN
-            IF NOT WeAskedForAQSONumber THEN Exit;  { Someone else asked for one }
-            WeAskedForAQSONumber := False;
+            IF NOT MultiRequestQSONumber THEN Exit; { We are not asking for QSO numbers }
+            IF NOT WeAskedForAQSONumber THEN Exit;  { It wasn't me that asked for one }
 
-            QuickDisplay ('MultiQSONumberResponse = ' + MessageString + ' ' + GetFullTimeString);
+            WeAskedForAQSONumber := False;
+            QuickDisplay ('MultiQSONumberResponse = ' + MessageString + ' ' + GetFullMicroTimeString);
 
             { Get the band }
 
@@ -603,7 +604,7 @@ VAR TimeString, MultiString, MessageString: STRING;
                 Band := RemoveBand (MessageString);
                 Val (MessageString, ReturnedQSONumber);  { QSO number to return }
                 IF QNumber.ReturnQSONumber (Band, ReturnedQSONumber) THEN
-                    QuickDisplay ('QSONumber ' + MessageString + ' has been returned ' + GetFullTimeString );
+                    QuickDisplay ('QSONumber ' + MessageString + ' has been returned ' + GetFullMicroTimeString );
                 END;
             END;
 
@@ -624,7 +625,6 @@ VAR TimeString, MultiString, MessageString: STRING;
                 END;
 
         END; { of CASE }
-
     END;
 
 
@@ -929,10 +929,16 @@ VAR TempString: Str160;
     IF UpperCase (TempString) <> 'Y' THEN Exit;
 
     IF NetDebug THEN
-        BEGIN
-        Close (NetDebugBinaryOutput);
-        Close (NetDebugBinaryInput);
-        END;
+        IF MultiUDPPort > 0 THEN
+            BEGIN
+            Close (NetDebugTextOutput);
+            Close (NetDebugTextInput);
+            END
+        ELSE
+            BEGIN
+            Close (NetDebugBinaryOutput);
+            Close (NetDebugBinaryInput);
+            END;
 
     IF AskIfContestOver AND NOT VisibleLog.EditableLogIsEmpty THEN
         BEGIN
@@ -1757,7 +1763,6 @@ VAR Result: INTEGER;
         END;
 
     IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
-
     IF ActiveRTTYPort <> nil THEN CheckRTTY;
 
     {KK1L: 6.72 Moved here to speed up SCP. UpdateTimeAndRateDisplays hogs a bit of time now.}
@@ -1809,7 +1814,7 @@ VAR Result: INTEGER;
             IF ElaspedSec100 (QSONumberFromNetworkTimeStamp) > 100 THEN
                 BEGIN
                 QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
-                QuickDisplay ('Asked again for a QSO number');
+                QuickDisplay ('Asked again for a QSO number ' + GetFullMicroTimeString);
                 END;
             END
         ELSE
@@ -1817,7 +1822,6 @@ VAR Result: INTEGER;
             Write ('Ugh!!');
             Halt;
             END;
-
 
     { Let's see if we have changed bands and need a new QSO number }
 
@@ -1836,7 +1840,6 @@ VAR Result: INTEGER;
 
     IF QSONumberForThisQSO = -1 THEN   { Nobody has assigned one }
         BEGIN
-        QuickDisplay ('ZZ2ZZ');
         QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
         DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
         END;
@@ -5405,7 +5408,26 @@ ControlEnterCommand2:
     UNTIL FALSE;
     END;
 
+PROCEDURE Ping1000Test;
 
+VAR Count: INTEGER;
+    MultiString, CountString: STRING;
+
+    BEGIN
+    FOR Count := 1 TO 1000 DO
+        BEGIN
+        Str (Count, CountString);
+        QuickDisplay ('Sending ping #' + CountString);
+        SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF, MultiPingRequest, '');
+
+        REPEAT
+            MultiString := GetMultiPortCommand
+        UNTIL MultiString <> '';
+        QuickDisplay ('Response # ' + CountString);
+        END;
+    END;
+
+
 
 PROCEDURE GetInitialCall;
 
@@ -5414,6 +5436,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
     EditingCallsignSent: BOOLEAN;
 
     BEGIN
+
     OpMode := CQOpMode;
 
     EditingCallsignSent := False;
@@ -6098,6 +6121,14 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                     Continue;
                     END;
 
+                IF UpperCase (CallWindowString) = 'PING1000' THEN
+                    BEGIN
+                    Ping1000Test;
+                    CallWindowString := '';
+                    ClrScr;
+                    Continue;
+                    END;
+
                 IF Length (CallWindowString) > 1 THEN
                     BEGIN
                     IF AutoPartialCallFetch AND (Length (CallWindowString) <= 3) THEN
@@ -6717,6 +6748,10 @@ VAR MTotals: MultTotalArrayType;
 
             IF CallsignICameBackTo = '2BSIQ' THEN
                 BEGIN
+                { Return the QSO number we have already checked out }
+
+                ReturnQSONumber (ActiveBand, QSONumberForThisQSO);
+
                 Doing2BSIQ := True;
                 TwoBandSIQ;
                 WriteLn ('You will need to restart the program now');

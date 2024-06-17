@@ -156,8 +156,8 @@ TYPE
 
         QSONumberForThisQSO: INTEGER;        { Gets set from ReserveNewQSONumber somewhere in the QSO process }
         QSONumberForPreviousQSO: INTEGER;
-        QSONumberFromNetwork: INTEGER;
         QSONumberUnused: BOOLEAN;            { QSO Number can be stolen }
+        QSONumberRequestTime: TimeRecord;
 
         QSOState: TBSIQ_QSOStateType;
 
@@ -177,7 +177,7 @@ TYPE
           from initiating a tranmission during this gap. }
 
         SSBTransmissionStarted: BOOLEAN;
-
+        StartUpTime: TimeRecord;
         StationInformationCall: CallString;
 
         TBSIQ_ActiveWindow: TBSIQ_WindowType;
@@ -222,12 +222,13 @@ TYPE
 
         PROCEDURE PTTTest;
 
+        PROCEDURE RadioQuickDisplay (Message: STRING);   { Small window for this radio only }
         PROCEDURE ReadSMeter;
         PROCEDURE RemoveExchangeWindow;
         PROCEDURE RemovePossibleCallWindow;
         PROCEDURE RemoveQSONumberWindow;
 
-        FUNCTION ReserveNewQSONumberForThisRadio: INTEGER;
+        FUNCTION  ReserveNewQSONumberForThisRadio: INTEGER;
 
         PROCEDURE SendFunctionKeyMessage (Key: CHAR; VAR Message: STRING);
 
@@ -350,30 +351,33 @@ VAR DualingCQState: DualingCQStates;
 
 PROCEDURE QSOMachineObject.SetUpNextQSONumber;
 
-{ Normally, this would come from GetNextQSONumber in LOGWIND, however, if the QSO
+{ Normally, this would come from ReserveNewQSONumber in LOGWIND, however, if the QSO
   number on the other radio hasn't been used - we can steal it.  Note that we will
   never steal a QSO number that is less than the one we just sent.
 
   However, if QSONumberByBand is true - we can short circuit all of this logic and
-  just generate a QSO number that is one more than the QSO totals for the ActiveBand.
-
-  We have not yet implemented using the multi network to get QSO numbers from a master
-  computer.  We will however use the new procedures in logstuff to get QSO numbers. }
+  just reserve a QSO number using the same mechanism as the classic interface.
+  However, we need to have a local version of ReserveNewQSONumber in order to have
+  a radio specific instance of WeAskedForAQSONumber so we know which radio to
+  route a network received QSO number to.  }
 
     BEGIN
     { If we are doing QSOnumbers by band - and the radios are on different bands,
-      we won't be stealing the QSO number from the other radio.  We can use the
-      new standard way to get a QSO number which enables it to come from the
-      network }
+      we won't be stealing the QSO number from the other radio.  }
 
     IF QNumber.QSONumberByBand THEN
         IF Radio1QSOMachine.Band <> Radio2QSOMachine.Band THEN
             BEGIN
             QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
+            DisplayQSONumber;
+            QSONumberUnused := True;
             Exit;
             END;
 
-    { Now - look to see if we can steal the QSO number from the other radio }
+    { We are either on the same band - or QSO numbers are not by band.  If the QSO
+      Number is unused on the other radio - we can steal it.  It's a nice gesture
+      to reserve a new QSO number for the other radio and display it - and lave
+      QSONumberUnused = False }
 
     CASE Radio OF
         RadioOne:
@@ -381,9 +385,12 @@ PROCEDURE QSOMachineObject.SetUpNextQSONumber;
                 IF Radio2QSOMachine.QSONumberForThisQSO > QSONumberForThisQSO THEN
                     BEGIN
                     QSONumberForThisQSO := Radio2QSOMachine.QSONumberForThisQSO;
+                    QSONumberUnused := True;
+                    WeAskedForAQSONumber := False;
+
                     Radio2QSOMachine.QSONumberForThisQSO := Radio2QSOMachine.ReserveNewQSONumberForThisRadio;
                     Radio2QSOMachine.DisplayQSONumber;
-                    DisplayQSONumber;
+                    DisplayQSONumber;  { On current radio }
                     Exit;
                     END;
 
@@ -392,6 +399,9 @@ PROCEDURE QSOMachineObject.SetUpNextQSONumber;
                 IF Radio1QSOMachine.QSONumberForThisQSO > QSONumberForthisQSO THEN
                     BEGIN
                     QSONumberForThisQSO := Radio1QSOMachine.QSONumberForThisQSO;
+                    QSONumberUnused := True;
+                    WeAskedForAQSONumber := False;
+
                     Radio1QSOMachine.QSONumberForThisQSO := Radio1QSOMachine.ReserveNewQSONumberForThisRadio;
                     Radio1QSOMachine.DisplayQSONumber;
                     DisplayQSONumber;
@@ -403,8 +413,8 @@ PROCEDURE QSOMachineObject.SetUpNextQSONumber;
     { We can't steal the QSO number from the other radio - so get our own new number }
 
     QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
-    DisplayQSONumber;
     QSONumberUnused := True;
+    DisplayQSONumber;
     END;
 
 
@@ -851,6 +861,8 @@ FUnCTION QSOMachineObject.ReserveNewQSONumberForThisRadio: INTEGER;
 VAR TempString: STRING;
 
     BEGIN
+    WeAskedForAQSONumber := False;
+
     { See if we need to ask for a QSO number on the network }
 
     IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
@@ -859,14 +871,15 @@ VAR TempString: STRING;
             TempString := AddBand (Band);
             SendMultiCommand (MultiBandAddressArray [Band], $FF, MultiQSONumberRequest, TempString);
             QSONumberForThisQSO := 0;  { Probably redundant }
-            QSONumberFromNetwork := 0;
             WeAskedForAQSONumber := True;
-            ReserveNewQSONumberForThisRadio := 0;
+            ReserveNewQSONumberForThisRadio := 0;   { Zero indicates we have asked for a number from the network }
+            RadioQuickDisplay ('Asked for QSO# ' + GetFullMicroTimeString);
             Exit;
             END;
 
     { We are going to get the QSO number locally }
 
+    QuickDisplay ('Getting local QSO Number');
     ReserveNewQSONumberForThisRadio := QNumber.ReserveNewQSONumber (Band);
     END;
 
@@ -1156,6 +1169,7 @@ PROCEDURE ResetKeyStatus (Radio: RadioType);
 PROCEDURE TBSIQ_ExitProgram;
 
 VAR TempString: Str160;
+    Count: INTEGER;
 
     BEGIN
     IF (ParamCount > 0) AND (ParamStr (1) = 'EXIT') THEN
@@ -1194,8 +1208,20 @@ VAR TempString: Str160;
     ClrScr;
 
     IF BandMapEnable THEN SaveBandMap;
-
     Sheet.SaveRestartFile;
+
+    { If we are getting QSO numbers from someone on the network - we should return the
+      ones we have reserved so they can be used again }
+
+    IF MultiRequestQSONumber THEN
+        BEGIN
+        ReturnQSONumber (Radio1QSOMachine.Band, Radio1QSOMachine.QSONumberForThisQSO);
+        QuickDisplay ('Please wait....');
+        FOR Count := 1 TO 1000 DO Millisleep;
+        ReturnQSONumber (Radio2QSOMachine.Band, Radio2QSOMachine.QSONumberForThisQSO);
+        QuickDisplay ('Please wait a bit more....');
+        FOR Count := 1 TO 1000 DO Millisleep;
+        END;
 
     IF IntercomFileOpen THEN Close (IntercomFileWrite);
 
@@ -1346,19 +1372,29 @@ VAR TempString, MultiString, MessageString: STRING;
 
     BEGIN
     CheckForLostMultiMessages;
-
     MultiString := GetMultiPortCommand;
-
     IF MultiString = '' THEN Exit;
+
+    { We now have multi command that has the following format:
+
+        Source:        BYTE;
+        Destination:   BYTE;
+        ControlByte:   BYTE;
+        SerialNumber:  WORD;
+        CheckSum:      WORD;
+        MessageLength: BYTE;
+        TimeToLive:    INTEGER;
+        Message:       A bunch of ASCII characters (MessageLength of them);   }
 
     { Save who sent this message }
 
     MessageOriginator := Ord (Multistring [1]);
+    ControlByte       := Ord (MultiString [3]);
 
-    MessageString [0] := MultiString [8];
+    { Create string with the message }
+
+    MessageString [0] := MultiString [8];    { Message length byte }
     Move (MultiString [10], MessageString [1], Ord (MultiString [8]));
-
-    ControlByte := Ord (MultiString [3]);
 
     CASE ControlByte OF
         MultiInformationMessage:
@@ -1505,15 +1541,10 @@ VAR TempString, MultiString, MessageString: STRING;
                                   MessageOriginator,   { Send only to station requesting it }
                                   MultiQSONumberResponse,
                                   TempString);
-
-               QuickDisplay ('Sent QSO#' + TempString + ' to multi network.');
-               END;
+                END;
 
         MultiQSONumberResponse:
             BEGIN
-            { If we aren't requesting QSO numbers over the network, then this
-              response is not for us }
-
             IF NOT MultiRequestQSONumber THEN Exit;
 
             { We need to see if either Radio1 or Radio2 asked for this }
@@ -1539,6 +1570,9 @@ VAR TempString, MultiString, MessageString: STRING;
 
                 Radio1QSOMachine.QSONumberForThisQSO := QSONumberFromNetwork;
                 Radio1QSOMachine.DisplayQSONumber;
+                Radio1QSOMachine.QSONumberUnused := True;
+                Radio1QSOMachine.RadioQuickDisplay ('Received QSO# ' + MessageString + ' ' + GetFullMicroTimeString);
+                Exit;
                 END;
 
             IF Radio2QSOMachine.WeAskedForAQSONumber THEN
@@ -1562,6 +1596,9 @@ VAR TempString, MultiString, MessageString: STRING;
 
                 Radio2QSOMachine.QSONumberForThisQSO := QSONumberFromNetwork;
                 Radio2QSOMachine.DisplayQSONumber;
+                Radio2QSOMachine.QSONumberUnused := True;
+                Radio2QSOMachine.RadioQuickDisplay ('Receigved QSO# ' + MessageString + ' ' + GetFullMicroTimeString);
+                Exit;
                 END;
             END;
 
@@ -3984,13 +4021,6 @@ VAR FrequencyChange, TempFreq: LONGINT;
     TempQSOTotals: QSOTotalArray;
 
     BEGIN
-    IF QNumber.QSONumberByBand THEN
-        BEGIN
-        TempQSOTotals := QSOTotals;    { Get global QSO totals in dupesheet }
-        VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);  { Add in EditableLog QSOs }
-        QSONumberForThisQSO := TempQSOTotals [Band, Both] + 1;
-        END;
-
     DisplayQSONumber;  { Just to always make sure it is right }
 
     IF DupeShown THEN
@@ -4031,6 +4061,26 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     DisplayFrequency;
     DisplayBandMode;
+
+    { If QSONumberForThisQSO = -1, then we need to go get a QSO number for this radio's band }
+
+    CASE Radio OF
+        RadioOne:
+            IF (QSONumberForthisQSO = -1) AND NOT Radio2QSOMachine.WeAskedForAQSONumber THEN
+                BEGIN
+                QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
+                DisplayQSONumber;  { either the real QSO number or a zero if network involved }
+                QSONumberUnused := True;
+                END;
+
+        RadioTwo:
+            IF (QSONumberForthisQSO = -1) AND NOT Radio1QSOMachine.WeAskedForAQSONumber THEN
+                BEGIN
+                QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
+                DisplayQSONumber;  { either the real QSO number or a zero if network involved }
+                QSONumberUnused := True;
+                END;
+        END;
 
     { Determine if the radio appears to be "on the move" }
 
@@ -4575,31 +4625,20 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     ShowStateMachineStatus;
     R1_OpMode := CQOpMode;       { Determines color of exchange window }
 
-    { Get the next QSO Number }
+    { One issue with getting the next QSO number is that if we are doing QSONumberByBand,
+      we haven't read any information from the radios yet - and likely we have the wrong
+      bands.  We need to figure out a way to ask for the QSO numbers after we have the
+      correct band information.  This will be done here in 2BSIQ land by setting the
+      QSONumberForThisQSO to minus 1 }
 
-    QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
-
-    { We need to do two things here.  Let the operator know if we are waiting
-      for a network response in case there isn't one coming - and also make
-      sure that the first request for a networked QSO number is answered before
-      we ask for the one for the other radio }
-
-    IF MultiRequestQSONumber THEN
-        BEGIN
-        QuickDisplay ('Asking for QSO number');
-        REPEAT
-            TBSIQ_CheckMultiState
-        UNTIL NOT WeAskedForAQSONumber;
-        QuickDisplay ('QSO number received');
-        END;
-
-    DisplayQSONumber;
-    QSONumberUnused := True;
+    QSONumberForThisQSO := -1;
+    MarkTime (StartupTime);  { Used to go off and ask for QSO numbers after a bit }
 
     { Put up a blank call window }
 
     SetTBSIQWindow (TBSIQ_CallWindow);
     ClrScr;
+
     END;
 
 
@@ -7266,6 +7305,40 @@ FUNCTION QSOMachineObject.DisableTransmitting: BOOLEAN;
 
 
 
+PROCEDURE QSOMachineObject.RadioQuickDisplay (Message: STRING);
+
+{ Will how the message at the bottom of the radio screen - max about 37 characters }
+
+    BEGIN
+    SaveActiveWindow;
+
+    IF Radio = RadioOne THEN
+        BEGIN
+        Window (TBSIQ_R1_QuickCommandWindowLX,
+        TBSIQ_R1_QuickCommandWindowLY,
+        TBSIQ_R1_QuickCommandWindowRX,
+        TBSIQ_R1_QuickCommandWindowRY);
+        END
+    ELSE
+        BEGIN
+        Window (TBSIQ_R2_QuickCommandWindowLX,
+        TBSIQ_R2_QuickCommandWindowLY,
+        TBSIQ_R2_QuickCommandWindowRX,
+        TBSIQ_R2_QuickCommandWindowRY);
+        END;
+
+
+    SetBackGround (SelectedColors.QuickCommandWindowBackground);
+    SetColor      (SelectedColors.QuickCommandWindowColor);
+
+    ClrScr;
+
+    Write (Message);
+    RestorePreviousWindow;
+    END;
+
+
+
 PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRING);
 
 { New and improved to make sure we are using the right mode }
@@ -7508,10 +7581,7 @@ VAR I: INTEGER;
         END;
 
     IF NOT GoodCallSyntax (RData.Callsign) THEN
-        BEGIN
-        { QuickDisplay (RData.Callsign + ' has improper syntax!!');}
         Exit;
-        END;
 
     RData.Time       := Hours * 100 + Minutes;
     RData.Band       := Band;

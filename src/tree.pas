@@ -275,6 +275,8 @@ VAR CodeSpeed:  BYTE;
     PROCEDURE GetFileNames (Path: Str80; Mask: Str80; VAR FileNames: FileNameRecord);
     FUNCTION  GetFileSize (FileName: Str80): LONGINT;
     FUNCTION  GetFirstString (LongString: STRING): Str80;
+
+    FUNCTION  GetFullMicroTimeString: Str80;
     FUNCTION  GetFullTimeString: Str80;
     FUNCTION  GetFullDateString: Str80;
     FUNCTION  GetIntegerTime: INTEGER;
@@ -2469,11 +2471,43 @@ VAR TempString: Str20;
 
 
 
+FUNCTION GetFullMicroTimeString: Str80;
+
+{ Like GetFullTimeString but goes down to hundreths of a second }
+
+VAR Temp1, Temp2, Temp3, Temp4: String[5];
+    Hours, Minutes, Seconds, Hundredths: WORD;
+    I: INTEGER;
+
+    BEGIN
+    GetTime (Hours, Minutes, Seconds, Hundredths);
+    I := Hours;
+
+    IF HourOffset <> 0 THEN
+        BEGIN
+        I := I + HourOffset;
+        IF I > 23 THEN I := I - 24;
+        IF I < 0  THEN I := I + 24;
+        END;
+
+    Str (I,       Temp1);
+    Str (Minutes, Temp2);
+    Str (Seconds, Temp3);
+    Str (Hundredths, Temp4);
+
+    IF Length (Temp1) < 2 THEN Temp1 := '0' + Temp1;
+    IF Length (Temp2) < 2 THEN Temp2 := '0' + Temp2;
+    IF Length (Temp3) < 2 THEN Temp3 := '0' + Temp3;
+    IF Length (Temp4) < 2 THen Temp4 := '0' + Temp4;
+
+    GetFullMicroTimeString := Temp1 + ':' + Temp2 + ':' + Temp3 + '.' + Temp4;
+    END;
+
+
+
 FUNCTION GetFullTimeString: Str80;
 
-{ This function will look at the DOS clock and generate a nice looking
-  ASCII string showing the time using the format 23:42:32.  It will take
-  the HourOffset variable into account. }
+{ Like GetFullTimeString but goes down to hundreths of a second }
 
 VAR Temp1, Temp2, Temp3: String[5];
     Hours, Minutes, Seconds, Hundredths: WORD;

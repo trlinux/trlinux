@@ -2129,7 +2129,7 @@ VAR xResult,tempint: INTEGER;
 
             MultiUDPIP := RemoveFirstString (CMD);  { 192.168.x.x }
 
-            WritELn (MultiUDPIP);
+            WriteLn (MultiUDPIP);
 
             TempString := RemoveFirstString (CMD);
 
@@ -2138,6 +2138,19 @@ VAR xResult,tempint: INTEGER;
             IF StringIsAllNumbers (TempString) THEN
                 BEGIN
                 Val (TempString, MultiUDPPort, xResult);
+
+                IF NOT OpenUDPPortForInput (MultiUDPIP, MultiUDPPort, MultiUDPReadSocket) THEN
+                    BEGIN
+                    WriteLn ('Unable to open MultiUDPPort for input');
+                    Halt;
+                    END;
+
+                IF NOT OpenUDPPortForOutput (MultiUDPIP, MultiUDPPort, MultiUDPWriteSocket) THEN
+                    BEGIN
+                    WriteLn ('Unable to open MultiUDPPort for output');
+                    Halt;
+                    END;
+
                 ProcessConfigInstructions2 := True;
                 Exit;
                 END;

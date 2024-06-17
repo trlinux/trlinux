@@ -53,21 +53,6 @@ TYPE
         LeavePTTOn: BOOLEAN;
         END;
 
-    SeriaLNumberObject = CLASS
-
-        NextSerialNumber: INTEGER;
-
-        PROCEDURE CreateQSONumberLoggedEntry (SerialNumber: INTEGER; Call: CallString);
-
-        FUNCTION  GetNextSerialNumber (Callsign: CallString;
-                                       Frequency: LONGINT;
-                                       Band: BandType;
-                                       Mode: ModeType): INTEGER;
-
-        PROCEDURE InitializeSerialNumbers;
-        END;
-
-
     TBSIQ_CWEngineObject = CLASS
 
         CueHead: INTEGER;
@@ -92,8 +77,6 @@ TYPE
 
 VAR
     TBSIQ_CW_Engine: TBSIQ_CWEngineObject;
-    SerialNumberEngine: SerialNumberObject;
-
 
     FUNCTION TBSIQ_FootSwitchPressed: BOOLEAN;
 
@@ -111,88 +94,6 @@ FUNCTION TBSIQ_FootSwitchPressed: BOOLEAN;
         TBSIQ_FootSwitchPressed := ArdKeyer.FootSwitchPressed
     ELSE
         TBSIQ_FootSwitchPressed := Footsw.getDebouncedState;
-    END;
-
-
-
-FUNCTION SerialNumberObject.GetNextSerialNumber (Callsign: CallString;
-                                                 Frequency: LONGINT;
-                                                 Band: BandType;
-                                                 Mode: ModeType): INTEGER;
-
-VAR FileWrite: TEXT;
-
-    BEGIN
-    GetNextSerialNumber := NextSerialNumber;
-
-    IF OpenFileForAppend (FileWrite, SerialNumberFileName) THEN
-        BEGIN
-        WriteLn (FileWrite, 'QNR: ', NextSerialNumber, ' ',
-                                     GetFullDateString, ' ',
-                                     GetFullTimeString, ' ',
-                                     CallSign, ' ',
-                                     Frequency, ' ',
-                                     BandString [Band], ' ',
-                                     ModeString [Mode]);
-
-        Close (FileWrite);
-        END;
-
-    Inc (NextSerialNumber);
-    END;
-
-
-
-PROCEDURE SerialNumberObject.CreateQSONumberLoggedEntry (SerialNumber: INTEGER; Call: CallString);
-
-VAR FileWrite: TEXT;
-
-    BEGIN
-    IF OpenFileForAppend (FileWrite, SerialNumberFilename) THEN
-        BEGIN
-        WriteLn (FileWrite, 'QLQ: ', SerialNumber, ' ',
-                                     GetFullDateString, ' ',
-                                     GetFullTimeString, ' ',
-                                     Call);
-
-        Close (FileWrite);
-        END;
-    END;
-
-
-PROCEDURE SerialNumberObject.InitializeSerialNumbers;
-
-{ Simply reads the serial number file and figures out what the
-  next serial number should be.  }
-
-VAR FileRead: TEXT;
-    NumberString, DataFlag, FileString: STRING;
-
-    BEGIN
-    IF OpenFileForRead (FileRead, SerialNumberFileName) THEN
-        BEGIN
-        WHILE NOT Eof (FileRead) DO
-            BEGIN
-            ReadLn (FileRead, FileString);
-
-            { First element indicates what kind of data this is }
-
-            DataFlag := RemoveFirstString (FileString);
-
-            IF DataFlag = 'QNR:' THEN    { Serial Number request data }
-                NumberString := RemoveFirstString (FileString);
-            END;
-
-        Close (FileRead);
-
-        { NumberString has last entry }
-
-        Val (NumberString, NextSerialNumber);
-        Inc (NextSerialNumber);
-        END
-
-    ELSE
-        NextSerialNumber := 1;
     END;
 
 
@@ -560,10 +461,6 @@ PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
     TBSIQ_CW_Engine.CueHead := 0;
     TBSIQ_CW_Engine.CueTail := 0;
     TBSIQ_CW_Engine.LastActiveRadioShown := NoRadio;
-
-    SeriaLNumberEngine := SerialNumberObject.Create;
-    SerialNumberEngine.InitializeSerialNumbers;
-
     ActiveRadio := NoRadio;
     END.
 
