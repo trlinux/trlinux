@@ -16,6 +16,104 @@ You should have received a copy of the GNU General
     Public License along with TR log for linux.  If not, see
 <http://www.gnu.org/licenses/>.
 
+0.60 - Released 20-Jun-2024
+
+ - Support for syncing QSO numbers between networked stations has been
+   added.  To enable this - the computers that need to ask for QSO
+   numbers need to have MULTI REQUEST QSO NUMBER = TRUE.  The one
+   computer that is going to provide QSO numbers needs to have this
+   left FALSE.
+
+   QSO Numbers are determined for a contest in progress by examaning
+   the .DAT and .TMP files to see what the highest QSO Number(s) that
+   were sent.  This works even without the network requests enabled.
+
+   If you exit the program or change bands (when QSO BY NUMBER = TRUE),
+   the unused QSO number will be returned.
+
+   All of this is also working with TBSIQ.
+
+ - Added PING command ih the call window.  Enter PING and RETURN and see
+   if there is someone answering you on the other side of the network.
+   The delay time only has 10 ms resolution - so is typically shown as
+   zero.  This is non blocking, so if there is no response - life goes
+   on.  You can also type in PING1000 to do 1000 pings in a row.
+
+ - Removed display of name percentage - just not worth trying to figure
+   out the right denomintor with the changes to QSO numbers.
+
+ - Removed DVP support.  Some risk that I affected DVK support which I
+   tried to leave in.
+
+ - Removed support for the K1EA serial port network.
+
+ - Fixed PACKET SPOTS = MULT not working
+
+ - Disabled the ControlInsert command - which adds a placeholder to the
+   bandmap
+
+ - When the footswitch mode is to start sending - I won't do it if there
+   is nothing in the call window now (same behavior as when you press the
+   auto start send key).
+
+ - If you escaped out of sending a callsign with auto start send and
+   cleared the window, the auto start send will be re-enabled.   Hopefully
+   this was enough to fix the issue of it not being enabled some of the
+   time.  However, I will also re-enable it if you press F1 or F2 to call
+   CQ.  I think this isn't a bug in 2BSIQ.
+
+  - Added new command - AUTO SIDETONE ENABLE (default = FALSE).  When
+    enabled, this will attempt to enable the radio sidetone for manually
+    sent CW and then silence the sidetone when going back to sending a
+    programmed message.  This likely only works if you are using the
+    Arduino Keyer and only with an Elecraft K3/K4.  It is primarily designed
+    for 2BSIQ operation but seems to work fine in classic mode even with
+    two radios.
+
+  - Added new way to do multi - using UDP.
+
+    MULTI PORT = UDP <ip address> <port>.
+
+    The IP address is to the next machine in the loop.  Last computer
+    needs to loop back to the first computer.
+
+ - Some minor fixes to using RTTY in 2BSIQ mode.
+
+ - Added MST contest.
+
+ - When building a Cabrillo log - you now have the option to ignore the
+   LONGLOG.DAT file is you don't want to deal with it.  It is used to
+   get exact frequency information into your Cabrillo log.  This was
+   also added to the ADIF utility.
+
+ - Changed how the control-C and control-D are parsed for messages in a
+   function key memory.  The last control-D will be used to parse the
+   command, so that commands that contain a control-D can be used.  Note
+   that this means you really can only have one valid command in a message.
+
+ - Removed WARC bands from Continent Report
+
+ - Added new command TBSIQ DUAL MODE - default FALSE and it is in the
+   ControlJ menu.  This is used to enable all of the changes made to
+   TBSIQ to handle the special case of mixed mode operation.  It was
+   tested in the ARRL 10 meter contest and seemed to work okay - but
+   hasn't been improved yet.
+
+ - We were dropping the PTT after sending an auto start sending call before
+   the exchange was being sent.  This is because we had ripped out some of
+   the PTT Force on code - and in putting it back in - discovered a bug in
+   the Arduino where it was unasserting PTT after the timeout even if
+   PTT force on was active.  So - this results in an Arduino code update
+   in addition to some pascal code.  Also - made the arudino keyer pascal
+   code report back that CW was not being sent even if the PTT was still
+   active - to avoid being trapped there.
+
+ - When using TWO VFO MODE and you go to a frequency that has an entry in the
+   band map - instead of doing a dupecheck if you press the SPACE BAR again,
+   it will go back to your CQ frequency.  Also made it so a dupe check with a
+   dupe will update the bandmap time stamp.  Some other minor tweaks to how it
+   works when finding a dupe on the other VFO.
+
 0.59
 
 - Fixed bug where reloading in a log had the wrong total score.
@@ -27,7 +125,6 @@ You should have received a copy of the GNU General
 
 - Added new command in POST Utility to assign Cabriilo TX ID's by band
   (Post U T).
-
 
 0.58
 
@@ -140,44 +237,44 @@ You should have received a copy of the GNU General
 
 0.55
 
-- Many enhancements and bug fixes with the 2BSIQ user interface.  
+- Many enhancements and bug fixes with the 2BSIQ user interface.
 
 - In 2BSIQ, you can now use the Alt-D command to enter a
   callsign similar to what you would do in the classic interface.
   If the other radio has the call window active, the call will
   be entered and when you press RETURN it will perform a dupe
   check.
-  
-- Dualing CQ is now supported (using Control-Dash) in 2BSIQ.  
+
+- Dualing CQ is now supported (using Control-Dash) in 2BSIQ.
   Will, work on RTTY and SSB with a K3/K4 radio.
-  
+
 - Better integration of the band map with 2BSIQ interface.
 
 - Packet cluster support in 2BSIQ interface.
 
-- RTTY supported with K3/K4 radios for transmission.  You still have 
-  to read the display of the radio to get calls and exchanges and 
-  enter them by hand.  
+- RTTY supported with K3/K4 radios for transmission.  You still have
+  to read the display of the radio to get calls and exchanges and
+  enter them by hand.
 
 - New QSO number metodology implemented for 2BSIQ.  When you
   first start, you will have QSO #1 on the left radio and
   QSO #2 on the right radio.  Once you do something with
   a radio like starting to enter a call, that number will
-  be locked until you log a QSO on that radio.  
-  
-  If you start running on the radio that has the lower 
-  number and don't do anything on the other radio, the 
+  be locked until you log a QSO on that radio.
+
+  If you start running on the radio that has the lower
+  number and don't do anything on the other radio, the
   QSO number will get "stoeln" from the inactive radio .
-  
-  If an old QSO number gets left behind on a radio, you 
+
+  If an old QSO number gets left behind on a radio, you
   can update it to a new number using the call window
   command UPDATEQSONR.  Also, any unused QSO numebers
   will be skipped if you restart the program.  Currently,
   you must not use the option to log frequencies if you
-  are using QSO numbers.  
-  
+  are using QSO numbers.
+
 - AutoCQ using AltQ and AltC now supported in TBSIQ.
- 
+
 
 0.54
 
