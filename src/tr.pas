@@ -48,6 +48,10 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+17-Jun-2024
+ - Lots of work with QSO numbers coming in over the network.  Many bugs fixed and
+   operation made more robust.  This includes integration with 2BSIQ.
+
 08-Jun-2024
  - Improved QSO number over network.  Now providing the ability to send the QSO number
    back to the master computer when exiting an instance of the program that has

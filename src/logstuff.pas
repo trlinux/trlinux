@@ -215,6 +215,7 @@ TYPE
         Source: BYTE;
         Serial: WORD;
         Check:  INTEGER;
+        ControlByte: BYTE;
         TimeStamp: TimeRecord;
         END;
 
@@ -4795,12 +4796,13 @@ FUNCTION WeHaveProcessedThisMessage (Message: STRING): BOOLEAN;
   was processed before - but the time stamp it at least 5 seconds off,
   then I will return FALSE }
 
-VAR Source: BYTE;
+VAR ControlByte, Source: BYTE;
     ActiveMessage:  INTEGER;
     Serial, CheckSum: WORD;
 
     BEGIN
     Source := Ord (Message [1]);
+    ControlByte := Ord (Message [3]);
 
     { Get the serial number - which is a word }
 
@@ -4822,6 +4824,7 @@ VAR Source: BYTE;
         ProcessedMultiMessages [ProcessedMultiMessagesHead].Source := Source;
         ProcessedMultiMessages [ProcessedMultiMessagesHead].Serial := Serial;
         ProcessedMultiMessages [ProcessedMultiMessagesHead].Check  := CheckSum;
+        ProcessedMultiMessages [ProcessedMultiMessagesHead].ControlByte  := ControlByte;
         MarkTime (ProcessedMultiMessages [ProcessedMultiMessagesHead].TimeStamp);
         Inc (ProcessedMultiMessagesHead);        { Increments to one }
         Exit;
@@ -4839,11 +4842,22 @@ VAR Source: BYTE;
         IF (ProcessedMultiMessages [ActiveMessage].Source = Source) AND
            (ProcessedMultiMessages [ActiveMessage].Serial = Serial) AND
            (ProcessedMultiMessages [ActiveMessage].Check  = CheckSum) THEN
-            IF ElaspedSec100 (ProcessedMultiMessages [ActiveMessage].TimeStamp) < 500 THEN
-                BEGIN
-                WeHaveProcessedThisMessage := True;
-                Exit;
-                END;
+               IF ControlByte = MultiQSONumberRequest THEN
+                   BEGIN
+                   { If the remote computer was restarted and asking again for a QSO number, it
+                     might be generating a message that looks a lot like a previous one }
+
+                   IF ElaspedSec100 (ProcessedMultiMessages [ActiveMessage].TimeStamp) < 500 THEN
+                       BEGIN
+                       WeHaveProcessedThisMessage := True;
+                       Exit;
+                       END;
+                   END
+               ELSE
+                   BEGIN
+                   WeHaveProcessedThisMessage := True;
+                   Exit;
+                   END;
 
         { Increment to the next message }
 
@@ -4859,6 +4873,7 @@ VAR Source: BYTE;
     ProcessedMultiMessages [ProcessedMultiMessagesHead].Source := Source;
     ProcessedMultiMessages [ProcessedMultiMessagesHead].Serial := Serial;
     ProcessedMultiMessages [ProcessedMultiMessagesHead].Check  := CheckSum;
+    ProcessedMultiMessages [ProcessedMultiMessagesHead].ControlByte  := ControlByte;
     MarkTime (ProcessedMultiMessages [ProcessedMultiMessagesHead].TimeStamp);
 
     { Increment the head to the next place to put data }
