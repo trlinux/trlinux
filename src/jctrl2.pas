@@ -631,7 +631,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            END;
 
       PCE: PartialCallEnable        := NOT PartialCallEnable;
-      PCL: PartialCallLoadLogEnable := NOT PartialCallLoadLogEnable;
       PCM: PartialCallMultsEnable   := NOT PartialCallMultsEnable;
       PR1: PollRadioOne             := NOT PollRadioOne; {KK1L: 6.72}
       PR2: PollRadioTwo             := NOT PollRadioTwo; {KK1L: 6.72}
@@ -1209,7 +1208,6 @@ VAR FileWrite: TEXT;
       PMT: WriteLn (FileWrite, ActiveKeyer.GetPaddleMonitorTone);
       PSD: WriteLn (FileWrite, ActiveKeyer.GetPaddleSpeed);
       PCE: WriteLn (FileWrite, PartialCallEnable);
-      PCL: WriteLn (FileWrite, PartialCallLoadLogEnable);
       PCM: WriteLn (FileWrite, PartialCallMultsEnable);
       PR1: WriteLn (FileWrite, PollRadioOne); {KK1L: 6.72}
       PR2: WriteLn (FileWrite, PollRadioTwo); {KK1L: 6.72}
@@ -1588,7 +1586,6 @@ VAR TempString: Str40;
       PHC: Str (ActiveKeyer.GetPaddlePTTHoldCount, TempString);
       PSD: Str (ActiveKeyer.GetPaddleSpeed, TempString);
       PCE: IF PartialCallEnable THEN TempString := 'TRUE';
-      PCL: IF PartialCallLoadLogEnable THEN TempString := 'TRUE';
       PCM: IF PartialCallMultsEnable THEN TempString := 'TRUE';
       PR1: IF PollRadioOne THEN TempString := 'TRUE'; {KK1L: 6.72}
       PR2: IF PollRadioTwo THEN TempString := 'TRUE'; {KK1L: 6.72}

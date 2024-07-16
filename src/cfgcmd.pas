@@ -2549,7 +2549,8 @@ VAR xResult,tempint: INTEGER;
 
     IF ID = 'PARTIAL CALL LOAD LOG ENABLE' THEN
         BEGIN
-        PartialCallLoadLogEnable := UpCase (CMD [1]) = 'T';
+        { We left this in here so older config files wouldn't create an error }
+
         ProcessConfigInstructions2 := True;
         Exit;
         END;

@@ -19,6 +19,12 @@
 //<http://www.gnu.org/licenses/>.
 //
 
+// To make a new version:
+//
+// 1. Update the src/versions.inc file
+// 2. Update the Makefile in the upper directory with the vesrion #
+// 3. Update the release notes.
+
 PROGRAM ContestLoggingProgram;
 {$linklib curl}
 {$linklib X11}
@@ -47,6 +53,16 @@ TODO List after 2023 WPX CW:
    when they are now dupes.
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
+
+16-Jul-2024
+ - Fixed initial exchange not getting updated as you worked guys in IARU and
+   likely other contests.
+
+ - Removed PARTIAL CALL LOAD LOG ENABLE.  It is essentially TRUE now all of the
+   time.  The only reason for not doing this was a speed issue back in the old
+   DOS days.
+
+Release 0.60 - June 20, 2024
 
 17-Jun-2024
  - Lots of work with QSO numbers coming in over the network.  Many bugs fixed and
@@ -182,7 +198,7 @@ TODO List after 2023 WPX CW:
    dupe will update the bandmap time stamp.  Some other minor tweaks to how it
    works when finding a dupe on the other VFO.
 
-Relase 0.59 - 28-Nov-2023
+Release 0.59 - 28-Nov-2023
 
 28-Nov-2023
  - Increased size of possible/partial call list from 200 to 600.

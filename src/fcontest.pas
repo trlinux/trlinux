@@ -979,7 +979,12 @@ VAR TempQTH: QTHRecord;
             Str (CountryTable.GetZone (MyCall),  MyZone);
 
             ActiveDomesticMult := WYSIWYGDomestic;
+
+            { Not sure how I feel about IARUHQ.DOM.  For sure - it isn't up to date and
+              likely with WYSIWYGDomestic is being bypassed anyway? }
+
             DomesticQTHDataFileName := 'IARUHQ.DOM'; {KK1L: 6.68}
+
             ActiveExchange := RSTZoneOrSocietyExchange;
             ActiveInitialExchange := ZoneInitialExchange; {KK1L: 6.71 NOTE changed in code}
             ActiveQSOPointMethod := IARUQSOPointMethod;

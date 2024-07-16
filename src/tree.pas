@@ -2098,10 +2098,14 @@ FUNCTION GetLogEntryDateString (LogEntry: Str160): Str160;
 
 FUNCTION GetLogEntryExchangeString (LogEntry: Str160): Str160;
 
+{ New for July 2024 - remove any preceding spaces }
+
 VAR TempString: Str80;
 
     BEGIN
     TempString := Copy (LogEntry, LogEntryExchangeAddress, LogEntryExchangeWidth);
+
+    GetRidOfPrecedingSpaces (TempString);
     GetRidOfPostcedingSpaces (TempString);
     GetLogEntryExchangeString := TempString;
     END;

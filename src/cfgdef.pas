@@ -290,7 +290,6 @@ PROCEDURE SetConfigurationDefaultValues;
 
     ParameterOkayMode        := Standard;
     PartialCallEnable        := True;
-    PartialCallLoadLogEnable := False;
     PartialCallMultsEnable   := True;
     PossibleCallAcceptKey    := ';';
     PossibleCallEnable       := True;

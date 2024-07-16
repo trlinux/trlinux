@@ -158,7 +158,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       PHC,
                       PSD,
                       PCE,
-                      PCL,
                       PCM,
                       PR1, {KK1L: 6.72 PollRadioOne}
                       PR2, {KK1L: 6.72 PollRadioOne}
@@ -398,7 +397,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       PHC: Description := 'PADDLE PTT HOLD COUNT';
       PSD: Description := 'PADDLE SPEED';
       PCE: Description := 'PARTIAL CALL ENABLE';
-      PCL: Description := 'PARTIAL CALL LOAD LOG ENABLE';
       PCM: Description := 'PARTIAL CALL MULT INFO ENABLE';
       PR1: Description := 'POLL RADIO ONE';
       PR2: Description := 'POLL RADIO TWO';
@@ -734,7 +732,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       PHC: Write (ActiveKeyer.GetPaddlePTTHoldCount);
       PSD: Write (ActiveKeyer.GetPaddleSpeed);
       PCE: Write (PartialCallEnable);
-      PCL: Write (PartialCallLoadLogEnable);
       PCM: Write (PartialCallMultsEnable);
       PR1: Write (PollRadioOne); {KK1L: 6.72 PollRadioOne}
       PR2: Write (PollRadioTwo); {KK1L: 6.72 PollRadioTwo}
@@ -1479,11 +1476,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Partial calls will be shown')
            ELSE
                Write ('Partial calls will not be shown');
-
-      PCL: IF PartialCallLoadLogEnable THEN
-               Write ('If new LOG.DAT, partial calls loaded')
-           ELSE
-               Write ('Partials not loaded from new LOG.DAT');
 
       PCM: IF PartialCallMultsEnable THEN
                Write ('Mult info shown for partial calls')

@@ -210,6 +210,9 @@ VAR Time, QSONumber: INTEGER;
     FileWrite: TEXT;
 
     BEGIN
+    { If this is a note - we don't need to do anything except write it
+      to the log file }
+
     IF Copy (LogString, 1, 1) = ';' THEN
         BEGIN
         WriteLogEntry (LogString);
@@ -222,17 +225,6 @@ VAR Time, QSONumber: INTEGER;
         BEGIN
         IF LogString [LogEntryNameSentAddress] = '*' THEN
             Inc (TotalNamesSent);
-
-        IF QSOTotals [All, Both] MOD ContactsPerPage = 0 THEN
-            BEGIN
-            IF QSOTotals [All, Both] > 0 THEN
-                NextPage;
-            PrintLogHeader;
-            END;
-
-        IF QSOTotals [All, Both] MOD ContactsPerPage > 9 THEN
-            IF QSOTotals [All, Both] MOD 10 = 0 THEN
-                WriteLogEntry ('');
 
         VisibleLog.PutLogEntryIntoSheet (LogString);
         WriteLogEntry                   (LogString);
@@ -316,7 +308,7 @@ VAR RData: ContestExchange;
         BEGIN
         PutContactIntoLogFile (LogString);
 
-        IF ParseExchangeIntoContestExchange (LogString, RData) THEN
+        IF ParseLogEntryIntoContestExchange (LogString, RData) THEN
             BEGIN
             IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
                 BEGIN
@@ -6745,6 +6737,15 @@ VAR MTotals: MultTotalArrayType;
             ClearContestExchange (ReceivedData);
 
             GetInitialCall;   { This will come back when we have a callsign }
+
+            IF CallsignICameBackTo = 'WRITEALLFILE' THEN
+                BEGIN
+                WriteAllFile;
+                WriteLn ('AllFile written to allfile.txt');
+                WriteLn ('You will need to restart the program now');
+                WaitForKeyPressed;
+                Halt;
+                END;
 
             IF CallsignICameBackTo = '2BSIQ' THEN
                 BEGIN

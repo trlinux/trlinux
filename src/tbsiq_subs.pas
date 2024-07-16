@@ -879,7 +879,6 @@ VAR TempString: STRING;
 
     { We are going to get the QSO number locally }
 
-    QuickDisplay ('Getting local QSO Number');
     ReserveNewQSONumberForThisRadio := QNumber.ReserveNewQSONumber (Band);
     END;
 
@@ -4018,7 +4017,6 @@ VAR FrequencyChange, TempFreq: LONGINT;
     TempBand: BandType;
     TempMode: ModeType;
     TimeString: STRING;
-    TempQSOTotals: QSOTotalArray;
 
     BEGIN
     DisplayQSONumber;  { Just to always make sure it is right }
@@ -7750,7 +7748,7 @@ VAR TempData: ContestExchange;
 
         { From LOGSUBS2.PAS }
 
-        IF ParseExchangeIntoContestExchange (LogString, TempData) THEN
+        IF ParseLogEntryIntoContestExchange (LogString, TempData) THEN
             BEGIN
             IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
                 IF (NOT MultiMultsOnly) OR

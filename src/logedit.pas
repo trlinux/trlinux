@@ -1517,7 +1517,7 @@ PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: STRING);
 VAR TempRXData: ContestExchange;
 
     BEGIN
-    TransferLogEntryInfoToContestExchange (LogEntry, TempRXData);
+    ParseLogEntryIntoContestExchange (LogEntry, TempRXData);
 
     IF (TempRXData.Mode = NoMode) OR (TempRXData.Band = NoBand) THEN Exit; {KK1L: 6.71 Fix "non" contacts from crashing}
 
@@ -1845,7 +1845,7 @@ VAR Entry: INTEGER;
         FOR Entry := 5 DOWNTO 1 DO
             IF Call = UpperCase (GetLogEntryCall (VisibleLog.LogEntries [Entry])) THEN
                 BEGIN
-                IF ParseExchangeIntoContestExchange (VisibleLog.LogEntries [Entry], RData) THEN
+                IF ParseLogEntryIntoContestExchange (VisibleLog.LogEntries [Entry], RData) THEN
                     GetInitialExchangeFromEditableLog := GetInitialExchangeStringFromContestExchange (RData);
                 Exit;
                 END;
@@ -3419,8 +3419,8 @@ VAR CustomString, Exchange, Command, TempString: STRING;
 
 FUNCTION InitialExchangeEntry (Call: CallString): Str80;
 
-{ This function will give you an initial exchange window entry if it
-  thinks it knows what the guy will send.                            }
+{ This function will give you an initial exchange entry if it
+  thinks it knows what the guy will send.   }
 
 VAR Heading, CharPosition, Distance: INTEGER;
     TestString: Str20;
@@ -3428,13 +3428,15 @@ VAR Heading, CharPosition, Distance: INTEGER;
     TempExchange: ContestExchange;
 
     BEGIN
+    { Make sure we have something that looks real before doing this }
+
     IF NOT GoodCallSyntax (Call) THEN
         BEGIN
         InitialExchangeEntry := '';
         Exit;
         END;
 
-    { First - we see if there is something in the editable log }
+    { Mext - see if there is something in the editable log }
 
     TempString := VisibleLog.GetInitialExchangeFromEditableLog (Call);
 
@@ -3466,11 +3468,16 @@ VAR Heading, CharPosition, Distance: INTEGER;
         {           Both the zone and country are log entries, but only the zone is in the}
         {           exchange. This confused the parser. Only the first string (zone) is needed.}
 
-        IF (ActiveInitialExchange = ZoneInitialExchange) OR
-           ((DomesticQTHDataFileName = 'IARUHQ.DOM')) THEN
             {KK1L: 6.71 The init exchange bug came back when I changed the Initital exchange default}
             {           for IARU and WRTC!! Added the second line above.}
-            TempString := RemoveFirstString (TempString);
+
+
+        { N6TR here - I think this might only be an issue for WRTC?  This seems to be
+          disabling initial exchanges coming in for zones }
+
+{       IF (ActiveInitialExchange = ZoneInitialExchange) OR
+           ((DomesticQTHDataFileName = 'IARUHQ.DOM')) THEN
+            TempString := RemoveFirstString (TempString); }
 
         END;
 
