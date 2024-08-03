@@ -314,7 +314,7 @@ VAR IPAddress: Str20;
     Key: CHAR;
 
     BEGIN
-    ClearScreenAndTitle ('RTL TCP TESTING');
+    ClearScreenAndTitle ('N4OGW BANDMAP RTL TCP TESTING');
     WriteLn;
 
     IPAddress := GetResponse ('Enter IP address : ');
@@ -1396,7 +1396,6 @@ VAR CursorPosition, NewCursor, Line: INTEGER;
                 RestorePreviousWindow;
                 Exit;
                 END;
-
         UNTIL (KeyPressed);
 
         KeyChar := ReadKey;
@@ -2056,7 +2055,7 @@ VAR Buffer: INTEGER;
         REPEAT
             UpdateTimeAndRateDisplays (False, False);
 
-        IF ActiveMultiPort <> nil THEN
+        IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
             IF ElaspedSec100 (TimeMark) > 2000 THEN
                 BEGIN
                 RestorePreviousWindow;
@@ -3078,15 +3077,18 @@ begin
    else
       WriteLn(nf,' Serial ports found:');
    TextColor (Cyan);
+
    if (nf > nd) then
    begin
       writeln('more ports found than can be printed ',nf,' ',nd);
       nf := nd;
    end;
+
    for i := 0 to nf-1 do
    begin
       writeln(buf[i]);
    end;
+
    WriteLn;
    nf := findparallel(buf,nch,nd);
    TextColor (Yellow);

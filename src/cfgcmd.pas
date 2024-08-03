@@ -27,9 +27,9 @@ UNIT CfgCMD;
 INTERFACE
 
 USES SlowTree, Tree, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
-     LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
-     LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt, K1EANet,
-     N1MM, communication, linuxsound, N4OGW, LogUDP;
+     LogGrid, LogDom, FContest, Country9, LogEdit, LogDDX,
+     LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt,
+     logqsonr, N1MM, communication, linuxsound, N4OGW, LogUDP;
 
 
     FUNCTION  ProcessConfigInstruction (FileString: STRING; VAR FirstCommand: BOOLEAN): BOOLEAN;
@@ -187,6 +187,13 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'AUTO PARTIAL CALL FETCH' THEN
+        BEGIN
+        AutoPartialCallFetch := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
     IF ID = 'AUTO QSL INTERVAL' THEN
         BEGIN
         Val (CMD, AutoQSLInterval, xResult);
@@ -223,13 +230,6 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
-    IF ID = 'AUTO PARTIAL CALL FETCH' THEN
-        BEGIN
-        AutoPartialCallFetch := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions1 := True;
-        Exit;
-        END;
-
     IF ID = 'AUTO S&P ENABLE SENSITIVITY' THEN {KK1L: 6.72}
         BEGIN
         Val (CMD, AutoSAPEnableRate, xResult);
@@ -249,17 +249,16 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'AUTO SIDETONE CONTROL' THEN
+        BEGIN
+        AutoSideToneControl := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
+        END;
+
     IF ID = 'AUTO TIME INCREMENT' THEN
         BEGIN
         Val (CMD, AutoTimeIncrementQSOs, xResult);
         ProcessConfigInstructions1 := xResult = 0;
-        Exit;
-        END;
-
-    IF ID = 'BACKCOPY ENABLE' THEN
-        BEGIN
-        BackCopyEnable := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions1 := True;
         Exit;
         END;
 
@@ -389,7 +388,6 @@ VAR xResult, Speed, TempValue: INTEGER;
        BeepSoundCardEnable := UpCase (CMD [1]) = 'T';
        ProcessConfigInstructions1 := True;
        soundmode(0);
-       if not dvpsetup then beginsound;
        Exit;
        END;
 
@@ -935,7 +933,6 @@ VAR xResult, Speed, TempValue: INTEGER;
             SetEXMemoryString (Phone, AltF9,  '');
             SetEXMemoryString (Phone, AltF10, '');
 
-            DVPOn := True;
             END;
 
         ProcessConfigInstructions1 := (ActiveDVKPort <> nil) OR (CMD = 'NONE');
@@ -946,7 +943,6 @@ VAR xResult, Speed, TempValue: INTEGER;
         BEGIN
         DVKRadioEnable := UpCase (CMD [1]) = 'T';
         DVKEnable := DVKRadioEnable;
-        DVPOn := DVKEnable;
         ProcessConfigInstructions1 := True;
         Exit;
         END;
@@ -1055,21 +1051,6 @@ VAR xResult, Speed, TempValue: INTEGER;
         ProcessConfigInstructions1 := True;
         Exit;
         END;
-
-    IF ID = 'DVP ENABLE' THEN
-        BEGIN
-        DVPEnable := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions1 := True;
-        Exit;
-        END;
-
-    IF ID = 'DVP PATH' THEN
-        BEGIN
-        CfgDvpPath := CMD;
-        ProcessConfigInstructions1 := True;
-        Exit;
-        END;
-
 
     IF ID = 'EIGHT BIT PACKET PORT' THEN
         BEGIN
@@ -1379,6 +1360,13 @@ VAR xResult,tempint: INTEGER;
         CMD := UpperCase (CMD);
 
         IF CMD = 'NORMAL'                  THEN FootSwitchMode := Normal;
+
+        IF (CMD = '2BSIQSSB') OR (CMD = 'TBSIQSSB') THEN
+            BEGIN
+            ArdKeyer.FootSwitch2BSIQSSB;
+            FootSwitchMode := TBSIQSSB;
+            END;
+
         IF CMD = 'F1'                      THEN FootSwitchMode := FootSwitchF1;
         IF CMD = 'LAST CQ FREQ'            THEN FootSwitchMode := FootSwitchLastCQFreq;
         IF CMD = 'NEXT BANDMAP'            THEN FootSwitchMode := FootSwitchNextBandMap;
@@ -1392,14 +1380,15 @@ VAR xResult,tempint: INTEGER;
         IF CMD = 'CONTROL ENTER'           THEN FootSwitchMode := FootSwitchControlEnter;
         IF CMD = 'START SENDING'           THEN FootSwitchMode := StartSending;
         IF CMD = 'SWAP RADIOS'             THEN FootSwitchMode := SwapRadio;
-        IF CMD = 'CW GRANT'                THEN
-        Begin
+
+        IF CMD = 'CW GRANT' THEN
+            BEGIN
             FootSwitchMode := CWGrant;
             ArdKeyer.setCWGrant (True);
             CPUKeyer.setCwGrant(true);
             WinKey.setCwGrant(true);
             YcccKey.setCwGrant(true);
-        End;
+            END;
 
         ProcessConfigInstructions2 := (FootSwitchMode <> FootSwitchDisabled) OR
                                     (CMD = 'DISABLED');
@@ -1716,20 +1705,6 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-
-    IF ID = 'K1EA NETWORK ENABLE' THEN
-        BEGIN
-        K1EANetworkEnable := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions2 := True;
-        Exit;
-        END;
-
-    IF ID = 'K1EA STATION ID' THEN
-        BEGIN
-        K1EAStationID := UpCase (CMD [1]);
-        ProcessConfigInstructions2 := True;
-        Exit;
-        END;
 
     IF ID = 'WINKEYER PORT' THEN
         BEGIN
@@ -2121,6 +2096,13 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         ActiveMultiPort := nil;
 
+        IF (UpperCase (CMD) = 'NONE') OR (UpperCase (CMD) = 'NIL') THEN
+            BEGIN
+            ActiveMultiPort := nil;
+            ProcessConfigInstructions2 := True;
+            Exit;
+            END;
+
         IF StringHas(UpperCase(CMD),'SERIAL') THEN
            BEGIN
               tempstring := wordafter(CMD,'SERIAL');
@@ -2130,11 +2112,52 @@ VAR xResult,tempint: INTEGER;
                     ActiveMultiPort := serialportx.create(tempstring);
                     addport(ActiveMultiPort);
                  end;
-           END;
 
-        IF ActiveMultiPort <> nil THEN Packet.PacketBandSpots := True;
+            IF ActiveMultiPort <> nil THEN Packet.PacketBandSpots := True;
 
-        ProcessConfigInstructions2 := (ActiveMultiPort <> nil) OR (CMD = 'NONE');
+            ProcessConfigInstructions2 := (ActiveMultiPort <> nil) OR (CMD = 'NONE');
+            Exit;
+            END;
+
+        { MULTI PORT = UDP IP Port}
+
+        IF StringHas (UpperCase (CMD), 'UDP') THEN  { Using new UDP multi interface }
+            BEGIN
+            RemoveFirstString (CMD);  { UDP }
+
+            WriteLn (CMD);
+
+            MultiUDPIP := RemoveFirstString (CMD);  { 192.168.x.x }
+
+            WriteLn (MultiUDPIP);
+
+            TempString := RemoveFirstString (CMD);
+
+            WriteLn (TempString);
+
+            IF StringIsAllNumbers (TempString) THEN
+                BEGIN
+                Val (TempString, MultiUDPPort, xResult);
+
+                IF NOT OpenUDPPortForInput (MultiUDPIP, MultiUDPPort, MultiUDPReadSocket) THEN
+                    BEGIN
+                    WriteLn ('Unable to open MultiUDPPort for input');
+                    Halt;
+                    END;
+
+                IF NOT OpenUDPPortForOutput (MultiUDPIP, MultiUDPPort, MultiUDPWriteSocket) THEN
+                    BEGIN
+                    WriteLn ('Unable to open MultiUDPPort for output');
+                    Halt;
+                    END;
+
+                ProcessConfigInstructions2 := True;
+                Exit;
+                END;
+            END;
+
+        { We didn't find anything we were looking for.  Exit with default value of FALSE }
+
         Exit;
         END;
 
@@ -2142,6 +2165,13 @@ VAR xResult,tempint: INTEGER;
         BEGIN
         Val (CMD, MultiPortBaudRate, xResult);
         ProcessConfigInstructions2 := (xResult = 0) AND (MultiPortBaudRate <= 4800);
+        Exit;
+        END;
+
+    IF ID = 'MULTI REQUEST QSO NUMBER' THEN
+        BEGIN
+        MultiRequestQSONumber := Upcase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
         Exit;
         END;
 
@@ -2187,12 +2217,27 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-    IF ID = 'N1MM UDP PORT' THEN
+    IF (ID = 'N1MM UDP PORT') OR (ID = 'N1MM IMPORT UDP PORT') THEN
         BEGIN
         Val (Cmd, N1MM_UDP_Port, xResult);
         ProcessConfigInstructions2 := xResult = 0;
         Exit;
         END;
+
+    IF ID = 'N1MM EXPORT IP ADDRESS' THEN
+        BEGIN
+        N1MM_QSO_Portal.Output_IPAddress := Cmd;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'N1MM EXPORT OPERATOR' THEN
+        BEGIN
+        N1MM_QSO_Portal.ContestOp := Cmd;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
 
     IF ID = 'N4OGW FREQUENCY CONTROL' THEN
         BEGIN
@@ -2346,6 +2391,7 @@ VAR xResult,tempint: INTEGER;
     IF ID = 'PACKET PORT' THEN
         BEGIN
         ActivePacketPort := nil;
+
         IF StringHas(UpperCase(CMD),'SERIAL') THEN
            BEGIN
               tempstring := wordafter(CMD,'SERIAL');
@@ -2503,7 +2549,8 @@ VAR xResult,tempint: INTEGER;
 
     IF ID = 'PARTIAL CALL LOAD LOG ENABLE' THEN
         BEGIN
-        PartialCallLoadLogEnable := UpCase (CMD [1]) = 'T';
+        { We left this in here so older config files wouldn't create an error }
+
         ProcessConfigInstructions2 := True;
         Exit;
         END;
@@ -2669,7 +2716,7 @@ VAR xResult,tempint: INTEGER;
 
     IF ID = 'QSO NUMBER BY BAND' THEN
         BEGIN
-        QSONumberByBand := UpCase (CMD [1]) = 'T';
+        QNumber.QSONumberByBand := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions2 := True;
         Exit;
         END;
@@ -3999,6 +4046,20 @@ VAR xResult: INTEGER;
     IF ID = 'TAIL END SSB MESSAGE' THEN
         BEGIN
         TailEndPhoneMessage := CMD;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'TBSIQ DUAL MODE' THEN
+        BEGIN
+        TBSIQDualMode := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'TBSIQ FOOTSWITCH LOCKOUT' THEN
+        BEGIN
+        TBSIQFootSwitchLockout := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions3 := True;
         Exit;
         END;

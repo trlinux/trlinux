@@ -25,8 +25,8 @@ UNIT JCtrl1;
 INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
-     LogCfg, LogDom, LogDVP, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, K1EANet, N4OGW;
+     LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
+     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, N4OGW;
 
 
 TYPE MenuEntryType = (NoMenuEntry,
@@ -43,12 +43,12 @@ TYPE MenuEntryType = (NoMenuEntry,
                       AQI,
                       AQD,
                       AQR,
+                      ARC,
                       ASP,
                       ASR, {KK1L: 6.72}
-                      ARC,
                       ASC,
+                      AST,
                       ATI,
-                      BEN,
                       BAB,
                       BAM,
                       BCW,
@@ -85,7 +85,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       DVC,
                       DVK,
                       DVE,
-                      DVP,
                       EES,
                       EME,
                       FWE,
@@ -108,8 +107,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       IXO, {KK1L: 6.70}
                       IEC,
                       IFE,
-                      KNE,
-                      KSI,
                       KCM,
                       LDZ,
                       LZC,
@@ -125,6 +122,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MRM,
                       MIM,
                       MMO,
+                      MRQ,
                       MRT,
                       MUM,
                       MBA,
@@ -136,6 +134,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MGR,
                       MIO,
                       MZN,
+                      N4S,
                       NFC,
                       NFE,
                       NEQ,
@@ -159,7 +158,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       PHC,
                       PSD,
                       PCE,
-                      PCL,
                       PCM,
                       PR1, {KK1L: 6.72 PollRadioOne}
                       PR2, {KK1L: 6.72 PollRadioOne}
@@ -216,6 +214,8 @@ TYPE MenuEntryType = (NoMenuEntry,
                       SWP,
                       SWR,
                       TAB,
+                      TBM,
+                      TBF,
                       TMR,
                       TOT,
                       TDL, { TRMASTER.DTA file location }
@@ -269,13 +269,13 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       AQI: Description := 'AUTO QSL INTERVAL';
       AQD: Description := 'AUTO QSO NUMBER DECREMENT';
       AQR: Description := 'AUTO QSY REQUEST ENABLE';
-      ASP: Description := 'AUTO S&P ENABLE';
       ARC: Description := 'AUTO RETURN TO CQ MODE';
+      ASP: Description := 'AUTO S&P ENABLE';
       ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ASC: Description := 'AUTO SEND CHARACTER COUNT';
+      AST: Description := 'AUTO SIDETONE CONTROL';
       ATI: Description := 'AUTO TIME INCREMENT';
 
-      BEN: Description := 'BACKCOPY ENABLE';
       BAB: Description := 'BAND MAP ALL BANDS';
       BAM: Description := 'BAND MAP ALL MODES';
       BCW: Description := 'BAND MAP CALL WINDOW ENABLE';
@@ -313,8 +313,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       DSE: Description := 'DUPE SHEET ENABLE';
       DVK: Description := 'DVK PORT';
       DVC: Description := 'DVK CONTROL KEY RECORD';
-      DVE: Description := 'DVP ENABLE';
-      DVP: Description := 'DVP PATH';
 
       EES: Description := 'ESCAPE EXITS SEARCH AND POUNCE';
       EME: Description := 'EXCHANGE MEMORY ENABLE';
@@ -343,8 +341,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       IXO: Description := 'INITIAL EXCHANGE OVERWRITE'; {KK1L: 6.70}
       IEC: Description := 'INITIAL EXCHANGE CURSOR POS';
 
-      KNE: Description := 'K1EA NETWORK ENABLE';
-      KSI: Description := 'K1EA STATION ID';
       KCM: Description := 'KEYPAD CW MEMORIES';
 
       LDZ: Description := 'LEADING ZEROS';
@@ -363,6 +359,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MRM: Description := 'MULT REPORT MINIMUM BANDS';
       MIM: Description := 'MULTI INFO MESSAGE';
       MMO: Description := 'MULTI MULTS ONLY';
+      MRQ: Description := 'MULTI REQUEST QSO NUMBER';
       MRT: Description := 'MULTI RETRY TIME';
       MUM: Description := 'MULTI UPDATE MULT DISPLAY';
       MBA: Description := 'MULTIPLE BANDS';
@@ -375,6 +372,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MIO: Description := 'MY IOTA';
       MZN: Description := 'MY ZONE';
 
+      N4S: Description := 'N4OGW BANDMAP UPDATE';
       NFC: Description := 'N4OGW FREQUENCY CONTROL';
       NFE: Description := 'NAME FLAG ENABLE';
       NEQ: Description := 'NEXT QSO NUMBER';
@@ -399,7 +397,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       PHC: Description := 'PADDLE PTT HOLD COUNT';
       PSD: Description := 'PADDLE SPEED';
       PCE: Description := 'PARTIAL CALL ENABLE';
-      PCL: Description := 'PARTIAL CALL LOAD LOG ENABLE';
       PCM: Description := 'PARTIAL CALL MULT INFO ENABLE';
       PR1: Description := 'POLL RADIO ONE';
       PR2: Description := 'POLL RADIO TWO';
@@ -460,6 +457,8 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       SWR: Description := 'SWAP RADIO RELAY SENSE';
 
       TAB: Description := 'TAB MODE';
+      TBM: Description := 'TBSIQ DUAL MODE';
+      TBF: Description := 'TBSIQ FOOTSWITCH LOCKOUT';
       TMR: Description := 'TEN MINUTE RULE';
       TOT: Description := 'TOTAL OFF TIME';
       TDL: Description := 'TRMASTER.DTA LOCATION';
@@ -515,13 +514,13 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       AQI: Write (AutoQSLInterval);
       AQD: Write (AutoQSONumberDecrement);
       AQR: Write (AutoQSYRequestEnable);
+      ARC: Write (AutoReturnToCQMode);
       ASP: Write (AutoSAPEnable);
       ASR: Write (AutoSAPEnableRate); {KK1L: 6.72}
-      ARC: Write (AutoReturnToCQMode);
       ASC: Write (AutoSendCharacterCount);
+      AST: Write (AutoSidetoneControl);
       ATI: Write (AutoTimeIncrementQSOs);
 
-      BEN: Write (BackCopyEnable);
       BAB: Write (BandMapAllBands);
       BAM: Write (BandMapAllModes);
       {BMO: Write (BandMapMultsOnly); }{KK1L: 6.xx}
@@ -597,8 +596,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
             write(ActiveDVKPort.devname);
       end;
 
-      DVE: Write (DVPEnable);
-      DVP: Write (DVPPath);
       EES: Write (EscapeExitsSearchAndPounce);
       EME: Write (ExchangeMemoryEnable);
       FWE: Write (ActiveKeyer.GetFarnsworthEnable);
@@ -622,6 +619,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
                StartSending:                        Write ('START SENDING');
                SwapRadio:                           Write ('SWAP RADIOS');
                CWGrant:                             Write ('CW GRANT');
+               TBSIQSSB:                            Write ('2BSIQ SSB MODE');
                END;
 
       FA1: Write (Radio1FrequencyAdder);
@@ -670,8 +668,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       IXO: Write (InitialExchangeOverwrite); {KK1L: 6.70}
 
-      KNE: Write (K1EANetworkEnable);
-      KSI: Write (K1EAStationID);
       KCM: Write (KeyPadCWMemories);
       LDZ: Write (LeadingZeros);
       LZC: Write (LeadingZeroCharacter);
@@ -687,6 +683,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MRM: Write (MultReportMinimumBands);
       MIM: Write (MultiInfoMessage);
       MMO: Write (MultiMultsOnly);
+      MRQ: Write (MultiRequestQSONumber);
       MRT: Write (MultiRetryTime);
       MUM: Write (MultiUpdateMultDisplay);
       MBA: Write (MultipleBandsEnabled);
@@ -698,6 +695,8 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MGR: Write (MyGrid);
       MIO: Write (MyIOTA);
       MZN: Write (MyZone);
+      N4S: Write ();
+
       NFC: CASE N4OGW_Frequency_Control OF
                N4OGW_FC_VFOA: Write ('VFOA');
                N4OGW_FC_VFOB: Write ('VFOB');
@@ -733,7 +732,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       PHC: Write (ActiveKeyer.GetPaddlePTTHoldCount);
       PSD: Write (ActiveKeyer.GetPaddleSpeed);
       PCE: Write (PartialCallEnable);
-      PCL: Write (PartialCallLoadLogEnable);
       PCM: Write (PartialCallMultsEnable);
       PR1: Write (PollRadioOne); {KK1L: 6.72 PollRadioOne}
       PR2: Write (PollRadioTwo); {KK1L: 6.72 PollRadioTwo}
@@ -755,7 +753,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
                QSLAndLog:      Write ('QSL and log');
                END;
 
-      QNB: Write (QSONumberByBand);
+      QNB: Write (QNumber.QSONumberByBand);
       QES: Write (QTCExtraSpace);
       QRS: Write (QTCQRS);
       QSX: Write (QSXEnable);
@@ -834,6 +832,9 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
            IF TabMode = NormalTabMode   THEN Write ('NORMAL');
            IF TabMode = ControlFTabMode THEN Write ('CONTROLF');
            END;
+
+      TBM: Write (TBSIQDualMode);
+      TBF: Write (TBSIQFootSwitchLockout);
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: Write ('NONE');
@@ -964,6 +965,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Do not ask for QSY to other run freq');
 
+      ARC: IF AutoReturnToCQMode THEN
+               Write ('CQ F1 if RETURN in S&P & blank windows')
+           ELSE
+               Write ('Stay in S&P if RETURN with blank windows');
+
       ASP: IF AutoSAPEnable THEN
                Write ('Jump into S&P mode if tuning VFO')
            ELSE
@@ -971,25 +977,20 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
 
       ASR: Write ('Auto SAP Enable Sensitivity (Hz/sec)'); {KK1L: 6.72}
 
-      ARC: IF AutoReturnToCQMode THEN
-               Write ('CQ F1 if RETURN in S&P & blank windows')
-           ELSE
-               Write ('Stay in S&P if RETURN with blank windows');
-
       ASC: IF AutoSendCharacterCount = 0 THEN
                Write ('Auto start send feature disabled')
            ELSE
                Write ('Char position where auto CW starts');
 
+      AST: IF AutoSidetoneControl THEN
+               Write ('Turn on K3/K4 sidetone for paddle CW')
+           ELSE
+               Write ('No turn on sidetone for paddle CW');
+
       ATI: IF AutoTimeIncrementQSOs > 0 THEN
                Write ('Number QSOs for auto minute increment')
            ELSE
                Write ('Auto time increment disabled');
-
-      BEN: IF BackCopyEnable THEN
-               Write ('DVP BackCopy is enabled')
-           ELSE
-               Write ('DVP BackCopy is disabled');
 
       BAB: IF BandMapAllBands THEN
                Write ('All bands shown on band map')
@@ -1159,18 +1160,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('DVK enabled on the port shown');
 
-      DVE: IF DVPEnable THEN
-           begin
-               Write ('DVP is enabled');
-               if not dvpsetup then dvpinit;
-           end
-           ELSE
-           begin
-               Write ('DVP is not enabled');
-           end;
-
-      DVP: Write ('DVP PATH = ');
-
       EES: IF EscapeExitsSearchAndPounce THEN
                Write ('ESCAPE key will exit S&P mode')
            ELSE
@@ -1211,6 +1200,7 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                StartSending:                        Write ('Start sending call in call window on CW');
                SwapRadio:                           Write ('Swaps radios (like Alt-R command)');
                CWGrant:                             Write ('CW Grant mode - no CW until pressed');
+               TBSIQSSB:                            Write ('Arudino in 2BSIQ SSB mode');
                END;
 
       FA1: IF Radio1FrequencyAdder <> 0 THEN
@@ -1291,13 +1281,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                AtEnd:   Write ('Cursor at end of initial exhange');
                END;
 
-      KNE: IF K1EANetworkEnable THEN
-               Write ('Use K1EA network protocol')
-           ELSE
-               Write ('Use N6TR network protocol');
-
-      KSI: Write ('Station ID used on K1EA network');
-
       KCM: IF KeyPadCWMemories THEN
                Write ('Numeric keypad sends CQ Ctrl-F1 to F10')
            ELSE
@@ -1358,6 +1341,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('All QSOs are passed to other stns');
 
+      MRQ: IF MultiRequestQSONumber THEN
+               Write ('Request QSO numbers from other computer')
+           ELSE
+               Write ('Generate QSO numbers locally');
+
       MRT: Write ('Multi network retry time in seconds');
 
       MUM: IF MultiUpdateMultDisplay THEN
@@ -1383,7 +1371,9 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
       MIO: Write ('IOTA Reference Designator');
       MZN: Write ('Set by MY CALL / MY ZONE in cfg file');
 
-      NFC: CASE N4OGW_Frequency_Control OF
+      N4S: Write ('Press RETURN to send Bandmap to N4OGW');
+
+      NFC.: CASE N4OGW_Frequency_Control OF
                N4OGW_FC_VFOA: Write ('Send freq command to VFO A');
                N4OGW_FC_VFOB: Write ('Send freq command to VFO B');
                N4OGW_FC_AUTO: Write ('IF CQ mode > VFO B  S&P > VFO A');
@@ -1432,7 +1422,7 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Display incoming spots without beep');
 
       PF8: IF Packet.FT8SpotEnable THEN
-               Write ('Spots on FT8 frequencies dhown')
+               Write ('Spots on FT8 frequencies shown')
            ELSE
                Write ('FT8 frequency spots not shown');
 
@@ -1487,11 +1477,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Partial calls will not be shown');
 
-      PCL: IF PartialCallLoadLogEnable THEN
-               Write ('If new LOG.DAT, partial calls loaded')
-           ELSE
-               Write ('Partials not loaded from new LOG.DAT');
-
       PCM: IF PartialCallMultsEnable THEN
                Write ('Mult info shown for partial calls')
            ELSE
@@ -1536,7 +1521,7 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                QSLAndLog:      Write ('No syntax checking of exchange');
                END;
 
-      QNB: IF QSONumberByBand THEN
+      QNB: IF QNumber.QSONumberByBand THEN
                Write ('Separate QSO numbers sent by band')
            ELSE
                Write ('Total QSOs used for QSO number');
@@ -1766,6 +1751,16 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                NormalTabMode:   Write ('When edit, tab moves to next field');
                ControlFTabMode: Write ('When edit, tab moves to next word');
                END;
+
+      TBM: IF TBSIQDualMode THEN
+               Write ('Radios are on different modes')
+           ELSE
+               Write ('Both radios are same mode.');
+
+      TBF: IF TBSIQFootSwitchLockout THEN
+               Write ('Wait for CW to be done')
+           ELSE
+               Write ('Interrupt CW and instant PTT');
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: Write ('No ten minute display');

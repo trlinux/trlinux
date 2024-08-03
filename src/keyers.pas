@@ -44,13 +44,15 @@ TYPE
         PROCEDURE PTTForceOn;virtual;abstract;
         PROCEDURE PTTUnForce;virtual;abstract;
         PROCEDURE SetSpeed (Speed: INTEGER);virtual;abstract;
-        Function GetSpeed:INTEGER;virtual;abstract;
+        Function  GetSpeed:INTEGER;virtual;abstract;
         PROCEDURE UnInitializeKeyer;virtual;abstract;
+        FUnCTION  PTTAssertedStill: BOOLEAN;virtual;abstract;
         PROCEDURE SetPaddlePttHoldCount(Count: INTEGER);virtual;abstract;
         PROCEDURE SetPaddleBug(On: Boolean);virtual;abstract;
         PROCEDURE SetPaddleMonitorTone(tone: Integer);virtual;abstract;
         PROCEDURE SetPaddleSpeed(speed: Integer);virtual;abstract;
         PROCEDURE LetFootSwitchControlPtt;virtual;abstract;
+        PROCEDURE FootSwitch2BSIQSSB;virtual;abstract;
         PROCEDURE Timer;virtual;abstract;
         Function GetPaddleBug:boolean;virtual;abstract;
         Function GetPaddleMonitorTone:integer;virtual;abstract;

@@ -57,7 +57,8 @@ type
                          QSOQuick,
                          FootSwitchControlEnter,
                          StartSending,
-                         SwapRadio);
+                         SwapRadio,
+                         TBSIQSSB);
 
 implementation
 
@@ -71,7 +72,7 @@ begin
    State := Port.footswitch;
    if (State <> DebouncedState) then
    begin
-      inc(Count); 
+      inc(Count);
       if Count > DebounceCount then DebouncedState := State;
    end
    else Count := 0;

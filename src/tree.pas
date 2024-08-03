@@ -235,7 +235,8 @@ VAR CodeSpeed:  BYTE;
     PROCEDURE BigCompressFormat (Call: CallString; VAR CompressedBigCall: EightBytes);
     PROCEDURE BigCursor;
     FUNCTION  BigExpandedString (Input: EightBytes): Str80;
-    FUNCTION  BracketedString (LongString: Str160; StartString: Str80; StopString: Str80): Str80;
+    FUNCTION  BracketedString (LongString: STRING; StartString: Str80; StopString: Str80): Str80;
+    FUNCTION  BracketedCommandString (CommandString: Str160): STRING;
     FUNCTION  BYTADDR  (Call: Pointer; NumberCalls: INTEGER; A: Pointer): INTEGER;CDECL;
     FUNCTION  BYTDUPE  (Call: Pointer; NumberCalls: INTEGER; A: Pointer): BOOLEAN;CDECL;
 
@@ -252,6 +253,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  ControlKeyPressed: BOOLEAN;
     FUNCTION  CopyWord (LongString: STRING; Index: INTEGER): Str80;
 
+    PROCEDURE DecodeBandModeString (BandModeString: STRING; VAR Band: BandType; VAR Mode: ModeType);
     PROCEDURE DecrementASCIIInteger (VAR ASCIIString: Str80);
     PROCEDURE DelayOrKeyPressed (DelayTime: INTEGER);
     FUNCTION  DeleteMult (VAR LogString: Str80; MultString: Str20): BOOLEAN;
@@ -273,6 +275,8 @@ VAR CodeSpeed:  BYTE;
     PROCEDURE GetFileNames (Path: Str80; Mask: Str80; VAR FileNames: FileNameRecord);
     FUNCTION  GetFileSize (FileName: Str80): LONGINT;
     FUNCTION  GetFirstString (LongString: STRING): Str80;
+
+    FUNCTION  GetFullMicroTimeString: Str80;
     FUNCTION  GetFullTimeString: Str80;
     FUNCTION  GetFullDateString: Str80;
     FUNCTION  GetIntegerTime: INTEGER;
@@ -361,6 +365,7 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  OpenFileForAppend   (VAR FileHandle: TEXT; FIlename: Str80): BOOLEAN;
     FUNCTION  OpenFileForRead     (VAR FileHandle: TEXT; Filename: Str80): BOOLEAN;
     FUNCTION  OpenFileForWrite    (VAR FileHandle: TEXT; Filename: Str80): BOOLEAN;
+    FUNCTION  OpenUDPPortForInput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
     FUNCTION  OpenUDPPortForOutput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
     FUNCTION  OperatorEscape: BOOLEAN;
 
@@ -706,6 +711,8 @@ FUNCTION  NUMBYTES (Call1: Pointer; Call2: Pointer): INTEGER;CDECL;EXTERNAL;
 
 FUNCTION AddBand (Band: BandType): CHAR;
 
+{ Adds a band byte to a multi message - use RemoveBand to get it back }
+
 VAR TempChar: CHAR;
 
     BEGIN
@@ -714,6 +721,8 @@ VAR TempChar: CHAR;
     END;
 
 FUNCTION AddMode (Mode: ModeType): CHAR;
+
+{ Adds a mode byte to a message - use RemoveMode to get it back }
 
 VAR TempChar: CHAR;
 
@@ -805,7 +814,7 @@ VAR TempBytes: TwoBytes;
 
 
 
-FUNCTION BracketedString (LongString: Str160; StartString: Str80; StopString: Str80): Str80;
+FUNCTION BracketedString (LongString: STRING; StartString: Str80; StopString: Str80): Str80;
 
 { This function will return any string sits between the StartString and the
   StopString.  The shortest possible string to meet this criteria is
@@ -845,6 +854,53 @@ VAR StartLocation, StopLocation: INTEGER;
 
 
 
+FUNCTION BracketedCommandString (CommandString: Str160): STRING;
+
+{ This is special case of the BracketdString routine intended to only be used
+  for sniffing out a string that is brackted by a Control-C and Control-D.
+
+  It assume only one such string exists and will return all of the string
+  after the first control-C and before the last control-D.
+
+  This allows commands that contain a control-C or control-D to be processed. }
+
+VAR StartLocation, StopLocation: INTEGER;
+
+    BEGIN
+    { Check to make sure we have both ControlC and ControlD }
+
+    IF (CommandString = '') OR (Pos (Chr (3), CommandString) = 0) OR (Pos (Chr (4), CommandString) = 0) THEN
+        BEGIN
+        BracketedCommandString := '';
+        Exit;
+        END;
+
+    StartLocation := Pos (Chr (3), CommandString) + 1;
+
+    { Remember - start location is the first character of the message, not the
+      location of the Control-C.  If the start location is either at the end
+      of the string or one character less, there is no room for a control-D
+      and any command to return. }
+
+    IF StartLocation >= Length (CommandString) - 1 THEN
+        BEGIN
+        BracketedCommandString := '';
+        Exit;
+        END;
+
+    FOR StopLocation := Length (CommandString) DOWNTO StartLocation + 1 DO
+        IF CommandString [StopLocation] = Chr (4) THEN  { Found ControlD }
+            IF StartLocation < StopLocation - 1 THEN  { Just in case I screwed up my logic }
+                BEGIN
+                BracketedCommandString := Copy (CommandString, StartLocation, StopLocation - StartLocation);
+                Exit;
+                END;
+
+    BracketedCommandString := '';
+    END;
+
+
+
 PROCEDURE CalculateBandMode (Freq: LONGINT; VAR Band: BandType; VAR Mode: ModeType);
 
     BEGIN
@@ -854,16 +910,12 @@ PROCEDURE CalculateBandMode (Freq: LONGINT; VAR Band: BandType; VAR Mode: ModeTy
         Exit;
         END;
 
-    IF (Freq >= 3490000) AND (Freq < 3530000) THEN
+    { May 2024 - changed this to include 3500 - 3600 }
+
+    IF (Freq >= 3490000) AND (Freq < 3600000) THEN
         BEGIN
         Band := Band80;
         Mode := CW;
-        Exit;
-        END;
-
-    IF (Freq >= 3530000) AND (Freq < 3600000) THEN
-        BEGIN
-        Band := Band80;     { Leave mode alone }
         Exit;
         END;
 
@@ -874,7 +926,7 @@ PROCEDURE CalculateBandMode (Freq: LONGINT; VAR Band: BandType; VAR Mode: ModeTy
         Exit;
         END;
 
-    IF (Freq >= 6990000) AND (Freq < 7030000) THEN
+    IF (Freq >= 6990000) AND (Freq < 7040000) THEN
         BEGIN
         Band := Band40;
         Mode := CW;
@@ -1212,6 +1264,149 @@ FUNCTION CopyWord (LongString: STRING; Index: INTEGER): Str80;
     Delete (LongString, 1, Index - 1);
 
     CopyWord := GetFirstString (LongString);
+    END;
+
+
+
+PROCEDURE DecodeBandModeString (BandModeString: STRING; VAR Band: BandType; VAR Mode: ModeType);
+
+{ Note - this only works for the six HF contest bands and shortcuts FM into Phone }
+
+    BEGIN
+    Band := NoBand;
+    Mode := NoMode;
+
+    IF StringHas (BandModeString, 'FM') THEN Mode := Phone;
+    IF StringHas (BandModeString, 'CW') THEN Mode := CW;
+    IF StringHas (BandModeString, 'DIG') THEN Mode := Digital;
+    IF StringHas (BandModeString, 'SSB') THEN Mode := Phone;
+
+    IF StringHas (BandModeString, '160') THEN
+        BEGIN
+        Band := Band160;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '80')  THEN
+        BEGIN
+        Band := Band80;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '60')  THEN
+        BEGIN
+        Band := Band80;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '40')  THEN
+        BEGIN
+        Band := Band40;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '30')  THEN
+        BEGIN
+        Band := Band30;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '20')  THEN
+        BEGIN
+        Band := Band20;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '17')  THEN
+        BEGIN
+        Band := Band20;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '15')  THEN
+        BEGIN
+        Band := Band15;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '12')  THEN
+        BEGIN
+        Band := Band12;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '902')  THEN
+        BEGIN
+        Band := Band902;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '1GH') THEN
+        BEGIN
+        Band := Band1296;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '1GH') THEN
+        BEGIN
+        Band := Band1296;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '2GH') THEN
+        BEGIN
+        Band := Band2304;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '3GH') THEN
+        BEGIN
+        Band := Band3456;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '5GH') THEN
+        BEGIN
+        Band := Band5760;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '10G')  THEN
+        BEGIN
+        Band := Band10G;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '10') THEN
+        BEGIN
+        Band := Band10;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '24G')  THEN
+        BEGIN
+        Band := Band24G;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '6') THEN
+        BEGIN
+        Band := Band6;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, '2') THEN
+        BEGIN
+        Band := Band2;
+        Exit;
+        END;
+
+    IF StringHas (BandModeString, 'LGT')  THEN
+        BEGIN
+        Band := BandLight;
+        Exit;
+        END;
+
     END;
 
 
@@ -1903,10 +2098,14 @@ FUNCTION GetLogEntryDateString (LogEntry: Str160): Str160;
 
 FUNCTION GetLogEntryExchangeString (LogEntry: Str160): Str160;
 
+{ New for July 2024 - remove any preceding spaces }
+
 VAR TempString: Str80;
 
     BEGIN
     TempString := Copy (LogEntry, LogEntryExchangeAddress, LogEntryExchangeWidth);
+
+    GetRidOfPrecedingSpaces (TempString);
     GetRidOfPostcedingSpaces (TempString);
     GetLogEntryExchangeString := TempString;
     END;
@@ -2276,11 +2475,43 @@ VAR TempString: Str20;
 
 
 
+FUNCTION GetFullMicroTimeString: Str80;
+
+{ Like GetFullTimeString but goes down to hundreths of a second }
+
+VAR Temp1, Temp2, Temp3, Temp4: String[5];
+    Hours, Minutes, Seconds, Hundredths: WORD;
+    I: INTEGER;
+
+    BEGIN
+    GetTime (Hours, Minutes, Seconds, Hundredths);
+    I := Hours;
+
+    IF HourOffset <> 0 THEN
+        BEGIN
+        I := I + HourOffset;
+        IF I > 23 THEN I := I - 24;
+        IF I < 0  THEN I := I + 24;
+        END;
+
+    Str (I,       Temp1);
+    Str (Minutes, Temp2);
+    Str (Seconds, Temp3);
+    Str (Hundredths, Temp4);
+
+    IF Length (Temp1) < 2 THEN Temp1 := '0' + Temp1;
+    IF Length (Temp2) < 2 THEN Temp2 := '0' + Temp2;
+    IF Length (Temp3) < 2 THEN Temp3 := '0' + Temp3;
+    IF Length (Temp4) < 2 THen Temp4 := '0' + Temp4;
+
+    GetFullMicroTimeString := Temp1 + ':' + Temp2 + ':' + Temp3 + '.' + Temp4;
+    END;
+
+
+
 FUNCTION GetFullTimeString: Str80;
 
-{ This function will look at the DOS clock and generate a nice looking
-  ASCII string showing the time using the format 23:42:32.  It will take
-  the HourOffset variable into account. }
+{ Like GetFullTimeString but goes down to hundreths of a second }
 
 VAR Temp1, Temp2, Temp3: String[5];
     Hours, Minutes, Seconds, Hundredths: WORD;
@@ -3406,6 +3637,8 @@ VAR Position: INTEGER;
 
 FUNCTION RemoveBand (VAR LongString: STRING): BandType;
 
+{ Used to removed band from a multi message assuming it is the first byte }
+
 VAR TempByte: BYTE;
 
     BEGIN
@@ -3420,6 +3653,8 @@ VAR TempByte: BYTE;
 
 
 FUNCTION RemoveMode (VAR LongString: STRING): ModeType;
+
+{ Used to removed mode from a multi message assuming it is the first byte }
 
 VAR TempByte: BYTE;
 
@@ -3508,7 +3743,7 @@ VAR CharCount: INTEGER;
         END;
 
     FirstWordFound := False;
-    FirstWordCursor := 0;//Silence the uninitialize compiler note
+    FirstWordCursor := 0;        //Silence the uninitialize compiler note
 
     FOR CharCount := 1 TO Length (LongString) DO
         IF FirstWordFound THEN
@@ -4292,7 +4527,7 @@ VAR TestTail: INTEGER;
 FUNCTION CharacterBuffer.GetSlippedString (VAR Entry: STRING): BOOLEAN;
 
 { Returns TRUE if a complete slipped string is found with it as parameter.
-  It will always leave a FrameEnd at the tail. }
+  It will always leave a FrameEnd at the tail of the buffer }
 
 VAR LengthOfString, CharPointer, RemainingBytes, HeadAtStart, TestTail: INTEGER;
 
@@ -4927,16 +5162,34 @@ VAR SocketAddr: TINetSockAddr;
 
     BEGIN
     Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
     SocketAddr.sin_family := AF_INET;
     SocketAddr.sin_port := htons (PortNumber);
     SocketAddr.sin_addr := StrToNetAddr (IPAddress);
-
     ConnectResult := fpConnect (Socket, @SocketAddr, SizeOf (SocketAddr));
-
-    WriteLn ('Connect result from fpBind is ', ConnectResult);
-
     OpenUDPPortForOutput := ConnectResult = 0;
+    END;
+
+
+
+FUNCTION OpenUDPPortForInput (IPAddress: STRING; PortNumber: LONGINT; VAR Socket: LONGINT): BOOLEAN;
+
+{ Opens up a port to listen to - no filtering on which IP address are sending the message }
+
+VAR SocketAddr: TINetSockAddr;
+    ConnectResult: INTEGER;
+    FileWrite: TEXT;
+
+    BEGIN
+    { Setup the UDP port.  }
+
+    Socket := fpSocket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    SocketAddr.sin_family := AF_INET;
+    SocketAddr.sin_port := htons (PortNumber);
+    SocketAddr.sin_addr.s_addr := INADDR_ANY;
+
+    ConnectResult := fpBind (Socket, @SocketAddr, SizeOf (SocketAddr));
+    OpenUDPPortForInput := ConnectResult = 0;
     END;
 
 

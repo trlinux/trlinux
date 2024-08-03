@@ -400,7 +400,7 @@ VAR xResult: INTEGER;
 
         Frequency := Round (TempFrequency);
 
-        Mode := ActiveMode;  { In case on 160 }
+        Mode := ActiveMode;  { In case the frequency is in no man's land }
 
         CalculateBandMode (Frequency, Band, Mode);
 
@@ -421,7 +421,6 @@ VAR xResult: INTEGER;
         QSXFrequency := LookForQSXFrequency (Frequency, Notes);
 
         SpotMode := NormalSpot;
-
         FoundDXSpot := True;
         END;
     END;
@@ -697,14 +696,10 @@ VAR DXSpot: DXSpotType;
     Message: STRING;
 
     BEGIN
-//    WHILE Pos (CarriageReturn, PacketString) > 0 DO
-//        Delete (PacketString, Pos (CarriageReturn, PacketString), 1);
-
     WHILE Pos (LineFeed, PacketString) > 0 DO
         Delete (PacketString, Pos (LineFeed, PacketString), 1);
 
     GetRidOfPrecedingSpaces (PacketString);
-
     Message := UpperCase (PacketString);
 
     IF FoundDXSpot (Message, DXSpot) OR ShowDXResponse (Message, DXSpot) THEN
@@ -954,42 +949,43 @@ PROCEDURE PacketObject.ProcessPacketMessageFromNetWork (MessageString: STRING);
 PROCEDURE PacketObject.ProcessPacketSpot (DXSpot: DXSpotType);
 
 { Processes a packet spot.  Puts it in the band map (if enabled).  Pushes
-  it onto the packet spot buffer. }
+  it onto the packet spot buffer (if not a dupe). }
 
 VAR MultString: Str20;
     Mult: BOOLEAN;
 
     BEGIN
+    IF NOT BandMapEnable THEN Exit;  { New in 2024 - I had it in lots of tests below }
+
     WITH DXSpot DO
         BEGIN
-        IF (Band = Band160) AND StringHas (MyCall, 'N6TR') THEN
-            CheckForNewCountryForTreeOn160 (Call);
-
         { We ignore dupes, except to put on the band map if enabled.  We
           don't send this around to the network because they will get the
-          information themselves from the packet spot. }
+          information themselves from the packet spot. We assume a dupe is
+          never a new multiplier. }
 
         IF VisibleLog.CallIsADupe (Call, Band, Mode) THEN
             BEGIN
             IF BandMapEnable THEN                              {Dupe, Mult}                 {Send to mult}
-                NewBandMapEntry (Call, Frequency, QSXFrequency, Mode, True, False, BandMapDecayTime, False);
+                IF (PacketSpots = AllSpots) THEN
+                    NewBandMapEntry (Call, Frequency, QSXFrequency, Mode, True, False, BandMapDecayTime, False);
             Exit;
             END;
 
-        { Call is not a dupe }
+        { Call is not a dupe - see if it is a multiplier.  Note that this really
+          only works with callsigns that define what the multiplier is without
+          any other information (such as country, zone or prefix) }
 
-        IF BandMapEnable OR (PacketSpots = MultSpots) THEN
+        VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
+        Mult := MultString <> '';
+
+        IF (PacketSpots = AllSpots) OR Mult THEN
             BEGIN
-            VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
-            Mult := MultString <> '';
-            END;
-
-        IF BandMapEnable THEN
             NewBandMapEntry (Call, Frequency, QSXFrequency, Mode, False, Mult, BandMapDecayTime, False);
 
-        IF (NOT PacketBandSpots) OR (Band = ActiveBand) THEN
-            IF (PacketSpots <> MultSpots) OR Mult THEN
+            IF (NOT PacketBandSpots) OR (Band = ActiveBand) THEN
                 PushPacketSpot (DXSpot);
+            END;
         END;
     END;
 
@@ -1166,8 +1162,7 @@ VAR Address: INTEGER;
 PROCEDURE PacketObject.CheckPacketMessage;
 
     BEGIN
-//    WHILE StringHas (PacketMessage, LineFeed) DO
-    WHILE Pos(LineFeed,PacketMessage) <> 0 DO
+    WHILE Pos (LineFeed,PacketMessage) <> 0 DO
         BEGIN
         AnalyzePacketString (PrecedingString (PacketMessage, LineFeed));
 

@@ -789,10 +789,11 @@ VAR TempQTH: QTHRecord;
          IF CMD = 'CWT' THEN
             BEGIN
             ActiveExchange := CWTExchange;
-            ActiveDomesticMult := WYSIWYGDomestic;
+            ActiveDomesticMult := WYSIWYGDomestic;  { Ends up being callsigns worked }
             ActiveQSOPointMethod := OnePointPerQSO;
             ContestName := 'CWT';
             LiteralDomesticQTH := True;
+            MultByBand := False;
             QSOByBand := True;
             FoundContest := True;
             END;
@@ -978,7 +979,12 @@ VAR TempQTH: QTHRecord;
             Str (CountryTable.GetZone (MyCall),  MyZone);
 
             ActiveDomesticMult := WYSIWYGDomestic;
+
+            { Not sure how I feel about IARUHQ.DOM.  For sure - it isn't up to date and
+              likely with WYSIWYGDomestic is being bypassed anyway? }
+
             DomesticQTHDataFileName := 'IARUHQ.DOM'; {KK1L: 6.68}
+
             ActiveExchange := RSTZoneOrSocietyExchange;
             ActiveInitialExchange := ZoneInitialExchange; {KK1L: 6.71 NOTE changed in code}
             ActiveQSOPointMethod := IARUQSOPointMethod;
@@ -1268,6 +1274,24 @@ VAR TempQTH: QTHRecord;
             AddDomesticCountry ('KH6');
             AddDomesticCountry ('KL');
             VHFBandsEnabled := True;
+            END;
+
+        IF CMD = 'MST' THEN
+            BEGIN
+            ActiveDomesticMult := WYSIWYGDomestic;  { Ends up being callsigns }
+            ActiveExchange := QSONumberAndNameExchange;
+            ActiveQSOPointMethod := OnePointPerQSO;
+            CodeSpeed := 20;
+            ContestName := 'MST';
+            LiteralDomesticQTH := True;
+            MultByBand := False;
+            QSOByBand := True;
+            FoundContest := True;
+
+            WriteLn ('Welcome to the MST contest - 25 WPM Max');
+            WriteLn ('Frequencies: 1812-1828 and 028-050 on other bands');
+            WriteLn ('Remember to respect the QRP frequency of 7030 khz +/- 0.5 kHz');
+            WaitForKeyPressed;
             END;
 
         IF CMD = 'NA QSO' THEN

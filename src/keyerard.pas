@@ -32,16 +32,16 @@ TYPE
         ArduinoKeyerPort:     serialportx;
         ComputerCodeSpeed:    INTEGER;
         CurtMode:             CurtisMode;
-        KeyerInitialized:     BOOLEAN;
-        PaddleBug:            BOOLEAN;
-        PaddleMonitorTone:    INTEGER;
-        PaddleCWSpeed:        INTEGER;
         FarnsworthEnable:     BOOLEAN;
         FarnsworthSpeed:      INTEGER;
         FsCwGrant:            Boolean;
         Footsw:               FootSwitchx;
         FootswitchControlPTT: BOOLEAN;
+        KeyerInitialized:     BOOLEAN;
         MonitorTone:          INTEGER;
+        PaddleBug:            BOOLEAN;
+        PaddleMonitorTone:    INTEGER;
+        PaddleCWSpeed:        INTEGER;
         PaddlePTTHoldCount:   INTEGER;
         PTTAsserted:          BOOLEAN;
         PTTEnable:            BOOLEAN;
@@ -85,6 +85,8 @@ TYPE
         FUNCTION  DeleteLastCharacter: BOOLEAN;override;
         PROCEDURE dvpptt(on: boolean);override;                 { Not yet implemented in Arduino }
 
+        PROCEDURE FootSwitch2BSIQSSB; override;
+
         PROCEDURE FlushCWBuffer;override;
 
         Function  GetCountsSinceLastCW:integer;override;
@@ -109,6 +111,7 @@ TYPE
 
         PROCEDURE LetFootSwitchControlPTT; override;
 
+        FUNCTION  PTTAssertedStill: BOOLEAN; override;
         PROCEDURE PTTForceOn;override;
         PROCEDURE PTTUnForce;override;
 
@@ -171,9 +174,26 @@ TYPE
         function  footswitchpressed:boolean;
         END;
 
+VAR ArduinoDebug: BOOLEAN;
+
 IMPLEMENTATION
 
 Uses keycode,linuxsound,xkb,sysutils;
+
+PROCEDURE AppendDebugFile (Text: STRING);
+
+VAR DebugFileWrite: TEXT;
+
+    BEGIN
+    IF ArduinoDebug THEN
+        BEGIN
+        OpenFileForAppend (DebugFileWrite, 'arduino.txt');
+        WriteLn (DebugFileWrite, GetFullTimeString, ': ', Text);
+        Close (DebugFileWrite);
+        END;
+    END;
+
+
 
 PROCEDURE ArduinoKeyer.SetRig1Band (Band: INTEGER);
 
@@ -182,6 +202,7 @@ PROCEDURE ArduinoKeyer.SetRig1Band (Band: INTEGER);
     BEGIN
     ArduinoKeyerPort.PutChar (Char ($1D));
     ArduinoKeyerPort.PutChar (Char (Band and $0f));
+    AppendDebugFile ('SetRig1Band');
     END;
 
 PROCEDURE ArduinoKeyer.SetRig2Band (Band: INTEGER);
@@ -191,6 +212,7 @@ PROCEDURE ArduinoKeyer.SetRig2Band (Band: INTEGER);
     BEGIN
     ArduinoKeyerPort.PutChar (Char ($1D));
     ArduinoKeyerPort.PutChar (Char ($10 OR (Band and $0f)));
+    AppendDebugFile ('SetRig2Band');
     END;
 
 PROCEDURE ArduinoKeyer.SetAux (Aux: INTEGER; Value: INTEGER);
@@ -200,6 +222,7 @@ PROCEDURE ArduinoKeyer.SetAux (Aux: INTEGER; Value: INTEGER);
     BEGIN
     ArduinoKeyerPort.PutChar (Char ($1D));
     ArduinoKeyerPort.PutChar (Char (((Aux AND $0F) SHL 4) OR (Value AND $0F)));
+    AppendDebugFile ('SetAux');
     END;
 
 
@@ -301,6 +324,8 @@ VAR Cmd: BYTE;
         ArduinoKeyerPort.PutChar (Char ($02));  { SO2R relay command }
         ArduinoKeyerPort.PutChar (Char (Cmd));  { SO2R relay data }
         END;
+
+    AppendDebugFile ('SendRelayStatusToSO2RMini');
     END;
 
 
@@ -332,6 +357,7 @@ PROCEDURE ArduinoKeyer.SetRcvFocus (RcvFocus: rcvfocus_t);
 
         END;  { of case }
 
+     AppendDebugFile ('SetRcvFocus');
      SendRelayStatusToSO2RMini;
      END;
 
@@ -493,9 +519,9 @@ VAR DelayLoops: INTEGER;
 
             IF Length (Version) = 7 THEN  { We have enough characters }
                 BEGIN
-                IF Copy (Version, 1, 7) <> 'TRCW V4' THEN
+                IF Copy (Version, 1, 7) <> 'TRCW V5' THEN
                     BEGIN
-                    WriteLn ('Expected TRCW V4 response from SO2R Mini.  Received ', Version);
+                    WriteLn ('Expected TRCW V5 response from SO2R Mini.  Received ', Version);
                     WaitForKeyPressed;
                     Halt;
                     END;
@@ -572,6 +598,7 @@ PROCEDURE ArduinoKeyer.SetWeight (W: REAL);
         ArduinoKeyerPort.PutChar (Char ($06));
         ArduinoKeyerPort.PutChar (Char ( Lo (Weight)));
         END;
+    AppendDebugFile ('SetWeight');
     END;
 
 
@@ -599,6 +626,7 @@ PROCEDURE ArduinoKeyer.SetPTTTurnOnDelay (delay: integer);
        ArduinoKeyerPort.PutChar (Char ($0E));
        ArduinoKeyerPort.PutChar (Char (PTTTurnOnDelay));
        END;
+   AppendDebugFile ('SetPTTTurnOnDelay');
    END;
 
 FUNCTION ArduinoKeyer.GetPTTTurnOnDelay: INTEGER;
@@ -618,6 +646,7 @@ PROCEDURE ArduinoKeyer.SetActiveRadio (Radio: RadioType);
     CASE Radio OF
         RadioOne:
             BEGIN
+            AppendDebugFile ('SetActiveRadio = RadioOne');
             SO2R_State.TX2 := 0;          { Set microphone to radio 1 }
 
             IF KeyerInitialized THEN
@@ -634,6 +663,7 @@ PROCEDURE ArduinoKeyer.SetActiveRadio (Radio: RadioType);
 
             IF KeyerInitialized THEN
                 BEGIN
+                AppendDebugFile ('SetActiveRadio = RadioTwo');
                 ArduinoKeyerPort.PutChar (Char ($0B));  { Radio select command }
                 ArduinoKeyerPort.PutChar (Char ($02));  { Radio Two }
                 SendRelayStatusToSO2RMini;   { Update microphone relay }
@@ -659,6 +689,8 @@ PROCEDURE ArduinoKeyer.SetPaddlePttHoldCount (Count: INTEGER);
         ArduinoKeyerPort.PutChar (Char ($10));   { PTT Hold fimr for paddle sent CW command }
         ArduinoKeyerPort.PutChar (Char (Count)); { Hold time in dit lengths }
         END;
+
+    AppendDebugFile ('SetPaddlePTTHoldCount');
     END;
 
 FUNCTION ArduinoKeyer.GetPaddlePttHoldCount: INTEGER;
@@ -680,6 +712,7 @@ PROCEDURE ArduinoKeyer.PTTForceOn;
         ArduinoKeyerPort.PutChar (Char ($0A)); { PTT command }
         ArduinoKeyerPort.PutChar (Char ($01)); { PTT on }
         END;
+    AppendDebugFile ('PTTForceOn');
     END;
 
 Procedure ArduinoKeyer.PTTUnForce;
@@ -693,6 +726,7 @@ Procedure ArduinoKeyer.PTTUnForce;
         ArduinoKeyerPort.PutChar (Char ($0A)); { PTT command }
         ArduinoKeyerPort.PutChar (Char ($00)); { PTT off }
         END;
+    AppendDebugFile ('PTTUnForce');
     END;
 
 
@@ -713,6 +747,7 @@ PROCEDURE ArduinoKeyer.SetSpeed (Speed: INTEGER);
        ArduinoKeyerPort.PutChar (Char ($08));  { Computer CW Speed command }
        ArduinoKeyerPort.PutChar (Char (ComputerCodeSpeed));
        END;
+   AppendDebugFile ('SetSpeed');
    END;
 
 FUNCTION ArduinoKeyer.GetSpeed: INTEGER;
@@ -741,6 +776,7 @@ PROCEDURE ArduinoKeyer.SetSwapPaddles (On: BOOLEAN);
        ELSE
            ArduinoKeyerPort.putchar(Char($01)); { Not swapped - tip = dit}
        END;
+   AppendDebugFile ('Swap Paddles');
    END;
 
 
@@ -784,6 +820,7 @@ PROCEDURE ArduinoKeyer.SetCurtisMode(m: CurtisMode);
             Ultimatic: ArduinoKeyerPort.PutChar (Char ($03));
             END;       { of case }
         END;
+    AppendDebugFile ('SetCurtisMode');
     END;
 
 FUNCTION ArduinoKeyer.GetCurtisMode: CurtisMode;
@@ -808,6 +845,7 @@ PROCEDURE ArduinoKeyer.SetPaddleBug (On: boolean);
         ELSE
             ArduinoKeyerPort.PutChar (Chr ($00));
         END;
+    AppendDebugFile ('SetPaddleBug');
     END;
 
 FUNCTION ArduinoKeyer.GetPaddleBug: BOOLEAN;
@@ -833,7 +871,9 @@ PROCEDURE ArduinoKeyer.AddCharacterToBuffer (Character: char);
     BEGIN
     IF Character >= Chr ($20) THEN
         IF KeyerInitialized THEN
-            ArduinoKeyerPort.PutChar (Character)  { Just send it along }
+            ArduinoKeyerPort.PutChar (Character);  { Just send it along }
+
+    AppendDebugFile ('AddCharacterToBuffer = ' + Character);
     END;
 
 
@@ -847,10 +887,17 @@ PROCEDURE ArduinoKeyer.SetPTTEnable (On: BOOLEAN);
         ArduinoKeyerPort.PutChar (Char ($16));  { PTT Enable command }
 
         IF PTTEnable THEN
-            ArduinoKeyerPort.PutChar (Char (1))   { PTT enabled }
+            BEGIN
+            ArduinoKeyerPort.PutChar (Char (1));  { PTT enabled }
+            AppendDebugFile ('PTTEnabled');
+            END
         ELSE
+            BEGIN
             ArduinoKeyerPort.PutChar (Char (0));  { PTT disabled }
+            AppendDebugFile ('PTTDisabled');
+            END;
         END;
+
     END;
 
 FUNCTION ArduinoKeyer.GetPTTEnable: BOOLEAN;
@@ -886,6 +933,7 @@ PROCEDURE ArduinoKeyer.SetTuneWithDits (On: boolean);
             ArduinoKeyerPort.PutChar (Char ($17))   { Tune with dits }
         ELSE
             ArduinoKeyerPort.PutChar (Char ($12));   { Stop tuning with dits }
+    AppendDebugFile ('SetTuneWithDits');
     END;
 
 FUNCTION ArduinoKeyer.GetTuneWithDits: BOOLEAN;
@@ -932,6 +980,8 @@ VAR ArduinoCount: INTEGER;
 
     ELSE
         GetCountsSinceLastCW := 0;  { what would be a better default? }
+
+    AppendDebugFile ('GetCountsSinceLastCW');
     END;
 
 
@@ -1037,11 +1087,40 @@ PROCEDURE ArduinoKeyer.SetPaddleSpeed (Speed: INTEGER);
 
 PROCEDURE ArduinoKeyer.SetCwGrant (On: BOOLEAN);
 
-{ Does nothing for now.  Probably W9CF used this in the timer routine. }
+{ When this is set to TRUE - the Arduino will set the footswitch mode to FS_Lockout
+  which will prevent multiple Arduinos from sending CW at the same time if their
+  footswtich connectors are tied together }
 
     BEGIN
     FsCwGrant := On;
+
+    IF On THEN
+        BEGIN
+        IF KeyerInitialized THEN
+            BEGIN
+            ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
+            ArduinoKeyerPort.PutChar (Char($03));   { Lockout mode }
+            END;
+
+        AppendDebugFile ('Set footswitch lockout mode');
+        END
+    ELSE
+        BEGIN
+        IF KeyerInitialized THEN
+            BEGIN
+            ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
+
+            IF FootSwitchControlPTT THEN
+                ArduinoKeyerPort.PutChar (Char($01))   { Normal PTT mode }
+            ELSE
+                ArduinoKeyerPort.PutChar (Char($00));  { No PTT mode }
+            END;
+
+        AppendDebugFile ('Clear footswitch lockout mode');
+        END;
     END;
+
+
 
 PROCEDURE ArduinoKeyer.SetFootSwitch (F: FootSwitchX);
 
@@ -1050,6 +1129,23 @@ PROCEDURE ArduinoKeyer.SetFootSwitch (F: FootSwitchX);
     BEGIN
     Footsw := F;
     END;
+
+PROCEDURE ArduinoKeyer.FootSwitch2BSIQSSB;
+
+{ Puts the Arduino into the 2BSIQ SSB MODE }
+
+    BEGIN
+    Write ('.');
+    IF KeyerInitialized THEN
+        BEGIN
+        ArduinoKeyerPort.PutChar (Char ($19));  { Footswitch mode command }
+        ArduinoKeyerPort.PutChar (Char ($02))   { 2BSIQ SSB Mode }
+        END;
+
+    AppendDebugFile ('Set2BSIQSSBFootswitchMode');
+    END;
+
+
 
 PROCEDURE ArduinoKeyer.LetFootSwitchControlPTT;
 
@@ -1064,13 +1160,14 @@ PROCEDURE ArduinoKeyer.LetFootSwitchControlPTT;
         ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
         ArduinoKeyerPort.PutChar (Char ($01))  { Footswitch turns on PTT }
         END;
+    AppendDebugFile ('LetFootswitchControlPTT');
     END;
 
 
 
 PROCEDURE ArduinoKeyer.ClearFootSwitchControlPTT;
 
-{ Put the SO2R in the mode of only returnning the footswitch state without affecting
+{ Put the SO2R mini in the mode of only returning the footswitch state without affecting
   PTT. }
 
     BEGIN
@@ -1081,6 +1178,7 @@ PROCEDURE ArduinoKeyer.ClearFootSwitchControlPTT;
         ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
         ArduinoKeyerPort.PutChar (Char ($00)); { Footswitch not turn on PTT }
         END;
+    AppendDebugFile ('Clear LetFootswitchControlPTT');
     END;
 
 FUNCTION ArduinoKeyer.GetPaddleSpeed: INTEGER;
@@ -1145,22 +1243,48 @@ FUNCTION ArduinoKeyer.CWStillBeingSent: BOOLEAN;
         CASE Integer (ArduinoKeyerPort.ReadChar) OF
             0: CWStillBeingSent := False;  { PTT dropped }
 
-             { A 1 result  used to return True - but I was seeing some
-               dropouts of the PTT being asserted when using the
-               AutoCallTerminate function - so made it false so that we
-               can have more time to get the exchange (or dupe message)
-               cued up.
+             { A 1 result  used to return True -  but we had a funny
+               case where if someone forced on the PTT and was waiting
+               for CW to finish - we would lock up since PTT would never
+               drop.  So - best to report back that CW is done even if
+               the PTT is still asserted.  }
 
-               Then I set it back to True to see if things worked
-               better. }
-
-            1: CWStillBeingSent := True;  { CW buffer empty - PTT On }
-            2: CWStillBeingSent := True;   { we are indeed sending CW }
+            1: CWStillBeingSent := False;  { CW buffer empty - PTT On }
+            2: CWStillBeingSent := True    { we are indeed sending CW }
 
             END;  { of case }
         END
     ELSE
         CWStillBeingSent := False;
+    END;
+
+
+
+FUNCTION ArduinoKeyer.PTTAssertedStill: BOOLEAN;
+
+{ Kind of like CWStillBeingSent, but looks for the PTT to drop before reporting
+  back with a changed status }
+
+    BEGIN
+    IF KeyerInitialized THEN
+        BEGIN
+        ClearOutAnyIncomingCharacters;
+        ArduinoKeyerPort.PutChar (Char ($0C));  { Ask if CW still being sent }
+
+        { WARNING!!  We could get trapped here }
+
+        REPEAT UNTIL ArduinoKeyerPort.CharReady;
+
+        CASE Integer (ArduinoKeyerPort.ReadChar) OF
+            0: PTTAssertedStill := False;     { PTT dropped }
+            1: PTTAssertedStill := True; { CW buffer empty - PTT On }
+            2: PTTAssertedStill := True  { we are indeed sending CW }
+            END;  { of case }
+        END
+    ELSE
+        PTTAssertedStill := False;
+
+    AppendDebugFile ('Called PTTAssertedStill');
     END;
 
 
@@ -1234,4 +1358,6 @@ PROCEDURE ArduinoKeyer.FlushCWBuffer;
         ArduinoKeyerPort.PutChar (Char($13));  { Stop CW after current character - clear buffer }
     END;
 
-END.
+    BEGIN
+    ArduinoDebug := True;  { Set to true to get some debug data }
+    END.

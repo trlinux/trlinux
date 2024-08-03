@@ -25,7 +25,7 @@ UNIT LogCW;
 
 INTERFACE
 
-USES N4OGW, LogDVP, SlowTree, Tree, LogWind, Dos, LogK1EA, trCrt,communication,keycode;
+USES N4OGW, SlowTree, Tree, LogWind, Dos, LogK1EA, trCrt,communication,keycode;
 
 TYPE
      SendBufferType = ARRAY [0..255] OF Char;
@@ -42,6 +42,7 @@ TYPE
 VAR
     AutoCQDelayTime: INTEGER;
     AutoCQMemory:    CHAR;
+    AutoSidetoneControl: BOOLEAN;  { Used to turn on side tone for manually sent CW }
 
     CorrectedCallMessage:      Str80;
     CorrectedCallPhoneMessage: Str80;
@@ -52,10 +53,13 @@ VAR
     CQPhoneExchangeNameKnown: Str80;
     CWEnable:                 BOOLEAN;
     CWMessageCommand:         CWMessageCommandType;
+    CWMessageDone:            BOOLEAN;  { Indicates that if you were sending a message - it is done now }
     CWSpeedFromDataBase:      BOOLEAN;
     CWTone: INTEGER;
 
     CQMemory:  FunctionKeyMemoryArray;
+    DetectedPaddleActivityR1: BOOLEAN;
+    DetectedPaddleActivityR2: BOOLEAN;
 
     EXMemory:  FunctionKeyMemoryArray;
 
@@ -124,6 +128,7 @@ VAR
     PROCEDURE SendKeyboardInput;
     PROCEDURE SendKeysToRTTY;
     PROCEDURE SendStringAndStop (MSG: Str160);
+    PROCEDURE SetCWMonitorLevel (Level: INTEGER);
     PROCEDURE SetSpeed (Speed: INTEGER);
     PROCEDURE SetCQMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
     PROCEDURE SetEXMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
@@ -189,6 +194,8 @@ PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
 
 { We hope ActiveRadio is correct for N4OGW }
 
+VAR Count: INTEGER;
+
     BEGIN
     CASE ActiveRadio OF
         RadioOne:
@@ -203,8 +210,30 @@ PROCEDURE AddStringToBuffer (MSG: Str160; Tone: INTEGER);
 
     IF CWEnable AND CWEnabled THEN
         BEGIN
+        CASE ActiveRadio OF
+            RadioOne:
+                IF AutoSideToneControl AND DetectedPaddleActivityR1 THEN
+                    BEGIN
+                    DetectedPaddleActivityR1 := False;
+                    SetCWMonitorLevel (0);
+                    FOR Count := 1 TO 50 DO milliSleep;
+                    END;
+
+            RadioTwo:
+                IF AutoSideToneControl AND DetectedPaddleActivityR2 THEN
+                    BEGIN
+                    DetectedPaddleActivityR2 := False;
+                    SetCWMonitorLevel (0);
+                    FOR Count := 1 TO 50 DO milliSleep;
+                    END;
+
+            END; { of CASE ActiveRadio }
+
         ActiveKeyer.AddStringToBuffer (Msg, Tone);
         ActiveKeyer.SetCountsSinceLastCW(0);
+
+        CWMessageDone := False;  { Shows that the message being sent was started here }
+
         END;
     END;
 
@@ -213,10 +242,32 @@ FUNCTION CWStillBeingSent: BOOLEAN;
 
     BEGIN
     IF ActiveKeyer.CWStillBeingSent THEN
-        CWStillBeingSent := True
+        BEGIN
+        CWStillBeingSent := True;
+
+        CASE ActiveRadio OF
+
+            RadioOne:
+                IF AutoSidetoneControl AND CWMessageDone AND NOT DetectedPaddleActivityR1 THEN  { Is this CW being sent from the paddle? }
+                    BEGIN
+                    SetCWMonitorLevel (50);
+                    DetectedPaddleActivityR1 := True;
+                    END;
+
+            RadioTwo:
+                IF AutoSidetoneControl AND CWMessageDone AND NOT DetectedPaddleActivityR2 THEN  { Is this CW being sent from the paddle? }
+                    BEGIN
+                    SetCWMonitorLevel (50);
+                    DetectedPaddleActivityR2 := True;
+                    END;
+
+            END; { of CASE ActiveRadio }
+
+        END
     ELSE
         BEGIN
         CWStillBeingSent := False;
+        CWMessageDone := True;
 
         CASE ActiveRadio OF
             RadioOne:
@@ -262,8 +313,50 @@ PROCEDURE FlushCWBufferAndClearPTT;
             IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
                 rig2.directcommand ('KY ' + ControlD + ';');
         END;
+
+    { Tell N4OGW that we are going to RX }
+
+    CASE ActiveRadio OF
+        RadioOne:
+            IF N4OGW_RadioOne_BandMap_IP <> '' THEN
+                N4OGW_RadioOne_BandMap.SetRXMode;
+
+        RadioTwo:
+            IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
+                N4OGW_RadioTwo_BandMap.SetRXMode;
+
+        END;  { of CASE ActiveRadio }
     END;
 
+
+
+
+PROCEDURE SetCWMonitorLevel (Level: INTEGER);
+
+VAR LevelString: Str20;
+
+    BEGIN
+    Str (Level, LevelString);
+    WHILE Length (LevelString) < 3 DO LevelString := '0' + LevelString;
+
+    IF ActiveRadio = RadioOne THEN
+        IF Radio1Type = K3 THEN
+            rig1.directcommand ('ML' + LevelString + ';')
+        ELSE
+            IF Radio1Type = K4 THEN
+                rig1.directcommand ('ML0' + LevelString + ';');
+
+
+    IF ActiveRadio = RadioTwo THEN
+        IF Radio2Type = K3 THEN
+            rig2.directcommand ('ML' + LevelString + ';')
+        ELSE
+            IF Radio2Type = K4 THEN
+                rig2.directcommand ('ML0' + LevelString + ';');
+
+    END;
+
+
 
 PROCEDURE StartRTTYTransmission (MSG: Str160);
 
@@ -365,6 +458,7 @@ VAR CharPointer: INTEGER;
             FOR CharPointer := 1 TO Length (RTTYReceiveString) DO
                RTTYSendCharBuffer.AddEntry (Ord (RTTYReceiveString [CharPointer]));
 
+        Exit;
         END;
 
     { K3/K4 stuff }
@@ -373,23 +467,22 @@ VAR CharPointer: INTEGER;
         BEGIN
         IF ActiveRadio = RadioOne THEN
             IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
-                IF MSG <> '' THEN
-                    BEGIN
-                    WHILE Pos ('_', MSG) > 0 DO
-                        MSG [Pos ('_', MSG)] := ' ';
+                BEGIN
+                WHILE Pos ('_', MSG) > 0 DO
+                    MSG [Pos ('_', MSG)] := ' ';
 
-                    rig1.directcommand ('KY ' + MSG + '|;');
-                    END;
+                rig1.directcommand ('KY ' + MSG + '|;');
+                END;
+
 
         IF ActiveRadio = RadioTwo THEN
-            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
-                IF MSG <> '' THEN
-                    BEGIN
-                    WHILE Pos ('_', MSG) > 0 DO
-                        MSG [Pos ('_', MSG)] := ' ';
+            IF (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4) THEN
+                BEGIN
+                WHILE Pos ('_', MSG) > 0 DO
+                    MSG [Pos ('_', MSG)] := ' ';
 
-                    rig2.directcommand ('KY ' + MSG + '|;');
-                    END;
+                rig2.directcommand ('KY ' + MSG + '|;');
+                END;
 
         END;
 
@@ -420,9 +513,8 @@ VAR CharPointer: INTEGER;
 
 
         IF CWEnable AND CWEnabled THEN
-            BEGIN
-            ActiveKeyer.AddStringToBuffer (MSG, CWTone);
-            END;
+            AddStringToBuffer (MSG, CWTone);  { Use generic procedure please }
+
         Exit;
         END;
 
@@ -499,7 +591,7 @@ VAR WPM: INTEGER;
     CWEnabled := True;
     WPM := QuickEditInteger ('Enter WPM code speed : ', 2);
     SetSpeed (WPM);
-    DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+    DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
     END;
 
 
@@ -536,30 +628,45 @@ PROCEDURE SendKeysToRTTY;
 VAR Key: CHAR;
 
     BEGIN
-    IF ActiveRTTYPort = nil THEN Exit;
+    IF (ActiveRTTYPort <> nil) THEN   { Legacy stuff }
+        BEGIN
+        QuickDisplay ('Keyboard input being sent to RTTY.  Press ESCAPE to stop.');
 
-    QuickDisplay ('Keyboard input being sent to RTTY.  Press ESCAPE to stop.');
+        ContinueRTTYTransmission (CarriageReturn);
+        ContinueRTTYTransmission (LineFeed);
 
-    ContinueRTTYTransmission (CarriageReturn);
-    ContinueRTTYTransmission (LineFeed);
-
-    REPEAT
         REPEAT
-            CheckRTTY;
-millisleep;
-        UNTIL KeyPressed;
+            REPEAT
+                CheckRTTY;
+                millisleep;
+            UNTIL KeyPressed;
 
-        Key := ReadKey;
+            Key := ReadKey;
 
-        IF Key = EscapeKey THEN
-            BEGIN
-            QuickDIsplay ('Finished sending manual input to RTTY.');
-            FinishRTTYTransmission ('');
-            Exit;
-            END;
+            IF Key = EscapeKey THEN
+                BEGIN
+                QuickDIsplay ('Finished sending manual input to RTTY.');
+                FinishRTTYTransmission ('');
+                Exit;
+                END;
 
-        ContinueRTTYTransmission (Key);
-    UNTIL False;
+            ContinueRTTYTransmission (Key);
+        UNTIL False;
+        END;
+
+    { See if we are using an Elecraft radio }
+
+    IF ActiveMode = Digital THEN
+        BEGIN
+        IF ActiveRadio = RadioOne THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                rig1.directcommand ('KY ' + ControlD + ';');
+
+        IF ActiveRadio = RadioTwo THEN
+            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                rig2.directcommand ('KY ' + ControlD + ';');
+        END;
+
     END;
 
 
@@ -586,7 +693,7 @@ VAR Key: CHAR;
     SetUpToSendOnActiveRadio;
 
     CWEnabled := True;
-    DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+    DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
     so2r_l := supports(activekeyer,'{85C18D3F-F198-4681-B9D2-03B38213EA94}');
     if so2r_l then
     begin
@@ -606,7 +713,7 @@ VAR Key: CHAR;
         MarkTime (TimeMark);
 
         REPEAT
-            IF ActiveMultiPort <> nil THEN
+            IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                 IF ElaspedSec100 (TimeMark) > 3000 THEN  { 30 second timeout }
                     BEGIN
                     FlushCWBufferAndClearPTT;
@@ -692,14 +799,14 @@ millisleep;
                             IF CodeSpeed < 96 THEN
                                 BEGIN
                                 SetSpeed (CodeSpeed + 3);
-                                DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                                DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                                 END;
 
                         PageDownKey:
                             IF CodeSpeed > 4 THEN
                                 BEGIN
                                 SetSpeed (CodeSpeed - 3);
-                                DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                                DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                                 END;
 
                         DeleteKey:
@@ -747,14 +854,6 @@ PROCEDURE DisplayCrypticCWMenu;
 PROCEDURE DisplayCrypticSSBMenu;
 
     BEGIN
-    IF DVPEnable THEN
-        BEGIN
-        GoToXY (1, Hi (WindMax) - 4);
-        WriteLn ('Alt-W = Write selected message to DVP');
-        WriteLn ('Alt-R = Read selected message from DVP (headphones only)');
-        Write   ('');
-        END
-    ELSE
         IF DVKEnable THEN
             BEGIN
             GoToXY (1, Hi (WindMax) - 4);
@@ -765,8 +864,8 @@ PROCEDURE DisplayCrypticSSBMenu;
         ELSE
             BEGIN
             GoToXY (1, Hi (WindMax) - 4);
-            WriteLn ('You have not enabled your DVP or DVK.');
-            WriteLn ('Set DVP ENABLE or DVK ENABLE to TRUE so you can program messages.');
+            WriteLn ('You have not enabled your DVK.');
+            WriteLn ('Set DVK ENABLE to TRUE so you can program messages.');
             Write   ('');
             END;
     END;
@@ -1099,8 +1198,6 @@ VAR FileWrite: TEXT;
 PROCEDURE DVKLIstenMessage (MemoryString: Str20);
 
     BEGIN
-    DVPOn := True;
-
     MemoryString := UpperCase (MemoryString);
     IF MemoryString = 'DVK1' THEN StartDVK (1);
     IF MemoryString = 'DVK2' THEN StartDVK (2);
@@ -1114,8 +1211,6 @@ PROCEDURE DVKLIstenMessage (MemoryString: Str20);
 PROCEDURE DVKRecordMessage (MemoryString: Str20);
 
     BEGIN
-    DVPOn := True;
-
     MemoryString := UpperCase (MemoryString);
 
     IF Copy (MemoryString, 1, 3) <> 'DVK' THEN Exit;
@@ -1166,7 +1261,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
         REPEAT millisleep UNTIL NewKeyPressed;
         Key := Upcase (NewReadKey);
 
-        IF ActiveMultiPort <> nil THEN
+        IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
             IF ElaspedSec100 (TimeMark) > 3000 THEN
                 BEGIN
                 RemoveAndRestorePreviousWindow;
@@ -1205,7 +1300,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
                  REPEAT
                      REPEAT
-                         IF ActiveMultiPort <> nil THEN
+                         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                              IF ElaspedSec100 (TimeMark) > 3000 THEN
                                  BEGIN
                                  RemoveAndRestorePreviousWindow;
@@ -1262,20 +1357,9 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                          TempString := LineInput ('Msg = ',
                                               GetCQMemoryString (ActiveMode, FunctionKey),  {KK1L: 6.73 Added mode}
                                               True,
-                                              (ActiveMode = Phone) AND (DVPEnable OR DVKEnable));
+                                              (ActiveMode = Phone) AND (DVKEnable));
 
                          IF TempString [1] = NullKey THEN
-                             IF DVPEnable THEN
-                                 BEGIN
-                                 CASE TempString [2] OF
-                                     {KK1L: 6.73 Added mode}
-                                     AltW: DVPRecordMessage (GetCQMemoryString (ActiveMode, FunctionKey), False);
-                                     {KK1L: 6.73 Added mode}
-                                     AltR: DVPListenMessage (GetCQMemoryString (ActiveMode, FunctionKey), True);
-                                     END;
-                                 END
-                             ELSE
-                                 BEGIN
                                  IF DVKEnable THEN
                                      CASE TempString [2] OF
                                          {KK1L: 6.73 Added mode}
@@ -1283,8 +1367,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                          {KK1L: 6.73 Added mode}
                                          AltR: DVKListenMessage (GetCQMemoryString (ActiveMode, FunctionKey));
                                          END;
-                                 END;
-
                          millisleep;
                      UNTIL (TempString [1] <> NullKey);
 
@@ -1315,7 +1397,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
                  REPEAT
                      REPEAT
-                         IF ActiveMultiPort <> nil THEN
+                         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                              IF ElaspedSec100 (TimeMark) > 3000 THEN
                                  BEGIN
                                  RemoveAndRestorePreviousWindow;
@@ -1372,18 +1454,9 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                                   {KK1L: 6.73 Added mode to GetExMemoryString}
                                                   GetEXMemoryString (ActiveMode, FunctionKey),
                                                   True,
-                                                  (ActiveMode = Phone) AND (DVPEnable OR DVKEnable));
+                                                  (ActiveMode = Phone) AND (DVKEnable));
 
                          IF TempString [1] = NullKey THEN
-                             IF DVPEnable THEN
-                                 BEGIN
-                                 CASE TempString [2] OF
-                                     {KK1L: 6.73 Added mode to GetExMemoryString}
-                                     AltW: DVPRecordMessage (GetEXMemoryString (ActiveMode, FunctionKey), False);
-                                     AltR: DVPListenMessage (GetEXMemoryString (ActiveMode, FunctionKey), True);
-                                     END;
-                                 END
-                             ELSE
                                  IF DVKEnable THEN
                                      CASE TempString [2] OF
                                          {KK1L: 6.73 Added mode to GetExMemoryString}
@@ -1426,7 +1499,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
                  REPEAT
                      REPEAT
-                         IF ActiveMultiPort <> nil THEN
+                         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                              IF ElaspedSec100 (TimeMark) > 3000 THEN
                                  BEGIN
                                  RemoveAndRestorePreviousWindow;
@@ -1474,14 +1547,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
 
                                     IF TempString [1] = NullKey THEN
-                                        IF DVPEnable THEN
-                                            BEGIN
-                                            CASE TempString [2] OF
-                                                AltW: DVPRecordMessage (CorrectedCallPhoneMessage, False);
-                                                AltR: DVPListenMessage (CorrectedCallPhoneMessage, True);
-                                                END;
-                                            END
-                                        ELSE
                                             IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (CorrectedCallPhoneMessage);
@@ -1519,14 +1584,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                                              True);
 
                                     IF TempString [1] = NullKey THEN
-                                        IF DVPEnable THEN
-                                            BEGIN
-                                            CASE TempString [2] OF
-                                                AltW: DVPRecordMessage (CQPhoneExchange, False);
-                                                AltR: DVPListenMessage (CQPhoneExchange, True);
-                                                END;
-                                            END
-                                        ELSE
                                             IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (CQPhoneExchange);
@@ -1562,14 +1619,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                                              True);
 
                                     IF TempString [1] = NullKey THEN
-                                        IF DVPEnable THEN
-                                            BEGIN
-                                            CASE TempString [2] OF
-                                                AltW: DVPRecordMessage (CQPhoneExchangeNameKnown, False);
-                                                AltR: DVPListenMessage (CQPhoneExchangeNameKnown, True);
-                                                END;
-                                            END
-                                        ELSE
                                             IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (CQPhoneExchangeNameKnown);
@@ -1604,14 +1653,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                                              True, True);
 
                                     IF TempString [1] = NullKey THEN
-                                        IF DVPEnable THEN
-                                            BEGIN
-                                            CASE TempString [2] OF
-                                                AltW: DVPRecordMessage (QSLPhoneMessage, False);
-                                                AltR: DVPListenMessage (QSLPhoneMessage, True);
-                                                END;
-                                            END
-                                        ELSE
                                             IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (QSLPhoneMessage);
@@ -1646,14 +1687,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                                              True, True);
 
                                     IF TempString [1] = NullKey THEN
-                                        IF DVPEnable THEN
-                                            BEGIN
-                                            CASE TempString [2] OF
-                                                AltW: DVPRecordMessage (QSOBeforePhoneMessage, False);
-                                                AltR: DVPListenMessage (QSOBeforePhoneMessage, True);
-                                                END;
-                                            END
-                                        ELSE
                                             IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (QSOBeforePhoneMessage);
@@ -1688,14 +1721,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                                              True, True);
 
                                     IF TempString [1] = NullKey THEN
-                                        IF DVPEnable THEN
-                                            BEGIN
-                                            CASE TempString [2] OF
-                                                AltW: DVPRecordMessage (QuickQSLPhoneMessage, False);
-                                                AltR: DVPListenMessage (QuickQSLPhoneMessage, True);
-                                                END;
-                                            END
-                                        ELSE
                                             IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (QuickQSLPhoneMessage);
@@ -1730,14 +1755,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                                              True, True);
 
                                     IF TempString [1] = NullKey THEN
-                                        IF DVPEnable THEN
-                                            BEGIN
-                                            CASE TempString [2] OF
-                                                AltW: DVPRecordMessage (RepeatSearchAndPouncePhoneExchange, False);
-                                                AltR: DVPListenMessage (RepeatSearchAndPouncePhoneExchange, True);
-                                                END;
-                                            END
-                                        ELSE
                                             IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (RepeatSearchAndPouncePhoneExchange);
@@ -1772,14 +1789,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                                              True, True);
 
                                     IF TempString [1] = NullKey THEN
-                                        IF DVPEnable THEN
-                                            BEGIN
-                                            CASE TempString [2] OF
-                                                AltW: DVPRecordMessage (SearchAndPouncePhoneExchange, False);
-                                                AltR: DVPListenMessage (SearchAndPouncePhoneExchange, True);
-                                                END;
-                                            END
-                                        ELSE
                                             IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (SearchAndPouncePhoneExchange);
@@ -1814,14 +1823,6 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                                              True, True);
 
                                     IF TempString [1] = NullKey THEN
-                                        IF DVPEnable THEN
-                                            BEGIN
-                                            CASE TempString [2] OF
-                                                AltW: DVPRecordMessage (TailEndPhoneMessage, False);
-                                                AltR: DVPListenMessage (TailEndPhoneMessage, True);
-                                                END;
-                                            END
-                                        ELSE
                                             IF DVKEnable THEN
                                                 CASE TempString [2] OF
                                                     AltW: DVKRecordMessage (TailEndPhoneMessage);
@@ -1974,21 +1975,7 @@ PROCEDURE UnInitializeKeyer;
 
 PROCEDURE SetUpToSendOnActiveRadio;
 
-VAR TimeOut: BYTE;
-
     BEGIN
-    IF (ActiveMode = Phone) AND DVPEnable AND DVPActive AND DVPMessagePlaying THEN
-        BEGIN
-        TimeOut := 0;
-
-        DVPStopPlayback;
-
-        REPEAT
-            Wait (5);
-            Inc (TimeOut);
-        UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 50);
-        END;
-
     IF ActiveRadio = RadioOne THEN
         BEGIN
         IF NOT SendingOnRadioOne THEN
@@ -2026,22 +2013,8 @@ PROCEDURE SetUpToSendOnInactiveRadio;
 { This used to swap ActiveRadio as well, but I decided not to do that
   anymore.  }
 
-VAR TimeOut: BYTE;
-
     BEGIN
     IF KeyersSwapped THEN Exit;        { Already swapped to inactive rig }
-
-    IF (ActiveMode = Phone) AND DVPEnable AND DVPActive AND DVPMessagePlaying THEN
-        BEGIN
-        TimeOut := 0;
-
-        DVPStopPlayback;
-
-        REPEAT
-            Wait (5);
-            Inc (TimeOut);
-        UNTIL (NOT DVPMessagePlaying) OR (TimeOut > 50);
-        END;
 
     IF ActiveRadio = RadioOne THEN
         BEGIN
@@ -2090,20 +2063,9 @@ PROCEDURE ToggleCW (DisplayPrompt: BOOLEAN);
             END
         ELSE
             CWEnabled := True;
-        END
-    ELSE
-        IF DVPEnable OR DVKEnable THEN
-            BEGIN
-            DVPOn := NOT DVPOn;
+        END;
 
-            IF DisplayPrompt THEN
-               if DVPOn then
-                QuickDisplay ('Voice keyer enabled with Alt-K!!  Use Alt-K again to disable.')
-              else
-                QuickDisplay ('Voice keyer disabled with Alt-K!!  Use Alt-K again to enable.');
-            END;
-
-    DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+    DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
     SetSpeed (CodeSpeed);
     END;
 
@@ -2124,9 +2086,12 @@ VAR TempKey: CHAR;
         END;
 
     AutoCQMemory := NullCharacter;
+    DetectedPaddleActivityR1 := False;
+    DetectedPaddleActivityR2 := False;
     KeyPressedMemory := Chr (0);
     KeyersSwapped := False;
     LastRSTSent := '';
+    CWMessageDone := True;
     CWMessageCommand := NoCWCommand;
     NeedToSetCQMode := False; {KK1L: 6.69 This variable is used to leap around some AutoS&PMode code.}
     RTTYTransmissionStarted := False;

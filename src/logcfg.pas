@@ -25,9 +25,9 @@ UNIT LogCfg;
 INTERFACE
 
 USES trcrt, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
-     LogGrid, LogDom, FContest, LogDVP, Country9, LogEdit, LogDDX,
+     LogGrid, LogDom, FContest, Country9, LogEdit, LogDDX,
      LogWAE, LogHP, LogPack, LogK1EA, DOS, LogHelp, LogProm, CfgCmd,
-     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound,N4OGW, N1MM;
+     SlowTree, Tree, LogMenu, K1EANet,communication,linuxsound,N4OGW, N1MM, logqsonr;
 
 
     FUNCTION  LoadInSeparateConfigFile (FileName: STRING;
@@ -190,17 +190,10 @@ VAR FileWrite: TEXT;
         BEGIN
         CodeSpeed := 99;
         CWTone := 0;
-        DVPEnable := False;
         AutoDupeEnableCQ := False;
         AutoDupeEnableSAndP := False;
         PollRadioOne := FALSE; {KK1L: 6.73}
         PollRadioTwo := FALSE; {KK1L: 6.73}
-        END;
-
-    IF DVPEnable THEN
-        BEGIN
-        WriteLn ('DVP Initialization in process...');
-        DVPInit;
         END;
 
     BandMemory [RadioOne] := ActiveBand;
@@ -341,9 +334,10 @@ VAR FileWrite: TEXT;
                END;
 
         ActiveMultiPort.setparams(MultiPortBaudRate,8,NoParity,2);
-
-        New (MultiRememberBuffer);
         END;
+
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
+        New (MultiRememberBuffer);
 
     IF IntercomFileEnable THEN
         BEGIN
@@ -465,8 +459,6 @@ VAR FileWrite: TEXT;
     ActiveKeyer.debug(keyerdebug);
     InitializeKeyer;
 
-    ActiveKeyer.SetMonitorTone(CWTone);
-
     IF ActiveRadio = RadioOne THEN
         BEGIN
         ActiveKeyer.SetActiveRadio(RadioOne);
@@ -480,7 +472,14 @@ VAR FileWrite: TEXT;
         ActiveBand  := BandMemory [RadioTwo];
         END;
 
-    DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+    ActiveKeyer.SetMonitorTone(CWTone);
+
+    { Speical footswitch mode will be lost with Initlialize }
+
+    IF FootSwitchMode = TBSIQSSB THEN
+        ArdKeyer.FootSwitch2BSIQSSB;
+
+    DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
 
     {RadioOneSpeed := CodeSpeed;}
     {RadioTwoSpeed := CodeSpeed;}
@@ -515,7 +514,11 @@ VAR FileWrite: TEXT;
             END;
         END;
 
-    InitializeNextQSONumber;
+    { Look through the two log files to get the highest QSO numbers sent thus far }
+
+    QNumber.Init;  { Set all QSO numbers to zero }
+    QNumber.InitializeQSONumbersFromLogFile (LogFileName);
+    QNumber.InitializeQSONumbersFromLogFile (LogTempFileName);
     END;
 
 
@@ -722,16 +725,17 @@ PROCEDURE LookForCommands;
 VAR ParameterCount: INTEGER;
     LastPushedLogName: Str20; {KK1L: 6.71}
     TempString: Str40;
+    Key: CHAR;
 
     BEGIN
     PacketFile := False;
 
-//    FOR ParameterCount := 1 TO ParamCount DO
+    ParameterCount := 0;    { Zero based list }
 
-    ParameterCount := 0;
-    while ((ParameterCount + 1) <= ParamCount) do
+    WHILE ((ParameterCount + 1) <= ParamCount) do
         BEGIN
         inc(ParameterCount);
+
         IF UpperCase (ParamStr (ParameterCount)) = 'B64DECODE' THEN
             BEGIN
             Bin64Decode;
@@ -825,7 +829,9 @@ VAR ParameterCount: INTEGER;
             Halt;
             END;
 
-        IF UpperCase (ParamStr (ParameterCount)) = 'NETDEBUG' THEN NetDebug := True;
+        IF UpperCase (ParamStr (ParameterCount)) = 'NETDEBUG' THEN
+            NetDebug := True;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'NOSTDCFG' THEN NoStdcfg := True;
 
         IF UpperCase (ParamStr (ParameterCount)) = 'PACKET' THEN
@@ -893,6 +899,17 @@ VAR ParameterCount: INTEGER;
             ReadInLog := True;
             ReadInLogFileName := ParamStr (ParameterCount + 1);
             Inc (ParameterCount);
+
+            REPEAT
+                Key := UpCase (GetKey ('Do you really want to read in ' + ReadInLogFilename + '? (Y/N) : '));
+                IF Key = EscapeKey THEN Halt;
+            UNTIL (Key = 'Y') OR (Key = 'N');
+
+            IF Key = 'N' THEN
+                BEGIN
+                ReadInLog := False;
+                ReadInLogFileName := '';
+                END;
             END;
 
         {KK1L: 6.71 Added as a multiplier and dupe check}

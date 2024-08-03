@@ -19,6 +19,12 @@
 //<http://www.gnu.org/licenses/>.
 //
 
+// To make a new version:
+//
+// 1. Update the src/versions.inc file
+// 2. Update the Makefile in the upper directory with the vesrion #
+// 3. Update the release notes.
+
 PROGRAM ContestLoggingProgram;
 {$linklib curl}
 {$linklib X11}
@@ -43,10 +49,156 @@ TODO List after 2023 WPX CW:
 
  - Bandmap is challenged indicating mult status of portable callsigns (prefix)
  - Some bandmap confusion on which band is dispayed with TBSIQ
- - Update whole bandmap when any QSO made - am seeing lots of calls not disappearing
+   grep  - Update whole bandmap when any QSO made - am seeing lots of calls not disappearing
    when they are now dupes.
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
+
+16-Jul-2024
+ - Fixed initial exchange not getting updated as you worked guys in IARU and
+   likely other contests.
+
+ - Removed PARTIAL CALL LOAD LOG ENABLE.  It is essentially TRUE now all of the
+   time.  The only reason for not doing this was a speed issue back in the old
+   DOS days.
+
+Release 0.60 - June 20, 2024
+
+17-Jun-2024
+ - Lots of work with QSO numbers coming in over the network.  Many bugs fixed and
+   operation made more robust.  This includes integration with 2BSIQ.
+
+08-Jun-2024
+ - Improved QSO number over network.  Now providing the ability to send the QSO number
+   back to the master computer when exiting an instance of the program that has
+   MultiRequestQSONumber set to TRUE.  Sometimes, it seems there is some delay on
+   getting an initial QSO number when starting up the program, but I have put retries
+   in and it will eventually get it.  After that - it seems solid.
+
+   There are status messages on both sides of the request/response with time stamps
+   to provide visability on what is actually happening.
+
+ - Added PING command ih the call window.  Enter PING and RETURN and see if there
+   is someone answering you on the other side of the network.  The delay time only
+   has 10 ms resolution - so is typically shown as zero.  This is non blocking, so
+   if there is no response - life goes on.
+
+23-May-2024
+ - Discovered I broke the bandmap on 1-May and reverted back to a LOGWIND.PAS that was
+   committed before that.  Then merged the new QSO number stuff into that file and it
+   seems to be okay now.  Saved a copy of the bad logwind file to inspect after WPX CW.
+   It's brokenbandmap.pas or something like that.
+
+22-May-2024
+ - Added support to pull QSO numbers over the network from a "master" computer.  To enable
+   this - you need to set MULTI REQUEST QSO NUMBER = TRUE on the slave computers.  When you
+   enable this - QSO numbers will only be reserved when you need them.  This basically
+   means you won't see the QSO number until your exchange window comes up.  Note that there
+   could be a delay to this if the computer giving out the QSO numbers is busy or down.
+
+   This is mostly intended for non 2BSIQ applications - but will hopefully work in that
+   mode as well at some point.
+
+ - Removed display of name percentage - just not worth trying to figure out the right
+   denomintor with the changes to QSO numbers.
+
+ - Removed DVP support.  Some risk that I affected DVK support which I tried to leave in.
+
+19-May-2024
+ - Decided to remove any support for the K1EA network.  This was pretty much used one
+   time and not for 20 years.
+
+17-May-2024
+ - Added MULTI REQUEST QSO NUMBER.  This will force a program to request QSO numbers from
+   a TR networked computer when it needs one.  If there are multiple computers on the network,
+   you should set up all computers but one to have MULTI REQUEST QSO NUMBER = TRUE.  This
+   will result in only one computer supplying QSO numbers.  The QSO number will be requested
+   when the exchange window becomes active (or the $ character is found in a CW message).  The
+   instance getting the QSO number should make every effort to use that QSO number eventually
+   in case the first QSO is somehow aborted.  There is no mechanism to "return" a QSO number.
+   It will just be skipped in the log if not eventually used.
+
+1-May-2024
+ - Some clean up on Bandmap display stuff.  Tried to make sure that the dupe display
+   or not is cleaned up and updated when changing states.  Also - replaced the ambigious
+   * for displaying dupes in the bandmap with a lower case d.
+
+18-March-2024
+ - Added ability to send QSOs to N1MM using a UDP port.  To enable this, we need to
+   enter the IP address for the machine running N1MM using N1MM EXPORT IP ADDRESS.
+   This is currently only coded for CQ-WPX-SSB.  Additionally, you can use N1MM
+   EXPORT OPERATOR to indicate the operator callsign.
+
+1-March-2024
+ - Fixed PACKET SPOTS = MULT not working
+
+29-Feb-2024
+ - Disabled the ControlInsert command - which adds a placeholder to the bandmap
+
+30-Jan-2024
+ - When the footswitch mode is to start sending - I won't do it if there is nothing in the
+   call window now (same behavior as when you press the auto start send key
+
+ - If you escaped out of sending a callsign with auto start send and cleared the window,
+   the auto start send will be re-enabled.   Hopefully this was enough to fix the issue
+   of it not being enabled some of the time.  However, I will also re-enable it if you
+   press F1 or F2 to call CQ.  I think this isn't a bug in 2BSIQ.
+
+22-Jan-2024
+  - Added new command - AUTO SIDETONE ENABLE (default = FALSE).  When enabled, this will
+    attempt to enable the radio sidetone for manually sent CW and then silence the sidetone
+    when going back to sending a programmed message.  This likely only works if you are
+    using the Arduino Keyer and only with dn Elecraft K3/K4.  It is primarily designed
+    for 2BSIQ operation but seems to work fine in classic mode even with two radios.
+
+19-Jan-2024
+  - Added new way to do multi - using UDP.  MULTI PORT = UDP <ip address> <port>.  The IP
+    address is to the next machine in the loop.  Last computer needs to loop back to the
+    first computer.
+
+08-Jan-2024
+ - Some minor fixes to using RTTY in 2BSIQ mode.
+ - Added MST contest.
+
+24-Dec-2023
+ - When building a Cabrillo log - you now have the option to ignore the LONGLOG.DAT
+   file is you don't want to deal with it.  It is used to get exact frequency
+   information into your Cabrillo log.
+
+ - Same as above - for the ADIF convert.
+
+
+16-Dec-2023
+ - Changed how the control-C and control-D are parsed for messages in a
+   function key memory.  The last control-D will be used to parse the
+   command, so that commands that contain a control-D can be used.  Note
+   that this means you really can only have one valid command in a message.
+
+ - Removed WARC bands from Continent Report
+
+05-Dec-2023
+ - Added new command TBSIQ DUAL MODE - default FALSE and it is in the ControlJ
+   menu.  This is used to enable all of the changes made to TBSIQ to handle the
+   special case of mixed mode operation.
+
+03-Dec-2023
+ - We were dropping the PTT after sending an auto start sending call before
+   the exchange was being sent.  This is because we had ripped out some of
+   the PTT Force on code - and in putting it back in - discovered a bug in
+   the Arduino where it was unasserting PTT after the timeout even if
+   PTT force on was active.  So - this results in an Arduino code update
+   in addition to some pascal code.  Also - made the arudino keyer pascal
+   code report back that CW was not being sent even if the PTT was still
+   active - to avoid being trapped there.
+
+01-Dec-2023
+ - When using TWO VFO MODE and you go to a frequency that has an entry in the
+   band map - instead of doing a dupecheck if you press the SPACE BAR again,
+   it will go back to your CQ frequency.  Also made it so a dupe check with a
+   dupe will update the bandmap time stamp.  Some other minor tweaks to how it
+   works when finding a dupe on the other VFO.
+
+Release 0.59 - 28-Nov-2023
 
 28-Nov-2023
  - Increased size of possible/partial call list from 200 to 600.
@@ -3802,7 +3954,6 @@ Uses
      LogDom,
      LogDupe,
      LogDDX,
-     LogDVP,
      LogEdit,
      LogGrid,
      LogHelp,
@@ -3810,6 +3961,7 @@ Uses
      LogMenu,
      LogPack,
      LogProm,
+     LogQSONr,
      LogSCP,
      LogStuff,
      LogUDP,
@@ -3828,7 +3980,6 @@ Uses
      memlinux,
      linuxsound,
      timer,
-     K1EANet,
      datetimec,
      beep,
      foot,
@@ -3864,13 +4015,13 @@ TYPE QTCActionType = (NoQTCAction, AbortThisQTC, SaveThisQTC);
 
 VAR TempString: Str20;
 
+{ Some stuff called from here but contained in LOGSUBS2 }
+
 PROCEDURE LogLastCall; FORWARD;
 PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR); FORWARD;
 FUNCTION  FoundCommand (VAR SendString: Str160): BOOLEAN; FORWARD;
 
 {$I LogSubs1}
-
-
 
 FUNCTION ParametersOkay (Call: CallString;
                          ExchangeString: Str80;
@@ -3958,7 +4109,6 @@ VAR I: INTEGER;
         RData.Time       := Hours * 100 + Minutes;
         RData.Band       := Band;
         RData.Mode       := Mode;
-        RData.NumberSent := TotalContacts + 1;
         RData.Frequency  := Freq;
 
         IF ActiveMode = PHONE THEN
@@ -4013,7 +4163,6 @@ VAR I: INTEGER;
     RData.Time       := Hours * 100 + Minutes;
     RData.Band       := Band;
     RData.Mode       := Mode;
-    RData.NumberSent := TotalContacts + 1;
     RData.Frequency  := Freq;
 
     IF RData.RSTSent = '' THEN

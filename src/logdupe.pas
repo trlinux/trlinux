@@ -263,7 +263,7 @@ VAR
 
     { The following array has the exchange memory and the indexes match those
       for the AllCallList.  So, if yoy find K7RAT at address 34, you will
-      find the exchange memory entry for hi in the ExchangeMemoryList at
+      find the exchange memory entry for him in the ExchangeMemoryList at
       address 34. }
 
     ExchangeMemoryList: ARRAY [0..MaxAllCalls - 1] OF Str20;
@@ -309,8 +309,6 @@ VAR
 
     { The PartialCallList is an alphabetical list of callsigns which each have an index to an initial exchange }
 
-    PartialCallLoadLogEnable: BOOLEAN;
-
     QSOByBand: BOOLEAN;
     QSOByMode: BOOLEAN;
     QSOTotals: QSOTotalArray; { This may not also be exactly the same as
@@ -355,7 +353,7 @@ VAR
     FUNCTION  GetInitialExchangeStringFromContestExchange (RData: ContestExchange): Str40;
     PROCEDURE GetMultsFromLogEntry   (LogEntry: Str80; VAR RXData: ContestExchange);
 
-    FUNCTION  ParseExchangeIntoContestExchange (LogEntry: STRING;
+    FUNCTION  ParseLogEntryIntoContestExchange (LogEntry: STRING;
                                                 VAR RXData: ContestExchange): BOOLEAN;
 
     FUNCTION  PointsToBigCall (Entry: FourBytes): BOOLEAN;
@@ -364,7 +362,7 @@ VAR
                                         VAR ExchangeInformation: ExchangeInformationRecord
                                         );
 
-    PROCEDURE TransferLogEntryInfoToContestExchange (LogEntry: Str80; VAR RXData: ContestExchange);
+    PROCEDURE WriteAllFile;
 
 
 IMPLEMENTATION
@@ -546,7 +544,6 @@ VAR StartAddress, StopAddress, JumpSize, TestAddress, Address: INTEGER;
             END;  { of WHILE True }
         END;
 
-
     FOR Address := StartAddress TO StopAddress DO
         IF Call <= AllCallList [Address] THEN
             BEGIN
@@ -703,7 +700,7 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     Exchange.Name             := '';
     Exchange.NameSent         := False;
     Exchange.NumberReceived   := -1;
-    Exchange.NumberSent       := -1;
+    Exchange.NumberSent       := -1;  { Means that we don't have one requested }
     Exchange.PostalCode       := '';
     Exchange.Power            := '';
     Exchange.Precedence       := NullCharacter;
@@ -969,35 +966,6 @@ VAR MultString: Str20;
 
         IF DoingDXMults THEN RXData.DXQTH := MultArray [Mult];
         END;
-    END;
-
-
-
-PROCEDURE TransferLogEntryInfoToContestExchange (LogEntry: Str80; VAR RXData: ContestExchange);
-
-{ So - in 2023 we have a problem.  I am expecting RXData to have the necessary information
-  to determine the initial exchange.  This wasn't a requirement before I changed things
-  and went to the AllCallList that gets entries added to it when the QSO is put into
-  the dupesheet.  Thus - a QSO that has scrolled off the top of the editable log window
-  has messed up initial exchange information.
-
-  To fix this - this routine has to get a lot smarter and properly populate the exchange
-  fields with the proper information.  Some of this is already done in the routine that
-  fetches initial exchanges from the EditableLogWindow!  }
-
-    BEGIN
-    ClearContestExchange (RXData);
-    RXData.Band     := GetLogEntryBand (LogEntry);
-    RXData.Mode     := GetLogEntryMode (LogEntry);
-    RXData.Callsign := GetLogEntryCall (LogEntry);
-
-    { The above stuff is what used to be here - it gets destroyed when the
-      ParseExchangeIntoContestExchange procedure is called }
-
-    ParseExchangeIntoContestExchange (LogEntry, RXData);
-
-    GetMultsFromLogEntry (LogEntry, RXData);
-    RXData.QTH.Prefix := RXData.Prefix;
     END;
 
 
@@ -1907,21 +1875,27 @@ VAR NumberMults: INTEGER;
     IF MultByBand THEN MultBand := RXData.Band ELSE MultBand := All;
     IF MultByMode THEN MultMode := RXData.Mode ELSE MultMode := Both;
 
-    IF (ContestName = 'CWT') OR (ContestName = 'CWO') THEN { CWT and CWO uses calls for mults }
-        BEGIN
-        RXData.DomMultQTH := RXData.Callsign;
-        IF Length (RXData.DomMultQTH) > 6 THEN
-            RXData.DomMultQTH := Copy (RXData.DomMultQTH, 1, 6);
-        END
+    { Check for CWT, CWO and MST exception - use callsign for domestic mult }
+
+    IF (ContestName = 'CWT') OR (ContestName = 'CWO') OR (ContestName = 'MST') THEN
+        RXData.DomMultQTH := Copy (RXData.Callsign, 1, 6)
     ELSE
+        BEGIN
+        IF RXData.DomesticQTH = '' THEN
+            RXData.DomesticQTH := RXData.QTHString;
+
         IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
             RXData.DomMultQTH := RXData.DomesticQTH;
+        END;
+
+    { We do not count countries in WRTC if we have a domestic mult }
 
     FoundDomesticQTH := RXData.DomMultQTH <> ''; //for WRTC 2018
 
     IF (RXData.DomMultQTH <> '') AND DoingDomesticMults THEN
         BEGIN
         NumberMults := MultSheet.Totals [MultBand, MultMode].NumberDomesticMults;
+
         IF NumberMults = 0 THEN
             RXData.DomesticMult := True
         ELSE
@@ -2389,54 +2363,28 @@ VAR FileRead: TEXT;
 
                 QSOPoints := TempRXData.QSOPoints;
 
-                IF PartialCallLoadLogEnable THEN
-                    ParseExchangeIntoContestExchange (FileString, TempRXData);
+                { Here we are getting exchange data from the log entries }
+
 
                 IF SingleBand <> All THEN
                     IF TempRXData.Band <> SingleBand THEN
                         QSOPoints := 0;
 
-                IF NOT (StringHas (FileString, '*DUPE*') OR StringHas (FileString, '*ZERO*')) THEN
-                    BEGIN
-                    TempRXData.Callsign := GetLogEntryCall (FileString);
+                TempRXData.Callsign := GetLogEntryCall (FileString);
 
-                    IF FileString [LogEntryNameSentAddress] = '*' THEN
-                        Inc (TotalNamesSent);
+                IF FileString [LogEntryNameSentAddress] = '*' THEN
+                    Inc (TotalNamesSent);
 
-                    TotalQSOPoints := TotalQSOPoints + QSOPoints;
+                TotalQSOPoints := TotalQSOPoints + QSOPoints;
 
-                    WriteLn ('QSOPoints = ', QSOPoints);
+                { Before we set the mult flags - we need to make sure whatever fields
+                  will be looked at for this specific contest have the needed data in
+                  them.  Before, this was only really done by looking at the multiplier
+                  data in the log - but in July 2024, we changed that }
 
-                    GetMultsFromLogEntry (FileString, TempRXData);
-                    SetMultFlags (TempRXData);
-
-                    IF DoingDomesticMults AND (TempRXData.DomesticQTH <> '') THEN
-                        IF NOT TempRXData.DomesticMult THEN
-                            BEGIN
-                            ReportError ('Duplicate domestic multiplier found = ' + TempRXData.DomesticQTH);
-                            Wait (1000);
-                            END;
-
-                    IF DoingDXMults AND (TempRXData.DXQTH <> '') THEN
-                        IF NOT TempRXData.DXMult THEN
-                            BEGIN
-                            ReportError ('Duplicate DX multiplier found = ' + TempRXData.DXQTH);
-                            END;
-
-                    IF DoingPrefixMults AND (TempRXData.Prefix <> '') THEN
-                        IF NOT TempRXData.PrefixMult THEN
-                            BEGIN
-                            ReportError ('Duplicate prefix multiplier found = ' + TempRXData.Prefix);
-                            END;
-
-                    IF DoingZoneMults AND (TempRXData.Zone <> '') THEN
-                        IF NOT TempRXData.ZoneMult THEN
-                            BEGIN
-                            ReportError ('Duplicate zone multiplier found = ' + TempRXData.Zone);
-                            END;
-
-                    AddQSOToSheets (TempRXData);
-                    END;
+                ParseLogEntryIntoContestExchange (FileString, TempRXData);
+                SetMultFlags (TempRXData);
+                AddQSOToSheets (TempRXData);
                 END
             ELSE
                 IF StringHas (GetLogEntryDateString (FileString), '-Jan-') OR
@@ -2733,22 +2681,25 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
 
 
 
-FUNCTION ParseExchangeIntoContestExchange (LogEntry: STRING;
+FUNCTION ParseLogEntryIntoContestExchange (LogEntry: STRING;
                                            VAR RXData: ContestExchange): BOOLEAN;
 
-{ Returns TRUE if it looks like a good QSO }
+{ Returns TRUE if it looks like a good QSO.  This routine will recreate
+  the ContestExchange record as best it can from the Log Entry with the
+  intention of adding it to the sheets (after setting mult flags). }
 
-VAR ExchangeString: Str80;
-    FirstString, SecondString: Str40;
+VAR OriginalString, ExchangeString: Str80;
+    RSTTestString, FirstString, SecondString: Str40;
 
     BEGIN
-    ParseExchangeIntoContestExchange := False;
-
+    ParseLogEntryIntoContestExchange := False;
     ClearContestExchange (RXData);
 
     { See if it is a note }
 
     IF Copy (LogEntry, 1, 1) = ';' THEN Exit;
+
+    { Do the standard stuff that is always in the same place }
 
     RXData.Callsign  := GetLogEntryCall      (LogEntry);
     RXData.Band      := GetLogEntryBand      (LogEntry);
@@ -2759,17 +2710,37 @@ VAR ExchangeString: Str80;
 
     IF (RXData.Band = NoBand) OR (RXData.Mode = NoMode) THEN Exit;
 
+    { We need to invoke the LocateCall procedure which will setup
+      the country and zone of the QSO.  These might be needed to
+      properly set the multiplier flags if someone is trying to
+      add this QSO to the sheets.  Since this information is
+      intrinsic to the callsign - and not shown in any exchange
+      data - we need to do this }
+
+    LocateCall (RXData.Callsign, RXData.QTH, True);
+
+    { This maybe isn't necessary - but just to be sure }
+
+    RXData.Prefix := RXData.QTH.Prefix;
+
+    { Now - we start looking at the exchange data and parse it out }
+
     ExchangeString := GetLogEntryExchangeString (LogEntry);
+    OriginalString := ExchangeString;
 
     IF ExchangeInformation.RST THEN
         BEGIN
         RXData.RSTSent := RemoveFirstString (ExchangeString);
 
         { Sometimes the received RST is optional, so I only pull it
-          off if it appears to be all there (numbers only). }
+          off if it appears to be all there (numbers only). I added
+          the length test in July 2024 }
 
-        IF StringIsAllNumbers (GetFirstString (ExchangeString)) THEN
-            RXData.RSTReceived := RemoveFirstString (ExchangeString);
+        RSTTestString := GetFirstString (ExchangeString);
+
+        IF StringIsAllNumbers (RSTTestString) THEN
+            IF Length (RSTTestString) = Length (RXData.RSTSent) THEN
+                RXData.RSTReceived := RemoveFirstString (ExchangeString);
         END;
 
     IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN {KK1L: 6.70 for FISTS funny exchange}
@@ -2819,9 +2790,7 @@ VAR ExchangeString: Str80;
         END;
 
     IF ExchangeInformation.PostalCode THEN
-        BEGIN
         RXData.PostalCode := RemoveFirstString (ExchangeString) + ' ' + RemoveFirstString (ExchangeString);
-        END;
 
     IF ExchangeInformation.Power THEN
         RXData.Power := RemoveFirstString (ExchangeString);
@@ -2841,17 +2810,18 @@ VAR ExchangeString: Str80;
     IF ExchangeInformation.Check THEN
         RXData.Check := RemoveFirstString (ExchangeString);
 
-    IF ExchangeInformation.Zone AND StringIsAllNumbersOrSpaces (ExchangeString) THEN
+    IF ExchangeInformation.Zone AND StringIsAllNumbers (GetFirstString (ExchangeString)) THEN
         RXData.Zone := RemoveFirstString (ExchangeString);
 
     IF ExchangeInformation.QTH THEN
-        BEGIN
-        GetRidOfPrecedingSpaces (ExchangeString);
-        GetRidOfPostcedingSpaces (ExchangeString);
-        RXData.QTHString := ExchangeString;
-        END;
+        IF ExchangeString <> '' THEN
+            BEGIN
+            GetRidOfPrecedingSpaces (ExchangeString);
+            GetRidOfPostcedingSpaces (ExchangeString);
+            RXData.QTHString := ExchangeString;
+            END;
 
-    ParseExchangeIntoContestExchange := True;
+    ParseLogEntryIntoContestExchange := True;
     END;
 
 
@@ -2965,17 +2935,28 @@ VAR QString, TString, TempString: Str40;
         IF ExchangeInformation.Chapter THEN
             TempString := TempString + ' ' + Chapter;
 
+        { Note - for IARU - we do have ExchangeInformation.QTH set to True }
+
         IF ExchangeInformation.QTH THEN
             BEGIN
             QString := QTHString;
 
-            IF (ActiveExchange = QSONumberNameChapterAndQTHExchange) OR
-               (ActiveDomesticMult <> NoDomesticMults) OR
-               (ActiveExchange = RSTAndOrGridExchange) THEN
-                    IF TempString = '' THEN
-                        TempString := QString
-                    ELSE
-                        TempString := TempString + ' ' + QString;
+            { New after 2024 IARU }
+
+            IF ContestName = 'IARU Radiosport' THEN  { Substitute QTH if not null }
+                BEGIN
+                IF QTHString <> '' THEN
+                    TempString := QTHString;  { Override the ITU zone }
+                END
+
+            ELSE
+                IF (ActiveExchange = QSONumberNameChapterAndQTHExchange) OR
+                   (ActiveDomesticMult <> NoDomesticMults) OR
+                   (ActiveExchange = RSTAndOrGridExchange) THEN
+                        IF TempString = '' THEN
+                            TempString := QString
+                        ELSE
+                            TempString := TempString + ' ' + QString;
             END;
 
         IF ExchangeInformation.Power THEN
@@ -2987,6 +2968,26 @@ VAR QString, TString, TempString: Str40;
 
     GetInitialExchangeStringFromContestExchange := TempString;
     END;
+
+
+
+PROCEDURE WriteAllFile;
+
+VAR Address: INTEGER;
+    FileWrite: TEXT;
+
+    BEGIN
+    OpenFileForWrite (FileWrite, 'allfile.txt');
+
+    WriteLn (FileWrite, 'NumberAllCalls = ', NumberAllCalls);
+
+    IF NumberAllCalls > 0 THEN
+        FOR Address := 0 TO NumberAllCalls - 1 DO
+            WriteLn (FileWrite, Address, ': ', AllCallList [Address], ' ', ExchangeMemoryList [Address]);
+
+    Close (FileWrite);
+    END;
+
 
 
 

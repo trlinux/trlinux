@@ -28,7 +28,7 @@ UNIT TBSIQ_CW;
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     timer,LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     timer,LogCW, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      keycode,jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb;
 
 
@@ -52,21 +52,6 @@ TYPE
         Priority: TBSIQ_CW_PriorityType;
         LeavePTTOn: BOOLEAN;
         END;
-
-    SeriaLNumberObject = CLASS
-
-        NextSerialNumber: INTEGER;
-
-        PROCEDURE CreateQSONumberLoggedEntry (SerialNumber: INTEGER; Call: CallString);
-
-        FUNCTION  GetNextSerialNumber (Callsign: CallString;
-                                       Frequency: LONGINT;
-                                       Band: BandType;
-                                       Mode: ModeType): INTEGER;
-
-        PROCEDURE InitializeSerialNumbers;
-        END;
-
 
     TBSIQ_CWEngineObject = CLASS
 
@@ -92,90 +77,23 @@ TYPE
 
 VAR
     TBSIQ_CW_Engine: TBSIQ_CWEngineObject;
-    SerialNumberEngine: SerialNumberObject;
+
+    FUNCTION TBSIQ_FootSwitchPressed: BOOLEAN;
 
 
 IMPLEMENTATION
 
+FUNCTION TBSIQ_FootSwitchPressed: BOOLEAN;
 
-FUNCTION SerialNumberObject.GetNextSerialNumber (Callsign: CallString;
-                                                 Frequency: LONGINT;
-                                                 Band: BandType;
-                                                 Mode: ModeType): INTEGER;
-
-VAR FileWrite: TEXT;
+{ Just an easy place to come to see if the footswitch is pressed or not.
+  This is a bit of a hack as I was not smart enough to figure out how to
+  modify Footsw to work with the ArdKeyer. }
 
     BEGIN
-    GetNextSerialNumber := NextSerialNumber;
-
-    IF OpenFileForAppend (FileWrite, SerialNumberFileName) THEN
-        BEGIN
-        WriteLn (FileWrite, 'QNR: ', NextSerialNumber, ' ',
-                                     GetFullDateString, ' ',
-                                     GetFullTimeString, ' ',
-                                     CallSign, ' ',
-                                     Frequency, ' ',
-                                     BandString [Band], ' ',
-                                     ModeString [Mode]);
-
-        Close (FileWrite);
-        END;
-
-    Inc (NextSerialNumber);
-    END;
-
-
-
-PROCEDURE SerialNumberObject.CreateQSONumberLoggedEntry (SerialNumber: INTEGER; Call: CallString);
-
-VAR FileWrite: TEXT;
-
-    BEGIN
-    IF OpenFileForAppend (FileWrite, SerialNumberFilename) THEN
-        BEGIN
-        WriteLn (FileWrite, 'QLQ: ', SerialNumber, ' ',
-                                     GetFullDateString, ' ',
-                                     GetFullTimeString, ' ',
-                                     Call);
-
-        Close (FileWrite);
-        END;
-    END;
-
-
-PROCEDURE SerialNumberObject.InitializeSerialNumbers;
-
-{ Simply reads the serial number file and figures out what the
-  next serial number should be.  }
-
-VAR FileRead: TEXT;
-    NumberString, DataFlag, FileString: STRING;
-
-    BEGIN
-    IF OpenFileForRead (FileRead, SerialNumberFileName) THEN
-        BEGIN
-        WHILE NOT Eof (FileRead) DO
-            BEGIN
-            ReadLn (FileRead, FileString);
-
-            { First element indicates what kind of data this is }
-
-            DataFlag := RemoveFirstString (FileString);
-
-            IF DataFlag = 'QNR:' THEN    { Serial Number request data }
-                NumberString := RemoveFirstString (FileString);
-            END;
-
-        Close (FileRead);
-
-        { NumberString has last entry }
-
-        Val (NumberString, NextSerialNumber);
-        Inc (NextSerialNumber);
-        END
-
+    IF ActiveKeyer = ArdKeyer THEN
+        TBSIQ_FootSwitchPressed := ArdKeyer.FootSwitchPressed
     ELSE
-        NextSerialNumber := 1;
+        TBSIQ_FootSwitchPressed := Footsw.getDebouncedState;
     END;
 
 
@@ -428,12 +346,23 @@ VAR LowerPriorityMessageFound: BOOLEAN;
                 BEGIN
                 IF Priority = PriorityLevel THEN
                     BEGIN
-                    IF ActiveRadio <> Radio THEN
+                    { I used to do this only if ActiveRadio <> Radio }
+
+                    ActiveRadio := Radio;
+                    ActiveMode := CW;
+
+                    { I am not sure I can exactly say why this is necessary, but
+                      when using dual modes - if I send a CQ on the SSB radio and
+                      then try to send something like a Callsign or QSL message on
+                      CW, it is keying up the SSB radio.  This seems to fix it. }
+
+                    IF TBSIQDualMode THEN
                         BEGIN
-                        ActiveRadio := Radio;
-                        SetUpToSendOnActiveRadio;
+                        SendingOnRadioOne := False;
+                        SendingOnRadioTwo := False;
                         END;
 
+                    SetUpToSendOnActiveRadio;
 
                     AddStringToBuffer (Message, CWTone);
                     MessageStarted := True;
@@ -508,7 +437,7 @@ PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
   is complete }
 
     BEGIN
-    IF CWStillBeingSent  THEN Exit;   { Still sending some CW }
+    IF CWStillBeingSent  THEN Exit;  { Still sending some CW }
     IF CueHead = CueTail THEN Exit;  { Nothing to tend to }
 
     { Find the next message to send in the cue }
@@ -532,10 +461,6 @@ PROCEDURE TBSIQ_CWEngineObject.CheckMessages;
     TBSIQ_CW_Engine.CueHead := 0;
     TBSIQ_CW_Engine.CueTail := 0;
     TBSIQ_CW_Engine.LastActiveRadioShown := NoRadio;
-
-    SeriaLNumberEngine := SerialNumberObject.Create;
-    SerialNumberEngine.InitializeSerialNumbers;
-
     ActiveRadio := NoRadio;
     END.
 

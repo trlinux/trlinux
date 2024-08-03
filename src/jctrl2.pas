@@ -1,4 +1,4 @@
-//
+ //
 //Copyright Larry Tyree, N6TR, 2011,2012,2013,2014,2015.
 //
 //This file is part of TR log for linux.
@@ -25,8 +25,8 @@ UNIT JCtrl2;
 INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
-     LogCfg, LogDom, LogDVP, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, K1EANet, N4OGW;
+     LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
+     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, N4OGW;
 
 PROCEDURE DisplayStatus (FirstEntryDisplayed: MenuEntryType; ActiveEntry: MenuEntryType);
 FUNCTION  GetActiveLineFromEntryString (EntryString: Str80): MenuEntryType;
@@ -67,6 +67,7 @@ VAR LastEntry, Entry: MenuEntryType;
     END;
 
 
+
 
 PROCEDURE ProcessInput (ActiveLine: MenuEntryType);
 
@@ -110,6 +111,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       AQD: AutoQSONumberDecrement := NOT AutoQSONumberDecrement;
       AQR: AutoQSYRequestEnable   := NOT AutoQSYRequestEnable;
+      ARC: AutoReturnToCQMode     := NOT AutoReturnToCQMode;
       ASP: AutoSAPEnable          := NOT AutoSAPEnable;
 
       ASR: BEGIN {KK1L: 6.72}
@@ -117,7 +119,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            IF (TempInt > 9) AND (TempInt < 10001)THEN
                AutoSAPEnableRate := TempInt;
            END;
-      ARC: AutoReturnToCQMode     := NOT AutoReturnToCQMode;
 
       ASC: BEGIN
            Inc (AutoSendCharacterCount);
@@ -133,25 +134,13 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            DisplayAutoSendCharacterCount;
            END;
 
+      AST: AutoSidetoneControl := NOT AutoSidetoneControl;
+
       ATI: BEGIN
            Inc (AutoTimeIncrementQSOs);
            IF (AutoTimeIncrementQSOs > 6) THEN
                AutoTimeIncrementQSOs := 0;
            END;
-
-      BEN: BEGIN
-           IF DVPEnable THEN
-               BEGIN
-               BackCopyEnable := NOT BackCopyEnable;
-               IF (BackCopyEnable) AND DVPActive THEN
-                   StartBackCopy
-               ELSE
-                   StopBackCopy;
-               END
-           ELSE
-               BackCopyEnable := False;
-           END;
-
 
       BAB: BEGIN
            BandMapAllBands         := NOT BandMapAllBands;
@@ -188,7 +177,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
            END;
 
-      BCQ: BandMapDisplayCQ := NOT BandMapDisplayCQ;
+      BCQ: BEGIN
+           BandMapDisplayCQ := NOT BandMapDisplayCQ;
+           DisplayBandMap;
+           END;
 
       BME: BEGIN
            BandMapEnable := NOT BandMapEnable;
@@ -208,19 +200,16 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
 
       BNA: Tone.SetBeepEnable(NOT Tone.GetBeepEnable);
+
       BSA: BEGIN
-              BeepSoundCardEnable := NOT BeepSoundCardEnable;
-              IF BeepSoundCardEnable THEN
+           BeepSoundCardEnable := NOT BeepSoundCardEnable;
+           IF BeepSoundCardEnable THEN
               begin
                  soundmode(0);
-                 dvpenable := false;
               end
-              else soundmode(1);
-              IF not dvpsetup then
-              begin
-                 IF BeepSoundCardEnable then beginsound else endsound;
-              end;
+           else soundmode(1);
            END;
+
       BET: BeepEvery10QSOs  := NOT BeepEvery10QSOs;
 
       BRL: BEGIN
@@ -311,22 +300,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       DVC: DVKControlKeyRecord := NOT DVKControlKeyRecord;
 
-      DVE: BEGIN
-           IF NOT DVPActive THEN
-               BEGIN
-               Tone.DoABeep (ThreeHarmonics);
-               QuickDisplay ('SORRY!  DVPTSR was not loaded.');
-               Wait (3000);
-               END;
-
-           DVPEnable := (NOT DVPEnable) AND DVPActive;
-           IF DVPEnable THEN DVPInit
-           ELSE
-               RemoveWindow (CodeSpeedWindow);
-           END;
-
-      DVP: DVPPath := QuickEditResponse ('Enter new DVP PATH = ', 40);
-
       EES: EscapeExitsSearchAndPounce := NOT EscapeExitsSearchAndPounce;
 
       EME: ExchangeMemoryEnable := NOT ExchangeMemoryEnable;
@@ -361,16 +334,26 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                QSOQuick:                           FootSwitchMode := FootSwitchControlEnter;
                FootSwitchControlEnter:             FootSwitchMode := StartSending;
                StartSending:                       FootSwitchMode := SwapRadio;
+
                SwapRadio:
-                  Begin
-                    FootSwitchMode := CWGrant;
-                    ActiveKeyer.setCwGrant(true);
-                  End;
+                   BEGIN
+                   FootSwitchMode := CWGrant;
+                   ActiveKeyer.setCwGrant(true);
+                   END;
+
                CWGrant:
-                  Begin
-                    FootSwitchMode := FootSwitchDisabled;
-                    ActiveKeyer.setCwGrant(false);
-                  End;
+                   BEGIN
+                   FootSwitchMode := TBSIQSSB;
+                   ActiveKeyer.setCWGrant (false);
+                   ArdKeyer.FootSwitch2BSIQSSB;
+                   END;
+
+               TBSIQSSB:
+                   BEGIN
+                   FootSwitchMode := FootSwitchDisabled;
+                   ArdKeyer.ClearFootSwitchControlPTT;
+                   END;
+
                END;
 
            IF FootSwitchMode <> PreviousFootSwitchMode THEN
@@ -381,10 +364,27 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
                    IF ActiveKeyer = ArdKeyer THEN
                        ArdKeyer.LetFootSwitchControlPTT;
-                   END
-               ELSE
-                   IF ActiveKeyer = ArdKeyer THEN
-                       ArdKeyer.ClearFootSwitchControlPTT;
+                   END;
+
+               IF ActiveKeyer = ArdKeyer THEN
+                   BEGIN
+                   CASE FootSwitchMode OF
+
+                       TBSIQSSB: BEGIN
+                                 ArdKeyer.setCWGrant (false);
+                                 ArdKeyer.FootSwitch2BSIQSSB;
+                                 END;
+
+                       CWGrant:  BEGIN
+                                 ArdKeyer.ClearFootSwitchControlPTT;
+                                 ArdKeyer.setCWGrant (true);
+                                 END;
+
+                       ELSE
+                           IF FootSwitchMode <> TBSIQSSB THEN
+                               ArdKeyer.ClearFootSwitchControlPTT;
+                       END;
+                   END;
 
                PreviousFootSwitchMode := FootSwitchMode;
                END;
@@ -485,24 +485,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            ELSE
                InitialExchangeCursorPos := AtEnd;
 
-      KNE: K1EANetworkEnable := NOT K1EANetworkEnable;
-
-      KSI: BEGIN
-           TempString := UpperCase (QuickEditResponse ('Enter station ID character : ', 1));
-
-           IF Length (TempString) > 0 THEN
-               BEGIN
-               TempChar := TempString [1];
-
-               IF (TempChar >= '0') AND (TempChar <= 'Z') THEN
-                   K1EAStationID := TempChar
-               ELSE
-                   K1EAStationID := Chr (0);
-               END
-           ELSE
-               K1EAStationID := Chr (0);
-           END;
-
       KCM: KeypadCWMemories        := NOT KeypadCWMemories;
 
       LDZ: CASE LeadingZeros OF
@@ -562,6 +544,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            END;
 
       MMO: MultiMultsOnly        := NOT MultiMultsOnly;
+      MRQ: MultiRequestQSONumber := NOT MultiRequestQSONumber;
 
       MRT: BEGIN
            TempInt := QuickEditInteger ('Enter new multi retry timeout (minimum 3 seconds) : ', 6);
@@ -571,6 +554,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       MUM: MultiUpdateMultDisplay := NOT MultiUpdateMultDisplay;
       MBA: MultipleBandsEnabled   := NOT MultipleBandsEnabled;
       MMD: MultipleModesEnabled   := NOT MultipleModesEnabled;
+
+      N4S: BEGIN
+           SendBandMapCallsToN4OGW;
+           END;
 
       NFC: CASE N4OGW_Frequency_Control OF
                N4OGW_FC_VFOA: N4OGW_Frequency_Control := N4OGW_FC_VFOB;
@@ -644,7 +631,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            END;
 
       PCE: PartialCallEnable        := NOT PartialCallEnable;
-      PCL: PartialCallLoadLogEnable := NOT PartialCallLoadLogEnable;
       PCM: PartialCallMultsEnable   := NOT PartialCallMultsEnable;
       PR1: PollRadioOne             := NOT PollRadioOne; {KK1L: 6.72}
       PR2: PollRadioTwo             := NOT PollRadioTwo; {KK1L: 6.72}
@@ -670,7 +656,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                QSLAndLog:      ParameterOkayMode := Standard;
                END;
 
-      QNB: QSONumberByBand := NOT QSONumberByBand;
+      QNB: QNumber.QSONumberByBand := NOT QNumber.QSONumberByBand;
       QSX: QSXEnable       := NOT QSXEnable;
 
       QES: QTCExtraSpace := NOT QTCExtraSpace;
@@ -900,6 +886,9 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                ControlFTabMode: TabMode := NormalTabMode;
                END;
 
+      TBM: TBSIQDualMode := NOT TBSIQDualMode;
+      TBF: TBSIQFootSwitchLockout := NOT TBSIQFootSwitchLockout;
+
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: TenMinuteRule := TimeOfFirstQSO;
                TimeOfFirstQSO:  TenMinuteRule := NoTenMinuteRule;
@@ -950,6 +939,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            END;
 
       VDE: VGADisplayEnable := NOT VGADisplayEnable;
+
       VBE: BEGIN
            VHFBandsEnabled := NOT VHFBandsEnabled;
            DisplayBandMap;
@@ -1018,13 +1008,13 @@ VAR FileWrite: TEXT;
       AQI: WriteLn (FileWrite, AutoQSLInterval);
       AQD: WriteLn (FileWrite, AutoQSONumberDecrement);
       AQR: WriteLn (FileWrite, AutoQSYRequestEnable);
+      ARC: WriteLn (FileWrite, AutoReturnToCQMode);
       ASP: WriteLn (FileWrite, AutoSAPEnable);
       ASR: WriteLn (FileWrite, AutoSAPEnableRate); {KK1L: 6.72}
-      ARC: WriteLn (FileWrite, AutoReturnToCQMode);
       ASC: WriteLn (FileWrite, AutoSendCharacterCount);
+      AST: WriteLn (FileWRite, AutoSidetoneControl);
       ATI: WriteLn (FileWrite, AutoTimeIncrementQSOs);
 
-      BEN: WriteLn (FileWrite, BackCopyEnable);
       BAB: WriteLn (FileWrite, BandMapAllBands);
       BAM: WriteLn (FileWrite, BandMapAllModes);
       {BMO: WriteLn (FileWrite, BandMapMultsOnly);} {KK1L: 6.xx}
@@ -1084,8 +1074,6 @@ VAR FileWrite: TEXT;
       DSE: WriteLn (FileWrite, Sheet.DupeSheetEnable);
 
       DVC: WriteLn (FileWrite, DVKControlKeyRecord);
-      DVE: WriteLn (FileWrite, DVPEnable);
-      DVP: WriteLn (FileWrite, DVPPath);
 
       EES: WriteLn (FileWrite, EscapeExitsSearchAndPounce);
       EME: WriteLn (FileWrite, ExchangeMemoryEnable);
@@ -1110,6 +1098,7 @@ VAR FileWrite: TEXT;
                StartSending:                        WriteLn (FileWrite, 'START SENDING');
                SwapRadio:                           WriteLn (FileWrite, 'SWAP RADIOS');
                CWGrant:                             WriteLn (FileWrite, 'CW GRANT');
+               TBSIQSSB:                            WriteLn (FileWrite, '2BSIQSSB');
                END;
 
       FA1: WriteLn (FileWrite, Radio1FrequencyAdder);
@@ -1158,8 +1147,6 @@ VAR FileWrite: TEXT;
            ELSE
                WriteLn (FileWrite, 'AT END');
 
-      KNE: WriteLn (FileWrite, K1EANetworkEnable);
-      KSI: WriteLn (FileWrite, K1EAStationID);
       KCM: WriteLn (FileWrite, KeypadCWMemories);
 
       LDZ: WriteLn (FileWrite, LeadingZeros);
@@ -1181,6 +1168,7 @@ VAR FileWrite: TEXT;
       MIM: WriteLn (FileWrite, MultiInfoMessage);
 
       MMO: WriteLn (FileWrite, MultiMultsOnly);
+      MRQ: WriteLn (FileWrite, MultiRequestQSONumber);
       MRT: WriteLn (FileWrite, MultiRetryTime);
       MUM: WriteLn (FileWrite, MultiUpdateMultDisplay);
       MBA: WriteLn (FileWrite, MultipleBandsEnabled);
@@ -1220,7 +1208,6 @@ VAR FileWrite: TEXT;
       PMT: WriteLn (FileWrite, ActiveKeyer.GetPaddleMonitorTone);
       PSD: WriteLn (FileWrite, ActiveKeyer.GetPaddleSpeed);
       PCE: WriteLn (FileWrite, PartialCallEnable);
-      PCL: WriteLn (FileWrite, PartialCallLoadLogEnable);
       PCM: WriteLn (FileWrite, PartialCallMultsEnable);
       PR1: WriteLn (FileWrite, PollRadioOne); {KK1L: 6.72}
       PR2: WriteLn (FileWrite, PollRadioTwo); {KK1L: 6.72}
@@ -1242,7 +1229,7 @@ VAR FileWrite: TEXT;
                QSLAndLog:      WriteLn (FileWrite, 'QSL AND LOG');
                END;
 
-      QNB: WriteLn (FileWrite, QSONumberByBand);
+      QNB: WriteLn (FileWrite, QNumber.QSONumberByBand);
       QSX: WriteLn (FileWrite, QSXEnable);
       QES: WriteLn (FileWrite, QTCExtraSpace);
       QRS: WriteLn (FileWrite, QTCQRS);
@@ -1321,6 +1308,9 @@ VAR FileWrite: TEXT;
                NormalTabMode:   WriteLn (FileWrite, 'NORMAL');
                ControlFTabMode: WriteLn (FileWrite, 'CONTROLF');
                END;
+
+      TBM: WriteLn (FileWrite, TBSIQDualMode);
+      TBF: WriteLn (FileWrite, TBSIQFootSwitchLockout);
 
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: WriteLn (FileWrite, 'NONE');
@@ -1403,9 +1393,9 @@ VAR TempString: Str40;
       ASP: IF AutoSAPEnable THEN TempString := 'TRUE';
       ASR: Str (AutoSAPEnableRate, TempString); {KK1L: 6.72}
       ASC: Str (AutoSendCharacterCount, TempString);
+      AST: IF AutoSideToneControl THEN TempString := 'TRUE';
       ATI: Str (AutoTimeIncrementQSOs, TempString);
 
-      BEN: IF BackCopyEnable THEN TempString := 'TRUE';
       BAB: IF BandMapAllBands THEN TempString := 'TRUE';
       BAM: IF BandMapAllModes THEN TempString := 'TRUE';
       {BMO: IF BandMapMultsOnly THEN TempString := 'TRUE';} {KK1L: 6.xx}
@@ -1467,8 +1457,6 @@ VAR TempString: Str40;
       DSE: IF Sheet.DupeSheetEnable THEN TempString := 'TRUE';
 
       DVC: IF DVKControlKeyRecord THEN TempString := 'TRUE';
-      DVE: IF DVPEnable THEN TempString := 'TRUE';
-      DVP: TempString := DVPPath;
       EES: IF EscapeExitsSearchAndPounce THEN TempString := 'TRUE';
       EME: IF ExchangeMemoryEnable THEN TempString := 'TRUE';
       FWE: IF ActiveKeyer.GetFarnsworthEnable THEN TempString := 'TRUE';
@@ -1492,6 +1480,7 @@ VAR TempString: Str40;
                StartSending:                        TempString := 'START SENDING';
                SwapRadio:                           TempString := 'SWAP RADIOS';
                CWGrant:                             TempString := 'CW GRANT';
+               TBSIQSSB:                            TempString := '2BSIQSSB';
                END;
 
       FA1: Str (Radio1FrequencyAdder, TempString);
@@ -1540,8 +1529,6 @@ VAR TempString: Str40;
                AtEnd:   TempString := 'AT END';
                END;
 
-      KNE: IF K1EANetworkEnable THEN TempString := 'TRUE';
-      KSI: TempString := K1EAStationID;
       KCM: IF KeyPadCWMemories THEN TempString := 'TRUE';
       LDZ: Str (LeadingZeros, TempString);
       LZC: TempString := LeadingZeroCharacter;
@@ -1557,6 +1544,7 @@ VAR TempString: Str40;
       MRM: Str (MultReportMinimumBands, TempString);
       MIM: TempString := MultiInfoMessage;
       MMO: IF MultiMultsOnly THEN TempString := 'TRUE';
+      MRQ: IF MultiRequestQSONumber THEN TempString := 'TRUE';
       MRT: Str (MultiRetryTime, TempString);
       MUM: IF MultiUpdateMultDisplay THEN TempString := 'TRUE';
       MBA: IF MultipleBandsEnabled THEN TempString := 'TRUE';
@@ -1598,7 +1586,6 @@ VAR TempString: Str40;
       PHC: Str (ActiveKeyer.GetPaddlePTTHoldCount, TempString);
       PSD: Str (ActiveKeyer.GetPaddleSpeed, TempString);
       PCE: IF PartialCallEnable THEN TempString := 'TRUE';
-      PCL: IF PartialCallLoadLogEnable THEN TempString := 'TRUE';
       PCM: IF PartialCallMultsEnable THEN TempString := 'TRUE';
       PR1: IF PollRadioOne THEN TempString := 'TRUE'; {KK1L: 6.72}
       PR2: IF PollRadioTwo THEN TempString := 'TRUE'; {KK1L: 6.72}
@@ -1620,7 +1607,7 @@ VAR TempString: Str40;
                QSLAndLog:      TempString := 'QSL and log';
                END;
 
-      QNB: IF QSONumberByBand THEN TempString := 'TRUE';
+      QNB: IF QNumber.QSONumberByBand THEN TempString := 'TRUE';
       QSX: IF QSXEnable THEN TempString := 'TRUE';
       QMC: TempString := QuestionMarkChar;
 
@@ -1687,6 +1674,9 @@ VAR TempString: Str40;
            IF TabMode = ControlFTabMode THEN TempString := 'CONTROLF';
            END;
 
+      TBM: IF TBSIQDualMode THEN TempString := 'TRUE';
+      TBF: IF TBSIQFootSwitchLockout THEN TempString := 'TRUE';
+
       TMR: CASE TenMinuteRule OF
                NoTenMinuteRule: TempString := 'NONE';
                TimeOfFirstQSO:  TempString := 'TIME OF FIRST QSO';
@@ -1744,9 +1734,7 @@ PROCEDURE SendParameterToNetwork (Line: MenuEntryType);
 VAR TempString: STRING;
 
     BEGIN
-    IF K1EANetworkEnable THEN Exit;
-
-    IF ActiveMultiPort = nil THEN Exit;
+    IF (ActiveMultiPort = nil) AND (MultiUDPPort = -1) THEN Exit;
 
     TempString := ParameterToString (Line);
 
@@ -1823,7 +1811,7 @@ VAR FirstEntryShown, MenuEntry, ActiveLine: MenuEntryType;
         DisplayStatus (FirstEntryShown, ActiveLine);
         QuickDisplay  ('Arrow/pageup/pagedn keys or 1st letter to select item.  RETURN to modify');
 
-        IF ActiveMultiPort <> nil THEN
+        IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
             QuickDisplay2 ('AltW: save entry  Alt-N: to network  Alt-G: all changes to file or ESCAPE')
         ELSE
             QuickDisplay2 ('Alt-W to save to cfg file Alt-G to save all changes to file  ESCAPE exits');
@@ -1977,8 +1965,6 @@ VAR FirstEntryShown, MenuEntry, ActiveLine: MenuEntryType;
                     END;
 
             END;
-
-    Wait (4);  { Six meter noise suppression }
 
     UNTIL False
     END;

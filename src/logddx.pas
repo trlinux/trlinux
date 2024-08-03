@@ -26,7 +26,7 @@ UNIT LogDDX;
 INTERFACE
 
 USES Dos, Printer, Tree, Country9, ZoneCont, LogSCP, LogWind, LogCW,
-     LogDupe, LogGrid, LogHelp, LogK1EA, LogDVP, LogDom, LogStuff, LogEdit;
+     LogDupe, LogGrid, LogHelp, LogK1EA, LogDom, LogStuff, LogEdit;
 
 TYPE
     DDXActivity = (MaybeSendANewCall,
@@ -919,7 +919,7 @@ VAR CallSent: BOOLEAN;
                 Exchange := Exchange + DDXNextExchange
             ELSE
                 BEGIN
-                QSONumber := Random (TotalContacts + 10) + 1;
+                QSONumber := Random (QSONumberForThisQSO + 10) + 1;
                 Str (QSONumber, QSONumberString);
                 NameString := CD.GetName (SendingStation);
                 QTHString := GetRandomDomesticQTH (SendingStation);
@@ -942,7 +942,7 @@ VAR CallSent: BOOLEAN;
 
         QSONumberPrecedenceCheckDomesticQTHExchange:
             BEGIN
-            Str (Random (TotalContacts + 10 + (TotalContacts DIV 100)) + 1, Exchange);
+            Str (Random (QSONumberForThisQSO + 10 + (QSONumberForThisQSO DIV 100)) + 1, Exchange);
 
             IF Random (4) = 0 THEN
                 WHILE Length (Exchange) < 3 DO

@@ -26,7 +26,7 @@ UNIT LogWAE;
 INTERFACE
 
 USES Dos, Tree, Country9, ZoneCont, LogSCP, LogWind, LogCW,
-     LogDDX, LogDupe, LogStuff, LogGrid, LogHelp, LogK1EA, LogDVP,
+     LogDDX, LogDupe, LogStuff, LogGrid, LogHelp, LogK1EA,
      LogDom, LogEdit, trCrt, datetimec;
 
 
@@ -686,14 +686,14 @@ VAR QTCNumberString, QTCString, MessageString: Str80;
                                     IF CodeSpeed < 96 THEN
                                         BEGIN
                                         SetSpeed (CodeSpeed + 3);
-                                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                                        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                                         END;
 
                                 PageDownKey:
                                     IF CodeSpeed > 4 THEN
                                         BEGIN
                                         SetSpeed (CodeSpeed - 3);
-                                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                                        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                                         END;
 
                                 END;

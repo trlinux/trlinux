@@ -29,9 +29,9 @@ UNIT TBSIQ_Subs;
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     slowtree, so2r, LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     slowtree, so2r, LogCW, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      jctrl2,LogPack,LogWAE, LogEdit,LogSCP,datetimec,radio,ctypes,xkb,timer,TBSIQ_CW,
-     cfgcmd, k1eanet, foot, N4OGW, N1MM, LogUDP;
+     Logqsonr, cfgcmd, foot, N4OGW, N1MM, LogUDP;
 
 TYPE
 
@@ -109,6 +109,11 @@ TYPE
         DisplayedMode: ModeType;
         DisplayedTXColor: TXColorType;
         DoingPTTTest: BOOLEAN;
+
+        DualModeMemory: BOOLEAN;    { Used to remember that a keystroke has already happened }
+        DualModeKey: CHAR;
+        DualModeExtendedKey: CHAR;
+
         DupeShown: BOOLEAN;
         DupeShownCallsign: CallString;
         DupeShownTime: TimeRecord;
@@ -116,6 +121,8 @@ TYPE
         ExchangeWindowIsUp: BOOLEAN;
         ExchangeWindowString: STRING;
         ExchangeWindowCursorPosition: INTEGER;
+
+        FootSwitchDelayNeeded: BOOLEAN;
 
         Frequency: LONGINT;                 { The most current frequency for the radio }
 
@@ -125,6 +132,7 @@ TYPE
         KeyboardCWMessage: STRING;
 
         LastDisplayedQSONumber: LONGINT;
+        LastDisplayedQSONumberBand: BandType;
         LastFrequency: LONGINT;
         LastFullTimeString: STRING;          { Used for 1 second timer }
         LastFunctionKeyTime: TimeRecord;
@@ -146,9 +154,10 @@ TYPE
         PTTState: BOOLEAN;
         PTTTestTimer: INTEGER;
 
-        QSONumberForThisQSO: INTEGER;
+        QSONumberForThisQSO: INTEGER;        { Gets set from ReserveNewQSONumber somewhere in the QSO process }
         QSONumberForPreviousQSO: INTEGER;
-        QSONumberUnused: BOOLEAN;
+        QSONumberUnused: BOOLEAN;            { QSO Number can be stolen }
+        QSONumberRequestTime: TimeRecord;
 
         QSOState: TBSIQ_QSOStateType;
 
@@ -161,12 +170,20 @@ TYPE
         SCPScreenFull: BOOLEAN;
         SearchAndPounceStationCalled: BOOLEAN;
         SearchAndPounceExchangeSent: BOOLEAN;
+
+        { SSBTransmissionStarted is intended to fill in the gap from when you initiate
+          a tranmission on SSB until the radio has told you it is transmitting.  This
+          typically can take a second or so.  It is used to keep the other transmitting
+          from initiating a tranmission during this gap. }
+
+        SSBTransmissionStarted: BOOLEAN;
+        StartUpTime: TimeRecord;
         StationInformationCall: CallString;
 
         TBSIQ_ActiveWindow: TBSIQ_WindowType;
-
         TransmitCountDown: INTEGER;      { Set > 0 for # of seconds to fake "I am transmitting" }
-        TurnOffK3TXPollModeCount: INTEGER;
+
+        WeAskedForAQSONumber: BOOLEAN;
 
         PROCEDURE AppendCWMessageDisplay (Message: STRING);
 
@@ -193,6 +210,7 @@ TYPE
         PROCEDURE SetUpNextQSONumber;
 
         FUNCTION  IAmTransmitting: BOOLEAN;
+
         PROCEDURE InitializeQSOMachine (KBFile: CINT;
                                         RadioID: RadioType;
                                         WinX, WinY: INTEGER);
@@ -204,10 +222,13 @@ TYPE
 
         PROCEDURE PTTTest;
 
+        PROCEDURE RadioQuickDisplay (Message: STRING);   { Small window for this radio only }
         PROCEDURE ReadSMeter;
         PROCEDURE RemoveExchangeWindow;
         PROCEDURE RemovePossibleCallWindow;
         PROCEDURE RemoveQSONumberWindow;
+
+        FUNCTION  ReserveNewQSONumberForThisRadio: INTEGER;
 
         PROCEDURE SendFunctionKeyMessage (Key: CHAR; VAR Message: STRING);
 
@@ -319,7 +340,7 @@ TYPE
                       TestLoopTestSmeter,
                       TestLoopStop);
 
-CONST InitialTransmitCountdown = 3;
+CONST InitialTransmitCountdown = 2;
 
 VAR DualingCQState: DualingCQStates;
     LoopCount: INTEGER;
@@ -330,32 +351,46 @@ VAR DualingCQState: DualingCQStates;
 
 PROCEDURE QSOMachineObject.SetUpNextQSONumber;
 
-{ Normally, this would come from GetNextQSONumber in LOGWIND, however, if the QSO
+{ Normally, this would come from ReserveNewQSONumber in LOGWIND, however, if the QSO
   number on the other radio hasn't been used - we can steal it.  Note that we will
   never steal a QSO number that is less than the one we just sent.
 
   However, if QSONumberByBand is true - we can short circuit all of this logic and
-  just generate a QSO number that is one more than the QSO totals for the ActiveBand }
-
-VAR TempQSOTotals: QSOTotalArray;
+  just reserve a QSO number using the same mechanism as the classic interface.
+  However, we need to have a local version of ReserveNewQSONumber in order to have
+  a radio specific instance of WeAskedForAQSONumber so we know which radio to
+  route a network received QSO number to.  }
 
     BEGIN
-    IF QSONumberByBand THEN
-        BEGIN
-        TempQSOTotals := QSOTotals;    { Get global QSO totals in dupesheet }
-        VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);  { Add in EditableLog QSOs }
-        QSONumberForThisQSO := TempQSOTotals [Band, Both] + 1;
-        Exit;
-        END;
+    { If we are doing QSOnumbers by band - and the radios are on different bands,
+      we won't be stealing the QSO number from the other radio.  }
+
+    IF QNumber.QSONumberByBand THEN
+        IF Radio1QSOMachine.Band <> Radio2QSOMachine.Band THEN
+            BEGIN
+            QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
+            DisplayQSONumber;
+            QSONumberUnused := True;
+            Exit;
+            END;
+
+    { We are either on the same band - or QSO numbers are not by band.  If the QSO
+      Number is unused on the other radio - we can steal it.  It's a nice gesture
+      to reserve a new QSO number for the other radio and display it - and lave
+      QSONumberUnused = False }
 
     CASE Radio OF
         RadioOne:
-            IF Radio2QSOMachine.QSONumberUnused THEN   { Steal QSO number from Radio 2 }
+            IF Radio2QSOMachine.QSONumberUnused THEN   { Steal QSO number from Radio 2? }
                 IF Radio2QSOMachine.QSONumberForThisQSO > QSONumberForThisQSO THEN
                     BEGIN
                     QSONumberForThisQSO := Radio2QSOMachine.QSONumberForThisQSO;
-                    Radio2QSOMachine.QSONumberForThisQSO := GetNextQSONumber;
+                    QSONumberUnused := True;
+                    WeAskedForAQSONumber := False;
+
+                    Radio2QSOMachine.QSONumberForThisQSO := Radio2QSOMachine.ReserveNewQSONumberForThisRadio;
                     Radio2QSOMachine.DisplayQSONumber;
+                    DisplayQSONumber;  { On current radio }
                     Exit;
                     END;
 
@@ -364,8 +399,12 @@ VAR TempQSOTotals: QSOTotalArray;
                 IF Radio1QSOMachine.QSONumberForThisQSO > QSONumberForthisQSO THEN
                     BEGIN
                     QSONumberForThisQSO := Radio1QSOMachine.QSONumberForThisQSO;
-                    Radio1QSOMachine.QSONumberForThisQSO := GetNextQSONumber;
+                    QSONumberUnused := True;
+                    WeAskedForAQSONumber := False;
+
+                    Radio1QSOMachine.QSONumberForThisQSO := Radio1QSOMachine.ReserveNewQSONumberForThisRadio;
                     Radio1QSOMachine.DisplayQSONumber;
+                    DisplayQSONumber;
                     Exit;
                     END;
 
@@ -373,8 +412,9 @@ VAR TempQSOTotals: QSOTotalArray;
 
     { We can't steal the QSO number from the other radio - so get our own new number }
 
-    QSONumberForThisQSO := GetNextQSONumber;   { from LOGWIND }
+    QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
     QSONumberUnused := True;
+    DisplayQSONumber;
     END;
 
 
@@ -808,6 +848,41 @@ VAR MultString: Str40;
 
     END;
 
+
+
+FUnCTION QSOMachineObject.ReserveNewQSONumberForThisRadio: INTEGER;
+
+{ This kind of takes the place of ReserveNewQSONumber in logstuff for the
+  case of doing 2BSIQ.  The main reason for this is so the radio specific
+  instance of WeAskedForAQSONumber can exist - so that if we get a network
+  response to the request for a QSO number, it can be given to the appropriate
+  radio instance. }
+
+VAR TempString: STRING;
+
+    BEGIN
+    WeAskedForAQSONumber := False;
+
+    { See if we need to ask for a QSO number on the network }
+
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
+        IF MultiRequestQSONumber THEN
+            BEGIN
+            TempString := AddBand (Band);
+            SendMultiCommand (MultiBandAddressArray [Band], $FF, MultiQSONumberRequest, TempString);
+            QSONumberForThisQSO := 0;  { Probably redundant }
+            WeAskedForAQSONumber := True;
+            ReserveNewQSONumberForThisRadio := 0;   { Zero indicates we have asked for a number from the network }
+            RadioQuickDisplay ('Asked for QSO# ' + GetFullMicroTimeString);
+            Exit;
+            END;
+
+    { We are going to get the QSO number locally }
+
+    ReserveNewQSONumberForThisRadio := QNumber.ReserveNewQSONumber (Band);
+    END;
+
+
 
 FUNCTION FoundCommand (Radio: RadioType; VAR SendString: Str160): BOOLEAN;
 
@@ -821,14 +896,18 @@ VAR FileName, CommandString: Str40;
 
     CommandUseInactiveRadio := FALSE; {KK1L: 6.73 Global var to support vectoring commands to inactive radio}
 
-    WHILE StringHas (SendString, ControlC) DO
+    IF StringHas (SendString, ControlC) AND StringHas (SendString, ControlD) THEN
         BEGIN
-        IF NOT StringHas (SendString, ControlD) THEN Exit;
+        FoundCommand := True;
 
-        FoundCommand := StringHas (SendString, ControlD);
+        CommandString := BracketedCommandString (SendString);
 
-        CommandString := UpperCase (BracketedString (SendString, ControlC, ControlD));
-        Delete (SendString, Pos (ControlC, SendString), Pos (ControlD, SendString) - Pos (ControlC, SendString) + 1);
+        Delete (SendString, Pos (ControlC, SendString), 1);
+
+        IF CommandString <> '' THEN
+            Delete (SendString, Pos (CommandString, SendString), Length (CommandString));
+
+        Delete (SendString, Pos (ControlD, SendString), 1);
 
         IF Copy (CommandString, 1, 1) = ControlA THEN  {KK1L: 6.73 Vector commands to inactive radio with CTRL-A}
             BEGIN
@@ -839,7 +918,7 @@ VAR FileName, CommandString: Str40;
         IF StringHas (CommandString, '=') THEN
             BEGIN
             FileName := PostcedingString (CommandString, '=');
-            CommandString := PrecedingString (CommandString, '=');
+            CommandString := UpperCase (PrecedingString (CommandString, '='));
             END;
 
         IF CommandString = 'BANDUP' THEN
@@ -953,7 +1032,7 @@ VAR FileName, CommandString: Str40;
                 BEGIN
                 Val (CommandString, TempInt);
                 SetSpeed (TempInt);
-                DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                 END
             ELSE
                 BEGIN
@@ -964,7 +1043,7 @@ VAR FileName, CommandString: Str40;
                     IF CodeSpeed < 99 THEN
                         BEGIN
                         SetSpeed (CodeSpeed + 1);
-                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                         END;
                     END;
 
@@ -975,7 +1054,7 @@ VAR FileName, CommandString: Str40;
                     IF CodeSpeed > 1 THEN
                         BEGIN
                         SetSpeed (CodeSpeed - 1);
-                        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+                        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
                         END;
                     END;
                 END;
@@ -1011,15 +1090,25 @@ VAR FileName, CommandString: Str40;
 
         IF CommandString = 'SRS' THEN
             BEGIN
+            { If someone is sending an SRS command and the mode if SSB, we should
+              probably assume they are sending a voice message.  We should set
+              the TransmitCountdown counter. }
+
+            { It seems someone else is doing this }
+
+//          CASE Radio OF
+//              RadioOne: Radio1QSOMachine.TransmitCountdown := InitialTransmitCountdown;
+//              RadioTwo: Radio2QSOMachine.TransmitCountdown := InitialTransmitCountdown;
+//              END;
+
             IF Radio = radioone then
                 rig1.directcommand (filename)
             ELSE
                 rig2.directcommand (filename);
             END;
 
-
         IF CommandString = 'SRS1' THEN
-            rig1.directcommand (filename);
+            Rig1.directcommand (filename);
 
         IF CommandString = 'SRS2' THEN
             Rig2.directcommand (filename);
@@ -1079,6 +1168,7 @@ PROCEDURE ResetKeyStatus (Radio: RadioType);
 PROCEDURE TBSIQ_ExitProgram;
 
 VAR TempString: Str160;
+    Count: INTEGER;
 
     BEGIN
     IF (ParamCount > 0) AND (ParamStr (1) = 'EXIT') THEN
@@ -1105,8 +1195,6 @@ VAR TempString: Str160;
     TempString := QuickEditResponse ('Do you really want to exit the program? (Y/N) : ', 1);
     IF UpperCase (TempString) <> 'Y' THEN Exit;
 
-    IF BackCopyEnable THEN StopBackCopy;
-
     IF NetDebug THEN
         BEGIN
         Close (NetDebugBinaryOutput);
@@ -1118,11 +1206,21 @@ VAR TempString: Str160;
     TextMode (OriginalTextMode);
     ClrScr;
 
-    IF DVPEnable THEN DVPUnInit;
-
     IF BandMapEnable THEN SaveBandMap;
-
     Sheet.SaveRestartFile;
+
+    { If we are getting QSO numbers from someone on the network - we should return the
+      ones we have reserved so they can be used again }
+
+    IF MultiRequestQSONumber THEN
+        BEGIN
+        ReturnQSONumber (Radio1QSOMachine.Band, Radio1QSOMachine.QSONumberForThisQSO);
+        QuickDisplay ('Please wait....');
+        FOR Count := 1 TO 1000 DO Millisleep;
+        ReturnQSONumber (Radio2QSOMachine.Band, Radio2QSOMachine.QSONumberForThisQSO);
+        QuickDisplay ('Please wait a bit more....');
+        FOR Count := 1 TO 1000 DO Millisleep;
+        END;
 
     IF IntercomFileOpen THEN Close (IntercomFileWrite);
 
@@ -1258,354 +1356,265 @@ VAR RadioThatShouldHaveFocus: RadioType;
 
 PROCEDURE TBSIQ_CheckMultiState;
 
-VAR MultiString, MessageString: STRING;
-    ModeString, MultString, Call: CallString;
+VAR TempString, MultiString, MessageString: STRING;
+    MultString, Call: CallString;
     Band: BandType;
     Mode: ModeType;
-    Points: INTEGER;
+    ReturnedQSONumber, ReservedQSONumber, QSONumberFromNetwork, Points: INTEGER;
     Freq, QSX: LONGINT;
     ControlByte: BYTE;
     RXData: ContestExchange;
-    Year, Month, Day, DayOfWeek, Hour, Minute, Second, Sec100: WORD;
-    NewYear, NewMonth, NewDay, NewHour, NewMinute, NewSecond: WORD;
+    Year, Month, Day, Hour, Minute, Second: WORD;
+    MessageOriginator: BYTE;
     Dupe, Mult, FirstCommand, NewMult: BOOLEAN;
     FileWrite: TEXT;
-    SplitByte: BYTE;
 
     BEGIN
-    IF NOT K1EANetworkEnable THEN CheckForLostMultiMessages;
-
+    CheckForLostMultiMessages;
     MultiString := GetMultiPortCommand;
-
     IF MultiString = '' THEN Exit;
 
-    IF K1EANetworkEnable THEN
-        BEGIN
+    { We now have multi command that has the following format:
 
-        { Message string to not have message type, source or checksum }
+        Source:        BYTE;
+        Destination:   BYTE;
+        ControlByte:   BYTE;
+        SerialNumber:  WORD;
+        CheckSum:      WORD;
+        MessageLength: BYTE;
+        TimeToLive:    INTEGER;
+        Message:       A bunch of ASCII characters (MessageLength of them);   }
 
-        MessageString := MultiString;
-        RemoveFirstString (MessageString);  { Delete message type & source }
-        Delete (MessageString, Length (MessageString), 1); { Delete checksum }
+    { Save who sent this message }
 
-        CASE MultiString [1] OF
+    MessageOriginator := Ord (Multistring [1]);
+    ControlByte       := Ord (MultiString [3]);
 
-            'B': Packet.ProcessPacketMessageFromNetWork (MessageString);
+    { Create string with the message }
 
-            'C': { Band map message }
+    MessageString [0] := MultiString [8];    { Message length byte }
+    Move (MultiString [10], MessageString [1], Ord (MultiString [8]));
+
+    CASE ControlByte OF
+        MultiInformationMessage:
+            BEGIN
+            Band := RemoveBand (MessageString);
+            Mode := RemoveMode (MessageString);
+            if ((Mode < Low(ModeType)) or (Mode > High(ModeType))) then
+               Mode := NoMode;
+
+            IF MultiStatus [Band, Mode] = nil THEN New (MultiStatus [Band, Mode]);
+            MultiStatus [Band, Mode]^ := MessageString;
+            END;
+
+        MultiTimeMessage:
+            BEGIN
+            Year   := RemoveFirstLongInteger (MessageString);
+            Month  := RemoveFirstLongInteger (MessageString);
+            Day    := RemoveFirstLongInteger (MessageString);
+            Hour   := RemoveFirstLongInteger (MessageString);
+            Minute := RemoveFirstLongInteger (MessageString);
+            Second := RemoveFirstLongInteger (MessageString);
+
+            SetTime (Hour, Minute, Second, 0);
+            SetDate (Year, Month, Day);
+            END;
+
+        MultiBandMapMessage:
+            BEGIN
+            Call := RemoveFirstString (MessageString);
+            Freq := RemoveFirstLongInteger (MessageString);
+            QSX  := RemoveFirstLongInteger (MessageString);
+
+            Mode := ActiveMode;
+
+            CalculateBandMode (Freq, Band, Mode);
+
+            IF (Band <> NoBand) AND (Mode <> NoMode) THEN
                 BEGIN
+                Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
 
-{ C1 599 Freq QSX UnixTime 0 band mode call * 0 1 0 0 }
+                IF NOT MultByBand THEN Band := All;
+                IF NOT MultByMode THEN Mode := Both;
 
-                RemoveFirstString (MultiString);  { C1 }
-                RemoveFirstString (MultiString);  { 599 }
+                VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
+                Mult := MultString <> '';
 
-                Freq := RemoveFirstLongInteger (MultiString);
-                QSX  := RemoveFirstLongInteger (MultiString);
+                { SendToMulti = False }
 
-                RemoveFirstString (MultiString);  { UnixTime }
-                SplitByte := RemoveFirstLongInteger (MultiString);  { 0 or 1 }
-                RemoveFirstString (MultiString);  { band }
-
-                SplitByte := SplitByte AND $01;
-
-                IF SplitByte = 0 THEN QSX := 0;
-
-                ModeString := RemoveFirstString (MultiString);  { mode }
-
-                Call := RemoveFirstString (MultiString);
-
-                { Set mode to a safe value in case it can't be calculated }
-
-                IF ModeString = '1' THEN
-                    Mode := CW
-                ELSE
-                    Mode := Phone;
-
-                CalculateBandMode (Freq, Band, Mode);
-
-                IF (Band <> NoBand) AND (Mode <> NoMode) THEN { Added in 6.25 }
-                    BEGIN
-                    Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
-
-                    { These didn't have the NOT in them until 6.36 }
-
-                    IF NOT MultByBand THEN Band := All;
-                    IF NOT MultByMode THEN Mode := Both;
-
-                    { Runtime 201 here when hitting F1s - probably on 160.
-                      Initialized Mode to Active mode before calling
-                      CalculateBandMode }
-
-                    VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
-                    Mult := MultString <> '';
-
-                    { SendToMulti = False }
-
-                    NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
-                    END;
-
+                NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
                 END;
+            END;
 
-            'G': BEGIN  { Pass frequency information }
-                 UpdateK1EAStationInfo (Pass, MultiString [2], MessageString);
-                 END;
+        MultiTalkMessage:
+            BEGIN
+            MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
+            QuickDisplay (MessageString);
+            ReminderPostedCount := 60;
 
-            'L', 'U':
-                BEGIN  { Log QSO }
-                MultiString := ConvertK1EANetworkLogMessageToN6TRLogString (MultiString);
-                ParseExchangeIntoContestExchange (MultiString, RXData);
+            PushMultiMessageBuffer (MessageString);
 
-               { These next steps are unique for K1EA network entries that
-                  have no QSO point information, multiplier information or
-                  even the sent QSO Number when they come in. }
+            IF IntercomFileOpen THEN
+                WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+            END;
 
-                LocateCall (RXData.Callsign, RXData.QTH, True);
-                IF DoingDXMults THEN GetDXQTH (RXData);
-                CalculateQSOPoints (RXData);
-                VisibleLog.ProcessMultipliers (RXData);
-                RXData.NumberSent := TotalContacts + 1;
+        MultiPacketReceivedMessage:
+            Packet.ProcessPacketMessageFromNetWork (MessageString);
 
-                { Need to convert RXData back to a N6TR Log Entry string }
+        MultiPacketMessageToSend:
+            IF ActivePacketPort <> nil THEN SendPacketMessage (MessageString);
 
-                MessageString := MakeLogString (RXData);
+        MultiQSOData:
+            BEGIN
+            Call   := GetLogEntryCall      (MessageString);
+            Band   := GetLogEntryBand      (MessageString);
+            Mode   := GetLogEntryMode      (MessageString);
+            Points := GetLogEntryQSOPoints (MessageString);
 
-                { Now you can do everything that is normally done with a
-                  TR Log entry }
+            CheckBand (Band);
 
-                Call   := GetLogEntryCall      (MessageString);
-                Band   := GetLogEntryBand      (MessageString);
-                Mode   := GetLogEntryMode      (MessageString);
-                Points := GetLogEntryQSOPoints (MessageString);
+            NewMult := GetLogEntryMultString (MessageString) <> '';
 
-                CheckBand (Band);
+            IF SendQSOImmediately THEN
+                TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
+            ELSE
+                TBSIQ_PutContactIntoLogFile (MessageString);
 
-                NewMult := GetLogEntryMultString (MessageString) <> '';
+            Inc (NumberContactsThisMinute);
+            NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
 
-                IF SendQSOImmediately THEN
-                    TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
-                ELSE
-                    TBSIQ_PutContactIntoLogFile (MessageString);
-
-                Inc (NumberContactsThisMinute);
-                NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
-
-                IF ActiveWindow <> DupeSheetWindow THEN { no packet }
-                    BEGIN
-                    DisplayTotalScore (TotalScore);
-                    DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
-                    UpdateTotals;
-                    END;
-
+            IF ActiveWindow <> DupeSheetWindow THEN { no packet }
+                BEGIN
                 DisplayTotalScore (TotalScore);
-                DisplayInsertMode (InsertMode);
-
-                DisplayNextQSONumber (QSONumberForThisQSO);
-
-                IF FloppyFileSaveFrequency > 0 THEN
-                    IF QSOTotals [All, Both] > 0 THEN
-                        IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
-                            SaveLogFileToFloppy;
-
-                IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
-
-                IF MultiUpdateMultDisplay AND NewMult THEN
-                    VisibleLog.ShowRemainingMultipliers;
-
-                IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
-                    BEGIN
-                    UpdateBandMapMultiplierStatus;
-                    UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
-                    END;
-
+                UpdateTotals;
                 END;
 
-            'M': BEGIN  { Run frequency information }
-                 UpdateK1EAStationInfo (Run, MultiString [2], MessageString);
-                 END;
+            DisplayTotalScore (TotalScore);
 
-            'T', 'P':   { Talk or pass message }
-                 BEGIN
-                 QuickDisplay (MessageString);
-                 ReminderPostedCount := 60;
+            IF FloppyFileSaveFrequency > 0 THEN
+                IF QSOTotals [All, Both] > 0 THEN
+                    IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
+                        SaveLogFileToFloppy;
 
-                 PushMultiMessageBuffer (MessageString);
+            IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
 
-                 IF IntercomFileOpen THEN
-                     WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+            IF MultiUpdateMultDisplay AND NewMult THEN
+                VisibleLog.ShowRemainingMultipliers;
 
-                 END;
+            IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
+                BEGIN
+                UpdateBandMapMultiplierStatus;
+                UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
+                END;
 
-            'Y': BEGIN  { DOS time sync message }
-                 NewHour   := RemoveFirstLongInteger (MessageString);
-                 NewMinute := RemoveFirstLongInteger (MessageString);
-                 NewSecond := RemoveFirstLongInteger (MessageString);
-                 NewDay    := RemoveFirstLongInteger (MessageString);
-                 NewMonth  := RemoveFirstLongInteger (MessageString);
-                 NewYear   := RemoveFirstLongInteger (MessageString);
+            END;
 
-                 GetDate (Year, Month, Day, DayOfWeek);
+        MultiConfigurationMessage:
+            BEGIN
+            FirstCommand := False;
+            ProcessConfigInstruction (MessageString, FirstCommand);
 
-                 IF (Year <> NewYear) OR (Month <> NewMonth) OR (Day <> NewDay) THEN
-                     SetDate (NewYear, NewMonth, NewDay);
+            IF OpenFileForAppend (FileWrite, LogConfigFileName) THEN
+                BEGIN
+                WriteLn (FileWrite, MessageString);
+                Close (FileWrite);
+                END;
+            END;
 
-                 GetTime (Hour, Minute, Second, Sec100);
+        { Someone asking for a QSO number.  We should only respond if we do not have
+          MultiRequestQSONumber = TRUE on this instance.  }
 
-                 IF (Hour <> NewHour) OR (Minute <> NewMinute) OR (Abs (Second - NewSecond) > 3) THEN
-                     SetTime (NewHour, NewMinute, NewSecond, 0);
-                 END;
-
-
-            END;  { of CASE MultiString [1] }
-
-        END
-
-    ELSE   { N6TR Network Mode }
-        BEGIN
-        MessageString [0] := MultiString [8];
-        Move (MultiString [10], MessageString [1], Ord (MultiString [8]));
-
-        ControlByte := Ord (MultiString [3]);
-
-        CASE ControlByte OF
-            MultiInformationMessage:
+        MultiQSONumberRequest:
+            IF NOT MultiRequestQSONumber THEN  { Only respond if we are the "master" }
                 BEGIN
                 Band := RemoveBand (MessageString);
-                Mode := RemoveMode (MessageString);
-                if ((Mode < Low(ModeType)) or (Mode > High(ModeType))) then
-                   Mode := NoMode;
 
-                IF MultiStatus [Band, Mode] = nil THEN New (MultiStatus [Band, Mode]);
-                MultiStatus [Band, Mode]^ := MessageString;
+                { Get the QSO Number locally - this updates the QSONumberMatrix }
+
+                ReservedQSONumber := QNumber.ReserveNewQSONumber (Band);
+                Str (ReservedQSONumber, TempString);
+
+                TempString := AddBand (Band) + TempString;
+
+                SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                  MessageOriginator,   { Send only to station requesting it }
+                                  MultiQSONumberResponse,
+                                  TempString);
                 END;
 
-            MultiTimeMessage:
+        MultiQSONumberResponse:
+            BEGIN
+            IF NOT MultiRequestQSONumber THEN Exit;
+
+            { We need to see if either Radio1 or Radio2 asked for this }
+
+            IF Radio1QSOMachine.WeAskedForAQSONumber THEN
                 BEGIN
-                Year   := RemoveFirstLongInteger (MessageString);
-                Month  := RemoveFirstLongInteger (MessageString);
-                Day    := RemoveFirstLongInteger (MessageString);
-                Hour   := RemoveFirstLongInteger (MessageString);
-                Minute := RemoveFirstLongInteger (MessageString);
-                Second := RemoveFirstLongInteger (MessageString);
+                Radio1QSOMachine.WeAskedForAQSONumber := False;
 
-                SetTime (Hour, Minute, Second, 0);
-                SetDate (Year, Month, Day);
+                { Get the band }
+
+                Band := RemoveBand (MessageString);
+                Val (MessageString, QSONumberFromNetwork);
+
+                { Update our local matrix so if someone calls GetCurrentQSONumber, they get
+                  the right number - even though I don't think anyone will }
+
+                QNumber.SetCurrentQSONumber (Band, QSONumberFromNetwork);
+
+                { So - now we are in the state of having QSONumberForThisQSO = 0 and
+                  QSONumberFromNetwork > 0.  Somebody needs to notice that and
+                  update the QSONumberForThisQSO.  I guess for now - I will do it
+                  here and see if that is okay - and I might as well display it too }
+
+                Radio1QSOMachine.QSONumberForThisQSO := QSONumberFromNetwork;
+                Radio1QSOMachine.DisplayQSONumber;
+                Radio1QSOMachine.QSONumberUnused := True;
+                Radio1QSOMachine.RadioQuickDisplay ('Received QSO# ' + MessageString + ' ' + GetFullMicroTimeString);
+                Exit;
                 END;
 
-            MultiBandMapMessage:
+            IF Radio2QSOMachine.WeAskedForAQSONumber THEN
                 BEGIN
-                Call := RemoveFirstString (MessageString);
-                Freq := RemoveFirstLongInteger (MessageString);
-                QSX  := RemoveFirstLongInteger (MessageString);
+                Radio2QSOMachine.WeAskedForAQSONumber := False;
 
-                Mode := ActiveMode;
+                { Get the band }
 
-                CalculateBandMode (Freq, Band, Mode);
+                Band := RemoveBand (MessageString);
+                Val (MessageString, QSONumberFromNetwork);
 
-                IF (Band <> NoBand) AND (Mode <> NoMode) THEN { Added in 6.25 }
-                    BEGIN
-                    Dupe := VisibleLog.CallIsADupe (Call, Band, ActiveMode);
+                { Update our local matrix so if someone calls GetCurrentQSONumber, they get
+                  the right number - even though I don't think anyone will }
 
-                    { These didn't have the NOT in them until 6.36 }
+                QNumber.SetCurrentQSONumber (Band, QSONumberFromNetwork);
 
-                    IF NOT MultByBand THEN Band := All;
-                    IF NOT MultByMode THEN Mode := Both;
+                { So - now we are in the state of having QSONumberForThisQSO = 0 and
+                  QSONumberFromNetwork > 0.  Somebody needs to notice that and
+                  update the QSONumberForThisQSO.  I guess for now - I will do it
+                  here and see if that is okay - and I might as well display it too }
 
-                    { Runtime 201 here when hitting F1s - probably on 160.
-                      Initialized Mode to Active mode before calling
-                      CalculateBandMode }
-
-                    VisibleLog.DetermineIfNewMult (Call, Band, Mode, MultString);
-                    Mult := MultString <> '';
-                                                                    { SendToMulti = False }
-                    NewBandMapEntry (Call, Freq, QSX, Mode, Dupe, Mult, BandMapDecayTime, False)
-                    END;
+                Radio2QSOMachine.QSONumberForThisQSO := QSONumberFromNetwork;
+                Radio2QSOMachine.DisplayQSONumber;
+                Radio2QSOMachine.QSONumberUnused := True;
+                Radio2QSOMachine.RadioQuickDisplay ('Receigved QSO# ' + MessageString + ' ' + GetFullMicroTimeString);
+                Exit;
                 END;
+            END;
 
-            MultiTalkMessage:
+        MultiQSONumberReturn: { Someone is trying to return a QSO Number }
+            BEGIN
+            IF NOT MultiRequestQSONumber THEN  { We are the master }
                 BEGIN
-                MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
-                QuickDisplay (MessageString);
-                ReminderPostedCount := 60;
-
-                PushMultiMessageBuffer (MessageString);
-
-                IF IntercomFileOpen THEN
-                    WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+                Band := RemoveBand (MessageString);
+                Val (MessageString, ReturnedQSONumber);  { QSO number to return }
+                QNumber.ReturnQSONumber (Band, ReturnedQSONumber);
                 END;
+            END;
 
-            MultiPacketReceivedMessage:
-                Packet.ProcessPacketMessageFromNetWork (MessageString);
-
-            MultiPacketMessageToSend:
-                IF ActivePacketPort <> nil THEN SendPacketMessage (MessageString);
-
-            MultiQSOData:
-                BEGIN
-                Call   := GetLogEntryCall      (MessageString);
-                Band   := GetLogEntryBand      (MessageString);
-                Mode   := GetLogEntryMode      (MessageString);
-                Points := GetLogEntryQSOPoints (MessageString);
-
-                CheckBand (Band);
-
-                NewMult := GetLogEntryMultString (MessageString) <> '';
-
-                IF SendQSOImmediately THEN
-                    TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
-                ELSE
-                    TBSIQ_PutContactIntoLogFile (MessageString);
-
-                Inc (NumberContactsThisMinute);
-                NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
-
-                IF ActiveWindow <> DupeSheetWindow THEN { no packet }
-                    BEGIN
-                    DisplayTotalScore (TotalScore);
-                    DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
-                    UpdateTotals;
-                    END;
-
-                DisplayTotalScore (TotalScore);
-                DisplayInsertMode (InsertMode);
-                DisplayNextQSONumber (QSONumberForThisQSO);
-
-                IF FloppyFileSaveFrequency > 0 THEN
-                    IF QSOTotals [All, Both] > 0 THEN
-                        IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
-                            SaveLogFileToFloppy;
-
-                IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
-
-                IF MultiUpdateMultDisplay AND NewMult THEN
-                    VisibleLog.ShowRemainingMultipliers;
-
-                IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
-                    BEGIN
-                    UpdateBandMapMultiplierStatus;
-                    UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
-                    END;
-
-                END;
-
-            MultiConfigurationMessage:
-                BEGIN
-                FirstCommand := False;
-                ProcessConfigInstruction (MessageString, FirstCommand);
-
-                IF OpenFileForAppend (FileWrite, LogConfigFileName) THEN
-                    BEGIN
-                    WriteLn (FileWrite, MessageString);
-                    Close (FileWrite);
-                    END;
-                END;
-
-            END;   { of case }
-        END;
+        END;   { of case }
     END;
 
-
-
+
 
 PROCEDURE TBSIQ_UpdateTimeAndRateDisplays;
 
@@ -1635,7 +1644,7 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     Packet.CheckPacket;         { See if any spots have come in for the bandmap }
 
-    IF ActiveMultiPort <> nil THEN TBSIQ_CheckMultiState;
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN TBSIQ_CheckMultiState;
 
     { Send some oxygen to the N4OGW bandmap if it is there }
 
@@ -2118,7 +2127,7 @@ PROCEDURE QSOMachineObject.DisplayAutoStartSendCharacterCount;
 
     ClrScr;
 
-    IF (AutoStartSendCharacterCount > 0) AND AutoStartSendEnable THEN
+    IF (AutoStartSendCharacterCount > 0) AND AutoStartSendEnable AND (Mode <> Phone) THEN
         BEGIN
         GoToXY (AutoStartSendCharacterCount + 1, 1);
         Write ('|');
@@ -2131,12 +2140,15 @@ PROCEDURE QSOMachineObject.DisplayAutoStartSendCharacterCount;
 
 PROCEDURE QSOMachineObject.DisplayQSONumber;
 
-{ Uses QSONumberForThisQSO }
+{ Uses QSONumberForThisQSO and Band }
 
     BEGIN
-    IF QSONumberForThisQSO = LastDisplayedQSONumber THEN Exit;
+    IF (QSONumberForThisQSO = LastDisplayedQSONumber) AND (Band = LastDisplayedQSONumberBand) THEN Exit;
+
+    { Set up so we don't bother overwriting with the same data }
 
     LastDisplayedQSONumber := QSONumberForThisQSO;
+    LastDisplayedQSONumberBand := ActiveBand;
 
     CASE Radio OF
         RadioOne: SaveAndSetActiveWindow (TBSIQ_R1_QSONumberWindow);
@@ -2145,10 +2157,16 @@ PROCEDURE QSOMachineObject.DisplayQSONumber;
 
     ClrScr;
 
-    IF QSONumberForThisQSO > 9999 THEN
-        Write (QSONumberForThisQSO:5)
+    IF QSONumberForThisQSO = -1 THEN
+        Write ('  -1 ')
     ELSE
-        Write (QSONumberForThisQSO:4);
+        IF QSONumberForThisQSO = 0 THEN  { Waiting for multi }
+            Write (' ----')
+        ELSE
+            IF QSONumberForThisQSO  > 9999 THEN
+                Write (QSONumberForThisQSO:5)
+            ELSE
+                Write (QSONumberForThisQSO:4);
 
     { Create a clear space after the number }
 
@@ -2204,6 +2222,8 @@ PROCEDURE QSOMachineObject.ListenToOtherRadio;
 
     BEGIN
     IF NOT EnableHeadphoneSwitching THEN Exit;
+
+    IF FootSwitchMode = TBSIQSSB THEN Exit;  { Fixes buzzing issue }
 
     IF Radio = RadioOne THEN
         BEGIN
@@ -2320,6 +2340,7 @@ VAR Key, ExtendedKey: CHAR;
     xResult: INTEGER;
     MultString: Str20;
     Mult: BOOLEAN;
+    CheckRadio: RadioType;
 
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
@@ -2337,7 +2358,8 @@ VAR Key, ExtendedKey: CHAR;
         RadioOne:
             IF N4OGW_RadioOne_BandMap_IP <> '' THEN
                 BEGIN
-                { Check to see if TX mode should be disabled }
+                { Check to see if TX mode should be disabled - CWStillBeingSent does this
+                  automatically if so. }
 
                 IF (N4OGW_RadioOne_BandMap.TXMode) THEN CWStillBeingSent;
 
@@ -2350,7 +2372,8 @@ VAR Key, ExtendedKey: CHAR;
         RadioTwo:
             IF N4OGW_RadioTwo_BandMap_IP <> '' THEN
                 BEGIN
-                { Check to see if TX mode should be disabled }
+                { Check to see if TX mode should be disabled - CWStillBeingSent does this
+                  automatically if so. }
 
                 IF (N4OGW_RadioTwo_BandMap.TXMode) THEN CWStillBeingSent;
 
@@ -2361,7 +2384,6 @@ VAR Key, ExtendedKey: CHAR;
                 END;
 
         END;  { of CASE }
-
 
     { Show new QSO state if diffrent and update TX indicator }
 
@@ -2377,8 +2399,57 @@ VAR Key, ExtendedKey: CHAR;
             DisplayAutoStartSendCharacterCount;
         END;
 
+    { Before we get too involved looking at keystrokes - let's see if the footswitch
+      is being pressed and if we care.  We will only care if TBSIQDualMode is
+      active.  Basically - pressing the footswitch will assert PTT if this instance
+      of the QSOMachineObject is on SSB mode.  However, if we are busy transmitting
+      on the other radio - it will have to wait.
+
+      Initially - pressing the footswitch STOPS any CW instantly and asserts PTT
+      on the SSB radio.  However, to give the option of waiting for the CW to
+      end, we created TBSIQFootSwitchLockout, which when TRUE will not assert
+      PTT until the CW message is completed.  }
+
+   IF Radio = RadioOne THEN
+       CheckRadio := RadioTwo
+   ELSE
+       CheckRadio := RadioOne;
+
+   IF TBSIQDualMode AND (Mode = Phone) THEN
+     IF FootSwitchMode <> TBSIQSSB THEN  { this doesn't fix my buzz }
+        IF (NOT TBSIQFootSwitchLockout) OR TBSIQ_CW_Engine.CWFinished (CheckRadio) THEN
+            BEGIN
+            IF TBSIQ_FootSwitchPressed THEN  { This should never be true in TBSIQSSB }
+                BEGIN
+                { Need to make sure we are connected to the correct radio }
+
+                ActiveRadio := Radio;
+                SetUpToSendOnActiveRadio;
+                ActiveKeyer.PTTForceOn;
+
+                { We need to setup a delay when we first hit the footswitch to give the
+                  radio time to feedback TX status }
+
+                IF FootswitchDelayNeeded THEN
+                    BEGIN
+                    TransmitCountdown := 1;  { This is normally 2 - but we are trying to get away with this }
+                    FootSwitchDelayNeeded := False;
+                    END;
+                END
+
+            ELSE { not pressed }
+                BEGIN
+                ActiveKeyer.PTTUnforce;  { We really don't care what radio we are setup on }
+                FootSwitchDelayNeeded := True;
+                END;
+
+            END;
+
     { Do not process any keystrokes while auto start send active on the
-      other radio.  }
+      other radio.  This is probably mostly okay as I doubt someone will
+      be actively putting in characters on one keyboard and pressing a
+      key on the other keyboard instantly.  One possible exception might
+      be the footswitch if we get that implemented. }
 
     CASE Radio OF
         RadioOne: IF Radio2QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
@@ -2392,15 +2463,47 @@ VAR Key, ExtendedKey: CHAR;
 
     { We want to get to some states before the WindowEditor is called }
 
-    IF QSOState <> QST_StartSendingKeyboardCW THEN
-        WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
+    { We are going to have different behaviour here depending on whether we are
+      in TBSIQDualMode mode or not.  }
+
+    IF TBSIQDualMode AND DualModeMemory THEN
+        BEGIN
+        IF DisableTransmitting THEN Exit;
+
+        { We are done transmitting and can now process the keystroke that was
+          waiting }
+
+        Key := DualModeKey;
+        ExtendedKey := DualModeExtendedKey;
+        ActionRequired := True;
+        DualModeMemory := False;
+
+        { Now - we can process the remembered key stroke }
+        END
+
+    ELSE { Normal mode }
+        IF (QSOState <> QST_StartSendingKeyboardCW) THEN
+            WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
 
     { This is a VERY POWERFUL command...  not totally sure of the consequences just
       yet - but basically I am trying to lock out anything being done if both rigs
       are not on CW - and there is ActionRequired while the other transmitter is
-      busy sending }
+      busy sending.
 
-    IF ActionRequired AND DisableTransmitting THEN Exit;
+      Note - whatever the key was that was pressed is forgotten - there is no
+      key memory here. }
+
+    IF ActionRequired AND DisableTransmitting THEN
+        BEGIN
+        IF TBSIQDualMode THEN
+            BEGIN
+            DualModeMemory := True;
+            DualModeKey := Key;
+            DualModeExtendedKey := ExtendedKey;
+            END;
+
+        Exit;
+        END;
 
     CASE QSOState OF
 
@@ -2467,7 +2570,7 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             IF WindowString = 'UPDATEQSONR' THEN
                                 BEGIN
-                                QSONumberForThisQSO := GetNextQSONumber;   { from LOGEDIT }
+                                QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
                                 QSONumberUnused := True;
                                 DisplayQSONumber;
                                 CallwindowString := '';
@@ -2737,8 +2840,7 @@ VAR Key, ExtendedKey: CHAR;
                         Exit;
                         END
                     ELSE
-                        BEGIN
-
+                        BEGIN  { Call is a dupe }
                         IF Mode = CW THEN
                             BEGIN
                             ExpandedString := ExpandCrypticString (QSOBeforeMessage);
@@ -2754,6 +2856,10 @@ VAR Key, ExtendedKey: CHAR;
                             TransmitCountdown := InitialTransmitCountdown;
                             FinishRTTYTransmission (ExpandedString);
                             ShowCWMessage (ExpandedString);
+                            END;
+
+                        IF Mode = Phone THEN  { Guess I am okay doing nothing ATM }
+                            BEGIN
                             END;
 
                         QSOState := QST_Idle;
@@ -2979,6 +3085,12 @@ VAR Key, ExtendedKey: CHAR;
 
                 IF InitialExchangeOverwrite THEN
                     InitialExchangePutUp := ExchangeWindowString <> '';
+                END
+            ELSE
+                BEGIN
+                InitialExchangePutUp := False;
+                ExchangeWindowString := '';
+                ExchangeWindowCursorPosition := 1;
                 END;
 
             QSOState := QST_CQExchangeBeingSentAndExchangeWindowUp;
@@ -3905,16 +4017,8 @@ VAR FrequencyChange, TempFreq: LONGINT;
     TempBand: BandType;
     TempMode: ModeType;
     TimeString: STRING;
-    TempQSOTotals: QSOTotalArray;
 
     BEGIN
-    IF QSONumberByBand THEN
-        BEGIN
-        TempQSOTotals := QSOTotals;    { Get global QSO totals in dupesheet }
-        VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);  { Add in EditableLog QSOs }
-        QSONumberForThisQSO := TempQSOTotals [Band, Both] + 1;
-        END;
-
     DisplayQSONumber;  { Just to always make sure it is right }
 
     IF DupeShown THEN
@@ -3955,6 +4059,26 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     DisplayFrequency;
     DisplayBandMode;
+
+    { If QSONumberForThisQSO = -1, then we need to go get a QSO number for this radio's band }
+
+    CASE Radio OF
+        RadioOne:
+            IF (QSONumberForthisQSO = -1) AND NOT Radio2QSOMachine.WeAskedForAQSONumber THEN
+                BEGIN
+                QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
+                DisplayQSONumber;  { either the real QSO number or a zero if network involved }
+                QSONumberUnused := True;
+                END;
+
+        RadioTwo:
+            IF (QSONumberForthisQSO = -1) AND NOT Radio1QSOMachine.WeAskedForAQSONumber THEN
+                BEGIN
+                QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
+                DisplayQSONumber;  { either the real QSO number or a zero if network involved }
+                QSONumberUnused := True;
+                END;
+        END;
 
     { Determine if the radio appears to be "on the move" }
 
@@ -4025,10 +4149,7 @@ VAR FrequencyChange, TempFreq: LONGINT;
 
     { We are now only executing this code once a second - per radio }
 
-    { Check turning off TX polling for K4 }
-
-    IF TurnOffK3TXPollModeCount > 0 THEN
-        Dec (TurnOffK3TXPollModeCount);
+    IF TransmitCountDown > 0 THEN Dec (TransmitCountDown);
 
     { PTTTest is used for testing purposes only }
 
@@ -4053,8 +4174,6 @@ VAR FrequencyChange, TempFreq: LONGINT;
             PTTState := NOT PTTState;
             END;
         END;
-
-    IF TransmitCountDown > 0 THEN Dec (TransmitCountDown);
 
     { Update the cursor frequency of the band map and display the band map }
 
@@ -4155,6 +4274,8 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         QST_SendingKeyboardCWWaiting: Write ('Keyboard CW - waiting on other TX')
         ELSE Write ('???');
         END;
+
+    Write (' ', TransmitCountdown);
 
     RestorePreviousWindow;
     END;
@@ -4269,11 +4390,14 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     DisplayedMode := NoMode;
     DisplayedTXColor := NoTXColor;
     DoingPTTTest := False;
+    DualModEMemory := False;
     ExchangeWindowString := '';
     ExchangeWindowCursorPosition := 1;
     ExchangeWindowIsUp := False;
+    FootSwitchDelayNeeded := False;
     K3RXPollActive := False;
     LastDisplayedQSONumber := -1;
+    LastDisplayedQSONumberBand := NoBand;
     LocalInsertMode := InsertMode;                          { Need to get the global Insert Mode here }
     LastFrequency := 0;
     LastPartialCall := '';
@@ -4281,11 +4405,12 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     LastQSOState := QST_None;
     OkayToPutUpBandMapCall := False;
     QSOState := QST_Idle;
-
     RadioOnTheMove := False;
     SearchAndPounceExchangeSent := False;
     SearchAndPounceStationCalled := False;
+    SSBTransmissionStarted := False;
     TransmitCountDown := 0;
+    WeAskedForAQSONumber := False;
 
     { Setup the window locations derived from the X,Y reference }
 
@@ -4498,17 +4623,20 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     ShowStateMachineStatus;
     R1_OpMode := CQOpMode;       { Determines color of exchange window }
 
-    { Get the next QSO Number }
+    { One issue with getting the next QSO number is that if we are doing QSONumberByBand,
+      we haven't read any information from the radios yet - and likely we have the wrong
+      bands.  We need to figure out a way to ask for the QSO numbers after we have the
+      correct band information.  This will be done here in 2BSIQ land by setting the
+      QSONumberForThisQSO to minus 1 }
 
-    QSONumberForThisQSO := GetNextQSONumber;   { Comes from LOGWIND }
-
-    DisplayQSONumber;
-    QSONumberUnused := True;
+    QSONumberForThisQSO := -1;
+    MarkTime (StartupTime);  { Used to go off and ask for QSO numbers after a bit }
 
     { Put up a blank call window }
 
     SetTBSIQWindow (TBSIQ_CallWindow);
     ClrScr;
+
     END;
 
 
@@ -4592,13 +4720,32 @@ PROCEDURE QSOMachineObject.DisplayTXColor;
 VAR Color: TXColorType;
 
     BEGIN
-    IF Mode = CW THEN
-        Color := TBSIQ_CW_Engine.GetTransmitColor (Radio)
-    ELSE
-        IF IAmTransmitting THEN
-            Color := TX_Red
-        ELSE
-            Color := TX_Blue;
+    { Note that the following code will have a funny result if you are sending
+      CW by hand.  While the CW is actually being generated - the TX indicator
+      will be red.  If you just send a dit - it will revert to blue really
+      fast - all before the radio has had time to come back with TX status.
+      So it will go blue again until the next poll when the radio will say
+      it is done transmitting.  Not sure this matters, but it can be fixed
+      by not looking at IAmTransmitting when in CW }
+
+    CASE Mode OF
+        CW: BEGIN
+            Color := TBSIQ_CW_Engine.GetTransmitColor (Radio);
+
+            IF Color = TX_Blue THEN
+                IF DualModeMemory THEN
+                    Color := TX_Yellow;
+            END;
+
+        Phone, Digital:
+            IF IAmTransmitting THEN
+                Color := TX_Red
+            ELSE
+                IF DualModeMemory THEN
+                    Color := TX_Yellow
+                ELSE
+                    Color := TX_Blue;
+        END;
 
     IF DisplayedTXColor <> Color THEN
         BEGIN
@@ -4668,6 +4815,9 @@ PROCEDURE QSOMachineObject.DisplayCodeSpeed;
         Write (' ', CodeSpeed:2, ' WPM')
     ELSE
         Write ('       ');
+
+    { This is coming up at the start of the 2BSIQ.  Not sure yet how to
+      differentiate ActiveRadio and "CW" }
 
     IF ActiveRadio = Radio THEN
         Write (' TX');
@@ -4827,7 +4977,9 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     Key, PreviousCursorChar: CHAR;
     Message, TempString: STRING;
     TempExchange: ContestExchange;
+    Dest: BYTE;
     PacketSpotCall: CallString;
+    FirstString: STRING;
 
     BEGIN
     BeSilent := False;   { Set this TRUE when exiting if you don't want CW sent }
@@ -4866,6 +5018,9 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
       since we can't tell if we are the active radio down this low, we just can't
       deal with anything. }
 
+    { However, if we are doing dual mode - we will want to use the footswitch
+      in an interlocked way for the SSB radio }
+
     IF NOT ((TBSIQ_KeyPressed (Radio)) OR (CharacterInput <> Chr (0))) THEN
         Exit;  { No reason to be here }
 
@@ -4881,9 +5036,14 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
             RadioTwo: rig1.directcommand ('RX;');
             END;
 
-        ActiveRadio := Radio;
-        ActiveKeyer.SetActiveRadio (Radio);   { This seems necessary }
-        TBSIQ_CW_Engine.ShowActiveRadio;
+        { For now - I am not sure I want to do this with DualMode mode }
+
+        IF NOT TBSIQDualMode THEN
+            BEGIN
+            ActiveRadio := Radio;
+            ActiveKeyer.SetActiveRadio (Radio);   { This seems necessary }
+            TBSIQ_CW_Engine.ShowActiveRadio;
+            END;
         END;
 
     DualingCQState := NoDualingCQs;
@@ -5013,6 +5173,50 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
       CallCursorPosition or ExchangeCursorPosition. }
 
     CASE KeyChar OF
+
+        '"': IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
+                 BEGIN
+                 RITEnable := False;
+                 ClearRIT;
+
+                 TempString := QuickEditResponse ('Enter (BAND MESSAGE) : ', 50);
+                 GetRidOfPrecedingSpaces (TempString);
+
+                 IF (TempString <> '') AND (TempString <> EscapeKey) THEN
+                     BEGIN
+                     FirstString := UpperCase (PrecedingString (TempString, ' '));
+
+                     Dest := $FF;
+
+                     IF FirstString = '160' THEN Dest := MultiBandAddressArray [Band160];
+                     IF FirstString =  '80' THEN Dest := MultiBandAddressArray [Band80];
+                     IF FirstString =  '40' THEN Dest := MultiBandAddressArray [Band40];
+                     IF FirstString =  '30' THEN Dest := MultiBandAddressArray [Band30];
+                     IF FirstString =  '20' THEN Dest := MultiBandAddressArray [Band20];
+                     IF FirstString =  '17' THEN Dest := MultiBandAddressArray [Band17];
+                     IF FirstString =  '15' THEN Dest := MultiBandAddressArray [Band15];
+                     IF FirstString =  '12' THEN Dest := MultiBandAddressArray [Band12];
+                     IF FirstString =  '10' THEN Dest := MultiBandAddressArray [Band10];
+                     IF FirstString =   '6' THEN Dest := MultiBandAddressArray [Band6];
+                     IF FirstString =   '2' THEN Dest := MultiBandAddressArray [Band2];
+                     IF FirstString = '222' THEN Dest := MultiBandAddressArray [Band222];
+                     IF FirstString = '432' THEN Dest := MultiBandAddressArray [Band432];
+                     IF FirstString = '902' THEN Dest := MultiBandAddressArray [Band902];
+                     IF FirstString = '1GH' THEN Dest := MultiBandAddressArray [Band1296];
+                     IF FirstString = '2GH' THEN Dest := MultiBandAddressArray [Band2304];
+
+                     IF Dest <> $FF THEN RemoveFirstString (TempString);
+
+                     SendMultiCommand (MultiBandAddressArray [Band],
+                                       Dest,
+                                       MultiTalkMessage,
+                                       TempString);
+                     END;
+
+                 RITEnable := True;
+                 ClearKeyCache := True;  { We don't want any of our message showing up in the call window }
+                 END; { of CASE " }
+
 
         ControlDash:
             IF GetCQMemoryString (Mode, AltF1) <> '' THEN
@@ -6945,31 +7149,60 @@ FUNCTION ValidFunctionKey (Key: CHAR): BOOLEAN;
 
 FUNCTION QSOMachineObject.IAmTransmitting: BOOLEAN;
 
-{ Typically called by the other radio to see if this one is transmitting.
-  Mostly likely used to disable some function keys when in SSB mode or for
-  dualing CQs }
+{ Typically called by the other radio to see if this one is transmitting }
 
 VAR TransmitStatus: BOOLEAN;
 
     BEGIN
     CASE Mode OF
-        CW: IAmTransmitting := NOT TBSIQ_CW_Engine.CWFinished (Radio);
+
+        { For CW - this is pretty straightforward }
+
+        CW: BEGIN
+            IAmTransmitting := NOT TBSIQ_CW_Engine.CWFinished (Radio);
+            Exit;
+
+            { So - I exited above - if I do the test below - it delays the
+              clearing of the RED flag by about a half second.  I think this
+              exposure is okay.  It just means you are NOT locked out if you
+              are sending a message by hand. }
+
+            { Let's go see if the radio is actually transmitting - maybe a
+              hand sent message?  I realize this isn't perfect - but it's
+              worth a shot }
+
+            CASE Radio OF
+                RadioOne: IAmTransmitting := Rig1.K3IsStillTalking;
+                RadioTwo: IAmTransmitting := Rig2.K3IsStillTalking;
+                END;  { of CASE }
+            END;
+
+        { For Phone or digital, we are relaying on the radio to tell us
+          if it is transmitting or not.  This is tricky, because there
+          is a significant delay from when we tell the radio to start a
+          transmmission until it will show it has started.  We need to
+          use a timer from whenever we tell the radio to do a transmission
+          to help make sure we return the right status.
+
+          That timer is TransmitCountDown and it is typically set to
+          3 seconds whenever a command is sent to the radio to start
+          a tranmisssion.  When it gets to zero - we will then start
+          relying on the radio for the status. }
+
 
         Phone, Digital:
             BEGIN
-            { We need to have an artifical result after a message is
-              started since it takes a second or two for the txon flag
-              to get set by the radio interface protocol.  }
-
             IF TransmitCountDown > 0 THEN
                 BEGIN
                 IAmTransmitting := True;
 
                 { We are going to enable faster polling of the K3 so
                   we don't have to wait for the 300 ms delay that
-                  the IF; command has on the TX status }
+                  the IF; command has on the TX status.  On December 4,
+                  2023, I added the "AND NOT K3RXPollActive" so we don't
+                  keep resending the command }
 
-                IF RadioInterfaced = K4 THEN
+                IF (RadioInterfaced = K4) AND NOT K3RXPollActive THEN
                     BEGIN
                     CASE Radio OF
                         RadioOne: Rig1.SetK3TXPollMode (True);  { Kind of a misname here }
@@ -6981,6 +7214,8 @@ VAR TransmitStatus: BOOLEAN;
 
                 Exit;
                 END;
+
+            { We drop down here if the IAmTransmitting timeout has occurred. }
 
             { We are now going to rely on the radio status }
 
@@ -6994,26 +7229,26 @@ VAR TransmitStatus: BOOLEAN;
               while before doing that as that TX state will stay true for about
               a half second }
 
-            IF K3RXPollActive THEN
+            IF TransmitStatus THEN
                 BEGIN
-                IF TransmitStatus THEN TurnOffK3TXPollModeCount := 2;
-
-                IF TurnOffK3TXPollModeCount = 0 THEN
-                    BEGIN
-                    CASE Radio OF
-                        RadioOne: Rig1.SetK3TXPollMode (False);  { Kind of a misname here }
-                        RadioTwo: Rig2.SetK3TXPollMode (False);  { Kind of a misname here }
-                        END;
-
-                    K3RXPollActive := False;
-                    END;
+                IAmTransmitting := True;
+                Exit;
                 END;
 
-            IAmTransmitting := TransmitStatus;
-            END;
+            { The radio has gone into RX - we can turn off the fast polling }
 
-        ELSE
+            IF K3RXPollActive THEN
+                BEGIN
+                CASE Radio OF
+                    RadioOne: Rig1.SetK3TXPollMode (False);
+                    RadioTwo: Rig2.SetK3TXPollMode (False);
+                    END;
+
+                K3RXPollActive := False;
+                END;
+
             IAmTransmitting := False;
+            END;
 
         END;  { of case Mode }
 
@@ -7026,7 +7261,10 @@ FUNCTION QSOMachineObject.DisableTransmitting: BOOLEAN;
 { This is used to determine if a transmission can be started NOW.  If both
   radios are on CW - the CW sending engine will deal with any conflicts.
   But if either rig is on something other than CW - then we need to be more
-  careful and not start a message when the other radio is transmitting. }
+  careful and not start a message when the other radio is transmitting.
+
+  Note that the IAmTransmitting status stakes a second or so to go TRUE
+  after starting transmission on the other radio. }
 
     BEGIN
     CASE Radio OF
@@ -7040,7 +7278,8 @@ FUNCTION QSOMachineObject.DisableTransmitting: BOOLEAN;
 
             { One radio or the other is on phone }
 
-            DisableTransmitting := Radio2QSOMachine.IAmTransmitting;
+            DisableTransmitting := Radio2QSOMachine.IAmTransmitting OR
+                                   Radio2QSOMachine.SSBTransmissionStarted;
             Exit;
             END;
 
@@ -7054,11 +7293,46 @@ FUNCTION QSOMachineObject.DisableTransmitting: BOOLEAN;
 
             { One radio or the other is on phone }
 
-            DisableTransmitting := Radio1QSOMachine.IAmTransmitting;
+            DisableTransmitting := Radio1QSOMachine.IAmTransmitting OR
+                                   Radio1QSOMachine.SSBTransmissionStarted;
             Exit;
             END;
 
         END;  { of case Radio }
+    END;
+
+
+
+PROCEDURE QSOMachineObject.RadioQuickDisplay (Message: STRING);
+
+{ Will how the message at the bottom of the radio screen - max about 37 characters }
+
+    BEGIN
+    SaveActiveWindow;
+
+    IF Radio = RadioOne THEN
+        BEGIN
+        Window (TBSIQ_R1_QuickCommandWindowLX,
+        TBSIQ_R1_QuickCommandWindowLY,
+        TBSIQ_R1_QuickCommandWindowRX,
+        TBSIQ_R1_QuickCommandWindowRY);
+        END
+    ELSE
+        BEGIN
+        Window (TBSIQ_R2_QuickCommandWindowLX,
+        TBSIQ_R2_QuickCommandWindowLY,
+        TBSIQ_R2_QuickCommandWindowRX,
+        TBSIQ_R2_QuickCommandWindowRY);
+        END;
+
+
+    SetBackGround (SelectedColors.QuickCommandWindowBackground);
+    SetColor      (SelectedColors.QuickCommandWindowColor);
+
+    ClrScr;
+
+    Write (Message);
+    RestorePreviousWindow;
     END;
 
 
@@ -7079,6 +7353,18 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
       other radio is not busy transmitting. }
 
     IF DisableTransmitting THEN Exit;
+
+    { If we are dealing with mixed modes - we need to make sure we set
+      things up for the right mode }
+
+    IF TBSIQDualMode THEN   { New for TBSIQ }
+        BEGIN
+        ActiveRadio := Radio;
+        ActiveMode := Mode;
+        ActiveKeyer.SetActiveRadio (Radio);
+        END;
+
+    { Do we get a CQ message or an Exchange one? }
 
     IF (QSOState = QST_Idle) OR (QSOState = QST_CallingCQ) OR
        (QSOState = QST_AutoCQListening) OR
@@ -7109,7 +7395,11 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                                     Message := ExpandCrypticString (GetExMemoryString (Phone, Key));
                                 END;
 
-                       Digital: Message := ExpandCrypticString (GetExMemoryString (Digital, Key));
+                       Digital: BEGIN
+                                Message := ExpandCrypticString (GetExMemoryString (Digital, Key));
+                                SearchAndPounceExchangeSent := True;
+                                END;
+
                        END;  { of CASE Mode }
 
                ELSE
@@ -7118,15 +7408,24 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                END;  { of CASE Key }
 
     { New on 30-Sep-2022 - hmm - should I do this if the message is only going
-      into the cue?  Am I doing this for SSB only? }
+      into the cue?  Am I doing this for SSB only?
+
+      And when I am trying to send a CW message when ActiveMode is Phone (dual
+      mode case) - I need to have both the ActiveRadio set to Radio and
+      ActiveMode set to CW...  so - maybe it is okay to do this all of the
+      time?  I don't need the TransmitCountDown set for CW }
 
     IF Message <> '' THEN
+        BEGIN
+        { This is what used to be here }
+
         IF (ActiveMode = Phone) OR (ActiveMode = Digital) THEN
             BEGIN
             ActiveRadio := Radio;
-            ActiveMode := Mode;
+            ActiveMode := Mode;   { We don't need this - mode never changes? }
             TransmitCountDown := InitialTransmitCountdown;
             END;
+        END;
 
     { This sends the message if you are on SSB }
 
@@ -7232,12 +7531,7 @@ VAR I: INTEGER;
         RData.Time       := Hours * 100 + Minutes;
         RData.Band       := Band;
         RData.Mode       := Mode;
-
-        IF QSONumberSent > 0 THEN
-            RData.NumberSent := QSONumberSent
-        ELSE
-            RData.NumberSent := TotalContacts + 1;
-
+        RData.NumberSent := QSONumberSent;
         RData.Frequency  := Freq;
 
         IF RData.Mode = PHONE THEN
@@ -7285,20 +7579,12 @@ VAR I: INTEGER;
         END;
 
     IF NOT GoodCallSyntax (RData.Callsign) THEN
-        BEGIN
-        { QuickDisplay (RData.Callsign + ' has improper syntax!!');}
         Exit;
-        END;
 
     RData.Time       := Hours * 100 + Minutes;
     RData.Band       := Band;
     RData.Mode       := Mode;
-
-    IF QSONumberSent > 0 THEN
-        RData.NumberSent := QSONumberSent
-    ELSE
-        RData.NumberSent := TotalContacts + 1;
-
+    RData.NumberSent := QSONumberSent;
     RData.Frequency  := Freq;
 
     IF RData.RSTSent = '' THEN
@@ -7412,20 +7698,29 @@ VAR LogString: Str80;
         UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
         END;
 
+    { New for Jan 2023 - send QSO data to UDP port }
 
     IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
         BEGIN
         RXData.Date := GetFullDateString;
         SendQSOToUDPPort (RXData);
         END;
+
+    { New for Mar 2024 - send to N1MM using WSJT port }
+
+    IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+        BEGIN
+        RXData.Date := GetFullDateString;
+        N1MM_QSO_Portal.SendQSOToN1MM (RXData);
+        END;
+
     END;
 
 
 
 PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
 
-VAR TempString: STRING;
-    TempData: ContestExchange;
+VAR TempData: ContestExchange;
 
     BEGIN
     { Leveraged from LOGSUBS2.PAS }
@@ -7436,22 +7731,8 @@ VAR TempString: STRING;
 
         IF ((LogString <> '') AND NOT MultiMultsOnly) OR
            (GetLogEntryMultString (LogString) <> '') THEN
-               IF K1EANetworkEnable THEN
-                   BEGIN
-
-                   { Don't send notes }
-
-                   IF Copy (LogString, 1, 1) <> ';' THEN
-                       BEGIN
-                       TempString := ConvertN6TRLogStringToK1EANetworkFormat (LogString);
-                       SendMultiMessage (TempString);
-                       END;
-                   END
-               ELSE
-                   BEGIN
-                   SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                     $FF, MultiQSOData, LogString);
-                   END;
+               SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                 $FF, MultiQSOData, LogString);
         END;
 
 
@@ -7467,46 +7748,21 @@ VAR TempString: STRING;
 
         { From LOGSUBS2.PAS }
 
-        IF ParseExchangeIntoContestExchange (LogString, TempData) THEN
+        IF ParseLogEntryIntoContestExchange (LogString, TempData) THEN
             BEGIN
             IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
-                BEGIN
                 IF (NOT MultiMultsOnly) OR
                    (GetLogEntryMultString (LogString) <> '') THEN
-                    IF K1EANetworkEnable THEN
-                        BEGIN
-
-                        { Don't send notes }
-
-                        IF Copy (LogString, 1, 1) <> ';' THEN
-                            BEGIN
-                            TempString := ConvertN6TRLogStringToK1EANetworkFormat (LogString);
-                            SendMultiMessage (TempString);
-                            END;
-                        END
-                    ELSE
-                        BEGIN
                         SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                           $FF, MultiQSOData, LogString);
-                        END;
             END
 
 
         ELSE  { QSO doesn't make sense - probably a note }
 
             IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
-                IF K1EANetworkEnable THEN
-                    BEGIN
-
-                    { I don't know how to do this on the K1EA network }
-
-                    END
-                ELSE
-                    BEGIN
                     SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                       $FF, MultiQSOData, LogString);
-                    END;
-            END;
         END;
 
     END;

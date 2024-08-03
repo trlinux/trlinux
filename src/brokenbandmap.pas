@@ -661,14 +661,12 @@ VAR
     LastDisplayedFreq:             ARRAY [RadioType] of LONGINT; {KK1L: 6.73}
     LastDisplayedMode:             ModeType;
     LastDisplayedQSONumber:        LONGINT;
-    LastDisplayedQSONumberBand:    BandType;
     LastDisplayedTime:             Str20;
     LastDisplayedHour:             Str20;
     LastEditedBandMapEntry: INTEGER;
     LastFullTimeString:  Str20;
     LastSecond100:       WORD;    {KK1L: 6.71a Will store the hundredths of seconds since UpdateTimeAndRateDisplays }
                                   {           was called. Used to support wicked fast radio checking               }
-
     LastHeadingShown:    INTEGER;
     LastQTCTimeSent:     Str20;
     LastRadioOneBand:    BandType;
@@ -743,6 +741,7 @@ VAR
     PreviousRadioOneFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}
     PreviousRadioTwoFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}
 
+    QSONumberMatrix:        ARRAY [BandType] OF INTEGER;  { No contests with QSO # by mode }
     QSOPointsDomesticCW:    INTEGER;
     QSOPointsDomesticPhone: INTEGER;
     QSOPointsDXCW:          INTEGER;
@@ -917,13 +916,6 @@ VAR
   PROCEDURE DisplayInsertMode (InsertMode: BOOLEAN);
   PROCEDURE DisplayMultiMessages;
   PROCEDURE DisplayNameSent (Name: Str80);
-  PROCEDURE DisplayNamePercentage (TotalNamesSent: INTEGER; QSONumber: INTEGER);
-
-  { We ask for the band when displaying a QSO number to make it easier to determine if
-    we need to detect that the QSO number needs updating when we are doing QSONumberByBand
-    and the radio chanegs bands on its own. }
-
-  PROCEDURE DisplayQSONumber (QSONumber: INTEGER; Band: BandType);
 
   { The following routine works for the Classi UI }
 
@@ -935,6 +927,7 @@ VAR
 
   PROCEDURE DisplayPossibleCallsInActiveWindow (VAR List: CallListRecord);
   PROCEDURE DisplayPrefixInfo (Prefix: Str20);
+  PROCEDURE DisplayQSONumber (QSONumber: INTEGER);
   PROCEDURE DisplayQTCNumber (QTCNumber: INTEGER);
   PROCEDURE DisplayRadio (Radio: RadioType);
   PROCEDURE DisplayRate (Rate: INTEGER);
@@ -954,6 +947,8 @@ VAR
                                              VAR Band: BandType;
                                              VAR Mode: ModeType);
 
+  FUNCTION  GetNextQSONumber (Band: BandType): INTEGER;
+
   {KK1L: 6.64 created a function for this step used in EditBandMap}
   FUNCTION  GetRecordForBandMapCursor (VAR Entry: BandMapEntryPointer;
                                           CursorEntryNumber: INTEGER) : BOOLEAN;
@@ -961,6 +956,7 @@ VAR
   FUNCTION  GetUserInfoString (Call: CallString): STRING;
 
   PROCEDURE IncrementTime (Count: INTEGER);
+  PROCEDURE InitializeNextQSONumber;
 
   PROCEDURE LoadBandMap;
   PROCEDURE LookForOnDeckCall (VAR ExchangeString: Str80);
@@ -989,9 +985,11 @@ VAR
 
   PROCEDURE RemoveAndRestorePreviousWindow;
   PROCEDURE RemoveWindow (WindowName: WindowType);
+  FUNCTION  ReserveNextQSONumberLocal (Band: BandType): INTEGER;
   PROCEDURE ResetBandMapTimes; {KK1L: 6.70}
   PROCEDURE ResetSavedWindowListAndPutUpCallWindow;
   PROCEDURE RestorePreviousWindow;
+  FUNCTION  ReturnQSONumberLocal (Band: BandType; QSONumber: INTEGER): BOOLEAN;
 
   PROCEDURE SaveActiveWindow;
   PROCEDURE SaveBandMap;
@@ -2341,26 +2339,27 @@ PROCEDURE DisplayMultiMessages;
 VAR Band: BandType;
     Mode: ModeType;
     TempString: Str40;
+    PassFreqStr, RunFreqStr: Str20;
 
     BEGIN
     SaveSetAndClearActiveWindow (EditableLogWindow);
 
-        FOR Band := Band160 TO BandLight DO
-            FOR Mode := CW TO Phone DO
-                IF MultiStatus [Band, Mode] <> nil THEN
+    FOR Band := Band160 TO BandLight DO
+        FOR Mode := CW TO Phone DO
+            IF MultiStatus [Band, Mode] <> nil THEN
+                BEGIN
+                TempString := BandString [Band] + ModeString [Mode] + ' ' + MultiStatus [Band, Mode]^;
+
+                Write (TempString);
+
+                IF WhereX > 40 THEN
                     BEGIN
-                    TempString := BandString [Band] + ModeString [Mode] + ' ' + MultiStatus [Band, Mode]^;
-
-                    Write (TempString);
-
-                    IF WhereX > 40 THEN
-                        BEGIN
-                        WriteLn;
-                        ClrEol;
-                        END
-                    ELSE
-                        GoToXY (41, WhereY);
-                    END;
+                    WriteLn;
+                    ClrEol;
+                    END
+                ELSE
+                    GoToXY (41, WhereY);
+                END;
 
     RestorePreviousWindow;
     END;
@@ -2517,48 +2516,21 @@ VAR Entry: INTEGER;
     END;
 
 
-
-PROCEDURE DisplayNamePercentage (TotalNamesSent: INTEGER; QSONumber: INTEGER);
-
-VAR Percentage: REAL;
+PROCEDURE DisplayQSONumber (QSONumber: INTEGER);
 
     BEGIN
-    IF (QSONumber > 0) AND SayHiEnable THEN
-        BEGIN
-        Percentage := TotalNamesSent / QSONumber;
-        Percentage := Percentage * 100;
-        SaveSetAndClearActiveWindow (NamePercentageWindow);
-        Write (' ', Percentage:3:1, '%');
-        RestorePreviousWindow;
-        END;
-    END;
-
-
-
-PROCEDURE DisplayQSONumber (QSONumber: INTEGER; Band: BandType);
-
-    BEGIN
-    { We save this so people can tell if the band got changed by magic }
-
-    LastDisplayedQSONumberBand := Band;
-
-    { See if we have already displayed this QSO number }
-
     IF QSONumber = LastDisplayedQSONumber THEN Exit;
     LastDisplayedQSONumber := QSONumber;
 
     SaveSetAndClearActiveWindow (QSONumberWindow);
 
     IF QSONumber = -1 THEN
-        write ('  -1 ')
+        Write (' ----')
     ELSE
-        IF QSONumber = 0 THEN  { If getting from multi - we might not have it yet }
-            Write (' ----')
+        IF QSONumber > 9999 THEN
+            Write (QSONumber:5)
         ELSE
-            IF QSONumber > 9999 THEN
-                Write (QSONumber:5)
-            ELSE
-                Write (QSONumber:4);
+            Write (QSONumber:4);
 
     { Create a clear space after the number }
 
@@ -2567,9 +2539,6 @@ PROCEDURE DisplayQSONumber (QSONumber: INTEGER; Band: BandType);
     ClrScr;
     RestorePreviousWindow;
     END;
-
-
-
 
 
 
@@ -2654,7 +2623,6 @@ PROCEDURE DisplayQTCNumber (QTCNumber: INTEGER);
     Write ('Have ', QTCNumber, ' QTCs');
     RestorePreviousWindow;
     END;
-
 
 
 PROCEDURE DisplayCountryName (Call: CallString);
@@ -3912,19 +3880,9 @@ PROCEDURE DeleteBandMapCallFromN4OGWBandMap (Call: Callstring);
 
 
 
-PROCEDURE DeleteBandMapEntry (VAR Entry: BandMapEntryPointer);
-
-VAR BandMapEntryRecord, PreviousBandEntryRecord: BandMapEntryPointer;
-    StartBand, StopBand, Band: BandType;
-    StartMode, StopMode, Mode: ModeType;
+PROCEDURE DetermineBandMapStartBandAndMode (VAR StartBand, StopBand: BandType; StartMode, StopMode: ModeType);
 
     BEGIN
-    IF NOT BandMapEnable THEN Exit;
-
-    { Takes care of the N4OGW bandmap }
-
-    DeleteBandMapCallFromN4OGWBandMap (BigExpandedString (Entry^.Call));
-
     IF BandMapAllBands THEN
         BEGIN
         IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
@@ -3954,11 +3912,28 @@ VAR BandMapEntryRecord, PreviousBandEntryRecord: BandMapEntryPointer;
         StartMode := BandMapMode;
         StopMode  := BandMapMode;
         END;
+    END;
+
+
+
+PROCEDURE DeleteBandMapEntry (VAR Entry: BandMapEntryPointer);
+
+VAR BandMapEntryRecord, PreviousBandEntryRecord: BandMapEntryPointer;
+    StartBand, StopBand, Band: BandType;
+    StartMode, StopMode, Mode: ModeType;
+
+    BEGIN
+    IF NOT BandMapEnable THEN Exit;
+
+    { Takes care of the N4OGW bandmap }
+
+    DeleteBandMapCallFromN4OGWBandMap (BigExpandedString (Entry^.Call));
+
+    DetermineBandMapStartBandAndMode (StartBand, StopBand, StartMode, StopMode);
 
     FOR Band := StartBand TO StopBand DO
         FOR Mode := StartMode TO StopMode DO
             BEGIN
-
             IF (NOT WARCBandsEnabled) AND
                ((Band = Band30) OR (Band = Band17) OR (Band = Band12)) THEN
                 Continue; {KK1L: 6.64 Keep band map within contest limits}
@@ -4014,35 +3989,7 @@ VAR BandMapEntryRecord, PreviousBandEntryRecord: BandMapEntryPointer;
     BEGIN
     IF NOT BandMapEnable THEN Exit;
 
-    IF BandMapAllBands THEN
-        BEGIN
-        IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band2;
-            END
-        ELSE
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band12; {KK1L: 6.65 fixes WARC display enable}
-            END;
-        END
-    ELSE
-        BEGIN
-        StartBand := BandMapBand;
-        StopBand  := BandMapBand;
-        END;
-
-    IF BandMapAllModes THEN
-        BEGIN
-        StartMode := CW;
-        StopMode  := Phone;
-        END
-    ELSE
-        BEGIN
-        StartMode := BandMapMode;
-        StopMode  := BandMapMode;
-        END;
+    DetermineBandMapStartBandAndMode (StartBand, StopBand, StartMode, StopMode);
 
     FOR Band := StartBand TO StopBand DO
         FOR Mode := StartMode TO StopMode DO
@@ -4173,35 +4120,7 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
     ELSE
         RadioToUse := ActiveRadio;
 
-    IF BandMapAllBands THEN
-        BEGIN
-        IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band2;
-            END
-        ELSE
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band12; {KK1L: 6.65 fixes WARC display enable}
-            END;
-        END
-    ELSE
-        BEGIN
-        StartBand := BandMapBand;
-        StopBand  := BandMapBand;
-        END;
-
-    IF BandMapAllModes THEN
-        BEGIN
-        StartMode := CW;
-        StopMode  := Phone;
-        END
-    ELSE
-        BEGIN
-        StartMode := BandMapMode;
-        StopMode  := BandMapMode;
-        END;
+    DetermineBandMapStartBandAndMode (StartBand, StopBand, StartMode, StopMode);
 
     FOR Band := StartBand TO StopBand DO
         FOR Mode := StartMode TO StopMode DO
@@ -4278,35 +4197,7 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
     ELSE
         RadioToUse := ActiveRadio;
 
-    IF BandMapAllBands THEN
-        BEGIN
-        IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band2;
-            END
-        ELSE
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band12; {KK1L: 6.65 fixes WARC display enable}
-            END;
-        END
-    ELSE
-        BEGIN
-        StartBand := BandMapBand;
-        StopBand  := BandMapBand;
-        END;
-
-    IF BandMapAllModes THEN
-        BEGIN
-        StartMode := CW;
-        StopMode  := Phone;
-        END
-    ELSE
-        BEGIN
-        StartMode := BandMapMode;
-        StopMode  := BandMapMode;
-        END;
+    DetermineBandMapStartBandAndMode (StartBand, StopBand, StartMode, StopMode);
 
     FOR Band := StartBand TO StopBand DO
         FOR Mode := StartMode TO StopMode DO
@@ -5055,7 +4946,36 @@ VAR BandMapEntryRecord: BandMapEntryPointer;
 
 
 
+FUNCTION DisplayThisBandMapEntry (BandMapEntryRecord: BandMapEntryPointer): BOOLEAN;
+
+{ We should try to use this for both computing the # of entries to display and the actual
+  act of displaying them }
+
+    BEGIN
+    IF (BandMapEntryRecord^.StatusByte AND $40) <> 0 THEN  { Is a dupe }
+        BEGIN
+        DisplayThisBandMapEntry := BandMapDupeDisplay;
+        Exit;
+        END;
+
+    { Not a dupe - see if we are only displaying mults }
+
+    IF BandMapMultsOnly THEN
+        BEGIN
+        DisplayThisBandMapEntry := (BandMapEntryRecord^.StatusByte AND $80) = 0;
+        Exit;
+        END;
+
+    { We default to displaying the bandmap }
+
+    DisplayThisBandMapEntry := True;
+    END;
+
+
+
 PROCEDURE DisplayBandMap;
+
+{ Paints a whole fresh image of the bandmap }
 
 VAR StartBand, StopBand: BandType;
     StartMode, StopMode: ModeType;
@@ -5064,7 +4984,7 @@ VAR StartBand, StopBand: BandType;
     NumberEntriesDisplayed, MaxEntriesPerPage, NumberBandMapRows,
       FirstDisplayableBandMapCursor, CurrentCursor,
       LastDisplayableBandMapCursor, DummyEntryNumber: INTEGER;
-    WindowCall, BandMapCall: CallString;
+    WindowCall, BandMapCall, PassFreqStr, RunFreqStr: CallString;
     FreqString: Str20;
     DoBlink: INTEGER;
     Band: BandType;
@@ -5096,36 +5016,7 @@ VAR StartBand, StopBand: BandType;
 
     {KK1L: 6.64 set value for use in DisplayBandMap}
     CalculateNumberVisibleBandMapEntries (NumberBandMapEntries, DummyEntryNumber, False);
-
-    IF BandMapAllBands THEN
-        BEGIN
-        IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band2;
-            END
-        ELSE
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band12; {KK1L: 6.65 fixes WARC display enable}
-            END;
-        END
-    ELSE
-        BEGIN
-        StartBand := BandMapBand;
-        StopBand  := BandMapBand;
-        END;
-
-    IF BandMapAllModes THEN
-        BEGIN
-        StartMode := CW;
-        StopMode  := Phone;
-        END
-    ELSE
-        BEGIN
-        StartMode := BandMapMode;
-        StopMode  := BandMapMode;
-        END;
+    DetermineBandMapStartBandAndMode (StartBand, StopBand, StartMode, StopMode);
 
     REPEAT  {KK1L: 6.69 allows BM to line up with radio after "end" or "home"}
 
@@ -5184,6 +5075,7 @@ VAR StartBand, StopBand: BandType;
         GoToXY (34, NumberBandMapRows+1);
         TextColor (White);
         Write (BandString [StartBand], ModeString [StartMode], ' - ');
+
         {KK1L: 6.67 Added if to range display so 12m is only shown when appropriate}
         IF (NOT WARCBandsEnabled) AND (StopBand = Band12) THEN
             Write (BandString [Band10], ModeString [StopMode])
@@ -5242,17 +5134,10 @@ VAR StartBand, StopBand: BandType;
 
                 WHIlE BandMapEntryRecord <> nil DO
                    BEGIN
-                   { If it is a dupe and we don't display dupes - skip it }
-
-                   {KK1L: 6.65 Following IF not needed. I It actually gets in the way of both}
-                   {           the CallWindowShowAllSpots option as well as not letting      }
-                   {           undisplayed (dupe) spots age!                                 }
-                   {IF (NOT BandMapDupeDisplay) AND                               }
-                   {   ((BandMapEntryRecord^.StatusByte AND $40) <> 0) THEN       }
-                   {      BEGIN                                                   }
-                   {      BandMapEntryRecord := BandMapEntryRecord^.NextEntry;    }
-                   {      Continue;                                               }
-                   {      END;                                                    }
+                   { So - we go through this loop for all band map entries even if they are
+                     not going to be displayed in the band map.  One possible reason for this
+                     is when CallWindowShowAllSpots is TRUE and you are tuned to a dupe band
+                     map entry when not displaying dupes in the band map.  }
 
                    {KK1L: 6.64 Set FirstDisplayedBandMapFrequency for use on next call to DisplayBandMap}
                    {KK1L: 6.65 Changed to = NumberBandMapRows from 0 to mimic display movement of EditBM}
@@ -5288,7 +5173,10 @@ VAR StartBand, StopBand: BandType;
                        Delete(BandMapCall, 8, 12);
                        WHILE (Length(BandMapCall) < 7) DO BandMapCall := BandMapCall + ' '; {KK1L: 6.69 neatens display}
 
-                       { Determine if this entry should be blinking (for non-CQ entries) }
+                       { Determine if this entry should be blinking (for non-CQ entries) indicating
+                         that the VFO is tuned to this frequency.  Note this also sets up some
+                         global variables used to put the callsign into the call window when you
+                         are in S&P and tuning around the band.  }
 
                        IF (Abs (Frequency - BandMapCursorFrequency) <= BandMapGuardBand) AND
                           (Copy (BandMapCall, 1, 3) <> 'CQ/') THEN
@@ -5337,55 +5225,37 @@ VAR StartBand, StopBand: BandType;
 
                        {KK1L: 6.64, but only if in the range we want to display}
                        {KK1L: 6.73 Added AND DisplayBandMapEnable}
-                       IF (CurrentCursor >= FirstDisplayableBandMapcursor) AND
-                          (CurrentCursor <  LastDisplayableBandMapcursor) AND
-                          (DisplayBandMapEnable) THEN
-                         BEGIN
-                         GoToProperXY (NumberEntriesDisplayed, NumberBandMapRows, 5); {KK1L: 6.65 Moved here from earlier}
-                         IF QSXOffset = 0 THEN
-                             BEGIN
-                             {KK1L: 6.64 check dupe display status before adding *}
-                             {KK1L: 6.65 Moved Inc to inside because now all entries are processed}
-                             IF ((StatusByte AND $40) <> 0) AND BandMapDupeDisplay THEN
-                                 BEGIN
-                                 Write (FreqString, ' *', BandMapCall);
-                                 Inc (NumberEntriesDisplayed);
-                                 END
-                             ELSE
-                                 IF (StatusByte AND $80) <> 0 THEN
-                                     BEGIN
-                                     Write (FreqString, ' m', BandMapCall);
-                                     Inc (NumberEntriesDisplayed);
-                                     END
-                                 ELSE IF (StatusByte AND $40 = 0) THEN  {KK1L: 6.65 Added IF}
-                                     BEGIN
-                                     Write (FreqString, '  ', BandMapCall);
-                                     Inc (NumberEntriesDisplayed);
-                                     END;
-                             END
-                         ELSE
-                             BEGIN
-                             {KK1L: 6.64 check dupe display status before adding x*}
-                             {KK1L: 6.65 Moved Inc to inside because now all entries are processed}
-                             IF ((StatusByte AND $40) <> 0) AND BandMapDupeDisplay THEN
-                                 BEGIN
-                                 Write (FreqString, 'x*', BandMapCall);
-                                 Inc (NumberEntriesDisplayed);
-                                 END
-                             ELSE
-                                 IF (StatusByte AND $80) <> 0 THEN
-                                     BEGIN
-                                     Write (FreqString, 'xm', BandMapCall);
-                                     Inc (NumberEntriesDisplayed);
-                                     END
-                                 ELSE IF (StatusByte AND $40 = 0) THEN  {KK1L: 6.65 Added IF}
-                                     BEGIN
-                                     Write (FreqString, 'x ', BandMapCall);
-                                     Inc (NumberEntriesDisplayed);
-                                     END;
 
-                             END;
-                         END;
+                       IF DisplayBandMapEnable THEN
+                           IF (CurrentCursor >= FirstDisplayableBandMapcursor) AND
+                              (CurrentCursor <  LastDisplayableBandMapcursor) THEN
+                                  IF DisplayThisBandMapEntry (BandMapEntryRecord) THEN
+                                      BEGIN
+                                      GoToProperXY (NumberEntriesDisplayed, NumberBandMapRows, 5); {KK1L: 6.65 Moved here from earlier}
+
+                                      { New in May 2024 - we put a lower case d for a dupe }
+
+                                      IF QSXOffset = 0 THEN
+                                          BEGIN
+                                          IF (StatusByte AND $40) <> 0 THEN  { Dupe }
+                                              Write (FreqString, ' d', BandMapCall)
+                                          ELSE IF (StatusByte AND $80) <> 0 THEN { Mult }
+                                              Write (FreqString, ' m', BandMapCall)
+                                          ELSE
+                                              Write (FreqString, '  ', BandMapCall);
+                                          END
+                                      ELSE
+                                          BEGIN
+                                          IF (StatusByte AND $40) <> 0 THEN  { Dupe }
+                                              Write (FreqString, 'xd', BandMapCall)
+                                          ELSE IF (StatusByte AND $80) <> 0 THEN { Mult }
+                                              Write (FreqString, 'xm', BandMapCall)
+                                          ELSE
+                                              Write (FreqString, 'x ', BandMapCall);
+                                          END;
+
+                                      Inc (NumberEntriesDisplayed);
+                                      END;
                        END;
 
                    IF (NumberEntriesDisplayed >= MaxEntriesPerPage) THEN
@@ -5628,97 +5498,74 @@ PROCEDURE CalculateNumberVisibleBandMapEntries (VAR NumberVisibleBandMapEntries:
                                                 VAR CursorEntryNumber: INTEGER;
                                                 StartAtTop: BOOLEAN);
 
-{ New in 6.49 }
-{ Compute number of band map entries and which entry number the
-  BandMapCursorData (global variable) resides at. }
+{ Cleaned up in May 2024.  Now uses the function above to determine if the bandmap
+  entry should be displayed or not, }
 
 VAR Band, StartBand, StopBand: BandType;
     Mode, StartMode, StopMode: ModeType;
     BandMapEntryRecord: BandMapEntryPointer;
 
     BEGIN
-    IF BandMapAllBands THEN
-        BEGIN
-        IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band2;
-            END
-        ELSE
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band12;  {KK1L: 6.65 fixes WARC display enable}
-            END;
-        END
-    ELSE
-        BEGIN
-        StartBand := BandMapBand;
-        StopBand  := BandMapBand;
-        END;
-
-    IF BandMapAllModes THEN
-        BEGIN
-        StartMode := CW;
-        StopMode  := Phone;
-        END
-    ELSE
-        BEGIN
-        StartMode := BandMapMode;
-        StopMode  := BandMapMode;
-        END;
+    DetermineBandMapStartBandAndMode (StartBand, StopBand, StartMode, StopMode);
 
     NumberVisibleBandMapEntries := 0;
     CursorEntryNumber           := 0;
+    FoundCursor := False;
 
     IF StartAtTop THEN
         BandMapCursorData := BandMapFirstEntryList [StartBand, StartMode];
-
-    FoundCursor := False;
 
     FOR Band := StartBand TO StopBand DO
         FOR Mode := StartMode TO StopMode DO
             BEGIN
 
-            IF (NOT WARCBandsEnabled) AND
-               ((Band = Band30) OR (Band = Band17) OR (Band = Band12)) THEN
-                Continue; {KK1L: 6.64 Keep band map within contest limits}
+            { Skip processing entries for WARC bands }
+
+            IF NOT WARCBandsEnabled THEN
+                IF (Band = Band30) OR (Band = Band17) OR (Band = Band12) THEN
+                    Continue;  {KK1L: 6.64 Keep band map within contest limits}
+
+            { Get First entry in linked list of band map entries corresponding
+              to the Band/Mode }
 
             BandMapEntryRecord := BandMapFirstEntryList [Band, Mode];
 
+            { Work through the linked list }
+
             WHILE BandMapEntryRecord <> nil DO
                 BEGIN
-                IF ((BandMapEntryRecord^.StatusByte AND $40) <> 0) AND BandMapDupeDisplay THEN
-                    BEGIN {entry is a dupe and we are displaying dupes }
-if bandmapcursordata <> nil then
-                    IF BandMapEntryRecord^.Frequency = BandMapCursorData^.Frequency THEN
-                      BEGIN
-                      BandMapCursorData := BandMapEntryRecord;
-                      FoundCursor := True;
-                      END;
-                    IF NOT FoundCursor THEN Inc (CursorEntryNumber);
-                    Inc (NumberVisibleBandMapEntries);
-                    END
-                ELSE IF ((BandMapEntryRecord^.StatusByte AND $40) = 0) THEN
-                    BEGIN {KK1L: 6.64 entry is not a dupe so just check it}
-if bandmapcursordata <> nil then
-                    IF BandMapEntryRecord^.Frequency = BandMapCursorData^.Frequency THEN
-                      BEGIN
-                      BandMapCursorData := BandMapEntryRecord;
-                      FoundCursor := True;
-                      END;
-                    IF NOT FoundCursor THEN Inc (CursorEntryNumber);
+                IF DisplayThisBandMapEntry (BandMapEntryRecord) THEN
+                    BEGIN
+                    { We look at entries to see if they match the cursor frequency }
+
+                    IF BandMapCursorData <> nil THEN
+                        BEGIN
+                        IF BandMapEntryRecord^.Frequency = BandMapCursorData^.Frequency THEN
+                            BEGIN
+                            BandMapCursorData := BandMapEntryRecord;
+                            FoundCursor := True;
+                            END;
+
+                        IF NOT FoundCursor THEN
+                            Inc (CursorEntryNumber);
+                        END;
+
                     Inc (NumberVisibleBandMapEntries);
                     END;
+
+                { Proceed to next entry in the linked list }
                 BandMapEntryRecord := BandMapEntryRecord^.NextEntry;
                 END;
             END;
-    IF NOT FoundCursor THEN
-      {KK1L: 6.64 covers the case of the cursor on a dupe when BandMapDupeDisplay is toggled FALSE}
-      {      Really it just finds the first appropriate entry to display at entry zero}
-      {      It covers cases of single band, all bands, all modes, all bands and modes}
+
+  {KK1L: 6.64 covers the case of the cursor on a dupe when BandMapDupeDisplay is toggled FALSE}
+  {      Really it just finds the first appropriate entry to display at entry zero}
+  {      It covers cases of single band, all bands, all modes, all bands and modes}
+
+  IF NOT FoundCursor THEN
       BEGIN
       CursorEntryNumber := 0;
-      GetRecordForBandMapCursor(BandMapCursorData, CursorEntryNumber);
+      GetRecordForBandMapCursor (BandMapCursorData, CursorEntryNumber);
       END;
 
     END;
@@ -5739,35 +5586,7 @@ VAR EntryNumber : INTEGER;
 //writeln(stderr,'entry in');
 //writeln(stderr,ptruint(entry));
 //flush(stderr);
-    IF BandMapAllBands THEN
-        BEGIN
-        IF VHFBandsEnabled THEN {KK1L: 6.64 Keep band map within contest limits}
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band2;
-            END
-        ELSE
-            BEGIN
-            StartBand := Band160;
-            StopBand  := Band12;  {KK1L: 6.65 fixes WARC display enable}
-            END;
-        END
-    ELSE
-        BEGIN
-        StartBand := BandMapBand;
-        StopBand  := BandMapBand;
-        END;
-
-    IF BandMapAllModes THEN
-        BEGIN
-        StartMode := CW;
-        StopMode  := Phone;
-        END
-    ELSE
-        BEGIN
-        StartMode := BandMapMode;
-        StopMode  := BandMapMode;
-        END;
+    DetermineBandMapStartBandAndMode (StartBand, StopBand, StartMode, StopMode);
 
     EntryNumber := 0;
     GetRecordForBandMapCursor := FALSE;
@@ -6756,7 +6575,6 @@ VAR Band: BandType;
     FirstDisplayedBandMapFrequency := 0; {KK1L: 6.64}
 
     FrequencyDisplayed     := False;
-    LastDisplayedQSONumberBand := NoBand;
 
     Rig1FreqPollRate           := 250;
     Rig2FreqPollRate           := 250;
@@ -6780,7 +6598,7 @@ VAR Band: BandType;
     LastDisplayedFreq[RadioTwo]     := 0; {KK1L: 6.73}
     LastDisplayedHour      := '';
     LastDisplayedMode      := NoMode;
-    LastDisplayedQSONumber := -1;
+    LastDisplayedQSONumber := -2;
     LastDisplayedTime      := '';
 
     LastEditedBandMapEntry := 0;
@@ -6844,6 +6662,175 @@ VAR Band: BandType;
 
     VisibleDupeSheetChanged     := True;
     WakeUpCount                 := 0;
+    END;
+
+
+
+PROCEDURE InitializeNextQSONumber;
+
+{ Looks though the log file and editable log file to figure out what the
+  next QSO Number is that should be sent. This used to just be an integer,
+  but has been expanded to include band/mode information in the matrix
+  QSONumberMatrix.  Also - instead of actually having the next QSO number
+  in that matrix - it has the last QSO number given out. }
+
+VAR FileRead: TEXT;
+    BandModeString, QSONumberString, FileString: STRING;
+    QSONumber: INTEGER;
+    Band, LogEntryBand: BandType;
+    Mode, LogEntryMode: ModeType;
+
+    BEGIN
+    { Intialize matrix with zeros }
+
+    FOR Band := Band160 TO All DO
+        QSONumberMatrix [Band] := 0;
+
+    { Look at the LogTempFile and get highest QSO numbers by band/mode }
+
+    IF OpenFileForRead (FileRead, LogTempFileName) THEN
+        BEGIN
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+
+            BandModeString := RemoveFirstString (FileString);   { Band/Mode }
+
+            DecodeBandModeString (BandModeString, LogEntryBand, LogEntryMode);  { In tree.pas }
+
+            RemoveFirstString (FileString);   { Date }
+            RemoveFirstString (FileString);   { Time }
+
+            IF FileString <> '' THEN
+                BEGIN
+                QSONumberString := RemoveFirstString (FileString);  { QSO Number }
+
+                IF StringIsAllNumbers (QSONumberString) THEN
+                    BEGIN
+                    Val (QSONumberString, QSONumber);
+
+                    { We increment totals for the band and all bands }
+
+                    IF QSONumber > QSONumberMatrix [All] THEN
+                        QSONumberMatrix [All] := QSONumber;
+
+                    IF QSONumber > QSONumberMatrix [LogEntryBand] THEN
+                        QSONumberMatrix [LogEntryBand] := QSONumber;
+                    END;
+                END;
+            END;
+
+        Close (FileRead);
+        END;
+
+    { Look through the log file to make sure there isn't a larger number
+      hiding in there }
+
+  IF OpenFileForRead (FileRead, LogFileName) THEN
+        BEGIN
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+
+            BandModeString := RemoveFirstString (FileString);   { Band/Mode }
+
+            DecodeBandModeString (BandModeString, LogEntryBand, LogEntryMode);  { In tree.pas }
+
+            RemoveFirstString (FileString);   { Date }
+            RemoveFirstString (FileString);   { Time }
+
+            IF FileString <> '' THEN
+                BEGIN
+                QSONumberString := RemoveFirstString (FileString);  { QSO Number }
+
+                IF StringIsAllNumbers (QSONumberString) THEN
+                    BEGIN
+                    Val (QSONumberString, QSONumber);
+
+                    { Factor QSONumberByBand and QSONumberByMode in }
+
+                    IF QSONumber > QSONumberMatrix [All] THEN
+                        QSONumberMatrix [All] := QSONumber;
+
+                    IF QSONumber > QSONumberMatrix [LogEntryBand] THEN
+                        QSONumberMatrix [LogEntryBand] := QSONumber;
+                    END;
+                END;
+            END;
+
+        Close (FileRead);
+        END;
+    END;
+
+
+
+FUNCTION GetNextQSONumber (Band: BandType): INTEGER;
+
+{ Similar to ReserveNextQSONumberLocal except it returns the current QSO number
+  without reserving a new one.  In other words, it will return the last
+  reserved number for the band/mode.
+
+  Note that it is expected that if the reserved QSO number came from the network
+  in LogStuff - that the value in the "local" matrix was updated so that if
+  someone called this routine - they will get the same QSO number that they
+  received over the network when it was reserved. }
+
+    BEGIN
+    IF NOT QSONumberByBand THEN Band := All;
+    GetNextQSONumber := QSONumberMatrix [Band];
+    END;
+
+
+
+FUNCTION ReserveNextQSONumberLocal (Band: BandType): INTEGER;
+
+{ Used to be GetNextQSONumber - but now clearly indicates that the number
+  returned will be reserved - and thus never given out again.  This new
+  procedure requires the band and mode that are to be used to generate
+  the number.  This was done to support requests over the network and
+  also to make 2BSIQ operation more understandable.
+
+  The global QSONumberByMode and QSONumberByBand are both used to determine
+  if the band or mode needs to be factored into the process.
+
+  The initial contents of the array used to keep track of QSO numbers is
+  all zeros with a new log.  If a log is loaded in, the highest QSO number
+  for each "slot" is computed looking at the sent QSO numbers in the log
+  and set to the last QSO number sent on each band/mode.  If you are not
+  using QSOByBand or QSOByMode - you will look at All (for band) and Both
+  (for mode) }
+
+
+    BEGIN
+    IF NOT QSONumberByBand THEN Band := All;
+
+    { We need to first increment to the new QSO number since the totals in this array
+      are what was sent previously }
+
+    Inc (QSONumberMatrix [Band]);
+    ReserveNextQSONumberLocal := QSONumberMatrix [Band];
+    END;
+
+
+
+FUNCTION ReturnQSONumberLocal (Band: BandType; QSONumber: INTEGER): BOOLEAN;
+
+{ Will try to return an unused QSO number so someone else can use it. Returns
+  TRUE is successful }
+
+
+    BEGIN
+    IF NOT QSONumberByBand THEN Band := All;
+
+    IF QSONumberMatrix [Band] = QSONumber THEN  { Okay to return it }
+        IF QSONumber > 0 THEN
+            BEGIN
+            Dec (QSONumberMatrix [Band]);
+            ReturnQSONumberLocal := True;
+            Exit;
+            END;
+
+    ReturnQSONumberLocal := False;
     END;
 
 

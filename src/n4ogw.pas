@@ -98,10 +98,10 @@ VAR
 
     N4OGW_RadioOne_BandMap_IP: STRING;             { Global variables used for config file parsing }
     N4OGW_RadioTwo_BandMap_IP: STRING;             { Global variables used for config file parsing }
-    N4OGW_RadioOne_BandMap_Port: LONGINT;          { Global variables used for config file parsing }
-    N4OGW_RadioTwo_BandMap_Port: LONGINT;          { Global variables used for config file parsing }
-    N4OGW_RadioOne_BandMap_UDP_Port: LONGINT;      { Global variables used for config file parsing }
-    N4OGW_RadioTwo_BandMap_UDP_Port: LONGINT;      { Global variables used for config file parsing }
+    N4OGW_RadioOne_BandMap_Port: LONGINT;          { Global variables - TCP port }
+    N4OGW_RadioTwo_BandMap_Port: LONGINT;          { Global variables - TCP port }
+    N4OGW_RadioOne_BandMap_UDP_Port: LONGINT;      { Global variables - UDP port for N4OGW messages }
+    N4OGW_RadioTwo_BandMap_UDP_Port: LONGINT;      { Global variables - will be the same as Radio 1 }
 
     N4OGW_RadioOne_BandMap: N4OGW_BandMap_Object;
     N4OGW_RadioTwo_BandMap: N4OGW_BandMap_Object;
@@ -192,7 +192,7 @@ VAR SendString: STRING;
     BEGIN
     SendString := 'd'  + Chr (Length (Call)) + Call;
     FpSend (Socket, @SendString [1], Length (SendString), 0);
-    WriteToDebugFile ('Sent delete ' + Call);
+    WriteToDebugFile ('DeleteCallsign called with ' + Call);
     END;
 
 
@@ -217,16 +217,19 @@ VAR SendString: Str20;
 PROCEDURE N4OGW_BandMap_Object.SetRXMode;
 
     BEGIN
-    IF NOT TXMode THEN Exit;   { We are not in TX mode - nothing to do }
+//    IF NOT TXMode THEN
+//        BEGIN
+//        WritetoDebugFile ('Asked to SetRXMode but not in TXMode');
+//        Exit;   { We are not in TX mode - nothing to do }
+//        END;
 
-    IF TXModeTimeout > 0 THEN Exit;  { We are already doing a TX timeout }
+//    IF TXModeTimeout > 0 THEN Exit;  { We are already doing a TX timeout }
 
     { We actually don't set the RX Mode just yet - we need to delay a couple
       of seconds to make sure the pipeline including RX latency is all
       processed before doing this.  So - we set a timer to create this delay }
 
-    TXModeTimeout := 2;  { We set to 3 so we can send the RX command at 1 and again
-                           at zero }
+    TXModeTimeout := 2;
     END;
 
 
@@ -330,6 +333,9 @@ VAR Address: INTEGER;
     NewArrayAddress, NumberEntriesDeleted: INTEGER;
 
     BEGIN
+
+    { This code has a problem with memory affecting other variables }
+
     IF SpotList.NumberSpots = 0 THEN Exit;  { Nothing to do }
 
     NewArrayAddress := 0;
@@ -463,7 +469,9 @@ VAR BytesRead: INTEGER;
 
     SetLength (UDP_Message, BytesRead);
 
-    WriteToDebugFile ('Received UDP Message = ' + UDP_Message);
+    IF StringHas (UDP_Message, 'operation') OR StringHas (UDP_Message, 'freq') THEN
+        WriteToDebugFile ('Received UDP Message = ' + UDP_Message);
+
     Check_UDP_Port := True;
     END;
 
@@ -512,24 +520,14 @@ VAR Hours, Minutes, Seconds, Sec100: WORD;
 
     { We are now executing this code only once a second }
 
-    CheckSpotArray;
+{   CheckSpotArray;}
 
     IF TXModeTimeout > 0 THEN
         BEGIN
-        Dec (TXModeTimeOut);
-
-        IF (TXModeTimeOut = 0) OR (TXModeTimeOut = 0) THEN
-            BEGIN
             SendString := 'r' + Chr(0);
             FpSend (Socket, @SendString [1], Length (SendString), 0);
             TXMode := False;
-            WriteToDebugFile ('Sent r command (receive mode)');
-
-            { Do it twice? }
-
-            SendString := 'r' + Chr(0);
-            FpSend (Socket, @SendString [1], Length (SendString), 0);
-            END;
+            WriteToDebugFile ('Sent r command (receive mode) in heartbeat.');
         END;
     END;
 

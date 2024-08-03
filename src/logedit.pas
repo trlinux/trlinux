@@ -28,7 +28,7 @@ UNIT LogEdit;
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     LogCW, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
      LogSCP,datetimec,radio,n4ogw;
 
 TYPE
@@ -146,8 +146,6 @@ PROCEDURE DisplayBandTotals (Band: BandType);
 
 PROCEDURE FlagDupesInList (Band: Bandtype; Mode: ModeType; VAR List: CallListRecord);
 
-FUNCTION  GetNextQSONumber: INTEGER;  { This works for both states of QSONumberByBand }
-
 PROCEDURE GoToLastCQFrequency;
 PROCEDURE GoToNextBandMapFrequency;
 PROCEDURE GoToNextDisplayedBandMapFrequency;
@@ -168,9 +166,6 @@ PROCEDURE SwapMultDisplay;
 
 PROCEDURE ToggleModes;
 PROCEDURE ToggleStereoPin; {KK1L: 6.71}
-FUNCTION  TotalContacts: INTEGER;
-FUNCTION  TotalCWContacts: INTEGER;
-FUNCTION  TotalPhoneContacts: INTEGER;
 FUNCTION  TotalScore: LONGINT;
 
 {KK1L: 6.64 Added to keep BM up to date with changes made while logging}
@@ -223,51 +218,7 @@ PROCEDURE SwapMultDisplay;
         END;
     END;
 
-
-
-
-FUNCTION TotalCWContacts: INTEGER;
-
-VAR Band: BandType;
-    Total: INTEGER;
-    TempQSOTotals: QSOTotalArray;
-
-    BEGIN
-    TempQSOTotals := QSOTotals;
-
-    VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
-
-    Total := 0;
-
-    FOR Band := Band160 TO Band10 DO
-        Total := Total + TempQSOTotals [Band, CW];
-
-    TotalCWContacts := Total;
-    END;
-
-
-
-
-FUNCTION TotalPhoneContacts: INTEGER;
-
-VAR Band: BandType;
-    Total: INTEGER;
-    TempQSOTotals: QSOTotalArray;
-
-    BEGIN
-    TempQSOTotals := QSOTotals;
-
-    VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
-
-    Total := 0;
-
-    FOR Band := Band160 TO Band10 DO
-        Total := Total + TempQSOTotals [Band, Phone];
-
-    TotalPhoneContacts := Total;
-    END;
-
-
+
 
 PROCEDURE Send88Message;
 
@@ -285,7 +236,7 @@ PROCEDURE CleanUpDisplay;
     RemoveWindow (NameSentWindow);
     RemoveWindow (PossibleCallWindow);
 
-    DisplayNextQSONumber (QSONumberForThisQSO);
+    DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
     DisplayBandMode      (ActiveBand, ActiveMode, False);
     DisplayFreeMemory;
@@ -294,7 +245,6 @@ PROCEDURE CleanUpDisplay;
         VisibleLog.DisplayVisibleDupeSheet (ActiveBand, ActiveMode);
 
     RemoveWindow (CountryNameWindow);
-    DisplayNamePercentage (TotalNamesSent + VisibleLog.NumberNamesSentInEditableLog, TotalContacts);
     DisplayInsertMode (InsertMode);
 
     IF GridSquareListShown THEN VisibleLog.SetUpEditableLog;
@@ -303,27 +253,6 @@ PROCEDURE CleanUpDisplay;
     END;
 
 
-
-FUNCTION TotalContacts: INTEGER;
-
-{ This is the original function that generated the next QSO number.  It got ignored
-  for awhile after the new QSONumber methodology was introduced (mainly to support
-  TBSIQ).  However, it needs to be used in the special case when QSONumberByBand is
-  True, }
-
-VAR TempQSOTotals: QSOTotalArray;
-
-    BEGIN
-    TempQSOTotals := QSOTotals;
-    VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
-
-    IF QSONumberByBand THEN
-        TotalContacts := TempQSOTotals [ActiveBand, Both]
-    ELSE
-        TotalContacts := TempQSOTotals [All, Both];
-    END;
-
-
 
 PROCEDURE DisplayBandTotals (Band: BandType);
 
@@ -683,7 +612,7 @@ PROCEDURE UpdateTotals;
 PROCEDURE BandUp;
 
     BEGIN
-    IF (MultipleBandsEnabled) OR (TotalContacts = 0) THEN
+    IF (MultipleBandsEnabled) OR (QSONumberForThisQSO = 1) THEN
         BEGIN
         IF CommandUseInactiveRadio THEN {KK1L: 6.73 Band change on inactive radio via command}
             BEGIN
@@ -720,9 +649,6 @@ PROCEDURE BandUp;
 
             BandMapBand := ActiveBand;
             DisplayBandMap;
-
-            IF QSONumberByBand THEN
-                DisplayNextQSONumber (QSONumberForThisQSO);
             END;
         END;
     END;
@@ -731,7 +657,7 @@ PROCEDURE BandUp;
 PROCEDURE BandDown;
 
     BEGIN
-    IF (MultipleBandsEnabled) OR (TotalContacts = 0) THEN
+    IF (MultipleBandsEnabled) OR (QSONumberForThisQSO = 0) THEN
         BEGIN
         IF CommandUseInactiveRadio THEN {KK1L: 6.73 Band change on inactive radio via command}
             BEGIN
@@ -768,10 +694,6 @@ PROCEDURE BandDown;
 
             BandMapBand := ActiveBand;
             DisplayBandMap;
-
-            IF QSONumberByBand THEN
-                DisplayNextQSONumber (QSONumberForThisQSO);
-
             END;
         END;
     END;
@@ -1507,7 +1429,7 @@ VAR Entry: INTEGER;
                 BEGIN
                 IF (Exchange.Mode = GetLogEntryMode (LogEntries [Entry])) OR NOT MultByMode THEN
                     BEGIN
-                    MultString := Copy (LogEntries [Entry], LogEntryMultAddress, LogentryMultWidth);
+                    MultString := Copy (LogEntries [Entry], LogEntryMultAddress, LogEntryMultWidth);
 
                     GetRidOfPrecedingSpaces (MultString);
                     MultString := ' ' + MultString + ' ';
@@ -1595,7 +1517,7 @@ PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: STRING);
 VAR TempRXData: ContestExchange;
 
     BEGIN
-    TransferLogEntryInfoToContestExchange (LogEntry, TempRXData);
+    ParseLogEntryIntoContestExchange (LogEntry, TempRXData);
 
     IF (TempRXData.Mode = NoMode) OR (TempRXData.Band = NoBand) THEN Exit; {KK1L: 6.71 Fix "non" contacts from crashing}
 
@@ -1923,7 +1845,7 @@ VAR Entry: INTEGER;
         FOR Entry := 5 DOWNTO 1 DO
             IF Call = UpperCase (GetLogEntryCall (VisibleLog.LogEntries [Entry])) THEN
                 BEGIN
-                IF ParseExchangeIntoContestExchange (VisibleLog.LogEntries [Entry], RData) THEN
+                IF ParseLogEntryIntoContestExchange (VisibleLog.LogEntries [Entry], RData) THEN
                     GetInitialExchangeFromEditableLog := GetInitialExchangeStringFromContestExchange (RData);
                 Exit;
                 END;
@@ -2906,7 +2828,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
 
         IF TempString = '' THEN
             BEGIN
-            IF ActiveMultiPort <> nil THEN
+            IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
                 BEGIN
                 IF UpperCase (QuickEditResponse ('Do you want to send time to computers on the network? (Y/N) : ', 1))='Y' THEN
                     BEGIN
@@ -3026,7 +2948,7 @@ VAR Hour, Minute, Second, Sec100, Year, Month, Day, DayOfWeek: Word;
 
     SetDate (Year, Month, Day);
 
-    IF ActiveMultiPort <> nil THEN
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
         BEGIN
         IF UpperCase (QuickEditResponse ('Do you want to send time to computers on the network? (Y/N) : ', 1)) = 'Y' THEN
             BEGIN
@@ -3300,12 +3222,14 @@ VAR CustomString, Exchange, Command, TempString: STRING;
                         END;
 
                 IF Command = 'NAME' THEN
-                    IF CD.GetEntry (StandardCall, Data) AND (Data.Name <> '') THEN
-                        Exchange := Exchange + Data.Name + ' ';
+                    IF CD.GetEntry (StandardCall, Data) THEN
+                        IF Data.Name <> '' THEN
+                            Exchange := Exchange + Data.Name + ' ';
 
                 IF Command = 'QTH' THEN
-                    IF CD.GetEntry (Call, Data) AND (Data.QTH <> '') THEN
-                        Exchange := Exchange + Data.QTH + ' ';
+                    IF CD.GetEntry (Call, Data) THEN
+                        IF Data.QTH <> '' THEN
+                            Exchange := Exchange + Data.QTH + ' ';
 
                 IF Command = 'SECTION' THEN
                     IF CD.GetEntry (Call, Data) AND (Data.Section <> '') THEN
@@ -3346,8 +3270,9 @@ VAR CustomString, Exchange, Command, TempString: STRING;
                         END;
 
                 IF Command = 'FOC' THEN
-                    IF CD.GetEntry (StandardCall, Data) AND (Data.FOC <> '') THEN
-                        Exchange := Exchange + Data.FOC + ' ';
+                    IF CD.GetEntry (StandardCall, Data) THEN
+                        IF Data.FOC <> '' THEN
+                            Exchange := Exchange + Data.FOC + ' ';
 
                 IF Command = 'CHECK' THEN
                     IF CD.GetEntry (Call, Data) AND (Data.Check <> '') THEN
@@ -3363,10 +3288,11 @@ VAR CustomString, Exchange, Command, TempString: STRING;
 
                 END;
 
-            GetInitialExchangeFromTRMASTER := ' ' + Exchange; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
+            IF Exchange <> '' THEN   { Only added leading space if there is something }
+                GetInitialExchangeFromTRMASTER := ' ' + Exchange; {KK1L: 6.73 Added ' '. K9PG forgets to add it when cursor at start.}
 
-{               IF InitialExchangeOverwrite THEN
-                InitialExchangePutUp := True;} {KK1L: 6.70 For custom typing any character overwrites the whole exchange.}
+//          IF InitialExchangeOverwrite THEN
+//          InitialExchangePutUp := True;} {KK1L: 6.70 For custom typing any character overwrites the whole exchange.}
 
             Exit;
             END;
@@ -3493,24 +3419,24 @@ VAR CustomString, Exchange, Command, TempString: STRING;
 
 FUNCTION InitialExchangeEntry (Call: CallString): Str80;
 
-{ This function will give you an initial exchange window entry if it
-  thinks it knows what the guy will send.                            }
+{ This function will give you an initial exchange entry if it
+  thinks it knows what the guy will send.   }
 
-VAR Heading, CharPosition, Distance, Zone : INTEGER;
-    TempQTH: QTHRecord;
-    TestSTring, StandardCall, Command: Str20;
-    Exchange, CustomString, TempString: Str80;
+VAR Heading, CharPosition, Distance: INTEGER;
+    TestString: Str20;
+    TempString: Str80;
     TempExchange: ContestExchange;
-    Data: DatabaseEntryRecord;
 
     BEGIN
+    { Make sure we have something that looks real before doing this }
+
     IF NOT GoodCallSyntax (Call) THEN
         BEGIN
         InitialExchangeEntry := '';
         Exit;
         END;
 
-    { First - we see if there is something in the editable log }
+    { Mext - see if there is something in the editable log }
 
     TempString := VisibleLog.GetInitialExchangeFromEditableLog (Call);
 
@@ -3542,11 +3468,16 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
         {           Both the zone and country are log entries, but only the zone is in the}
         {           exchange. This confused the parser. Only the first string (zone) is needed.}
 
-        IF (ActiveInitialExchange = ZoneInitialExchange) OR
-           ((DomesticQTHDataFileName = 'IARUHQ.DOM')) THEN
             {KK1L: 6.71 The init exchange bug came back when I changed the Initital exchange default}
             {           for IARU and WRTC!! Added the second line above.}
-            TempString := RemoveFirstString (TempString);
+
+
+        { N6TR here - I think this might only be an issue for WRTC?  This seems to be
+          disabling initial exchanges coming in for zones }
+
+{       IF (ActiveInitialExchange = ZoneInitialExchange) OR
+           ((DomesticQTHDataFileName = 'IARUHQ.DOM')) THEN
+            TempString := RemoveFirstString (TempString); }
 
         END;
 
@@ -3554,6 +3485,9 @@ VAR Heading, CharPosition, Distance, Zone : INTEGER;
 
     IF TempString = '' THEN
         TempString := GetInitialExchangeFromTRMASTER (Call);
+
+    InitialExchangeEntry := TempString;
+    Exit;  { testing }
 
     IF TempString <> '' THEN
         BEGIN
@@ -3850,7 +3784,7 @@ PROCEDURE DeleteLastContact;
 
     { Not sure yet about dealing with getting the QSO Number back }
 
-    DisplayNextQSONumber (QSONumberForThisQSO);
+    DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
 
     IF VisibleDupeSheetEnable THEN
         BEGIN
@@ -4024,7 +3958,7 @@ PROCEDURE ToggleStereoPin; {KK1L: 6.71}
 PROCEDURE ToggleModes;
 
     BEGIN
-    IF (MultipleModesEnabled) OR (TotalContacts = 0) THEN
+    IF (MultipleModesEnabled) OR (QSONumberForThisQSO = 0) THEN
         BEGIN
         IF (ActiveMode = Phone) AND (ActiveBand >= Band6) AND (NOT FMMode) THEN
             FMMode := True
@@ -4053,7 +3987,7 @@ PROCEDURE ToggleModes;
                          (ActiveBand <= Band10) OR (ActiveBand = Band30) OR
                          (ActiveBand = Band17) OR (ActiveBand = Band12));
 
-        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
 
         {KK1L: 6.73 This gets done in UpdateTimeAndRateDisplay. Only do if no radio connected.}
         IF (ActiveRadio = RadioOne) AND ((Radio1ControlPort = nil) OR (NOT PollRadioOne)) THEN
@@ -4074,30 +4008,6 @@ PROCEDURE ToggleModes;
         BandMapBand := ActiveBand;
         BandMapMode := ActiveMode; {KK1L: 6.68 BM now tracks mode with no radio connected on mode change}
         DisplayBandMap;
-        END;
-    END;
-
-
-
-FUNCTION GetNextQSONumber: INTEGER;
-
-VAR TempQSOTotals: QSOTotalArray;
-
-{ Returns next available serial number.  Note that this probably never should be called
-  without QSONumberByBand = True unless you are being very careful to store it away in
-  QSONumberForThisQSO since doing so will increment the NextQSONumbertoGiveOut. }
-
-    BEGIN
-    IF QSONumberByBand THEN
-        BEGIN
-        TempQSOTotals := QSOTotals;
-        VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
-        GetNextQSONumber := TempQSOTotals [ActiveBand, Both] + 1;
-        END
-    ELSE
-        BEGIN
-        GetNextQSONumber := NextQSONumberToGiveOut;
-        Inc (NextQSONumberToGiveOut);
         END;
     END;
 

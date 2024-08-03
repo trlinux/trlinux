@@ -27,7 +27,7 @@ INTERFACE
 
 USES LogGrid, Dos, trCrt, SlowTree, Tree, communication, beep, foot, radio,
      keyerard, keyerk1ea,keyerwin,keyers,so2r,keyeryccc,footyccc,footArd,rig,
-     scorereporter;
+     scorereporter,sockets;
 
 CONST
     RadioCommandBufferSize = 100;
@@ -188,19 +188,25 @@ VAR ActiveDVKPort:     parallelportx;
     RadioTwoIcomFilterByte:      BYTE;
     RadioOneResponseTimeout: LONGINT;
     RadioTwoResponseTimeout: LONGINT;
-    K1EANetworkEnable: BOOLEAN;
-
 
     MultiPortBaudRate:      LONGINT;
     MultiReceiveCharBuffer: CharacterBuffer;
     MultiSendCharBuffer:    CharacterBuffer;
+    MultiSendTimeStamp:     TimeRecord;          { Gets set whenever a message is sent }
+
+    MultiUDPIP:   STRING;
+    MultiUDPPort: LONGINT;
+
+    MultiUDPReadSocket: LONGINT;
+    MultiUDPWriteSocket: LONGINT;
 
     NetDebug: BOOLEAN;
     NoPollDuringPTT: BOOLEAN;
 
     NetDebugBinaryOutput: FILE;
     NetDebugBinaryInput:  FILE;
-
+    NetDebugTextOutput: TEXT;
+    NetDebugTextInput:  TEXT;
 
     PacketReceiveCharBuffer: CharacterBuffer;
     PacketSendCharBuffer:    CharacterBuffer;
@@ -265,6 +271,7 @@ VAR ActiveDVKPort:     parallelportx;
 
     rig1,rig2 :radioctl;
 
+    WeSentPing: BOOLEAN;
 
 PROCEDURE ClearRIT;
 
@@ -673,60 +680,62 @@ PROCEDURE SetRelayForActiveRadio (Radio: RadioType);
 
 PROCEDURE SendMultiMessage (Message: STRING);
 
-{ Works for both N6TR and K1EA Network modes }
+{ Works for both N6TR and new in 2024 - UDP mode }
 
 VAR CharPointer: INTEGER;
 
     BEGIN
-    IF Length (Message) > 0 THEN
+    IF Message = '' THEN Exit;
+
+    MarkTime (MultiSendTimeStamp);
+
+    { If sending messages via UDP - just send it - don't bother with slip format or serial buffer }
+
+    IF MultiUDPPort > 0 THEN
         BEGIN
+        FPSend (MultiUDPWriteSocket, @Message [1], Length (Message), 0);
+        Exit;
+        END;
 
-        IF K1EANetworkEnable THEN
-            BEGIN
+    { Now using old method using serial buffer and slip format }
 
-            { We add the checksum and new line unless we already find
-              the new line there }
+    Message := SlipMessage (Message);    { We use slip format for N6TR messages }
 
-            IF Message [Length (Message)] <> LineFeed THEN
-                BEGIN
-                AddK1EACheckSumToString (Message);
-                Message := Message + LineFeed;
-                END;
-            END
-        ELSE
-            Message := SlipMessage (Message);
+    { If we don't have enough room for the message, we will have to
+      wait until we do as we have no other choice.  }
 
-        { If we don't have enough room for the message, we will have to
-          wait until we do as we have no other choice.  }
+    IF NetDebug THEN
+        BEGIN
+        IF MultiSendCharBuffer.FreeSpace < Length (Message) THEN
+            SendMorse ('PBF PBF');
+
+        SaveAndSetActiveWindow (BandMapWindow);
+        GoToXY (1, 22);
+        ClrEol;
+        END;
+
+    { This is obviously very old - but not an issue for UDP stuff }
+
+    WHILE NOT MultiSendCharBuffer.FreeSpace >= Length (Message) DO;
+
+    { I guess we will still use the buffer to send UDP messages - I will just have
+      to suck all of the data out when sending the message }
+
+    FOR CharPointer := 1 TO Length (Message) DO
+        BEGIN
+        MultiSendCharBuffer.AddEntry (Ord (Message [CharPointer]));
 
         IF NetDebug THEN
             BEGIN
-            IF MultiSendCharBuffer.FreeSpace < Length (Message) THEN
-                SendMorse ('PBF PBF');
+            BlockWrite (NetDebugBinaryOutput, Message [CharPointer], 1);
 
-            SaveAndSetActiveWindow (BandMapWindow);
-            GoToXY (1, 22);
-            ClrEol;
+            IF (Message [CharPointer] >= ' ') AND
+               (Message [CharPointer] <= 'z') THEN
+                   Write (Message [CharPointer]);
             END;
-
-        WHILE NOT MultiSendCharBuffer.FreeSpace >= Length (Message) DO;
-
-        FOR CharPointer := 1 TO Length (Message) DO
-            BEGIN
-            MultiSendCharBuffer.AddEntry (Ord (Message [CharPointer]));
-
-            IF NetDebug THEN
-                BEGIN
-                BlockWrite (NetDebugBinaryOutput, Message [CharPointer], 1);
-
-                IF (Message [CharPointer] >= ' ') AND
-                   (Message [CharPointer] <= 'z') THEN
-                       Write (Message [CharPointer]);
-                END;
-            END;
-
-        IF NetDebug THEN RestorePreviousWindow;
         END;
+
+    IF NetDebug THEN RestorePreviousWindow;
     END;
 
 
@@ -976,11 +985,16 @@ VAR TempChar:   CHAR;
 
    IF FootSwitchMode <> PreviousFootSwitchMode THEN
        BEGIN
-       IF FootSwitchMode = Normal THEN
-           ActiveKeyer.LetFootSwitchControlPTT  { This does nothing for YCCC }
-       ELSE
-           IF ActiveKeyer = ArdKeyer THEN
+       CASE FootSwitchMode OF
+           Normal:  ActiveKeyer.LetFootSwitchControlPTT;  { This does nothing for YCCC }
+
+           CWGrant: ArdKeyer.SetCWGrant (True);
+
+           TBSIQSSB: ArdKeyer.FootSwitch2BSIQSSB;
+
+           ELSE
                ArdKeyer.ClearFootSwitchControlPTT;
+           END;
 
        PreviousFootSwitchMode := FootSwitchMode;
        END;
@@ -1200,8 +1214,10 @@ VAR TempChar:   CHAR;
 
 
 PROCEDURE TimerInit;
-BEGIN
+
+    BEGIN
     DoingDVK := ActiveDVKPort <> nil;
+
     IF ActiveMultiPort <> nil THEN
         BEGIN
         DoingMulti := True;
@@ -1212,16 +1228,13 @@ BEGIN
             BEGIN
             Assign  (NetDebugBinaryOutput, 'NETOUT.BIN');
             Rewrite (NetDebugBinaryOutput, 1);
-
             Assign  (NetDebugBinaryInput,  'NETIN.BIN');
             Rewrite (NetDebugBinaryInput, 1);
             END;
         END;
 
     IF ActiveModemPort <> nil THEN
-        BEGIN
         DoingModem := True;
-        END;
 
     IF ActivePacketPort <> nil THEN
         BEGIN
@@ -1269,7 +1282,7 @@ BEGIN
         TimerInitialized := true;
 
         END;
-   END;
+    END;
 
 PROCEDURE K1EAInit;
 
@@ -1391,6 +1404,9 @@ VAR Ticks: LONGINT;
     LastRadioOneFreq := 0; {KK1L: 6.71 Used LastRadioOneFreq here instead of LOGWIND.PAS}
     LastRadioTwoFreq := 0; {KK1L: 6.71 Used LastRadioTwoFreq here instead of LOGWIND.PAS}
 
+    MultiUDPPort := -1;
+    MultiUDPIP := '';
+
     StableRadio1Freq := 0; {KK1L: 6.71 Was -1}
     StableRadio2Freq := 0; {KK1L: 6.71 Was -1}
 
@@ -1431,4 +1447,5 @@ VAR Ticks: LONGINT;
     DVKControlKeyRecord := true;
 
     PreviousFootSwitchMode := SwapRadio;  { pretty safe }
+    WeSentPing := False;
     END.

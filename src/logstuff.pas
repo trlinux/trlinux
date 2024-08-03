@@ -103,32 +103,37 @@ UNIT LogStuff;
 INTERFACE
 
 USES Dos, Printer, Tree, Country9, ZoneCont, LogSCP, trCrt, LogWind, LogCW,
-     LogDupe, LogGrid, LogHelp, LogK1EA, LogDVP, LogDom, SlowTree, K1EANet,
-     n4ogw, datetimec,radio;
+     LogDupe, LogGrid, LogHelp, LogK1EA, LogDom, SlowTree,
+     n4ogw, datetimec,radio, Sockets, BaseUnix, LogQSONr;
 
 CONST
+    LongLogFileName = 'LONGLOG.DAT';
+
     { Control Byte Constants for Multi-Multi communications }
 
-//    MultiMessageBufferSize = 32;
-    MultiMessageBufferSize = 256;
+    MultiMessageBufferSize            = 256;
+    ProcessedMultiMessageBufferLength = 256;
 
-    MultiTalkMessage           = 1; { TR6.75 - Supported by K1EANetwork }
+    MultiTalkMessage           = 1;
     MultiPacketReceivedSpot    = 2; { No longer used.  Uses 4 all the time }
     MultiPacketMessageToSend   = 3;
     MultiPacketReceivedMessage = 4;
-    MultiQSOData               = 5; { TR6.75 - Supported by CT Network }
-    MultiBandMapMessage        = 6; { TR6.76 - Supported by CT Network }
-    MultiTimeMessage           = 7; { TR6.75 - Reception only from CT Network }
+    MultiQSOData               = 5;
+    MultiBandMapMessage        = 6;
+    MultiTimeMessage           = 7;
     MultiInformationMessage    = 8;
-    MultiConfigurationMessage  = 9; { Not supported on CT Network }
+    MultiConfigurationMessage  = 9;
+    MultiInstantQSOMessage     = 10; { Used to show QSO and not get echoed on sending screen }
+    MultiQSONumberRequest      = 11; { Request next QSO number.  Includes band/mode }
+    MultiQSONumberResponse     = 12; { Response to above request.  Includes band/mode }
+    MultiQSONumberReturn       = 13; { Attempts to return an unused QSO number }
+    MultiPingRequest           = 14;
+    MultiPingResponse          = 15;
 
     DefaultTimeToLive = 30;
     LookForDupes = True;
     DoNotLookForDupes = NOT LookForDupes;
 
-    LongLogFileName = 'LONGLOG.DAT';
-
-    ProcessedMultiMessageBufferLength = 256;
 
 TYPE
      SSExchangeType = RECORD
@@ -208,15 +213,17 @@ TYPE
 
     ProcessedMultiMessageRecord = RECORD
         Source: BYTE;
-        Serial: BYTE;
+        Serial: WORD;
         Check:  INTEGER;
+        ControlByte: BYTE;
+        TimeStamp: TimeRecord;
         END;
 
     ProcessedMultiMessageBufferType = ARRAY [0..ProcessedMultiMessageBufferLength - 1] OF
         ProcessedMultiMessageRecord;
 
     MultiMessageMemoryRecord = RECORD
-        Message:    STRING [100];
+        Message:    STRING;
         TimeMark:   TimeRecord;
         RetryCount: BYTE;
         QSL:        BOOLEAN;
@@ -224,12 +231,9 @@ TYPE
         END;
 
     MultiMessageListArrayType = ARRAY [0..MultiMessageBufferSize - 1] OF MultiMessageMemoryRecord;
-    MultiMessageListPointer   = ^MultiMessageListArrayType;
-
-
+    MultiMessageListPointer = ^MultiMessageListArrayType;
 
 VAR
-
     AddedNoteString:        STRING [100];
     AllCWMessagesChainable: BOOLEAN;
     AltDBand:               BandType;
@@ -284,7 +288,6 @@ VAR
     FakePacket:                 BOOLEAN;
     FakeBandMap:                BOOLEAN;
     FirstHelloRecord:           HelloRecPtr;
-    FirstMultiMessage:          INTEGER;
     FloppyFileSaveFrequency:    INTEGER;
     FloppyFileSaveName:         Str40;
     FootSwitchPressedBefore:    BOOLEAN;
@@ -306,7 +309,6 @@ VAR
     LastDeletedLogEntry:       Str160;
     LastDisplayedBreakTime:    INTEGER;
     LastHelloRecord:           HelloRecPtr;
-    LastMultiMessage:          INTEGER;
     LastMultiInfoMessageSum:   ARRAY [BandType, ModeType] OF BYTE;
     LastQSOLogged:             ContestExchange;
 
@@ -326,7 +328,15 @@ VAR
     MultiMultsOnly:          BOOLEAN;
     MultiplierFileEnable:    BOOLEAN;
     MultiMessageBuffer:      ARRAY [1..5] OF Str80;
+    MultiMessageHead:       INTEGER;
+    MultiMessageTail:       INTEGER;
+
+    MultiQSONumberReceived:  INTEGER;
+    MultiQSONumberBand:      BandType;
+    MultiQSONumberMode:      ModeType;
+
     MultiRememberBuffer:     MultiMessageListPointer;
+    MultiRequestQSONumber:   BOOLEAN;
     MultiRetryTime:          BYTE;
     MultiSerialNumber:       INTEGER;
     MultiUpdateMultDisplay:  BOOLEAN;
@@ -355,12 +365,13 @@ VAR
     PrinterEnabled:          BOOLEAN;
     ProcessedMultiMessages:  ProcessedMultiMessageBufferType;
 
-    ProcessedMultiMessagesStart: INTEGER;
-    ProcessedMultiMessagesEnd:   INTEGER;
+    ProcessedMultiMessagesHead: INTEGER;
+    ProcessedMultiMessagesTail:   INTEGER;
 
     QSONumberForThisQSO: INTEGER;   { Used for classic mode QSOs }
+    QSONumberFromNetwork: INTEGER;  { Loop on this if waiting for a QSO number.  =0 means nothing yet }
+    QSONumberFromNetworkTImeStamp: TimeRecord;  { Marks time when request was made }
 
-    QSONumberByBand: BOOLEAN;
     QSXEnable:       BOOLEAN;
 
     QuickQSL:     QuickQSLKeyType;   { to indicate a quick QSL is desired }
@@ -426,6 +437,7 @@ VAR
     UpdateRestartFileEnable:  BOOLEAN;
 
     WaitForStrength: BOOLEAN;
+    WeAskedForAQSONumber: BOOLEAN;
 
     WindowDupeCheckCall: Str20;
 
@@ -485,8 +497,6 @@ VAR
     PROCEDURE NameReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
     PROCEDURE NameReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
 
-    PROCEDURE PassStationToCTNetwork;
-
     PROCEDURE PrintLogHeader;
 
     FUNCTION  ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BOOLEAN;
@@ -498,7 +508,6 @@ VAR
     PROCEDURE RememberRadioFrequency (Radio: RadioType);
     PROCEDURE RestoreRadioFrequency (Radio: RadioType);
 
-    PROCEDURE ReviewBackCopyFiles;
     PROCEDURE RotorControl (Heading: INTEGER);
 
     PROCEDURE SaveLogFileToFloppy;
@@ -548,6 +557,9 @@ VAR
 
     PROCEDURE RandomCharsSentAndReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE RandomCharsSentAndReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
+
+    FUNCTION  ReserveNewQSONumber (Band: BandType): INTEGER;
+    FUNCTION  ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
 
     PROCEDURE RSTReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE RSTReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -717,7 +729,6 @@ PROCEDURE BandChange (VAR ActiveBand: BandType;
                              (BandMemory [RadioTwo] = ActiveBand)) THEN
                                  BandChange (ActiveBand, Direction);
       END;
-
 
     IF ((ActiveRadio = RadioOne) AND (Radio1Type <> NoInterfacedRadio)) OR
        ((ActiveRadio = RadioTwo) AND (Radio2Type <> NoInterfacedRadio)) THEN
@@ -2213,6 +2224,10 @@ VAR xResult: INTEGER;
 
 FUNCTION ProcessQSONumberAndNameExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
 
+{ We are adding a funny exception here to use the callsign as the domestic QTH in
+  the case of the MST test.  This is detected by having the domestic mult set as
+  WYSIWYGDomestic }
+
 VAR TempString, NumberString, NameString: Str40;
     xResult: INTEGER;
 
@@ -2240,6 +2255,11 @@ VAR TempString, NumberString, NameString: Str40;
     Val (NumberString, RXData.NumberReceived, xResult);
 
     ProcessQSONumberAndNameExchange := xResult = 0;
+
+    IF ActiveDomesticMult = WYSIWYGDomestic THEN   { MST test }
+        BEGIN
+
+        END;
     END;
 
 
@@ -4543,42 +4563,6 @@ PROCEDURE RestoreRadioFrequency (Radio: RadioType);
 
 
 
-PROCEDURE ReviewBackCopyFiles;
-
-VAR LastFile: Str40;
-    Command: Str20;
-
-    BEGIN
-    SaveSetAndClearActiveWindow (BigWindow);
-    LastFile := '';
-
-    REPEAT
-        QuickDisplay ('Use cursor to select the file you want to process and press RETURN');
-        ClrScr;
-        WriteLnCenter ('BACKCOPY FILE REVIEW');
-        WriteLn;
-        WriteLn ('Select backcopy file to review or delete : ');
-
-        LastFile := ShowDirectoryAndSelectFile ('*.bcp', '', False);
-
-        IF (LastFile = '') OR (LastFile = EscapeKey) THEN
-            BEGIN
-            RestorePreviousWindow;
-            VisibleDupesheetRemoved := True;
-            Exit;
-            END;
-
-        REPEAT
-            Command := UpperCase (QuickEditResponse (LastFile + ': R to review   D to delete  ESCAPE to quit', 1));
-            IF Command = 'R' THEN DVPListenMessage (LastFile, False);
-            IF Command = 'D' THEN DeleteFile (LastFile);
-        UNTIL (Command = '') OR (Command = 'D') OR (Command = EscapeKey);
-
-    UNTIL False;
-    END;
-
-
-
 FUNCTION GetCorrectedCallFromExchangeString (VAR ExchangeString: Str80): Str80;
 
 VAR PotentialCall, TempString: Str40;
@@ -4617,97 +4601,51 @@ VAR PotentialCall, TempString: Str40;
 
 FUNCTION ISentThisMultiMessage (MultMessage: STRING): BOOLEAN;
 
-{ Works for both N6TR and K1EA network }
+{ Works for both N6TR and UDP.  NOTE - this does not add the message to the list }
 
 VAR LookAddress: INTEGER;
-    S1: STRING;
+    LookMessage: STRING;
 
     BEGIN
     ISentThisMultiMessage := False;
 
-    IF NetDebug THEN
+    IF MultiMessageHead = MultiMessageTail THEN Exit;
+
+    { Start with the end of the list - the most "dusty" entry. }
+
+    LookAddress := MultiMessageTail;
+
+    { When we get to the MultiMessageHead - there is no data there }
+
+    WHILE LookAddress <> MultiMessageHead DO
         BEGIN
-        SaveSetAndClearActiveWindow (DupeSheetWindow);
+        LookMessage := MultiRememberBuffer^ [LookAddress].Message;
 
-        WriteLn ('ISentThisMultiMessage called with : ');
+        { See if the first 5 bytes are the same - this is:
 
-        IF K1EANetworkEnable THEN
-            WriteLn (Copy (MultMessage, 1, Length (MultMessage) - 1))
-        ELSE
-            WriteLn (Copy (MultMessage, 10, Ord (MultMessage [8])));
+            Source:       BYTE;
+            Destination:  BYTE;
+            ControlByte:  BYTE;
+            SerialNumber: WORD;  }
 
-        WriteLn;
-        WriteLn ('The following messages are in the message list : ');
-        END;
+        IF (Copy (LookMessage, 1, 5) = Copy (MultMessage, 1, 5)) THEN
 
+            { Now see if the length of the message is the same }
 
-    IF K1EANetworkEnable THEN  { K1EA network }
-        BEGIN
-        IF MultMessage [2] = K1EAStationID THEN
-            BEGIN
-            ISentThisMultiMessage := True;
+            IF LookMessage [8] = MultMessage [8] THEN
 
-            IF NetDebug THEN
-                BEGIN
-                WriteLn ('I found my station ID - found!');
-                RestorePreviousWindow;
-                Exit;
-                END;
+                { Now see if the message payload is the same }
 
-            END
-        ELSE
-            IF NetDebug THEN
-                WriteLn ('This is not my message');
-        END
+                IF Copy (LookMessage, 10, Ord (LookMessage [8])) = Copy (MultMessage, 10, Ord (MultMessage [8])) THEN
+                    BEGIN
+                    MultiRememberBuffer^ [LookAddress].QSL := True;
+                    ISentThisMultiMessage := True;
+                    Exit;
+                    END;
 
-    ELSE  { N6TR Network }
+        { Go to the next entry }
 
-        BEGIN
-        { See if there is anything in the list to check }
-
-        IF FirstMultiMessage = LastMultiMessage THEN
-            BEGIN
-            IF NetDebug THEN
-                BEGIN
-                WriteLn ('Nothing in the remember list.');
-                RestorePreviousWindow;
-                END;
-            Exit;
-            END;
-
-        LookAddress := LastMultiMessage;
-
-        WHILE LookAddress <> FirstMultiMessage DO
-            BEGIN
-            S1 := MultiRememberBuffer^ [LookAddress].Message;
-
-            IF NetDebug AND (NOT MultiRememberBuffer^ [LookAddress].QSL) THEN
-                WriteLn (Copy (S1, 10, Ord (S1 [8])));
-
-            IF (Copy (S1, 1, 5) = Copy (MultMessage, 1, 5)) AND
-               (S1 [8] = MultMessage [8]) AND
-               (Copy (S1, 10, Ord (S1 [8])) = Copy (MultMessage, 10, Ord (S1 [8]))) THEN
-                   BEGIN
-                   IF NetDebug THEN
-                       BEGIN
-                       WriteLn ('Found it!!');
-                       RestorePreviousWindow;
-                       END;
-
-                   MultiRememberBuffer^ [LookAddress].QSL := True;
-
-                   ISentThisMultiMessage := True;
-                   Exit;
-                   END;
-
-            LookAddress := (LookAddress + 1) MOD MultiMessageBufferSize;
-            END;
-        END;
-
-    IF NetDebug THEN
-        BEGIN
-        WriteLn ('Entry not found.');
-        RestorePreviousWindow;
+        LookAddress := (LookAddress + 1) MOD MultiMessageBufferSize;
         END;
     END;
 
@@ -4717,21 +4655,21 @@ PROCEDURE CheckForLostMultiMessages;
 
 { This procedure will look at the MultiMessageMemory and see if there are
   any entries that should either be resent or deleted.  It will stop after
-  it finds one to send so it doesn't hog the computer too long. }
+  it finds one to send so it doesn't hog the computer too long.  This should
+  work with N6TR Classic and UDP modes. }
 
 VAR LookAddress: INTEGER;
 
     BEGIN
-    LookAddress := LastMultiMessage;
+    LookAddress := MultiMessageTail;
 
-    WHILE LookAddress <> FirstMultiMessage DO
+    WHILE LookAddress <> MultiMessageHead DO
         BEGIN
         WITH MultiRememberBuffer^ [LookAddress] DO
             IF NOT QSL THEN
                 BEGIN
                 IF RetryCount <= 10 THEN
                     BEGIN
-
                     IF ((RetryCount <  2) AND (ElaspedSec100 (TimeMark) > MultiRetryTime * 100) OR
                         (RetryCount >= 2) AND (ElaspedSec100 (TimeMark) > 3000)) THEN
                             BEGIN
@@ -4768,13 +4706,10 @@ VAR LookAddress: INTEGER;
 
 FUNCTION ValidCheckSum (Message: STRING): BOOLEAN;
 
-{ Returns TRUE if the check sum looks valid for the message.  Works for
-  both K1EA and N6TR network. }
+{ Returns TRUE if the check sum looks valid for the message.  }
 
 VAR CharPointer: INTEGER;
     CheckSum:    WORD;
-    K1EACheckSum: BYTE;
-    TempString: STRING;
 
     BEGIN
     IF Length (Message) < 8 THEN
@@ -4783,62 +4718,29 @@ VAR CharPointer: INTEGER;
         Exit;
         END;
 
-    IF K1EANetworkEnable THEN  { K1EA network }
-        BEGIN
-        K1EACheckSum := 0;
+    CheckSum := 0;
 
-        { We count up to all but the last character }
+    FOR CharPointer := 1 TO 5 DO
+        CheckSum := CheckSum + Ord (Message [CharPointer]);
 
-        FOR CharPointer := 1 TO Length (Message) - 1 DO
-            K1EACheckSum := K1EACheckSum + Ord (Message [CharPointer]);
+    FOR CharPointer := 8 TO Length (Message) DO
+        CheckSum := CheckSum + Ord (Message [CharPointer]);
 
-        K1EACheckSum := K1EACheckSum OR $80;
+    ValidCheckSum := (Hi (CheckSum) = Ord (Message [6])) AND
+                     (Lo (CheckSum) = Ord (Message [7]));
 
-        ValidCheckSum := K1EACheckSum = Ord (Message [Length (Message)]);
-
-{       ValidCheckSum := True;}
-
-        IF K1EACheckSum <> Ord (Message [Length (Message)]) THEN
-            IF NetDebug THEN
-                BEGIN
-                TempString := '*** NOT VALID CHECKSUM BUT USED ANYWAY ***';
-                BlockWrite (NetDebugBinaryInput, TempString [1], Length (TempString));
-                END;
-        END
-
-    ELSE         { TR network }
-        BEGIN
-        CheckSum := 0;
-
-        FOR CharPointer := 1 TO 5 DO
-            CheckSum := CheckSum + Ord (Message [CharPointer]);
-
-        FOR CharPointer := 8 TO Length (Message) DO
-            CheckSum := CheckSum + Ord (Message [CharPointer]);
-
-        ValidCheckSum := (Hi (CheckSum) = Ord (Message [6])) AND
-                         (Lo (CheckSum) = Ord (Message [7]));
-        END;
     END;
-
 
 
 FUNCTION TimeToDie (VAR Message: STRING): BOOLEAN;
 
 { This function will decrement the hop count in the message.  If it has
-  expired, it will return TRUE.  Will always return False if we are in
-  the K1EANetworkMode }
+  expired, it will return TRUE.  }
 
 VAR TimeToLive: BYTE;
     CheckSum: WORD;
 
     BEGIN
-    IF K1EANetworkEnable THEN
-        BEGIN
-        TimetoDie := False;
-        Exit;
-        END;
-
     TimeToLive := Ord (Message [9]);
     Dec (TimeToLive);
 
@@ -4869,19 +4771,10 @@ FUNCTION ThisMessageIsForMe (Message: STRING): BOOLEAN;
 VAR Destination: BYTE;
 
     BEGIN
-    IF NOT K1EANetworkEnable THEN  { N6TR Network mode }
-        BEGIN
-        Destination := Ord (Message [2]);
+    Destination := Ord (Message [2]);
 
-        ThisMessageIsForMe := (Destination = $FF) OR
-                              (Destination = MultiBandAddressArray [ActiveBand]);
-        END
-    ELSE
-        { At this point, I am not aware of any commands on the K1EA network
-          that would not be for me.  This might change as I get into it
-          more }
-
-        ThisMessageIsForMe := True;
+    ThisMessageIsForMe := (Destination = $FF) OR
+                          (Destination = MultiBandAddressArray [ActiveBand]);
     END;
 
 
@@ -4890,90 +4783,107 @@ FUNCTION WeHaveProcessedThisMessage (Message: STRING): BOOLEAN;
 
 { This function will look at the message passed to it and see if we have
   seen this message before.  If we have, it will return TRUE.  If not, it
-  will add it to the list of messages we have seen and return FALSE. }
+  will add it to the list of messages we have seen and return FALSE.
 
+  This routine seemed to be giving me unexpected results with QSO number
+  requests when another instance of the program was starting up on the
+  network.  It seemed that the request message probably looked just like
+  the previous QSO number request from the same program when starting up
+  before - and thus the QSO number request was being ignored.
 
-VAR Source, Serial: BYTE;
+  In order to fix this......................... I added a time stamp to
+  the entries here.  If the message would otherwise be something that
+  was processed before - but the time stamp it at least 5 seconds off,
+  then I will return FALSE }
+
+VAR ControlByte, Source: BYTE;
     ActiveMessage:  INTEGER;
-    CheckSum:       WORD;
+    Serial, CheckSum: WORD;
 
     BEGIN
-    IF K1EANetworkEnable THEN { Do not expect repeat messages without retries }
+    Source := Ord (Message [1]);
+    ControlByte := Ord (Message [3]);
+
+    { Get the serial number - which is a word }
+
+    Serial := (Ord (Message [4]) * 256) + Ord (Message [5]);
+
+    CheckSum := Ord (Message [6]);
+    CheckSum := Swap (CheckSum);
+    CheckSum := CheckSum + Ord (Message [7]);
+
+    { Remove TTL from the checksum }
+    CheckSum := CheckSum - Ord (Message [9]);
+
+    { See if we have a virgin list.  If so, add the entry and leave - we don't have to
+      search for anything }
+
+    IF ProcessedMultiMessagesHead  = ProcessedMultiMessagesTail THEN
         BEGIN
         WeHaveProcessedThisMessage := False;
-        Exit;
-        END
-
-    ELSE
-        BEGIN                          { N6TR Network Mode }
-        Source := Ord (Message [1]);
-        Serial := Ord (Message [5]);
-
-        CheckSum := Ord (Message [6]);
-        CheckSum := Swap (CheckSum);
-        CheckSum := CheckSum + Ord (Message [7]);
-
-        CheckSum := CheckSum - Ord (Message [9]); { Make sure TTL isn't a factor }
-        END;
-
-    { See if we have a virgin list.  If so, add the entry }
-
-    IF ProcessedMultiMessagesStart = ProcessedMultiMessagesEnd THEN
-        BEGIN
-        WeHaveProcessedThisMessage := False;
-        ProcessedMultiMessages [ProcessedMultiMessagesStart].Source := Source;
-        ProcessedMultiMessages [ProcessedMultiMessagesStart].Serial := Serial;
-        ProcessedMultiMessages [ProcessedMultiMessagesStart].Check  := CheckSum;
-        Inc (ProcessedMultiMessagesEnd);             { Increments to one }
+        ProcessedMultiMessages [ProcessedMultiMessagesHead].Source := Source;
+        ProcessedMultiMessages [ProcessedMultiMessagesHead].Serial := Serial;
+        ProcessedMultiMessages [ProcessedMultiMessagesHead].Check  := CheckSum;
+        ProcessedMultiMessages [ProcessedMultiMessagesHead].ControlByte  := ControlByte;
+        MarkTime (ProcessedMultiMessages [ProcessedMultiMessagesHead].TimeStamp);
+        Inc (ProcessedMultiMessagesHead);        { Increments to one }
         Exit;
         END;
 
     { Start at the end of the list }
 
-    ActiveMessage := ProcessedMultiMessagesEnd - 1;
+    ActiveMessage := ProcessedMultiMessagesTail;  { Used to be minus one? }
 
-    IF ActiveMessage < 0 THEN
-        ActiveMessage := ProcessedMultiMessageBufferLength - 1;
+    { Go through the list until we catch up to the head.  Note - there is no data
+      at the head.  It's where the next entry will go }
 
-    REPEAT
+    WHILE ActiveMessage <> ProcessedMultiMessagesHead DO
+        BEGIN
         IF (ProcessedMultiMessages [ActiveMessage].Source = Source) AND
            (ProcessedMultiMessages [ActiveMessage].Serial = Serial) AND
            (ProcessedMultiMessages [ActiveMessage].Check  = CheckSum) THEN
-               BEGIN
-               WeHaveProcessedThisMessage := True;
-               Exit;
-               END;
+               IF ControlByte = MultiQSONumberRequest THEN
+                   BEGIN
+                   { If the remote computer was restarted and asking again for a QSO number, it
+                     might be generating a message that looks a lot like a previous one }
 
-        IF ActiveMessage = ProcessedMultiMessagesStart THEN  { End of list }
-            BEGIN
-            ActiveMessage := ProcessedMultiMessagesEnd;
-            ProcessedMultiMessages [ActiveMessage].Source := Source;
-            ProcessedMultiMessages [ActiveMessage].Serial := Serial;
-            ProcessedMultiMessages [ActiveMessage].Check  := CheckSum;
+                   IF ElaspedSec100 (ProcessedMultiMessages [ActiveMessage].TimeStamp) < 500 THEN
+                       BEGIN
+                       WeHaveProcessedThisMessage := True;
+                       Exit;
+                       END;
+                   END
+               ELSE
+                   BEGIN
+                   WeHaveProcessedThisMessage := True;
+                   Exit;
+                   END;
 
-            Inc (ProcessedMultiMessagesEnd);
+        { Increment to the next message }
 
-            IF ProcessedMultiMessagesEnd >= ProcessedMultiMessageBufferLength THEN
-                ProcessedMultiMessagesEnd := 0;
+        ActiveMessage := (ActiveMessage + 1) MOD ProcessedMultiMessageBufferLength;
+        END;
 
-            IF ProcessedMultiMessagesEnd = ProcessedMultiMessagesStart THEN
-                BEGIN
-                Inc (ProcessedMultiMessagesStart);
+    { We did not find out entry in the list }
 
-                IF ProcessedMultiMessagesStart >= ProcessedMultiMessageBufferLength THEN
-                    ProcessedMultiMessagesStart := 0;
-                END;
+    WeHaveProcessedThisMessage := False;
 
-            WeHaveProcessedThisMessage := False;
-            Exit;
-            END;
+    { And we will add it to the list for next time }
 
-        Dec (ActiveMessage);
+    ProcessedMultiMessages [ProcessedMultiMessagesHead].Source := Source;
+    ProcessedMultiMessages [ProcessedMultiMessagesHead].Serial := Serial;
+    ProcessedMultiMessages [ProcessedMultiMessagesHead].Check  := CheckSum;
+    ProcessedMultiMessages [ProcessedMultiMessagesHead].ControlByte  := ControlByte;
+    MarkTime (ProcessedMultiMessages [ProcessedMultiMessagesHead].TimeStamp);
 
-        IF ActiveMessage < 0  THEN
-            ActiveMessage := ProcessedMultiMessageBufferLength - 1;
+    { Increment the head to the next place to put data }
 
-    UNTIL False;
+    ProcessedMultiMessagesHead := (ProcessedMultiMessagesHead + 1) MOD ProcessedMultiMessageBufferLength;
+
+    { Increment the tail if it is now = the the head }
+
+    IF ProcessedMultiMessagesHead = ProcessedMultiMessagesTail THEN
+        ProcessedMultiMessagesTail := (ProcessedMultiMessagesTail + 1) MOD ProcessedMultiMessageBufferLength;
     END;
 
 
@@ -4981,46 +4891,59 @@ VAR Source, Serial: BYTE;
 FUNCTION ThisIsAMultiTalkMessage (MessageString: STRING): BOOLEAN;
 
     BEGIN
-    IF K1EANetworkEnable THEN
-        ThisIsAMultiTalkMessage := MessageString [1] = 'T'
-    ELSE
-        ThisIsAMultiTalkMessage := Ord (MessageString [3]) = MultiTalkMessage;
+    ThisIsAMultiTalkMessage := Ord (MessageString [3]) = MultiTalkMessage;
+    END;
+
+
+FUNCTION ThisIsAQSONumberRequest (MessageString: STRING): BOOLEAN;
+
+    BEGIN
+    ThisIsAQSONumberRequest := Ord (MessageString [3]) = MultiQSONumberRequest;
     END;
 
 
 
 FUNCTION GetMultiPortCommand: STRING;
 
-{ This will retrieve a multi command string from the MultiReceiveCharBuffer.
-  It works for either K1EA or N6TR network modes!! }
+{ This will retrieve a multi command string from the MultiReceiveCharBuffer
+  or UDP Port.  }
 
 VAR TempString: STRING;
+    FDS: Tfdset;
+    BytesRead: INTEGER;
 
     BEGIN
     GetMultiPortCommand := '';
 
-    IF K1EANetworkEnable THEN
+    { If we are using the UDP port - we are not using the character buffer.  Go see if
+      we have received a message from the UDP port }
+
+    IF MultiUDPPort > -1 THEN    { Using UDP port }
         BEGIN
-        IF NOT MultiReceiveCharBuffer.GetNextLine (TempString) THEN
+        fpFd_zero (FDS);
+        fpFd_set (MultiUDPReadSocket, FDS);
+        fpSelect (MultiUDPReadSocket+1, @FDS, nil, nil, 0);
+
+        IF fpFD_IsSet (MultiUDPReadSocket, FDS) = 0  THEN  { No data }
             Exit;
+
+        BytesRead := fpRecv (MultiUDPReadSocket, @TempString [1], 255, 0);
+
+        { If nothing there - we are done }
+
+        IF BytesRead <= 0  THEN Exit;
+        SetLength (TempString, BytesRead);
         END
-    ELSE  { TR Network }
+    ELSE
+        { Not using the UDP port - try the old serial port method }
         IF NOT MultiReceiveCharBuffer.GetSlippedString (TempString) THEN
             Exit;
 
     IF TempString = '' THEN Exit;
 
-    IF NetDebug THEN
-        BlockWrite (NetDebugBinaryInput, TempString [1], Length (TempString));
-
-    IF NOT ValidCheckSum (TempString) THEN { Works for TR and CT }
+    IF NOT ValidCheckSum (TempString) THEN
         BEGIN
-        IF NetDebug THEN
-            BEGIN
-            TempString := '*** NOT VALID CHECKSUM ***';
-            BlockWrite (NetDebugBinaryInput, TempString [1], Length (TempString));
-            END;
-
+        QuickDisplay ('Invalid checksum on network message');
         Exit;
         END;
 
@@ -5030,10 +4953,13 @@ VAR TempString: STRING;
     IF ISentThisMultiMessage (TempString) THEN        { It is one of ours }
         BEGIN
         IF ThisMessageIsForMe (TempString) THEN
+            BEGIN
             IF NOT WeHaveProcessedThisMessage (TempString) THEN
+                BEGIN
                 IF ThisIsAMultiTalkMessage (TempString) THEN
                     GetMultiPortCommand := TempString; { Process my own message }
-
+                END;
+            END;
         Exit;
         END;
 
@@ -5041,29 +4967,33 @@ VAR TempString: STRING;
 
     IF TimeToDie (TempString) THEN Exit;
 
-    { Okay, we have a valid message, and it isn't ours, pass it on. }
+    { All messages that come to this instance of the program will be passed onto the
+      next computer - EXCEPT QSO Number requests.  This will get passed on, unless
+      this is the computer that is responsible for assigning QSO numbers (which is
+      determined by MultiRequestQSONumber being FALSE.
 
-    IF K1EANetworkEnable THEN
-        { LineFeed Makes SendMultiMessage not add checksum or LF }
+      In this case, the QSO number response will serve as the acknowledgement.
 
-        SendMultiMessage (TempString + LineFeed)
-    ELSE
+      We have found that having both the request and the answer being sent to the
+      requesting computer quickly resulted in unstable results.
+
+      This next instruction will send the message we received to the next computer
+      unless it is a QSO Number request AND we are the computer in the network
+      that will respond to QSO number requests (as indicated by MultiRequestQSONumber
+      being FALSE).  }
+
+    IF MultiRequestQSONumber OR (NOT ThisIsAQSONumberRequest (TempString)) THEN
         SendMultiMessage (TempString);
+
+    { If this message is not for me - we won't process it }
 
     IF NOT ThisMessageIsForMe (TempString) THEN Exit;
 
-    { We have a message for me to act on (unless I have already seen it) }
+    { Have I already acted on this message? }
 
-    IF WeHaveProcessedThisMessage (TempString) THEN
-        BEGIN
-        IF NetDebug THEN
-            BEGIN
-            TempString := '*** PROCESSED BEFORE ***';
-            BlockWrite (NetDebugBinaryInput, TempString [1], Length (TempString));
-            END;
+    IF WeHaveProcessedThisMessage (TempString) THEN Exit;
 
-        Exit;
-        END;
+    { Return the message so it can be processed }
 
     GetMultiPortCommand := TempString;
     END;
@@ -5077,7 +5007,18 @@ PROCEDURE RememberSentMessage (MultMessage: STRING);
   of time, the message can be resent. }
 
     BEGIN
-    WITH MultiRememberBuffer^ [FirstMultiMessage] DO
+    { One exception to rememering sent messages is the QSONumberRequests.  This
+      is done to eliminate the "echo" of the command and the response from
+      overloading the incoming port which caused (we think) instability.  It is
+      up to the high level program to notice that QSONumberForthisQSO is equal
+      to zero sometime after the request and do a retry.  }
+
+  IF ThisIsAQSONumberRequest (MultMessage) THEN Exit;
+
+    { We are going to put this entry in the remember buffer at the address of
+      the "Head" of the buffer }
+
+    WITH MultiRememberBuffer^ [MultiMessageHead] DO
         BEGIN
         Message := MultMessage;
         MarkTime (TimeMark);
@@ -5086,11 +5027,13 @@ PROCEDURE RememberSentMessage (MultMessage: STRING);
         Warnings := 0;
         END;
 
-    FirstMultiMessage := (FirstMultiMessage + 1) MOD MultiMessageBufferSize;
+    MultiMessageHead := (MultiMessageHead + 1) MOD MultiMessageBufferSize;
 
-    IF FirstMultiMessage = LastMultiMessage THEN
-        LastMultiMessage := (LastMultiMessage + 1) MOD MultiMessageBufferSize;
+    { If we have wrapped around to the end of the list - we are going to lose the
+      last entry to make room for a new one }
 
+    IF MultiMessageHead = MultiMessageTail THEN
+        MultiMessageTail := (MultiMessageTail + 1) MOD MultiMessageBufferSize;
     END;
 
 
@@ -5169,27 +5112,30 @@ PROCEDURE StuffInit;
     EscapeDeletedCallEntry     := '';
     EscapeDeletedExchangeEntry := '';
     ExchangeHasBeenSent        := False;
+    ExchangeErrorMessage       := '';
 
     FirstHelloRecord             := Nil;
-    FirstMultiMessage            := 0;
     FootSwitchPressedBefore      := False;
-    LastMultiMessage             := 0;
 
     InactiveRigCallingCQ       := False;
     IntercomFileOpen           := False;
 
     LastDisplayedBreakTime     := -1;
-
     LastHelloRecord            := Nil;
+
     LogBadQSOString            := '';
     LookingForCQExchange       := False;
 
-    MultiSerialNumber          := 0;
+    MultiMessageHead     := 0;
+    MultiMessageTail    := 0;
+
+    MultiQSONumberReceived     := 0;  { A real QSO number to be used in an exchange }
+    MultiSerialNumber          := 0;  { Serial number of network packets }
 
     NameCallsignPutUp          := '';
 
-    ProcessedMultiMessagesStart := 0;
-    ProcessedMultiMessagesEnd   := 0;
+    ProcessedMultiMessagesHead := 0;
+    ProcessedMultiMessagesTail := 0;
 
     RadioSetFreq               := 0;
     RateDisplay                := QSOs;
@@ -5203,6 +5149,7 @@ PROCEDURE StuffInit;
     VideoGameLength            := 5;
     VisibleDupeSheetRemoved    := False;
 
+    WeAskedForAQSONumber       := False;
     WindowDupeCheckCall        := '';
 
     MultiMessageBuffer [1] := '';
@@ -5222,7 +5169,7 @@ PROCEDURE SpeedUp;
         BEGIN
         {SetSpeed (CodeSpeed + 3);}
         SetSpeed (CodeSpeed + CodeSpeedIncrement); {KK1L: 6.72}
-        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
         END;
     END;
 
@@ -5276,7 +5223,7 @@ PROCEDURE SlowDown;
         BEGIN
         {SetSpeed (CodeSpeed - 3);}
         SetSpeed (CodeSpeed - CodeSpeedIncrement); {KK1L: 6.72}
-        DisplayCodeSpeed (CodeSpeed, CWEnabled, DVPOn, ActiveMode);
+        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
         END;
     END;
 
@@ -5291,51 +5238,18 @@ PROCEDURE NewBandMapEntry (Call: CallString;
                            MinutesLeft: INTEGER;
                            SendToMulti: BOOLEAN);
 
-VAR QSXString, FreqString, UnixTimeString: Str20;
-    K1EAString: STRING;
-    UnixTime: LONGINT;
+VAR QSXString, FreqString: Str20;
 
     BEGIN
     AddBandMapEntry (Call, Frequency, QSXFrequency, Mode, Dupe, Mult, MinutesLeft);
+    DisplayBandMap;
 
     Str (Frequency, FreqString);
     Str (QSXFrequency, QSXString);
 
     IF (ActiveMultiPort <> nil) AND SendToMulti THEN
-        BEGIN
-
-        IF K1EANetworkEnable THEN
-            BEGIN
-            UnixTime := GetUnixTime;
-            Str (UnixTime, UnixTimeString);
-
-            K1EAString := 'C' + K1EAStationID + ' 599 ' +
-                          FreqString + ' ' + QSXString + ' ' +
-                          UnixTimeString + ' 0 ' +
-                          GetK1EABandIntegerFromFrequency (Frequency);
-
-                          IF ActiveMode = CW THEN
-                              K1EAString := K1EAString + ' 1 '
-                          ELSE
-                              K1EAString := K1EAString + ' 2 ';
-
-                          K1EAString := K1EAString + Call + ' * 0 ' +
-                                        K1EAStationID + ' 0  0 ';
-
-            { SendMultiMessage will add the checksum and newline }
-
-            SendMultiMessage (K1EAString);
-            END
-
-        ELSE
-
-            { TR Network }
-
-            SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF,
-                              MultiBandMapMessage, Call + ' ' + FreqString + ' ' + QSXString);
-        END;
-
-    DisplayBandMap;
+        SendMultiCommand (MultiBandAddressArray [ActiveBand], $FF,
+                          MultiBandMapMessage, Call + ' ' + FreqString + ' ' + QSXString);
     END;
 
 
@@ -5354,7 +5268,7 @@ PROCEDURE PushMultiMessageBuffer (Message: Str80);
 PROCEDURE DisplayMultiMessageBuffer;
 
     BEGIN
-    IF ActiveMultiPort <> nil THEN
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
         BEGIN
         SaveSetAndClearActiveWindow (EditableLogWindow);
         WriteLn (MultiMessageBuffer [1]);
@@ -5409,9 +5323,7 @@ VAR Range, Address: INTEGER;
             FOR Address := 0 TO NumberGridSquaresInList - 1 DO
                 BEGIN
                 IF WhereX >= 76 THEN WriteLn;
-
                 IF WhereX > 1 THEN Write (' ');
-
                 Write (GridSquareList [Address]);
                 END;
 
@@ -6864,8 +6776,6 @@ VAR TempString: Str80;
     Index: INTEGER;
 
     BEGIN
-    IF K1EANetworkEnable THEN Exit;
-
     TempString := MultiInfoMessage;
 
     IF TempString = '' THEN Exit;
@@ -6894,35 +6804,9 @@ PROCEDURE CreateAndSendCQMultiInfoMessage;
 
 VAR TempString, NumberString: Str80;
     Index: INTEGER;
-    Freq: LONGINT;
-    FreqStr: Str20;
 
     BEGIN
     TempString := MultiInfoMessage;
-
-    IF K1EANetworkEnable THEN
-        BEGIN
-
-        { Send run message with current stable frequency }
-
-        CASE ActiveRadio OF
-            RadioOne: Freq := StableRadio1Freq;
-            RadioTwo: Freq := StableRadio2Freq;
-            ELSE      Freq := 0;
-            END;
-
-        IF Freq > 0 THEN
-            BEGIN
-            Str (Freq, FreqStr);
-            TempString := 'M' + K1EAStationID + ' ' + FreqStr + ' ';
-            SendMultiMessage (TempString);
-            UpdateK1EAStationInfo (Run, K1EAStationID, FreqStr);
-            END;
-
-        Exit;
-        END;
-
-    { TR Network }
 
     IF MultiInfoMessage = '' THEN Exit;
 
@@ -7055,21 +6939,6 @@ VAR Entry: INTEGER;
 
 
 
-PROCEDURE PassStationToCTNetwork;
-
-VAR PassString: Str40;
-
-    BEGIN
-    IF NOT K1EANetworkEnable THEN Exit;
-
-    PassString := QuickEditResponse ('Enter pass info (i.e., KQ2M 14150.2) : ', 30);
-
-    IF PassString <> '' THEN
-        SendMultiMessage ('P' + K1EAStationID + ' ' + PassString + ' ');
-    END;
-
-
-
 PROCEDURE ProcessN4OGWCommand (N4OGW_Command: STRING);
 
 { There are two different types of commands that I can get from N4OGW:
@@ -7146,12 +7015,81 @@ VAR Call, FrequencyString: STRING;
 
 
 
+FUNCTION ReserveNewQSONumber (Band: BandType): INTEGER;
+
+{ This is a high level function that will produce a reserved QSO number.  If
+  MULTI REQUEST QSO NUMBER is TRUE, it will go to the network and get the QSO
+  number (note - this could cause a delay if the computer that assigns QSO
+  numbers is busy).  Otherwise, it gets the QSO number from the "local" function
+  in LogQSONr that uses our own matrix for the QSO numbers. }
+
+VAR TempString: STRING;
+
     BEGIN
-    { This used to be something needed to limit the SCP database from hogging too much
-      memory back in the DOS days.  It isn't needed any more
+    { We expect the result of this function to be assigned to QSONumberForThisQSO
+      by whoemver called this function }
 
-    CD.CellBuffer.MaximumMemoryToUse := 40000; }
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
+        IF MultiRequestQSONumber THEN
+            BEGIN
+            QuickDisplay ('Asking for a QSO number on the network ' + GetFullMicroTimeString);
+            QSONumberForThisQSO := 0;  { Probably redundant since the function result will likely used to set this }
 
-    ExchangeErrorMessage := '';
+            TempString := AddBand (Band);
+            SendMultiCommand (MultiBandAddressArray [Band], $FF, MultiQSONumberRequest, TempString);
+
+            { Prepare things to receive the number }
+
+            QSONumberFromNetwork := 0;
+            MarkTime (QSONumberFromNetworkTimeStamp);
+            WeAskedForAQSONumber := True;
+            ReserveNewQSONumber := 0;
+
+            { Someone needs to watch QSONumberFromNetwork now to see when the QSO
+              number is received.  It is received in LOGSUBS2 in the CheckMultiState
+              procedure - or in TBSIQ in the same basic procedure. }
+
+            Exit;
+            END;
+
+    { Got get the QSO Number locally from the nice QNumber object }
+
+    ReserveNewQSONumber := QNumber.ReserveNewQSONumber (Band);
+    END;
+
+
+
+FUNCTION ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
+
+{ This is the high level way for the classic UI to return an unused QSO
+  number.  This will either use the local copy of the QNumber object or
+  if MultiRequestQSONumber is TRUE, it will try to return the QSO number
+  over the network to whichever computer doesn't have MultiRequestQSONumber
+  set to TRUE.
+
+  We will set the QSONumberForThisQSO to minus one in any case, indicating
+  that we no longer have a QSO number assigned for the next QSO to be made
+  in the classic interface. }
+
+VAR TempString: STRING;
+
+    BEGIN
+    IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN
+        IF MultiRequestQSONumber THEN
+            BEGIN
+            Str (QSONumber, TempString);
+            TempString := AddBand (Band) + TempString;
+            SendMultiCommand (MultiBandAddressArray [Band], $FF, MultiQSONumberReturn, TempString);
+            END;
+
+    { I guess we can return it locally too if possible }
+
+    QNumber.ReturnQSONumber (Band, QSONumber);
+    QSONumberForThisQSO := -1;
+    END;
+
+
+
+    BEGIN
     StuffInit;
     END.

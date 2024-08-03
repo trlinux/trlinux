@@ -56,6 +56,8 @@ TODO LIST
 
   - Serial number needs better way to start off if recording freqs
 
+  - If I change bands - how does the QSO number thing get updated if QSO# by band?
+
 NOTES FROM SSCW:
 
     > character in CW messages clears RIT on wrong radio
@@ -81,6 +83,12 @@ NOTES FROM ARRL DX CW
   - Improve sending RTTY message from keyboard
 
 CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
+
+18-Jan-2023
+  - Started adding support for some network stuff in 2BSIQ. Note, when using the
+    " command to send a gab message - the program uses a low level routine to
+    get your message which is not TBSIQ aware...  so both of your keyboards will
+    only input characters to that string until you press RETURN.
 
 03-Nov-2023
 
@@ -754,8 +762,8 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
 INTERFACE
 
 USES Dos, Tree, LogWind, LogDupe, LogStuff, ZoneCont, Country9,
-     LogCW, LogDVP, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
-     timer,LogSCP,datetimec,radio,KeyCode,TBSIQ_CW;
+     LogCW, LogDom, Printer, LogK1EA, LogHelp, LogGrid, trCrt,
+     timer,LogSCP,datetimec,radio,KeyCode,TBSIQ_CW, foot;
 
 PROCEDURE TwoBandSIQ;
 
@@ -766,6 +774,11 @@ USES TBSIQ_Subs;
 PROCEDURE Initialize2BSIQOperatorInterface;
 
     BEGIN
+    { Make sure the Arduino is in sync if it is in 2BSIQSSB mode }
+
+    IF FootSwitchMode = TBSIQSSB THEN
+        ArdKeyer.FootSwitch2BSIQSSB;
+
     { We need to trick the QSONumber generator into giving us the last QSO
       Number given out again.  NextQSONumberToGiveOut should be at least
       equal to 2, but we check just in case }
@@ -831,9 +844,32 @@ PROCEDURE Do2BSIQ;
         MilliSleep;     { This seems necessary or radio display doesn't work }
         TBSIQ_UpdateTimeAndrateDisplays;
         Radio1QSOMachine.CheckQSOStateMachine;
-        TBSIQ_CW_Engine.CheckMessages;
+
+        { This probably works for SSB }
+
+        IF TBSIQDualMode THEN
+            BEGIN
+            IF NOT ((Radio1QSOMachine.IAmTransmitting AND (Radio1QSOMachine.Mode <> CW)) OR
+                    (Radio2QSOMachine.IAmTransmitting AND (Radio2QSOMachine.Mode <> CW))) THEN
+                        TBSIQ_CW_Engine.CheckMessages;
+
+            END
+        ELSE
+            TBSIQ_CW_Engine.CheckMessages;
+
         Radio2QSOMachine.CheckQSOStateMachine;
-        TBSIQ_CW_Engine.CheckMessages;
+
+        { This probably works for SSB }
+
+        IF TBSIQDualMode THEN
+            BEGIN
+            IF NOT ((Radio1QSOMachine.IAmTransmitting AND (Radio1QSOMachine.Mode <> CW)) OR
+                    (Radio2QSOMachine.IAmTransmitting AND (Radio2QSOMachine.Mode <> CW))) THEN
+                        TBSIQ_CW_Engine.CheckMessages;
+            END
+        ELSE
+            TBSIQ_CW_Engine.CheckMessages;
+
     UNTIL False;
     END;
 
