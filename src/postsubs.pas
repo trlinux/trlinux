@@ -1114,7 +1114,7 @@ FUNCTION GetContestExchangeFromLogEntryExchange (LogEntry: STRING;
     RXData.NumberSent := GetLogEntryQSONumber (LogEntry);
     RXData.QSOPoints  := GetLogEntryQSOPoints (LogEntry);
 
-    ParseExchangeIntoContestExchange (LogEntry, RXData);
+    ParseLogEntryIntoContestExchange (LogEntry, RXData);
 
     { We now have all of the log entry elements in RXData.  We need to
       set the DX QTH and prefix variables up, and if we are doing
