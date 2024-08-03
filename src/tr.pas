@@ -54,6 +54,8 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+Release 0.60 - June 20, 2024 > 16-Jul-2024
+
 16-Jul-2024
  - Fixed initial exchange not getting updated as you worked guys in IARU and
    likely other contests.
@@ -62,7 +64,6 @@ TODO List after 2023 WPX CW:
    time.  The only reason for not doing this was a speed issue back in the old
    DOS days.
 
-Release 0.60 - June 20, 2024
 
 17-Jun-2024
  - Lots of work with QSO numbers coming in over the network.  Many bugs fixed and
