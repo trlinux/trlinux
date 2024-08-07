@@ -54,6 +54,13 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+
+
+7-Aug-2024
+ - Changed AUTO SIDETONE ENABLE to AUTO SIDETONE LEVEL where zero will disable the
+   feature and anything above zero will be the monitor level that will be used
+   when sending paddle CW.  Again, this only will work with K3/K4 radios.
+
 Release 0.60 - June 20, 2024 > 16-Jul-2024
 
 16-Jul-2024

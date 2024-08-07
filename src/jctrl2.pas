@@ -134,7 +134,11 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            DisplayAutoSendCharacterCount;
            END;
 
-      AST: AutoSidetoneControl := NOT AutoSidetoneControl;
+      AST: BEGIN
+           TempInt := QuickEditInteger ('Mon level (0=disable - 60) : ', 3);
+           IF (TempInt >= 0) AND (TempInt <= 60) THEN
+               AutoSideToneLevel := TempInt;
+           END;
 
       ATI: BEGIN
            Inc (AutoTimeIncrementQSOs);
@@ -1012,7 +1016,7 @@ VAR FileWrite: TEXT;
       ASP: WriteLn (FileWrite, AutoSAPEnable);
       ASR: WriteLn (FileWrite, AutoSAPEnableRate); {KK1L: 6.72}
       ASC: WriteLn (FileWrite, AutoSendCharacterCount);
-      AST: WriteLn (FileWRite, AutoSidetoneControl);
+      AST: WriteLn (FileWrite, AutoSidetoneLevel);
       ATI: WriteLn (FileWrite, AutoTimeIncrementQSOs);
 
       BAB: WriteLn (FileWrite, BandMapAllBands);
@@ -1393,7 +1397,7 @@ VAR TempString: Str40;
       ASP: IF AutoSAPEnable THEN TempString := 'TRUE';
       ASR: Str (AutoSAPEnableRate, TempString); {KK1L: 6.72}
       ASC: Str (AutoSendCharacterCount, TempString);
-      AST: IF AutoSideToneControl THEN TempString := 'TRUE';
+      AST: Str (AutoSidetoneLevel, TempString);
       ATI: Str (AutoTimeIncrementQSOs, TempString);
 
       BAB: IF BandMapAllBands THEN TempString := 'TRUE';

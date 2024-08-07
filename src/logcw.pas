@@ -42,7 +42,8 @@ TYPE
 VAR
     AutoCQDelayTime: INTEGER;
     AutoCQMemory:    CHAR;
-    AutoSidetoneControl: BOOLEAN;  { Used to turn on side tone for manually sent CW }
+
+    AutoSidetoneLevel: INTEGER;  { Zero defeats the function }
 
     CorrectedCallMessage:      Str80;
     CorrectedCallPhoneMessage: Str80;
@@ -212,7 +213,7 @@ VAR Count: INTEGER;
         BEGIN
         CASE ActiveRadio OF
             RadioOne:
-                IF AutoSideToneControl AND DetectedPaddleActivityR1 THEN
+                IF (AutoSideToneLevel > 0) AND DetectedPaddleActivityR1 THEN
                     BEGIN
                     DetectedPaddleActivityR1 := False;
                     SetCWMonitorLevel (0);
@@ -220,7 +221,7 @@ VAR Count: INTEGER;
                     END;
 
             RadioTwo:
-                IF AutoSideToneControl AND DetectedPaddleActivityR2 THEN
+                IF (AutoSideToneLevel > 0) AND DetectedPaddleActivityR2 THEN
                     BEGIN
                     DetectedPaddleActivityR2 := False;
                     SetCWMonitorLevel (0);
@@ -248,16 +249,16 @@ FUNCTION CWStillBeingSent: BOOLEAN;
         CASE ActiveRadio OF
 
             RadioOne:
-                IF AutoSidetoneControl AND CWMessageDone AND NOT DetectedPaddleActivityR1 THEN  { Is this CW being sent from the paddle? }
+                IF (AutoSidetoneLevel > 0) AND CWMessageDone AND NOT DetectedPaddleActivityR1 THEN  { Is this CW being sent from the paddle? }
                     BEGIN
-                    SetCWMonitorLevel (50);
+                    SetCWMonitorLevel (AutoSidetoneLevel);
                     DetectedPaddleActivityR1 := True;
                     END;
 
             RadioTwo:
-                IF AutoSidetoneControl AND CWMessageDone AND NOT DetectedPaddleActivityR2 THEN  { Is this CW being sent from the paddle? }
+                IF (AutoSideToneLevel > 0) AND CWMessageDone AND NOT DetectedPaddleActivityR2 THEN  { Is this CW being sent from the paddle? }
                     BEGIN
-                    SetCWMonitorLevel (50);
+                    SetCWMonitorLevel (AutoSideToneLevel);
                     DetectedPaddleActivityR2 := True;
                     END;
 

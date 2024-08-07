@@ -273,7 +273,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       ASP: Description := 'AUTO S&P ENABLE';
       ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ASC: Description := 'AUTO SEND CHARACTER COUNT';
-      AST: Description := 'AUTO SIDETONE CONTROL';
+      AST: Description := 'AUTO SIDETONE LEVEL';
       ATI: Description := 'AUTO TIME INCREMENT';
 
       BAB: Description := 'BAND MAP ALL BANDS';
@@ -518,7 +518,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       ASP: Write (AutoSAPEnable);
       ASR: Write (AutoSAPEnableRate); {KK1L: 6.72}
       ASC: Write (AutoSendCharacterCount);
-      AST: Write (AutoSidetoneControl);
+      AST: Write (AutoSidetoneLevel);
       ATI: Write (AutoTimeIncrementQSOs);
 
       BAB: Write (BandMapAllBands);
@@ -982,8 +982,8 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Char position where auto CW starts');
 
-      AST: IF AutoSidetoneControl THEN
-               Write ('Turn on K3/K4 sidetone for paddle CW')
+      AST: IF AutoSidetoneLevel > 0 THEN
+               Write ('K3/K4 sidetone level for paddle CW')
            ELSE
                Write ('No turn on sidetone for paddle CW');
 

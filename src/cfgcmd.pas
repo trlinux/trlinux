@@ -251,8 +251,14 @@ VAR xResult, Speed, TempValue: INTEGER;
 
     IF ID = 'AUTO SIDETONE CONTROL' THEN
         BEGIN
-        AutoSideToneControl := UpCase (CMD [1]) = 'T';
+        AutoSideToneLevel := 50;
         ProcessConfigInstructions1 := True;
+        END;
+
+    IF ID = 'AUTO SIDETONE LEVEL' THEN
+        BEGIN
+        Val (CMD, AutoSidetoneLevel, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
         END;
 
     IF ID = 'AUTO TIME INCREMENT' THEN
