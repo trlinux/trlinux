@@ -83,10 +83,6 @@ UNIT LogStuff;
 
   It will send the QSO off to the network if you are sending QSOs immediately.
 
-  It will then call the Procedure PutContactIntoLogFile which will look at
-  the log string and take care of formating the page for the people who
-  still like to print out their log pages.
-
   It passes the log entry to PutLogEntryIntoSheet in logedit.pas which will
   see if any multiplier flags need to be set without any regard to what is
   in the editable window.  It will add the QSO to the dupe and multiplier
@@ -325,7 +321,6 @@ VAR
     MessageEnable:           BOOLEAN;
     ModemPortBaudRate:       LONGINT;
     MultiInfoMessageTimeout: TimeRecord;
-    MultiMultsOnly:          BOOLEAN;
     MultiplierFileEnable:    BOOLEAN;
     MultiMessageBuffer:      ARRAY [1..5] OF Str80;
     MultiMessageHead:       INTEGER;

@@ -231,7 +231,6 @@ PROCEDURE SetConfigurationDefaultValues;
     MessageEnable          := True;
     ModemPortBaudRate      := 4800;
     MultiInfoMessage       := '';
-    MultiMultsOnly         := False;
     MultipleBandsEnabled   := True;
     MultipleModesEnabled   := True;
     MultiPortBaudRate      := 4800;

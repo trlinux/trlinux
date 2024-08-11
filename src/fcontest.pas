@@ -387,6 +387,7 @@ VAR TempQTH: QTHRecord;
             QSOByMode := True;
             SetUpRSTQSONumberExchange;
             FoundContest := True;
+
             AddDomesticCountry ('I');
             AddDomesticCountry ('IS');
             END;

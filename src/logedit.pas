@@ -1477,7 +1477,6 @@ PROCEDURE EditableLog.ProcessMultipliers (VAR RXData: ContestExchange);
     IF RXData.InhibitMults THEN Exit;
 
     Sheet.SetMultFlags (RXData);
-
     CancelOutMultsThatAreInEditableWindow (RXData);
 
     IF MultiplierAlarm THEN

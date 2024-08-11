@@ -121,7 +121,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MEN,
                       MRM,
                       MIM,
-                      MMO,
                       MRQ,
                       MRT,
                       MUM,
@@ -358,7 +357,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MEN: Description := 'MOUSE ENABLE';
       MRM: Description := 'MULT REPORT MINIMUM BANDS';
       MIM: Description := 'MULTI INFO MESSAGE';
-      MMO: Description := 'MULTI MULTS ONLY';
       MRQ: Description := 'MULTI REQUEST QSO NUMBER';
       MRT: Description := 'MULTI RETRY TIME';
       MUM: Description := 'MULTI UPDATE MULT DISPLAY';
@@ -682,7 +680,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MEN: Write (MouseEnable);
       MRM: Write (MultReportMinimumBands);
       MIM: Write (MultiInfoMessage);
-      MMO: Write (MultiMultsOnly);
       MRQ: Write (MultiRequestQSONumber);
       MRT: Write (MultiRetryTime);
       MUM: Write (MultiUpdateMultDisplay);
@@ -1335,11 +1332,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
       MRM: Write ('Threshold # bands for Control-O report');
 
       MIM: Write ('Multi status msg - $=Freq/S&P %=Rate ');
-
-      MMO: IF MultiMultsOnly THEN
-               Write ('Only mult QSOs are passed to other stns')
-           ELSE
-               Write ('All QSOs are passed to other stns');
 
       MRQ: IF MultiRequestQSONumber THEN
                Write ('Request QSO numbers from other computer')

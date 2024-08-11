@@ -7720,21 +7720,27 @@ VAR LogString: Str80;
 
 PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
 
-VAR TempData: ContestExchange;
-
     BEGIN
     { Leveraged from LOGSUBS2.PAS }
 
-    IF (ActiveMultiPort <> nil) AND SendQSOImmediately AND MyQSO THEN
+    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND MyQSO THEN
         BEGIN
-        GetRidOfPostcedingSpaces (LogString);
+        IF SendQSOImmediately THEN
+            BEGIN
+            GetRidOfPostcedingSpaces (LogString);
 
-        IF ((LogString <> '') AND NOT MultiMultsOnly) OR
-           (GetLogEntryMultString (LogString) <> '') THEN
-               SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                 $FF, MultiQSOData, LogString);
+            IF LogString <> '' THEN
+                SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                  $FF, MultiQSOData, LogString);
+            END;
+
+        { We do this so people can see what we worked without it being in the editable window }
+
+        SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                          $FF,
+                          MultiInstantQSOMessage,
+                          Copy (LogString, 1, 68));
         END;
-
 
     LogString := VisibleLog.PushLogEntry (LogString);
 
@@ -7746,25 +7752,17 @@ VAR TempData: ContestExchange;
         BEGIN
         TBSIQ_PutContactIntoLogFile (LogString);
 
-        { From LOGSUBS2.PAS }
+        { I am a little fuzzy here if we should be sending all QSOs that
+          pop off the top of the editable window - or only ones that were
+          made in this instance of the program.  Currently - it looks like
+          the QSO has to scroll off the top of all of the previous machines
+          editable log window before it gets here - and thusly - I must
+          send it on to the next machine }
 
-        IF ParseLogEntryIntoContestExchange (LogString, TempData) THEN
-            BEGIN
-            IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
-                IF (NOT MultiMultsOnly) OR
-                   (GetLogEntryMultString (LogString) <> '') THEN
-                        SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                          $FF, MultiQSOData, LogString);
-            END
-
-
-        ELSE  { QSO doesn't make sense - probably a note }
-
-            IF (ActiveMultiPort <> nil) AND (NOT SendQSOImmediately) THEN
-                    SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                      $FF, MultiQSOData, LogString);
+        IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
+            SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                              $FF, MultiQSOData, LogString);
         END;
-
     END;
 
 
@@ -7799,6 +7797,8 @@ VAR Time, QSONumber: INTEGER;
         IF QSOTotals [All, Both] MOD ContactsPerPage > 9 THEN
             IF QSOTotals [All, Both] MOD 10 = 0 THEN
                 WriteLogEntry ('');
+
+        LogString := Copy (LogString, 1, LogEntryMultAddress - 1);
 
         VisibleLog.PutLogEntryIntoSheet (LogString);
         WriteLogEntry                   (LogString);

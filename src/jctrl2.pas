@@ -547,7 +547,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                CreateAndSendSAPMultiInfoMessage;
            END;
 
-      MMO: MultiMultsOnly        := NOT MultiMultsOnly;
       MRQ: MultiRequestQSONumber := NOT MultiRequestQSONumber;
 
       MRT: BEGIN
@@ -1171,7 +1170,6 @@ VAR FileWrite: TEXT;
       MRM: WriteLn (FileWrite, MultReportMinimumBands);
       MIM: WriteLn (FileWrite, MultiInfoMessage);
 
-      MMO: WriteLn (FileWrite, MultiMultsOnly);
       MRQ: WriteLn (FileWrite, MultiRequestQSONumber);
       MRT: WriteLn (FileWrite, MultiRetryTime);
       MUM: WriteLn (FileWrite, MultiUpdateMultDisplay);
@@ -1547,7 +1545,6 @@ VAR TempString: Str40;
       MEN: IF MouseEnable THEN TempString := 'TRUE';
       MRM: Str (MultReportMinimumBands, TempString);
       MIM: TempString := MultiInfoMessage;
-      MMO: IF MultiMultsOnly THEN TempString := 'TRUE';
       MRQ: IF MultiRequestQSONumber THEN TempString := 'TRUE';
       MRT: Str (MultiRetryTime, TempString);
       MUM: IF MultiUpdateMultDisplay THEN TempString := 'TRUE';

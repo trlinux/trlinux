@@ -1880,13 +1880,14 @@ VAR NumberMults: INTEGER;
     IF (ContestName = 'CWT') OR (ContestName = 'CWO') OR (ContestName = 'MST') THEN
         RXData.DomMultQTH := Copy (RXData.Callsign, 1, 6)
     ELSE
-        BEGIN
-        IF RXData.DomesticQTH = '' THEN
-            RXData.DomesticQTH := RXData.QTHString;
+        IF DomesticCountryCall (RXData.Callsign) THEN  { Aug 2024 }
+            BEGIN
+            IF RXData.DomesticQTH = '' THEN
+                RXData.DomesticQTH := RXData.QTHString;
 
-        IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
-            RXData.DomMultQTH := RXData.DomesticQTH;
-        END;
+            IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
+                RXData.DomMultQTH := RXData.DomesticQTH;
+            END;
 
     { We do not count countries in WRTC if we have a domestic mult }
 
@@ -2719,9 +2720,10 @@ VAR OriginalString, ExchangeString: Str80;
 
     LocateCall (RXData.Callsign, RXData.QTH, True);
 
-    { This maybe isn't necessary - but just to be sure }
+    { Copy some stuff to where we look for it }
 
     RXData.Prefix := RXData.QTH.Prefix;
+    GetDXQTH (RXData);                   { Fix WAE no country mults Aug2024 }
 
     { Now - we start looking at the exchange data and parse it out }
 
@@ -2812,6 +2814,8 @@ VAR OriginalString, ExchangeString: Str80;
 
     IF ExchangeInformation.Zone AND StringIsAllNumbers (GetFirstString (ExchangeString)) THEN
         RXData.Zone := RemoveFirstString (ExchangeString);
+
+    { We might get in trouble here if someone entered a DX prefix as a QTH in the NAQP }
 
     IF ExchangeInformation.QTH THEN
         IF ExchangeString <> '' THEN

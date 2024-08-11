@@ -55,6 +55,8 @@ TODO List after 2023 WPX CW:
  - Alt-I seems to work once but not again (TBSIQ?)
 
 
+10-Aug-2024
+ - Removed MULTI MULTS ONLY command.
 
 7-Aug-2024
  - Changed AUTO SIDETONE ENABLE to AUTO SIDETONE LEVEL where zero will disable the

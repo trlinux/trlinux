@@ -2091,12 +2091,6 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-    IF ID = 'MULTI MULTS ONLY' THEN
-        BEGIN
-        MultiMultsOnly := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions2 := True;
-        Exit;
-        END;
 
     IF ID = 'MULTI PORT' THEN
         BEGIN
