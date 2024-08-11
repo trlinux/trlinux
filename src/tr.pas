@@ -58,6 +58,10 @@ TODO List after 2023 WPX CW:
 10-Aug-2024
  - Removed MULTI MULTS ONLY command.
 
+ - Fixed DX mults showing up twice in NAQP log entries
+
+ - Fixed DX mults not showing up after scrolling out of the editable log window.
+
 7-Aug-2024
  - Changed AUTO SIDETONE ENABLE to AUTO SIDETONE LEVEL where zero will disable the
    feature and anything above zero will be the monitor level that will be used
