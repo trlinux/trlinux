@@ -51,7 +51,10 @@ FUNCTION QSONumberObject.InitializeQSONumbersFromLogFile (FileName: STRING): BOO
 { Will read in the log file (either a LOG.DAT or LOG.TMP type file) and update the
   QSONumberMatrix with the highest sent QSO numbers found.  This is intended to be
   done only once at the start of the program.  It is up to the code to keep the
-  values up to date. }
+  values up to date.
+
+  New in Aug-2024, if the QSO number field has a decimal in it - indicating it is
+  frequency data - we will just count up the QSOs }
 
 VAR FileRead: TEXT;
     BandModeString, QSONumberString, FileString: STRING;
@@ -89,6 +92,14 @@ VAR FileRead: TEXT;
 
                 IF QSONumber > QSONumberMatrix [LogEntryBand] THEN
                     QSONumberMatrix [LogEntryBand] := QSONumber;
+                END
+            ELSE
+                BEGIN
+                { It appears someone used the QSO number field for frequency data.
+                  In this case - we will just increment the QSO numbers by one }
+
+                Inc (QSONumberMatrix [All]);
+                Inc (QSONumberMatrix [LogEntryBand]);
                 END;
             END;
         END;

@@ -5,7 +5,169 @@ unit scorereporter;
 interface
 uses classes,baseunix,unix,ctypes;
 
-type
+
+   { This stuff is being craeted initially for score reporting - so that is why it is
+     here.  However, it might find some utility in the Cabrillo file generation as
+     well. }
+
+TYPE
+
+   CategoryAssistedType = (NoCategoryAssistedType,
+                           AssistedType,
+                           NonAssistedType);
+
+   CategoryBandType     = (NoCategoryBandType,
+                           AllBandType,
+                           SingleBand160Type,
+                           SingleBand80Type,
+                           SingleBand40Type,
+                           SingleBand20Type,
+                           SingleBand15Type,
+                           SingleBand10Type);
+
+    CategoryModeType    = (NoCategoryModeType,
+                           CWModeType,
+                           DigiModeType,
+                           FMModeType,
+                           RTTYModeType,
+                           SSBModeType,
+                           MixedModeType);
+
+   CategoryOperatorType = (NoCategoryOperatorType,
+                           SingleOperatorType,
+                           MultiOperatorType,
+                           CheckLogType);
+
+   CategoryPowerType    = (NoCategoryPowerType,
+                           HighPowerType,
+                           LowPowerType,
+                           QRPPowerType);
+
+   CategoryStationType  = (NoCategoryStationType,
+                           DistributedStationType,
+                           FixedStationType,
+                           MobileStationType,
+                           PortableStationType,
+                           RoverStationType,
+                           RoverLimitedStationType,
+                           RoverUnlimitedStationType,
+                           ExpeditionStationType,
+                           HQStationType,
+                           SchoolStationType,
+                           ExplorerStationType);
+
+    CategoryTimeType    = (NoCategoryTimeType,
+                           SixHourTimeType,
+                           EightHourTimeType,
+                           TwelveHourTimeType,
+                           TwentyFourHourTimeType);
+
+    CategoryTransmitterType = (NoCategoryTransmitterType,
+                               OneTransmitterType,
+                               TwoTransmitterType,
+                               LimitedTransmitterType,
+                               UnlimitedTransmitterType,
+                               SWLTransmitterType);
+
+    CategoryOverlayType = (NoCategoryOverlayType,
+                           ClassicOverlayType,
+                           RookieOverlayType,
+                           TBWiresOverlayType,
+                           YouthOverlayType,
+                           NoviceTechOverlayType,
+                           YLOverlayType);
+
+CONST
+
+   CategoryAssistedStringList: ARRAY [CategoryAssistedType] OF STRING [20] =
+                                  ('NO CATEGORY ASSISTED',
+                                   'ASSISTED            ',
+                                   'NON-ASSISTED        ');
+
+    CategoryBandStringList: ARRAY [CategoryBandType] OF STRING [16] =
+                              ('NO CATEGORY BAND',
+                               'ALL             ',
+                               '160M            ',
+                               '80M             ',
+                               '40M             ',
+                               '20M             ',
+                               '15M             ',
+                               '10M             ');
+
+   CategoryModeStringList: ARRAY [CategoryModeType] OF STRING [16] =
+                             ('NO CATEGORY MODE',
+                              'CW              ',
+                              'DIGI            ',
+                              'FM              ',
+                              'RTTY            ',
+                              'SSB             ',
+                              'MIXED           ');
+
+
+   CategoryOperatorStringList: ARRAY [CategoryOperatorType] OF STRING [20] =
+                                 ('NO CATEGORY OPERATOR',
+                                  'SINGLE-OP           ',
+                                  'MULTI-OP            ',
+                                  'CHECKLOG            ');
+
+   CategoryPowerStringList: ARRAY [CategoryPowerType] OF STRING [17] =
+                              ('NO CATEGORY POWER',
+                               'HIGH POWER       ',
+                               'LOW POWER        ',
+                               'QRP              ');
+
+    CategoryStationStringList: ARRAY [CategoryStationType] OF STRING [19] =
+                                 ('NO CATEGORY STATION',
+                                  'DISTRIBUTED        ',
+                                  'FIXED              ',
+                                  'MOBILE             ',
+                                  'PORTABLE           ',
+                                  'ROVER              ',
+                                  'ROVER LIMITED      ',
+                                  'ROVER UNLIMITED    ',
+                                  'EXPEDITION         ',
+                                  'HQ                 ',
+                                  'SCHOOL             ',
+                                  'EXPLORER           ');
+
+    CategoryTimeStringList: ARRAY [CategoryTimeType] OF STRING [16] =
+                                     ('NO CATEGORY TIME',
+                                      '6-HOURS         ',
+                                      '8-HOURS         ',
+                                      '12-HOURS        ',
+                                      '24-HOURS        ');
+
+    CategoryTransmitterStringList: ARRAY [CategoryTransmitterType] OF STRING [23] =
+                                     ('NO CATEGORY TRANSMITTER',
+                                      'ONE                    ',
+                                      'TWO                    ',
+                                      'LIMITED                ',
+                                      'UNLIMITED              ',
+                                      'SWL                    ');
+
+   CategoryOverlayStringList: ARRAY [CategoryOverlayType] OF STRING [19] =
+                                ('NO CATEGORY OVERLAY',
+                                 'CLASSIC            ',
+                                 'ROOKIE             ',
+                                 'TB-WIRES           ',
+                                 'YOUTH              ',
+                                 'NOVICE-TECH        ',
+                                 'YL                 ');
+
+TYPE
+
+   CabrilloCategoryRecord = RECORD
+       CategoryAssisted: CategoryAssistedType;
+       CategoryBand: CategoryBandType;
+       CategoryMode: CategoryModeType;
+       CategoryOperator: CategoryOperatorType;
+       CategoryPower: CategoryPowerType;
+       CategoryStation: CategoryStationType;
+       CategoryTime: CategoryTimeType;
+       CategoryTransmitter: CategoryTransmitterType;
+       CategoryOverlay: CategoryOverlayType;
+       END;
+
    scorereport = class
       private
          call: string;
@@ -77,8 +239,13 @@ type
    function unlockpt(fd:cint):cint;cdecl;external;
    function ptsname_r(fd:cint; buf:Pchar; buflen: size_t):cint;cdecl;external;
 
+VAR
+    ScoreReporterCabrilloCategory: CabrilloCategoryRecord;
+
 implementation
+
 uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
+
 //logcfg for version number
 //tree for date string
 //logdupe for mults and score?
@@ -575,4 +742,20 @@ end;
       end;
    end;
 
-end.
+
+
+   BEGIN
+   WITH ScoreReporterCabrilloCategory DO
+       BEGIN
+       CategoryAssisted    := NonAssistedType;
+       CategoryBand        := AllBandType;
+       CategoryMode        := NoCategoryModeType;
+       CategoryOperator    := SingleOperatorType;
+       CategoryPower       := NoCategoryPowerType;
+       CategoryStation     := NoCategoryStationType;
+       CategoryTime        := NoCategoryTimeType;
+       CategoryTransmitter := OneTransmitterType;
+       CategoryOverlay     := NoCategoryOverlayType;
+       END;
+
+   END.

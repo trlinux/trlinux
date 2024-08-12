@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, N4OGW;
+     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, N4OGW, scorereporter;
 
 
 TYPE MenuEntryType = (NoMenuEntry,
@@ -66,6 +66,17 @@ TYPE MenuEntryType = (NoMenuEntry,
                       BPD,
                       SAS,
                       CAU,
+
+                      CatAss,     { Cabrillo category stuff in scorereporter.pas }
+                      CatBand,
+                      CatMode,
+                      CatOp,
+                      CatPower,
+                      CatStation,
+                      CatTime,
+                      CatTx,
+                      CatOverLay,
+
                       CLF,
                       CDE,
                       CID,
@@ -293,6 +304,17 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       {KK1L: 6.65}
       SAS: Description := 'CALL WINDOW SHOW ALL SPOTS';
       CAU: Description := 'CALLSIGN UPDATE ENABLE';
+
+      CatAss:     Description := 'CATEGORY ASSISTED';
+      CatBand:    Description := 'CATEGORY BAND';
+      CatMode:    Description := 'CATEGORY MODE';
+      CatOp:      Description := 'CATEGORY OPERATOR';
+      CatPower:   Description := 'CATEGORY POWER';
+      CatStation: Description := 'CATEGORY STATION';
+      CatTime:    Description := 'CATEGORY TIME';
+      CatTx:      Description := 'CATEGORY TRANSMITTER';
+      CatOverLay: Description := 'CATEGORY OVERLAY';
+
       CLF: Description := 'CHECK LOG FILE SIZE';
       CDE: Description := 'COLUMN DUPESHEET ENABLE';
       CID: Description := 'COMPUTER ID';
@@ -542,6 +564,17 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       BPD: Write (Packet.BroadcastAllPacketData);
 
       CAU: Write (CallsignUpdateEnable);
+
+      CatAss:     Write (CategoryAssistedStringList [ScoreReporterCabrilloCategory.CategoryAssisted]);
+      CatBand:    Write (CategoryBandStringList [ScoreReporterCabrilloCategory.CategoryBand]);
+      CatMode:    Write (CategoryModeStringList [ScoreReporterCabrilloCategory.CategoryMode]);
+      CatOp:      Write (CategoryOperatorStringList [ScoreReporterCabrilloCategory.CategoryOperator]);
+      CatPower:   Write (CategoryPowerStringList [ScoreReporterCabrilloCategory.CategoryPower]);
+      CatStation: Write (CategoryStationStringList [ScoreReporterCabrilloCategory.CategoryStation]);
+      CatTime:    Write (CategoryTimeStringList [ScoreReporterCabrilloCategory.CategoryTime]);
+      CatTx:      Write (CategoryTransmitterStringList [ScoreReporterCabrilloCategory.CategoryTransmitter]);
+      CatOverLay: Write (CategoryOverlayStringList [ScoreReporterCabrilloCategory.CategoryOverlay]);
+
       CLF: Write (CheckLogFileSize);
       CDE: Write (ColumnDupeSheetEnable);
       CID: Write (ComputerID);
@@ -1071,6 +1104,16 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('No call updates looked for in exchange');
 
+      CatAss,
+      CatBand,
+      CatMode,
+      CatOp,
+      CatPower,
+      CatStation,
+      CatTime,
+      CatTx,
+      CatOverLay: Write ('Data for score reporter');
+
       CLF: IF CheckLogFileSize THEN
                Write ('Log file size checked after each QSO')
            ELSE
@@ -1082,7 +1125,7 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Visible sheet runs districts together');
 
       CID: IF ComputerID = Chr (0) THEN
-               Write ('No computer ID set (used for multi')
+               Write (' No computer ID set (used for multi')
            ELSE
                Write ('Computer ID as shown appears in log');
 

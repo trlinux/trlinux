@@ -54,6 +54,10 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+11-Aug-2024
+ - When reading in a log that has frequency data in the QSO number field -
+   the program will just count the QSOs and use that as the QSO totals
+   for generatring QSO numebrs instead of the high QSO number sent.
 
 10-Aug-2024
  - Removed MULTI MULTS ONLY command.

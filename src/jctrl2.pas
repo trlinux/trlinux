@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, N4OGW;
+     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, N4OGW, scorereporter;
 
 PROCEDURE DisplayStatus (FirstEntryDisplayed: MenuEntryType; ActiveEntry: MenuEntryType);
 FUNCTION  GetActiveLineFromEntryString (EntryString: Str80): MenuEntryType;
@@ -60,6 +60,7 @@ VAR LastEntry, Entry: MenuEntryType;
         IF Entry > FirstEntryDisplayed THEN WriteLn;
         DisplayStatusLine (Entry, Entry = ActiveEntry);
 
+        IF WhereX >= 40 THEN GoToXY (39, WhereY);
         WHILE WhereX < 40 DO Write (' ');
 
         DisplayInfoLine   (Entry, Entry = ActiveEntry);
@@ -228,6 +229,69 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
       SAS: CallWindowShowAllSpots := NOT CallWindowShowAllSpots;
 
       CAU: CallsignUpdateEnable := NOT CallsignUpdateEnable;
+
+      CatAss:
+          WITH ScoreReporterCabrilloCategory DO
+              IF CategoryAssisted < NonAssistedType THEN
+                  Inc (CategoryAssisted)
+              ELSE
+                  CategoryAssisted := NoCategoryAssistedType;
+
+      CatBand:
+          WITH ScoreReporterCabrilloCategory DO
+              IF CategoryBand < SingleBand10Type THEN
+                  Inc (CategoryBand)
+              ELSE
+                  CategoryBand := AllBandType;
+
+      CatMode:
+          WITH ScoreReporterCabrilloCategory DO
+              IF CategoryMode < MixedModeType THEN
+                  Inc (CategoryMode)
+              ELSE
+                  CategoryMode := CWModeType;
+
+      CatOp:
+          WITH ScoreReporterCabrilloCategory DO
+              IF CategoryOperator < CheckLogType THEN
+                  Inc (CategoryOperator)
+              ELSE
+                  CategoryOperator := SingleOperatorType;
+
+      CatPower:
+          WITH ScoreReporterCabrilloCategory DO
+              IF CategoryPower < QRPPowerType THEN
+                  Inc (CategoryPower)
+              ELSE
+                  CategoryPower := HighPowerType;
+
+      CatStation:
+          WITH ScoreReporterCabrilloCategory DO
+              IF CategoryStation < ExplorerStationType THEN
+                  Inc (CategoryStation)
+              ELSE
+                  CategoryStation := NoCategoryStationType;
+
+      CatTime:
+          WITH ScoreReporterCabrilloCategory DO
+              IF CategoryTime < TwentyFourHourTimeType THEN
+                  Inc (CategoryTime)
+              ELSE
+                  CategoryTime := NoCategoryTimeType;
+
+      CatTx:
+          WITH ScoreReporterCabrilloCategory DO
+              IF CategoryTransmitter < SWLTransmitterType THEN
+                  Inc (CategoryTransmitter)
+              ELSE
+                  CategoryTransmitter := NoCategoryTransmitterType;
+
+      CatOverLay:
+          WITH ScoreReporterCabrilloCategory DO
+              IF CategoryOverlay < YLOverlayType THEN
+                  Inc (CategoryOverlay)
+              ELSE
+                  CategoryOverlay := NoCategoryOverlayType;
 
       CLF: CheckLogFileSize := NOT CheckLogFileSize;
 
@@ -1040,6 +1104,17 @@ VAR FileWrite: TEXT;
       BRL: WriteLn (FileWrite, BigRemainingList);
       BPD: WriteLn (FileWrite, Packet.BroadcastAllPacketData);
       CAU: WriteLn (FileWrite, CallsignUpdateEnable);
+
+      CatAss:     Write (FileWrite, CategoryAssistedStringList [ScoreReporterCabrilloCategory.CategoryAssisted]);
+      CatBand:    Write (FileWrite, CategoryBandStringList [ScoreReporterCabrilloCategory.CategoryBand]);
+      CatMode:    Write (FileWrite, CategoryModeStringList [ScoreReporterCabrilloCategory.CategoryMode]);
+      CatOp:      Write (FileWrite, CategoryOperatorStringList [ScoreReporterCabrilloCategory.CategoryOperator]);
+      CatPower:   Write (FileWrite, CategoryPowerStringList [ScoreReporterCabrilloCategory.CategoryPower]);
+      CatStation: Write (FileWrite, CategoryStationStringList [ScoreReporterCabrilloCategory.CategoryStation]);
+      CatTime:    Write (FileWrite, CategoryTimeStringList [ScoreReporterCabrilloCategory.CategoryTime]);
+      CatTx:      Write (FileWrite, CategoryTransmitterStringList [ScoreReporterCabrilloCategory.CategoryTransmitter]);
+      CatOverLay: Write (FileWrite, CategoryOverlayStringList [ScoreReporterCabrilloCategory.CategoryOverlay]);
+
       CLF: WriteLn (FileWrite, CheckLogFileSize);
       CDE: WriteLn (FileWrite, ColumnDupeSheetEnable);
       CID: WriteLn (FileWrite, ComputerID);
@@ -1421,6 +1496,17 @@ VAR TempString: Str40;
       BPD: IF Packet.BroadcastAllPacketData THEN TempString := 'TRUE';
 
       CAU: IF CallsignUpdateEnable THEN TempString := 'TRUE';
+
+      CatAss:     TempString := CategoryAssistedStringList [ScoreReporterCabrilloCategory.CategoryAssisted];
+      CatBand:    TempString := CategoryBandStringList [ScoreReporterCabrilloCategory.CategoryBand];
+      CatMode:    TempString := CategoryModeStringList [ScoreReporterCabrilloCategory.CategoryMode];
+      CatOp:      TempString := CategoryOperatorStringList [ScoreReporterCabrilloCategory.CategoryOperator];
+      CatPower:   TempString := CategoryPowerStringList [ScoreReporterCabrilloCategory.CategoryPower];
+      CatStation: TempString := CategoryStationStringList [ScoreReporterCabrilloCategory.CategoryStation];
+      CatTime:    TempString := CategoryTimeStringList [ScoreReporterCabrilloCategory.CategoryTime];
+      CatTx:      TempString := CategoryTransmitterStringList [ScoreReporterCabrilloCategory.CategoryTransmitter];
+      CatOverLay: TempString := CategoryOverlayStringList [ScoreReporterCabrilloCategory.CategoryOverlay];
+
       CLF: IF CheckLogFileSize THEN TempString := 'TRUE';
       CDE: IF ColumnDupeSheetEnable THEN TempString := 'TRUE';
       CID: TempString := ComputerID;
