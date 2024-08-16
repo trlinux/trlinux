@@ -3619,7 +3619,10 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName: Str80;
 
             Time := TimeString;
 
-            QSONumberSent := RemoveFirstString (LongLogFileString);  { Remove sent QSO number }
+            { We don't want the QSO number from the QSO number field in the
+              normal part of the QSO data - we want the one later on in the string }
+
+            RemoveFirstString (LongLogFileString);  { Remove sent QSO number }
             Callsign := RemoveFirstString (LongLogFileString);
 
             TempString := BracketedString (LongLogFileString, 'FREQUENCY=', ' ');
@@ -3631,6 +3634,7 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName: Str80;
             ELSE
                 Frequency := Copy (TempString, 1, 5);
 
+            QSONumberSent := BracketedString (LongLogFileString, 'NUMBERSENT=', ' ');
             END;
 
         Inc (NumberLongLogFileEntries);
