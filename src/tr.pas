@@ -54,6 +54,9 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+13-Aug-2024
+ - Fixed bug with hexdump utility not printing out the 4 MSBs of hex values.
+
 11-Aug-2024
  - When reading in a log that has frequency data in the QSO number field -
    the program will just count the QSOs and use that as the QSO totals

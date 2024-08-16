@@ -64,6 +64,7 @@ TYPE
         BandMode: STRING [6];     { 160SSB - used for ADIF QSO matching }
         Callsign: STRING [20];
         Frequency: STRING [12];
+        QSONumberSent: STRING [4];
         Date: STRING [10];
         Time: STRING [4];
         END;
@@ -2958,6 +2959,44 @@ VAR CabrilloFrequencyString: STRING;
 
 
 
+FUNCTION AddQSONumberSentFromLongLogDataToCabrilloString (VAR CabrilloString: STRING): BOOLEAN;
+
+VAR QSONumberSentString, CabrilloDate, CabrilloTime, CabrilloCall: Str20;
+    Address: INTEGER;
+
+    BEGIN
+    IF NumberLongLogFileEntries = 0 THEN Exit;
+
+    { Get the various data fields we will be comparing to find the right entry in the
+      long log array }
+
+    CabrilloDate := Copy (CabrilloString, 15, 10);
+    CabrilloTime := Copy (CabrilloString, 26, 4);
+    CabrilloCall := Copy (CabrilloString, 56, 14);
+    GetRidOfPostcedingSpaces (CabrilloCall);
+
+    FOR Address := 0 TO NumberLongLogFileEntries - 1 DO
+        WITH LongLogFileArray^ [Address] DO
+            IF (Date = CabrilloDate) AND (Time = CabrilloTime) AND (Callsign = CabrilloCall) THEN
+                BEGIN
+                Delete (CabrilloString, 51, 4);
+
+                QSONumberSentString := QSONumberSent;   { from LongLog }
+
+                WHILE Length (QSONumberSentString) < 4 DO
+                    QSONumberSentString := '0' + QSONumberSentString;
+
+                Insert (QSONumberSentString, CabrilloString, 51);
+                Inc (NumberCabrilloEntriesModified);
+                AddQSONumberSentFromLongLogDataToCabrilloString := True;
+                Exit;
+                END;
+
+    AddQSONumberSentFromLongLogDataToCabrilloString := False;
+    END;
+
+
+
 PROCEDURE AddFrequencyDataFromLongLogDataToADIFString (VAR ADIFString: STRING);
 
 { Looks for the Freq field in the ADIF QSO entry.  If there is one found, nothing
@@ -3472,6 +3511,249 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
 
 
 
+PROCEDURE PullQSONumberSentData;
+
+VAR LongLogFileName, OutputFileName, CabrilloFileName: Str80;
+    FirstEntry, TimeString, DateString, MonthString: Str20;
+    OriginalCabrilloString, CabrilloFileString, LongLogFileString: STRING;
+    CabrilloFileRead, LongLogFileRead, OutputFile: TEXT;
+    NumberUnmatchedQSOs: INTEGER;
+
+    BEGIN
+    ClearScreenAndTitle ('PULL QSO NUMBER SENT OUT OF LONGLOG.DAT FILE');
+
+    WriteLn ('This procedure will attempt to import the sent QSO # in the LONGLOG.DAT');
+    WriteLn ('and merge it into an existing Cabrillo file.  If the QSO entry cannot');
+    WriteLn ('be found - it will be left alone.  If you have multiple LONGLOG.DAT files from');
+    WriteLn ('different computers, you should run this procedure using each of them since');
+    WriteLn ('the data for a QSO will only be present on the computer that made the QSO.');
+    WriteLn;
+    WriteLn ('If you are processing multiple files - you might want to zero out the QSO');
+    WriteLn ('numbers before you start - so any QSO that never matches up can be easily');
+    WriteLn ('found.  There will hopefully be a utility to do that here soon.');
+    WriteLn;
+
+    CabrilloFileName := GetResponse ('Enter Cabrillo file to process (none to abort) : ');
+    IF CabrilloFileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (CabrilloFileRead, CabrilloFileName) THEN
+        BEGIN
+        WriteLn ('Unable to open ', CabrilloFileName);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    LongLogFileName := GetResponse ('Enter LONGLOG.DAT file name to process (none to abort) : ');
+
+    IF LongLogFileName = '' THEN
+        BEGIN
+        Close (CabrilloFileRead);
+        Exit;
+        END;
+
+    IF NOT OpenFileForRead (LongLogFileRead, LongLogFileName) THEN
+        BEGIN
+        WriteLn ('Unable to open ', LongLogFileName);
+        Close (CabrilloFileRead);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    OutputFileName := GetResponse ('Enter output filename (none to abort) : ');
+
+    IF OutputFileName = '' THEN
+        BEGIN
+        Close (CabrilloFileRead);
+        Close (LongLogFileRead);
+        Exit;
+        END;
+
+    OpenFileForWrite (OutputFile, OutputFilename);
+
+    { Okay - files are all open.  We need to read in the LONGLOG file into memory so we can
+      aceess it quickly.  We are just going to save the frequency - date - time and callsign
+      data for those QSO records that have 000 frequencies. }
+
+    NumberLongLogFileEntries := 0;
+    New (LongLogFileArray);
+
+    WHILE NOT Eof (LongLogFileRead) DO
+        BEGIN
+        ReadLn (LongLogFileRead, LongLogFileString);
+        LongLogFileString := UpperCase (LongLogFileString);
+
+        GetRidOfPostcedingSpaces (LongLogFileString);
+
+        IF LongLogFileString = '' THEN Continue;
+
+        Delete (LongLogFileString, 1, 7);   { Everything before Date }
+
+        WITH LongLogFileArray^ [NumberLongLogFileEntries] DO
+            BEGIN
+            DateString := RemoveFirstString (LongLogFileString);
+
+            { The date here is like 17-Feb-24 and we need it like 2024-02-24 }
+
+            IF StringHas (DateString, 'JAN') THEN MonthString := '01' ELSE
+            IF StringHas (DateString, 'FEB') THEN MonthString := '02' ELSE
+            IF StringHas (DateString, 'MAR') THEN MonthString := '03' ELSE
+            IF StringHas (DateString, 'APR') THEN MonthString := '04' ELSE
+            IF StringHas (DateString, 'MAY') THEN MonthString := '05' ELSE
+            IF StringHas (DateString, 'JUN') THEN MonthString := '06' ELSE
+            IF StringHas (DateString, 'JUL') THEN MonthString := '07' ELSE
+            IF StringHas (DateString, 'AUG') THEN MonthString := '08' ELSE
+            IF StringHas (DateString, 'SEP') THEN MonthString := '09' ELSE
+            IF StringHas (DateString, 'OCT') THEN MonthString := '10' ELSE
+            IF StringHas (DateString, 'NOV') THEN MonthString := '11' ELSE
+            IF StringHas (DateString, 'DEC') THEN MonthString := '12';
+
+            { Not year 2100 compliant }
+
+            Date := '20' + Copy (DateString, 8, 2) + '-' + MonthString + '-' + Copy (DateString, 1, 2);
+
+            TimeString := RemoveFirstString (LongLogFileString);
+
+            { Need to remove the colon }
+
+            Delete (TimeString, 3, 1);
+
+            Time := TimeString;
+
+            QSONumberSent := RemoveFirstString (LongLogFileString);  { Remove sent QSO number }
+            Callsign := RemoveFirstString (LongLogFileString);
+
+            TempString := BracketedString (LongLogFileString, 'FREQUENCY=', ' ');
+
+            { We go ahead and format this to be the full width of the field in the Cabrillo log }
+
+            IF Length (TempString) = 7 THEN   { 160,80,40 }
+                Frequency := ' ' + Copy (TempString, 1, 4)
+            ELSE
+                Frequency := Copy (TempString, 1, 5);
+
+            END;
+
+        Inc (NumberLongLogFileEntries);
+
+        IF NumberLongLogFileEntries >= MaxLongLogFileEntries THEN
+            BEGIN
+            WriteLn ('Too many entries in the file ', LongLogFileName);
+            WriteLn ('Aborting...');
+            Dispose (LongLogFileArray);
+            Close (CabrilloFileRead);
+            Close (LongLogFileRead);
+            Close (OutputFile);
+            WaitForKeyPressed;
+            Exit;
+            END;
+
+        END;
+
+    Close (LongLogFileRead);
+
+    WriteLn ('There were ', NumberLongLogFileEntries, ' entries found in the file ', LongLogFileName);
+
+    IF NumberLongLogFileEntries = 0 THEN
+        BEGIN
+        WriteLn ('Aborting...');
+        Dispose (LongLogFileArray);
+        Close (CabrilloFileRead);
+        Close (OutputFile);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    { Now - start reading in the Cabrillo File and copy all of the header stuff  to the ouput file }
+
+    REPEAT
+        ReadLn (CabrilloFileRead, CabrilloFileString);
+
+        IF Eof (CabrilloFileRead) THEN
+            BEGIN
+            WriteLn ('Unexpected error - did not find a QSO: entry before EOF');
+            Dispose (LongLogFileArray);
+            Close (CabrilloFileRead);
+            Close (OutputFile);
+            WaitForKeyPressed;
+            Exit;
+            END;
+
+        FirstEntry := GetFirstString (CabrilloFileString);
+
+        IF FirstEntry <> 'QSO:' THEN
+            WriteLn (OutputFile, CabrilloFileString);
+
+    UNTIL (FirstEntry = 'QSO:');
+
+    NumberUnmatchedQSOs := 0;
+
+    { We now have the first QSO entry in CabrilloString - take care of processing it }
+
+    NumberCabrilloEntriesModified := 0;
+
+    AddFrequencyDataFromLongLogDataToCabrilloString (CabrilloFileString);
+    WriteLn (OutputFile, CabrilloFileString);
+
+    { Now - read in the rest of the Cabrillo log }
+
+    WHILE NOT Eof (CabrilloFileRead) DO
+        BEGIN
+        ReadLn (CabrilloFileRead, CabrilloFileString);
+
+        OriginalCabrilloString := CabrilloFileString;
+
+        IF Length (CabrilloFileString) < 15 THEN
+            BEGIN
+            WriteLn (OutputFile, CabrilloFileString);
+
+            Close (CabrilloFileRead);
+            Close (OutputFile);
+
+            WriteLn ('Operation complete.  There were ', NumberCabrilloEntriesModified, ' entries updated.');
+
+            IF NumberUnmatchedQSOs > 0 THEN
+                BEGIN
+                WriteLn (NumberUnmatchedQSOs, ' QSOs did not match up and were not updated.');
+                WriteLn ('Those QSOs were printed out above and had an exclamation point added at the');
+                WriteLn ('end of the Cabrillo entry.');
+                END;
+
+            WaitForKeyPressed;
+            Exit;
+            END;
+
+        IF NOT AddQSONumberSentFromLongLogDataToCabrilloString (CabrilloFileString) THEN
+            BEGIN
+            WriteLn (OriginalCabrilloString);
+            Inc (NumberUnmatchedQSOs);
+            WriteLn (OutputFile, CabrilloFileString + '!');
+            END
+        ELSE
+            WriteLn (OutputFile, CabrilloFileString);
+        END;
+
+    { Well - this is unexpected - we didn't find an END-OF-LOG: in the Cabrillo file }
+
+    WriteLn (OutputFile, 'END-OF-LOG:');
+    Close (CabrilloFileRead);
+    Close (OutputFile);
+
+    WriteLn ('Operation complete.');
+    WriteLn ('We did not see END-OF-FILE: at the end of your Cabrillo log.  We added it');
+    WriteLn ('There were ', NumberCabrilloEntriesModified, ' entries updated.');
+
+    IF NumberUnmatchedQSOs > 0 THEN
+        BEGIN
+        WriteLn (NumberUnmatchedQSOs, ' QSOs did not match up and were not updated.');
+        WriteLn ('Those QSOs were printed out above and had an exclamation point added at the');
+        WriteLn ('end of the Cabrillo entry.');
+        END;
+
+    WaitForKeyPressed;
+    END;
+
+
+
 FUNCTION UtilityMenu: BOOLEAN;
 
 VAR Key: CHAR;
@@ -3525,10 +3807,11 @@ VAR Key: CHAR;
             'P': BEGIN PullFrequencyData;    Exit; END;
             'Q': BEGIN NAQPExchangeChecker;  Exit; END;
             'R': BEGIN ARRLDXExchangeChecker;  Exit; END;
+            'S': BEGIN ShowRestartDotBin;    Exit; END;
             'T': BEGIN TransmitterIDAssign;  Exit; END;
             'V': BEGIN VerifyTransmitterIDs; Exit; END;
+            'W': BEGIN PullQSONumberSentData; Exit; END;
             'Y': BEGIN DownloadCtyFile;      Exit; END;
-            'S': BEGIN ShowRestartDotBin;    Exit; END;
 
             'X', EscapeKey:
                 BEGIN
