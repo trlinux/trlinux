@@ -3783,6 +3783,7 @@ VAR Key: CHAR;
     WriteLn ('  T - Transmitter ID assign by band for Cabrillo.');
     WriteLn ('  V - Verify two transmiter band changes.');
     WriteLn ('  Y - Download new country file.');
+    WriteLn ('  W - Pull QSO #s for WAE from LONGLOG > Cabrillo.');
     WriteLn ('  X - Exit utility program menu.');
     WriteLn;
     TextColor (Cyan);
