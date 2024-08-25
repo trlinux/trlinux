@@ -823,6 +823,12 @@ VAR ParameterCount: INTEGER;
             Halt;
             END;
 
+        IF Uppercase (ParamStr (ParameterCount)) = 'NAFILEPRINT' THEN
+            BEGIN
+            K8CCBinFilePrint;
+            Halt;
+            END;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'UNIXTIME' THEN
             BEGIN
             TestUnixTimeConversionRoutines;

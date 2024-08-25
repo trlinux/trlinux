@@ -3331,7 +3331,7 @@ PROCEDURE StartUpHelp;
     WriteLn ('Legal commands include the following (see manual for details) : ');
     WriteLn;
     WriteLn ('B64Decode BandMap Coax Debug Distance FindFile FootSwitchDebug');
-    WriteLn ('Grid Help HexConvert HexDump IOPort HP KeyerDebug LC LoopBack');
+    WriteLn ('Grid Help HexConvert HexDump IOPort HP KeyerDebug LC LoopBack NAFILEPRINT');
     WriteLn ('NetDebug New NoStdCfg Packet PacketFile PacketInputFile PacketSimulate');
     WriteLn ('PassThrough Port RadioDebug Read Sun TalkDebug Trace UDPSend UDPRx');
     WriteLn ('UnixTime UUDecode ViewRadioDebug');

@@ -54,6 +54,10 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+25-Aug-2024
+ - Added up NAFILEWRITE startup command which will create an ADIF file out
+   of a NA bin file.  Currently forcing the mode to CW.
+
 13-Aug-2024
  - Fixed bug with hexdump utility not printing out the 4 MSBs of hex values.
 

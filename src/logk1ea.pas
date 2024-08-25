@@ -32,6 +32,22 @@ USES LogGrid, Dos, trCrt, SlowTree, Tree, communication, beep, foot, radio,
 CONST
     RadioCommandBufferSize = 100;
 
+  DaysPerMonth : ARRAY [1..12] of SHORTINT =
+                        (031,028,031,030,031,030,031,031,030,031,030,031);
+
+  DaysPerYear : ARRAY [1..12] of INTEGER =
+                        (031,059,090,120,151,181,212,243,273,304,334,365);
+
+  DaysPerLeapYear: ARRAY [1..12] OF INTEGER =
+                        (031,060,091,121,152,182,213,244,274,305,335,366);
+
+  SecsPerYear:     LONGINT = 31536000;
+  SecsPerLeapYear: LONGINT = 31622400;
+  SecsPerDay:      LONGINT = 86400;
+  SecsPerHour:     INTEGER = 3600;
+  SecsPerMinute:   INTEGER = 60;
+
+
 { Parallel port bit assignments:  (Bits are shown 0 to 7.  0 = LSB)
 
   Pin     Port    Bit    Description
@@ -200,6 +216,9 @@ VAR ActiveDVKPort:     parallelportx;
     MultiUDPReadSocket: LONGINT;
     MultiUDPWriteSocket: LONGINT;
 
+    NAFileHeader: ARRAY [0..1023] OF BYTE;
+    NAQSORecord: ARRAY [0..49] OF BYTE;
+
     NetDebug: BOOLEAN;
     NoPollDuringPTT: BOOLEAN;
 
@@ -290,6 +309,14 @@ FUNCTION  GetRadioParameters (Radio: RadioType;
                               Debug: BOOLEAN): BOOLEAN;
 
 PROCEDURE K1EAInit;
+
+PROCEDURE K8CCBinFilePrint;
+
+PROCEDURE DateStringToYearMonthDay (DateString: Str20; VAR Year, Month, Day: WORD);
+FUNCTION  Norm2Unix (Year, Month, Day, Hour, Minute, Second: WORD): LONGINT;
+PROCEDURE TimeStringToHourAndMinute (TimeString: Str20;  VAR Hour, Minute: WORD);
+PROCEDURE Unix2Norm (Date: LongInt; VAR Year, Month, Day, Hour, Minute, Second: Word);
+
 PROCEDURE OutputBandInfo (Radio: RadioType; Band: BandType);
 PROCEDURE PutRadioIntoSplit (Radio: RadioType);
 PROCEDURE PutRadioOutOfSplit (Radio: RadioType); {KK1L: 6.64 Added to recover from bandmap split}
@@ -350,6 +377,255 @@ VAR
 
     RTTYCharacterSentDelayCount: INTEGER;
     RTTYDelayCount:              INTEGER;
+
+FUNCTION IsLeapYear (Year: Word): BOOLEAN;
+
+    BEGIN
+    IF Year MOD 100 = 0 THEN
+        BEGIN
+        IF (Year MOD 400 = 0) THEN
+            IsLeapYear := True
+        ELSE
+            IsLeapYear := False;
+
+        Exit;
+        END;
+
+    IsLeapYear := Year MOD 4 = 0;
+    END;
+
+
+
+FUNCTION Norm2Unix (Year, Month, Day, Hour, Minute, Second: WORD): LONGINT;
+
+VAR UnixDate: LONGINT;
+    Index: WORD;
+
+    BEGIN
+    UnixDate := 0; {initialize}
+
+    Inc (UnixDate, Second);                 { add seconds}
+    Inc (UnixDate, SecsPerMinute * Minute); { add minutes}
+    Inc (UnixDate, SecsPerHour   * Hour);   { add hours}
+
+    { add days }
+
+    Inc (UnixDate, (SecsPerDay * (Day - 1)));
+
+    { We now have how many seconds have passed so far in the month }
+
+    { Figure out how many hours have passed in this year up to the end
+      of the previous day }
+
+    IF IsLeapYear (Year) THEN
+        DaysPerMonth [02] := 29
+    ELSE
+        DaysPerMonth [02] := 28; {Check for Feb. 29th}
+
+    { Add in seconds for completed months so far }
+
+    Index := 1;
+
+    IF Month > 1 THEN
+        FOR Index := 1 TO Month - 1 DO  {has one month already passed?}
+            Inc (UnixDate, (DaysPerMonth [Index] * SecsPerDay));
+
+    { Now do the complete years }
+
+    WHILE Year > 1970 DO
+        BEGIN
+        IF IsLeapYear (Year - 1) THEN
+            Inc (UnixDate, SecsPerLeapYear)
+        ELSE
+            Inc (UnixDate, SecsPerYear);
+
+       Dec (Year, 1);
+       END;
+
+    Norm2Unix := UnixDate;
+    END;
+
+
+
+PROCEDURE Unix2Norm (Date: LongInt; VAR Year, Month, Day, Hour, Minute, Second: Word);
+
+VAR Done : Boolean;
+    X : ShortInt;
+    TotDays : Integer;
+
+    BEGIN
+    Year   := 1970;
+    Month  := 1;
+    Day    := 1;
+    Hour   := 0;
+    Minute := 0;
+    Second := 0;
+
+    { Count out the years }
+
+    Done := False;
+
+    WHILE NOT Done DO
+      BEGIN
+      IF IsLeapYear (Year) THEN
+          BEGIN
+          IF Date >= SecsPerLeapYear THEN
+              BEGIN
+              Inc (Year);
+              Dec (Date, SecsPerLeapYear);
+              END;
+          END
+      ELSE  { not a leap year }
+          BEGIN
+          IF Date >= SecsPerYear THEN
+              BEGIN
+              Inc (Year);
+              Dec (Date, SecsPerYear);
+              END;
+          END;
+
+      { See if we are done yet }
+
+      IF IsLeapYear (Year) THEN
+          BEGIN
+          IF Date < SecsPerLeapYear THEN
+              Done := True;
+          END
+      ELSE
+          IF Date < SecsPerYear THEN
+              Done := True;
+      END;
+
+    { Okay - we have the right year, and Date has just the remaining
+      amount of seconds left in it }
+
+    Done := False;
+
+    TotDays := Date Div SecsPerDay;   { Number of Days we need to count out }
+
+    IF TotDays > 0 THEN
+        BEGIN
+        IF IsLeapYear (Year) THEN
+            BEGIN
+            DaysPerMonth [2] := 29;
+
+            X := 1;
+
+            REPEAT
+                IF (TotDays <= DaysPerLeapYear [x]) Then
+                    BEGIN
+                    Month := X;
+                    Done := True;
+                    Dec(Date, (TotDays * SecsPerDay));
+                    Day := DaysPerMonth [Month] - (DaysPerLeapYear [Month] - TotDays) + 1;
+                    END
+                ELSE
+                    Done := False;
+
+                Inc(X);
+
+            UNTIL Done OR (X > 12);
+            END
+
+        ELSE { Not a leap year }
+            BEGIN
+            DaysPerMonth[02] := 28;
+
+            X := 1;
+
+            REPEAT
+                IF (TotDays <= DaysPerYear[x]) THEN
+                    BEGIN
+                    Month := X;
+                    Done := True;
+                    Dec (Date, (TotDays * SecsPerDay));
+                    Day := DaysPerMonth [Month] - (DaysPerYear [Month] - TotDays) + 1;
+                    END
+                ELSE
+                    Done := False;
+
+            Inc(X);
+            UNTIL Done OR (X > 12);
+            END;
+        END;
+
+    { Now we have the month and day - we just need to do the easy stuff }
+
+    Hour := Date DIV SecsPerHour;
+
+    Dec (Date, (Hour * SecsPerHour));
+
+    Minute := Date DIV SecsPerMinute;
+    Dec (Date, (Minute * SecsPerMinute));
+    Second := Date;
+    END;
+
+
+
+PROCEDURE DateStringToYearMonthDay (DateString: Str20; VAR Year, Month, Day: WORD);
+
+VAR xResult: INTEGER;
+    YearString, DayString: Str20;
+
+    BEGIN
+    DateString := UpperCase (DateString);
+
+    YearString := Copy (DateString, Length (DateString) - 1, 2);
+
+    { If I live to be 130, this might be a problem... }
+
+    IF YearString >= '70' THEN
+        BEGIN
+        Val (YearString, Year, xResult);
+        Year := Year + 1900;
+        END
+    ELSE
+        BEGIN
+        Val (YearString, Year, xResult);
+        Year := Year + 2000;
+        END;
+    if xResult <> 0 then Year := 1900; //shouldn't happen
+
+    IF StringHas (DateString, 'JAN') THEN Month := 1 ELSE
+     IF StringHas (DateString, 'FEB') THEN Month := 2 ELSE
+      IF StringHas (DateString, 'MAR') THEN Month := 3 ELSE
+       IF StringHas (DateString, 'APR') THEN Month := 4 ELSE
+        IF StringHas (DateString, 'MAY') THEN Month := 5 ELSE
+         IF StringHas (DateString, 'JUN') THEN Month := 6 ELSE
+          IF StringHas (DateString, 'JUL') THEN Month := 7 ELSE
+           IF StringHas (DateString, 'AUG') THEN Month := 8 ELSE
+            IF StringHas (DateString, 'SEP') THEN Month := 9 ELSE
+             IF StringHas (DateString, 'OCT') THEN Month := 10 ELSE
+              IF StringHas (DateString, 'NOV') THEN Month := 11 ELSE
+               IF StringHas (DateString, 'DEC') THEN Month := 12 ELSE
+                   Month := 0;
+
+    DayString := Copy (DateString, 1, 2);
+    Val (DayString, Day, xResult);
+    END;
+
+
+
+PROCEDURE TimeStringToHourAndMinute (TimeString: Str20;  VAR Hour, Minute: WORD);
+
+{ Works for either hh:mm or hhmm }
+
+VAR TempString: Str20;
+
+    BEGIN
+    TempString := Copy (TimeString, 1, 2);
+
+    Val (TempString, Hour);
+
+    TempString := Copy (TimeString, Length (TimeString) - 1, 2);
+
+    Val (TempString, Minute);
+    END;
+
+
+
+
+
 
 
 FUNCTION TS850CompatableRadio (Radio: InterfacedRadioType): BOOLEAN;
@@ -1389,7 +1665,164 @@ VAR Ticks: LONGINT;
     REPEAT MILLISLEEP UNTIL DelayCount = 0;
     END;
 
+
 
+PROCEDURE K8CCBinFilePrint;
+
+{ This routine will read in a NA format BIN file and produce a text file output }
+
+VAR Exchange, CallSign, InputFileName, OutputFileName: STRING;
+    FileRead: FILE;
+    FileWrite: TEXT;
+    Index, xResult, NumberQSOsFound: INTEGER;
+
+    YearString, MonthString, DayString, HourString, MinuteString, SecondString, Band: Str20;
+    FrequencyString, DateString, TimeString: Str40;
+
+    UnixDate, Frequency: INT64;
+    Year, Month, Day, Hour, Minute, Second: WORD;
+
+    BEGIN
+    ClearScreenAndTitle ('NA BIN FILE TO TEXT FILE CONVERTOR');
+    WriteLn ('This routine will read in a NA format bin file and produce a text file.');
+    WriteLn;
+
+    InputFileName := GetResponse ('Enter NA binary filename (none to abort) : ');
+    IF InputFileName = '' THEN Halt;
+
+    Assign (FileRead, InputFileName);
+    Reset  (FileRead, 1);
+
+    IF DOSError <> 0 THEN
+        BEGIN
+        ReportError (InputFileName + ' not found.  Aborting');
+        Halt;
+        END;
+
+    OutputFileName := GetResponse ('Enter text output filename (none to abort) : ');
+
+    IF OutputFileName = '' THEN
+        BEGIN
+        Close (FileRead);
+        Halt;
+        END;
+
+    OpenFileForWrite (FileWrite, OutputFileName);
+
+    WriteLn (FileWrite, 'Conversion of ', InputFileName, ' to text.');
+    WriteLn (FileWrite);
+
+    { Read the first 400h bytes which is the header }
+
+    WriteLn ('Reading in ', InputFileName, ' header');
+
+    BlockRead (FileRead, NAFileHeader, SizeOf (NAFileHeader), xResult);
+
+    WriteLn (xResult, ' bytes read');
+
+    NumberQSOsFound := 0;
+
+    WHILE NOT Eof (FileRead) DO
+        BEGIN
+        BlockRead (FileRead, NAQSORecord, SizeOf (NAQSORecord), xResult);
+
+        WriteLn (xResult, ' bytes read');
+
+        Callsign := '';
+        Index := 0;
+
+        WHILE (NAQSORecord [Index] > 0) AND (Index < $10) DO
+            BEGIN
+            Callsign := Callsign + Chr (NAQSORecord [Index]);
+            Inc (Index);
+            END;
+
+        { We find the received exchange in the 8 bytes starting at $10 }
+
+        Exchange := '';
+        Index := $10;
+
+        WHILE (NAQSORecord [Index] > 0) AND (Index < $18) DO
+            BEGIN
+            Exchange := Exchange + Chr (NAQSORecord [Index]);
+            Inc (Index);
+            END;
+
+        { We find the band at location 18h }
+
+        Index := $18;
+
+        Band := '??';
+
+        CASE NAQSORecord [Index] OF
+            1: Band := '160';
+            2: Band := '80';
+            3: Band := '40';
+            4: Band := '20';
+            5: Band := '15';
+            6: Band := '10';
+            END;
+
+        { Now we can find the frequency - starting at 22h }
+
+        Frequency := (NAQSORecord [$22]) +
+                     (NAQSORecord [$23] * $100) +
+                     (NAQSORecord [$24] * $10000) +
+                     (NAQSORecord [$25] * $1000000);
+
+        { Make the Frequency MHz }
+
+        Str (Frequency, FrequencyString);
+        Insert ('.', FrequencyString, Length (FrequencyString) -5);
+
+        { And now the unix date starting at 2Ah }
+
+        UnixDate := (NAQSORecord [$2A]) +
+                    (NAQSORecord [$2B] * $100) +
+                    (NAQSORecord [$2C] * $10000) +
+                    (NAQSORecord [$2D] * $1000000);
+
+        Unix2Norm (UnixDate, Year, Month, Day, Hour, Minute, Second);
+
+        Str (Year, YearString);
+        Str (Month, MonthString);
+        Str (Day, DayString);
+        Str (Hour, HourString);
+        Str (Minute, MinuteString);
+        Str (Second, SecondString);
+
+        IF Length (MonthString) < 2 THEN MonthString := '0' + MonthString;
+        IF Length (DayString) < 2 THEN DayString := '0' + MonthString;
+
+        DateString := YearString + MonthString + DayString;
+
+        IF Length (HourString) < 2 THEN HourString := '0' + HourString;
+        IF Length (MinuteString) < 2 THEN MinuteString := '0' + MinuteString;
+        IF Length (SecondString) < 2 THEN SecondString := '0' + SecondString;
+
+        TimeString := HourString + MinuteString + SecondString;
+
+        WriteLn (Callsign, ' ', Exchange, ' ', Band, ' ', Frequency, ' ', Year, ' ', Month, ' ', Day, ' ', Hour, ' ', Minute, ' ', Second);
+
+        WriteLn (FileWrite,
+                 '<call:', Length (Callsign), '>', Callsign,
+                 '<band:', Length (Band), '>', Band,
+                 '<qso_date:', Length (DateString), '>', DateString,
+                 '<time_on:', Length (TimeString), '>', TimeString,
+                 '<freq:', Length (FrequencyString), '>', FrequencyString,
+                 '<eor>');
+
+        Inc (NumberQSOsFound);
+        END;
+
+    Close (FileRead);
+    Close (FileWrite);
+
+    WriteLn ('There were ' , NumberQSOsFound, ' QSOs found and saved to ', OutputFileName);
+    Halt;
+    END;
+
+
 
     BEGIN
     K1EAInit;
