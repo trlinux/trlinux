@@ -468,8 +468,8 @@ VAR xResult, Speed, TempValue: INTEGER;
         BEGIN
         ProcessConfigInstructions1 := True;
         IF CMD = 'NO CATEGORY ASSISTED' THEN ScoreReporterCabrilloCategory.CategoryAssisted := NoCategoryAssistedType
-        ELSE IF CMD = 'ASSISTED'             THEN ScoreReporterCabrilloCategory.CategoryAssisted := AssistedType
-        ELSE IF CMD = 'NON-ASSISTED'         THEN ScoreReporterCabrilloCategory.CategoryAssisted := NonAssistedType
+        ELSE IF CMD = 'ASSISTED'        THEN ScoreReporterCabrilloCategory.CategoryAssisted := AssistedType
+        ELSE IF CMD = 'NON-ASSISTED'    THEN ScoreReporterCabrilloCategory.CategoryAssisted := NonAssistedType
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;

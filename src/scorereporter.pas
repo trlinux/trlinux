@@ -389,7 +389,10 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
       assisted := s;
    end;
 
-   procedure scorereport.writexmlmessage;
+PROCEDURE scorereport.writexmlmessage;
+
+{ This is where the message is created and shipped off to the score reporting URL  }
+
    var Doc: TXMLDocument;
       n0,n1,n2,n3: TDOMNode;
       scorestr: string;
@@ -659,13 +662,18 @@ end;
       end;
    end;
 
-   procedure scorereport.timer(caughtup: boolean);
-   begin
-      inc(icount);
-      if (not caughtup) or (icount < intervalcount) then exit;
-      icount := 0;
-      writexmlmessage;
-   end;
+PROCEDURE scorereport.timer(caughtup: boolean);
+
+{ Give this some oxygen so that the score reports will go out every so often }
+
+    BEGIN
+    Inc (icount);
+    if (not caughtup) or (icount < intervalcount) then exit;
+    icount := 0;
+    writexmlmessage;
+    END;
+
+
 
    procedure scorereport.setup;
    begin

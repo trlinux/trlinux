@@ -841,8 +841,9 @@ PROCEDURE Do2BSIQ;
 
     BEGIN
     REPEAT
-        MilliSleep;     { This seems necessary or radio display doesn't work }
+        MilliSleep;  { Make sure TimerInterrupt has oxygen }
         TBSIQ_UpdateTimeAndrateDisplays;
+
         Radio1QSOMachine.CheckQSOStateMachine;
 
         { This probably works for SSB }
