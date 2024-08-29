@@ -1807,6 +1807,7 @@ VAR Exchange, CallSign, InputFileName, OutputFileName: STRING;
         WriteLn (FileWrite,
                  '<call:', Length (Callsign), '>', Callsign,
                  '<band:', Length (Band), '>', Band,
+                 '<mode:2>CW',
                  '<qso_date:', Length (DateString), '>', DateString,
                  '<time_on:', Length (TimeString), '>', TimeString,
                  '<freq:', Length (FrequencyString), '>', FrequencyString,

@@ -79,7 +79,7 @@ TYPE
 
 CONST
 
-   CategoryAssistedStringList: ARRAY [CategoryAssistedType] OF STRING [20] =
+    CategoryAssistedStringList: ARRAY [CategoryAssistedType] OF STRING [20] =
                                   ('NO CATEGORY ASSISTED',
                                    'ASSISTED            ',
                                    'NON-ASSISTED        ');
@@ -745,6 +745,8 @@ end;
 
 
    BEGIN
+   { Defaults for Score Reporter Cabrillo fields }
+
    WITH ScoreReporterCabrilloCategory DO
        BEGIN
        CategoryAssisted    := NonAssistedType;

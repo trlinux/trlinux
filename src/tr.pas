@@ -66,6 +66,25 @@ TODO List after 2023 WPX CW:
    the program will just count the QSOs and use that as the QSO totals
    for generatring QSO numebrs instead of the high QSO number sent.
 
+ - Added new Cabrillo category fields.  These are primarily intended to assist
+   with the score reporting setup - but might eventually get used by POST.  The
+   following parameters have been implemented and all available on the Control-J
+   menu.  You can set the value to "NO " + the name of the field to clear it.
+   For example: CATEGORY TIME = NO CATEGORY TIME.
+
+   CATEGORY ASSISTED     (ASSISTED, NON-ASSISTED)
+   CATEGORY BAND         (ALL, 160, 80, 40, 20, 15, 10)
+   CATEGORY MODE         (CW, DIGI, FM, RTTY, SSB, MIXED)
+   CATEGORY OPERATOR     (SINGLE-OP, MULTI-OP, CHECKLOG)
+   CATEGORY POWER        (HIGH POWER, LOW POWER, QRP)
+
+   CATEGORY STATION      (DISTRIBUTED, FIXED, MOBILE, PORTABLE, ROVER, ROVER LIMITED,
+                          ROVER UNLIMITED, EXPEDITION, HQ, SCHOOL, EXPLORER)
+
+   CATEGORY TIME         (6-HOURS, 8-HOURS, 12-HOURS, 24-HOURS)
+   CATEGORY TRANSMITTER  (ONE, TWO, LIMITED, UNLIMITED, SWL)
+   CATEGORY OVERLAY      (CLASSIC, ROOKIE, TB-WIRES, YOUTH, NOVICE-TECH, YL)
+
 10-Aug-2024
  - Removed MULTI MULTS ONLY command.
 
