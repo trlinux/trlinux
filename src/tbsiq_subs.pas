@@ -124,7 +124,7 @@ TYPE
 
         FootSwitchDelayNeeded: BOOLEAN;
 
-        Frequency: LONGINT;                 { The most current frequency for the radio }
+        Frequency: LONGINT;                  { The most current frequency for the radio }
 
         InitialExchangePutUp: BOOLEAN;
 
@@ -166,6 +166,8 @@ TYPE
         RadioOnTheMove: BOOLEAN;             { Replaces the classic RadioOntheMove [radio] }
         RadioInterfaced: InterfacedRadioType;
         RememberQSOState: TBSIQ_QSOStateType;
+
+        RequestBandMap: BOOLEAN;             { Set to TRUE if you think you should be the focus of bandmap and visible dupesheet}
 
         SCPScreenFull: BOOLEAN;
         SearchAndPounceStationCalled: BOOLEAN;
@@ -733,8 +735,7 @@ VAR MultString: Str40;
 
     IF Length (CallWindowString) < 2 THEN Exit;
 
-    BandMapBand := Band;
-    BandMapMode := Mode;
+    RequestBandMap := True;   { Bandmap / dupesheet will flip to this radio }
 
     { Might we want to send a spot to packet? }
 
@@ -766,12 +767,14 @@ VAR MultString: Str40;
         ShowStationInformation (CallWindowString);
         DoPossibleCalls (CallWindowString);
 
+        { Add the callsign and frequency to the bandmap if we are in
+          Search And Pounce }
+
         IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
             BEGIN
+            { I am going to talk directly to the BandMap - but not display it }
+
             BandMapCursorFrequency := DisplayedFrequency;
-            BandMapMode := Mode;
-            BandMapBand := Band;
-            TBSIQ_BandMapFocus := Radio;
             BandMapCallPutUp := CallWindowString;
 
             { First True is dupe - second one is SendToMulti.  We use False for
@@ -781,6 +784,8 @@ VAR MultString: Str40;
             DisablePutUpBandMapCall := False;
             END;
 
+        { Clean up display }
+
         IF QSOState <> QST_SearchAndPounce THEN
             BEGIN
             RemoveExchangeWindow;
@@ -788,24 +793,12 @@ VAR MultString: Str40;
             END
         ELSE
             BEGIN
-            BandMapCursorFrequency := DisplayedFrequency;
-            BandMapMode := Mode;
-            BandMapBand := Band;
-            TBSIQ_BandMapFocus := Radio;
-            BandMapCallPutUp := CallWindowString;
-
-            { First True is dupe - second one is SendToMulti.  We use False for
-              the mult flag since dupes seldom are mults }
-
-            NewBandMapEntry (CallWindowString, Frequency, 0, Mode, True, False, BandMapDecayTime, True);
-
             SwapWindows;
             ClrScr;
             ExchangeWindowString := '';
             ExchangeWindowCursorPosition := 1;
             SwapWindows;
             OkayToPutUpBandMapCall := False;
-            DisablePutUpBandMapCall := False;
             END;
 
         DisplayInsertMode;
@@ -828,20 +821,14 @@ VAR MultString: Str40;
 
         IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
             BEGIN
-            VisibleLog.DetermineIfNewMult (CallWindowString, ActiveBand, ActiveMode, MultString);
+            { Put into bandmap with proper state of dupe/mult flags }
+
+            VisibleLog.DetermineIfNewMult (CallWindowString, Band, Mode, MultString);
             Mult := MultString <> '';
+            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, Mode, False, Mult, BandMapDecayTime, True);
 
-            { False = not a dupe  True = SendToMulti }
-
-            BandMapCursorFrequency := DisplayedFrequency;
-            BandMapMode := Mode;
-            BandMapBand := Band;
-            TBSIQ_BandMapFocus := Radio;
             BandMapCallPutUp := CallWindowString;
-
-            { First false is not dupe - first true is SendToMulti }
-
-            NewBandMapEntry (CallWindowString, DisplayedFrequency, 0, ActiveMode, False, Mult, BandMapDecayTime, True);
+            BandMapCursorFrequency := DisplayedFrequency;
             DisablePutUpBandMapCall := False;
             END;
         END;
@@ -1286,31 +1273,83 @@ PROCEDURE TBSIQ_CheckBandMap;
   of the bandmap.  If it changes, the new bandmap will be displayed.  Tried to also make
   this work for the dupesheet which never seemed to be getting redisplayed. }
 
-VAR RadioThatShouldHaveFocus: RadioType;
-
     BEGIN
-    { First - we look at the state of both radios and decide which one we think
-      shuld have the band map focus }
+    { NEW and improved in Sep-2024. If a radio had something happen that
+      makes it think it should be the focus of the bandmap/visible dupesheet,
+      then make it so }
 
-    { Defaults }
+    IF Radio1QSOMachine.RequestBandMap THEN
+        BEGIN
+        BandMapBand := Radio1QSOMachine.Band;
+        BandMapMode := Radio1QSOMachine.Mode;
+        BandMapCursorFrequency := Radio1QSOMachine.Frequency;
 
-    RadioThatShouldHaveFocus := TBSIQ_BandMapFocus;
+        IF VisibleDupeSheetEnable THEN
+            BEGIN
+            VisibleDupeSheetChanged := True;
+            VisibleLog.DisplayVisibleDupeSheet (BandMapBand, BandMapMode);
+            END;
+
+        TBSIQ_BandMapFocus := RadioOne;
+        Radio1QSOMachine.RequestBandMap := False;
+        DisplayBandMap;
+        Exit;
+        END;
+
+    IF Radio2QSOMachine.RequestBandMap THEN
+        BEGIN
+        BandMapBand := Radio2QSOMachine.Band;
+        BandMapMode := Radio2QSOMachine.Mode;
+        BandMapCursorFrequency := Radio2QSOMachine.Frequency;
+
+        IF VisibleDupeSheetEnable THEN
+            BEGIN
+            VisibleDupeSheetChanged := True;
+            VisibleLog.DisplayVisibleDupeSheet (BandMapBand, BandMapMode);
+            END;
+
+        TBSIQ_BandMapFocus := RadioTwo;
+        Radio2QSOMachine.RequestBandMap := False;
+        DisplayBandMap;
+        Exit;
+        END;
 
     { If one radio is in S&P and the other isn't - then focus on the S&P radio }
 
     IF (Radio1QSOMachine.QSOState =  QST_SearchAndPounce) AND
        (Radio2QSOMachine.QSOState <> QST_SearchAndPounce) THEN
-           RadioThatShouldHaveFocus := RadioOne;
+        IF BandMapBand <> Radio1QSOMachine.Band THEN
+            BEGIN
+            Radio1QSOMachine.RequestBandMap := True;
+            TBSIQ_CheckBandMap;           { Will I go blind? }
+            Exit;
+            END;
 
     IF (Radio2QSOMachine.QSOState =  QST_SearchAndPounce) AND
        (Radio1QSOMachine.QSOState <> QST_SearchAndPounce) THEN
-           RadioThatShouldHaveFocus := RadioTwo;
+        IF BandMapBand <> Radio2QSOMachine.Band THEN
+            BEGIN
+            Radio2QSOMachine.RequestBandMap := True;
+            TBSIQ_CheckBandMap;
+            Exit;
+            END;
 
     IF (Radio1QSOMachine.QSOState = QST_SearchAndPounce) AND
        (Radio2QSOMachine.QSOState = QST_SearchAndPounce) THEN
            BEGIN
-           IF Radio1QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioOne;
-           IF Radio2QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioTwo;
+           IF Radio1QSOMachine.RadioOnTheMove THEN
+               BEGIN
+               Radio1QSOMachine.RequestBandMap := True;
+               TBSIQ_CheckBandMap;
+               Exit;
+               END;
+
+           IF Radio2QSOMachine.RadioOnTheMove THEN
+               BEGIN
+               Radio2QSOMachine.RequestBandMap := True;
+               TBSIQ_CheckBandMap;
+               Exit;
+               END;
            END;
 
    { Let's add the case where both rigs are in CQ mode, but one is on the move.  This
@@ -1320,36 +1359,21 @@ VAR RadioThatShouldHaveFocus: RadioType;
 
    IF (Radio1QSOMachine.QSOState <> QST_SearchAndPounce) AND
       (Radio2QSOMachine.QSOState <> QST_SearchAndPounce) THEN
+       BEGIN
+       IF Radio1QSOMachine.RadioOnTheMove THEN
            BEGIN
-           IF Radio1QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioOne;
-           IF Radio2QSOMachine.RadioOnTheMove THEN RadioThatShouldHaveFocus := RadioTwo;
+           Radio1QSOMachine.RequestBandMap := True;
+           TBSIQ_CheckBandMap;
+           Exit;
            END;
 
-    IF RadioThatShouldHaveFocus <> TBSIQ_BandMapFocus THEN  { We need to change }
-        BEGIN
-        TBSIQ_BandMapFocus := RadioThatShouldHaveFocus;
-
-        { Not sure if this is better than just sending the Radio's band/mode }
-
-        BandMapBand := BandMemory [TBSIQ_BandMapFocus];
-        BandMapMode := ModeMemory [TBSIQ_BandMapFocus];
-
-        IF VisibleDupeSheetEnable THEN
-            BEGIN
-            VisibleDupeSheetChanged := True;
-            VisibleLog.DisplayVisibleDupeSheet (BandMapBand, BandMapMode);
-            END;
-
-        CASE TBSIQ_BandMapFocus OF
-            RadioOne: BandMapCursorFrequency := Radio1QSOMachine.Frequency;
-            RadioTwo: BandMapCursorFrequency := Radio2QSOMachine.Frequency;
-            END;  { of CASE }
-
-        { New and improved? }
-
-        BandMapBLinkingCall := '';
-        DisplayBandMap;
-        END;
+       IF Radio2QSOMachine.RadioOnTheMove THEN
+           BEGIN
+           Radio2QSOMachine.RequestBandMap := True;
+           TBSIQ_CheckBandMap;
+           Exit;
+           END;
+       END;
     END;
 
 
@@ -2449,12 +2473,18 @@ VAR Key, ExtendedKey: CHAR;
       other radio.  This is probably mostly okay as I doubt someone will
       be actively putting in characters on one keyboard and pressing a
       key on the other keyboard instantly.  One possible exception might
-      be the footswitch if we get that implemented. }
+      be the footswitch if we get that implemented.
 
-    CASE Radio OF
-        RadioOne: IF Radio2QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
-        RadioTwo: IF Radio1QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
-        END;
+      However, in the Sept 2024 CW Sprint, I found it would be nice to
+      process an ESCAPE KEY to stop sending CW during this time.
+
+      }
+
+    IF Key <> EscapeKey THEN
+        CASE Radio OF
+            RadioOne: IF Radio2QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
+            RadioTwo: IF Radio1QSOMachine.QSOState = QST_AutoStartSending THEN Exit;
+            END;
 
     { Unlike the WindowEditor in LOGSUBS2, WindowEditor here will not block execution.
       It will return right away with ActionRequired = FALSE if no key was pressed.
@@ -2488,13 +2518,12 @@ VAR Key, ExtendedKey: CHAR;
     { This is a VERY POWERFUL command...  not totally sure of the consequences just
       yet - but basically I am trying to lock out anything being done if both rigs
       are not on CW - and there is ActionRequired while the other transmitter is
-      busy sending.
-
-      Note - whatever the key was that was pressed is forgotten - there is no
-      key memory here. }
+      busy sending.  }
 
     IF ActionRequired AND DisableTransmitting THEN
         BEGIN
+        { We will remember the keys if in TBSIQDualMode - otherwise, key is forgotten }
+
         IF TBSIQDualMode THEN
             BEGIN
             DualModeMemory := True;
@@ -4268,7 +4297,7 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         QST_CQWaitingForExchange: Write ('Waiting for exchange');
         QST_CQSending73Message: Write ('Sending 73 message');
         QST_SearchAndPounce: Write ('Search and Pounce');
-        QST_SearchAndPounceInit: Write ('Search and Pounce');
+        QST_SearchAndPounceInit: Write ('Search and Pounce Init');
         QST_StartSendingKeyboardCW: Write ('Starting keyboard CW');
         QST_SendingKeyboardCW: Write ('Keyboard CW - RETURN to end');
         QST_SendingKeyboardCWWaiting: Write ('Keyboard CW - waiting on other TX')

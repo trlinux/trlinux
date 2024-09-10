@@ -5,13 +5,11 @@ unit scorereporter;
 interface
 uses classes,baseunix,unix,ctypes;
 
-
-   { This stuff is being craeted initially for score reporting - so that is why it is
-     here.  However, it might find some utility in the Cabrillo file generation as
-     well. }
+{ This Cabrillo stuff is being craeted initially for score reporting - so that
+  is why it is here.  However, it might find some utility in the Cabrillo file
+  generation as well. }
 
 TYPE
-
    CategoryAssistedType = (NoCategoryAssistedType,
                            AssistedType,
                            NonAssistedType);
@@ -240,6 +238,7 @@ TYPE
    function ptsname_r(fd:cint; buf:Pchar; buflen: size_t):cint;cdecl;external;
 
 VAR
+    ScoreReporterCabrilloContest: STRING;
     ScoreReporterCabrilloCategory: CabrilloCategoryRecord;
 
 implementation
@@ -393,76 +392,92 @@ PROCEDURE scorereport.writexmlmessage;
 
 { This is where the message is created and shipped off to the score reporting URL  }
 
-   var Doc: TXMLDocument;
-      n0,n1,n2,n3: TDOMNode;
-      scorestr: string;
-      i,j: integer;
-      c: byte;
-      s: ansistring;
-      tempqsototals: QSOTotalArray;
-      band: bandtype;
-      m: modetype;
-      qpoints: longint;
-      MTotals: MultTotalArrayType;
-      totalscore: longint;
-      nmult: array[Bandtype,CW..Both,1..4] of integer;
-      totalmults: array[1..4] of integer;
-      mtot: integer;
+VAR Doc: TXMLDocument;
+    n0,n1,n2,n3: TDOMNode;
+    localcontest, scorestr: string;
+    i,j: integer;
+    c: byte;
+    s: ansistring;
+    tempqsototals: QSOTotalArray;
+    band: bandtype;
+    m: modetype;
+    qpoints: longint;
+    MTotals: MultTotalArrayType;
+    totalscore: longint;
+    nmult: array[Bandtype,CW..Both,1..4] of integer;
+    totalmults: array[1..4] of integer;
+    mtot: integer;
 
-   begin
-      QPoints := TotalQSOPoints;
-      VisibleLog.IncrementQSOPointsWithContentsOfEditableWindow (QPoints);
-      IF QTCsEnabled THEN QPoints := QPoints + TotalNumberQTCsProcessed;
-      tempqsototals := QSOTotals;
-      visiblelog.incrementqsototalswithcontentsofeditablewindow(tempqsototals);
-      IF ((ActiveDomesticMult = NoDomesticMults) AND
-         (ActiveDXMult       = NoDXMults) AND
-         (ActivePrefixMult   = NoPrefixMults) AND
-         (ActiveZoneMult     = NoZoneMults)) or
-         (ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange) THEN
-      BEGIN
+    BEGIN
+    QPoints := TotalQSOPoints;
+    VisibleLog.IncrementQSOPointsWithContentsOfEditableWindow (QPoints);
+    IF QTCsEnabled THEN QPoints := QPoints + TotalNumberQTCsProcessed;
+    tempqsototals := QSOTotals;
+    visiblelog.incrementqsototalswithcontentsofeditablewindow(tempqsototals);
+
+    IF ((ActiveDomesticMult = NoDomesticMults) AND
+        (ActiveDXMult       = NoDXMults) AND
+        (ActivePrefixMult   = NoPrefixMults) AND
+        (ActiveZoneMult     = NoZoneMults)) OR
+        (ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange) THEN
+        BEGIN
          mtot := 1;
-      END
-      ELSE
-      BEGIN
-         Sheet.MultSheetTotals (MTotals);
-         VisibleLog.IncrementMultTotalsWithContentsOfEditableWindow (MTotals);
-         for j := 1 to nmulttype do
-         begin
-            for band := band160 to all do
-            begin
-               for m := cw to both do
-               begin
-                  nmult[band,m,j] := 0;
-                  if domesticmult = mult[j] then nmult[band,m,j] :=
-                     nmult[band,m,j]+Mtotals[band,m].numberdomesticmults;
-                  if dxmult = mult[j] then nmult[band,m,j] :=
-                     nmult[band,m,j]+Mtotals[band,m].numberdxmults;
-                  if zonemult = mult[j] then nmult[band,m,j] :=
-                     nmult[band,m,j]+Mtotals[band,m].numberzonemults;
-                  if prefixmult = mult[j] then nmult[band,m,j] :=
-                     nmult[band,m,j]+Mtotals[band,m].numberprefixmults;
-               end;
-            end;
-         end;
-         IF SingleBand <> All THEN
-         BEGIN
-           for j:=1 to nmulttype do totalmults[j] := nmult[singleband,both,j];
-         END
-         ELSE IF ActiveQSOPointMethod = WAEQSOPointMethod THEN
-         BEGIN
-           for j:=1 to nmulttype do totalmults[j] := nmult[band80,both,j]*4
-               +nmult[band40,both,j]*3+nmult[band20,both,j]*2
-               +nmult[band15,both,j]*2+nmult[band10,both,j]*2;
-         END
-         ELSE
-         BEGIN
-           for j:=1 to nmulttype do totalmults[j] := nmult[all,both,j];
-         END;
-         mtot := 0;
-         for j:=1 to nmulttype do mtot := mtot + totalmults[j];
-      END;
-      totalscore := qpoints*mtot;
+        END
+    ELSE
+        BEGIN
+        Sheet.MultSheetTotals (MTotals);
+        VisibleLog.IncrementMultTotalsWithContentsOfEditableWindow (MTotals);
+
+        FOR j := 1 TO nmulttype DO
+            FOR band := band160 TO all DO
+                BEGIN
+                FOR m := cw TO both DO
+                   BEGIN
+                   nmult[band,m,j] := 0;
+                   IF domesticmult = mult[j] THEN nmult[band,m,j] :=
+                       nmult[band,m,j]+Mtotals[band,m].numberdomesticmults;
+                   IF dxmult = mult[j] THEN nmult[band,m,j] :=
+                       nmult[band,m,j]+Mtotals[band,m].numberdxmults;
+                   IF zonemult = mult[j] THEN nmult[band,m,j] :=
+                       nmult[band,m,j]+Mtotals[band,m].numberzonemults;
+                   IF prefixmult = mult[j] THEN nmult[band,m,j] :=
+                       nmult[band,m,j]+Mtotals[band,m].numberprefixmults;
+                   END;
+                END;
+
+        IF SingleBand <> All THEN
+            BEGIN
+            FOR j:=1 TO nmulttype DO totalmults[j] := nmult[singleband,both,j];
+            END
+        ELSE
+            IF ActiveQSOPointMethod = WAEQSOPointMethod THEN
+                BEGIN
+                FOR j:=1 TO nmulttype DO totalmults[j] := nmult[band80,both,j]*4
+                   +nmult[band40,both,j]*3+nmult[band20,both,j]*2
+                   +nmult[band15,both,j]*2+nmult[band10,both,j]*2;
+                END
+            ELSE
+                FOR j:=1 TO nmulttype DO totalmults[j] := nmult[all,both,j];
+
+        mtot := 0;
+
+        FOR j:=1 TO nmulttype DO mtot := mtot + totalmults[j];
+        END;
+
+    totalscore := qpoints*mtot;
+
+    { Here we take a look at the Cabrillo Contest and determine what
+      contest to use for score reporting.  Typically, it is the same
+      as the Cabrillo CONTEST entry - execpt for some contests where
+      the mode is needed (like CQ WW CW, CQ WW SSB or CQ WW RTTY). In
+      those cases - we will setup the contest name by takeing a look
+      at the active mode.  localcontest is used for the report. }
+
+    IF contest <> '' THEN  { If someone has specified it - use what they want }
+        localcontest := contest
+    ELSE
+        BEGIN
+        END;
 
 {
 for band:=band160 to all do
@@ -476,6 +491,9 @@ begin
    end;
 end;
 }
+
+    { In August 2024 - N6TR was afraid to touch any of the code below }
+
       try
          i := 0;
          tstr.size := 0;
@@ -498,7 +516,7 @@ end;
 
          n1 := Doc.CreateElement('contest');
          n0.Appendchild(n1);
-         n2 := Doc.CreateTextNode(contest);
+         n2 := Doc.CreateTextNode(localcontest);
          n1.Appendchild(n2);
          inc(i);
 
@@ -754,6 +772,8 @@ PROCEDURE scorereport.timer(caughtup: boolean);
 
    BEGIN
    { Defaults for Score Reporter Cabrillo fields }
+
+   ScoreReporterCabrilloContest := '';
 
    WITH ScoreReporterCabrilloCategory DO
        BEGIN

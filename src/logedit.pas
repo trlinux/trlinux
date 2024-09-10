@@ -1181,10 +1181,22 @@ VAR CallsThisDistrict, CallDistrict, NumberDistrictsOver25: INTEGER;
             IF (Mode = GetLogEntryMode (LogEntries [Entry])) OR NOT QSOByMode THEN
                 Sheet.AddCallToVisibleDupeSheet (RootCall (GetLogEntryCall (LogEntries [Entry])));
 
+    SaveAndSetActiveWindow (DupeSheetWindow);
+    ClrScr;
+
+    { Write the band/mode of the dupesheet }
+
+    IF SuperDupeSheet THEN
+        GoToXY (70, 25)
+    ELSE
+        GoToXY (70, 17);
+
+    TextColor (Yellow);
+    Write (BandString [Band], ModeString [Mode]);
+    GoToXY (1, 1);
+
     IF NumberVDCalls = 0 THEN
         BEGIN
-        SaveAndSetActiveWindow (DupeSheetWindow);
-        ClrScr;
         Write ('No QSOs on this band/mode!');
         RestorePreviousWindow;
         Exit;
@@ -1223,9 +1235,6 @@ VAR CallsThisDistrict, CallDistrict, NumberDistrictsOver25: INTEGER;
         END
     ELSE
         DoingColumnDupeSheet := False;
-
-    SaveAndSetActiveWindow (DupeSheetWindow);
-    ClrScr;
 
     CallDistrict := 0;
 

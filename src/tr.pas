@@ -54,6 +54,17 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+10-Sep-2024
+ - Lots of work with the bandmap and visible dupesheet focus in TBSIQ.  Seems
+   to work much better now. Also added display to the visible dupesheet showing
+   which band/mode is displayed (in lower right corner).
+
+09-Sep-2024 (after CW Sprint)
+ - In TBSIQ - any keystroke pressed on the incative radio when AUTO START SENDING
+   was active on the active radio are not processed until the auto start is done.
+   Now - an ESCAPE KEY will get processed right away (to stop sending CW so you
+   can come back to the station ASAP).
+
 25-Aug-2024
  - Added up NAFILEWRITE startup command which will create an ADIF file out
    of a NA bin file.  Currently forcing the mode to CW.

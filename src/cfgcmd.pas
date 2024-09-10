@@ -3774,17 +3774,30 @@ VAR xResult: INTEGER;
 
     IF ID = 'SCORE REPORT ENABLE' then
         BEGIN
-        scorerpt.setenable(UpCase (CMD [1]) = 'T');
+        scorerpt.setenable (UpCase (CMD [1]) = 'T');
         ProcessConfigInstructions3 := True;
         Exit;
         END;
 
     IF ID = 'SCORE REPORT DEBUG ENABLE' then
         BEGIN
-        scorerpt.setdebugenable(UpCase (CMD [1]) = 'T');
+        scorerpt.setdebugenable (UpCase (CMD [1]) = 'T');
         ProcessConfigInstructions3 := True;
         Exit;
         END;
+
+    { So there is a bit of a difference between the Cabrillo definition of the
+      contest and what the score reporter is expecting.  The main difference is
+      when the mode if part of the score reporter.  For example, Cabrillo is
+      happy with CQ WW as a contest - but score reporter wants either CQ WW CW,
+      CQ WW SSB or CQ WW RTTY.  We will put some code in the score reporter
+      that will set the contest from the Cabrillo contest and take a look at
+      active mode.
+
+      This command - if used - will override anything that is derived from the
+      Cabrillo contest and mode - so only use this if you really want to force
+      the contest to something different than what Cabrillo and ActiveMode will
+      get you }
 
     IF ID = 'SCORE REPORT CONTEST' then
         BEGIN
@@ -3792,6 +3805,10 @@ VAR xResult: INTEGER;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
+
+    { These next entries will get set by the Cabrillo setting.  Only use them
+      if you want to override the Cabrillo defaults.  Make sure the config
+      instruction is after your Cabrillo instruction }
 
     IF ID = 'SCORE REPORT CLASS OPS' then
         BEGIN
@@ -3912,7 +3929,6 @@ VAR xResult: INTEGER;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
-
 
     IF ID = 'SCP COUNTRY STRING' THEN
         BEGIN

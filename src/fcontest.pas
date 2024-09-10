@@ -671,7 +671,9 @@ VAR TempQTH: QTHRecord;
             ActiveDomesticMult := GridSquares;
             ActiveExchange := RSTDomesticQTHExchange;
             ActiveQSOPointMethod := CQVHFQSOPointMethod;
+
             ContestName := 'CQ WORLD WIDE VHF Contest';
+
             MultByBand := True;
             MultByMode := False;
             QSOByBand := True;
@@ -738,13 +740,14 @@ VAR TempQTH: QTHRecord;
             SetExMemoryString (CW, F5, '@ DE \ 5NN ' + MyZone);
             SetExMemoryString (CW, AltF3, 'RST?');
             SetExMemoryString (CW, AltF4, 'NR?');
+
             RepeatSearchAndPounceExchange := '5NN ' + MyZone;
             SearchAndPounceExchange := '~ %5NN ' + MyZone;
+
             MultByBand := True;
             MultByMode := False;
             QSOByBand  := True;
             QSOByMode  := False;
-            LogFrequencyEnable := True;
             FoundContest := True;
             END;
 
