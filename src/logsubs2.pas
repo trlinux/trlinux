@@ -203,12 +203,12 @@ VAR SpeedString, MultString: Str20;
     END;
 
 
-PROCEDURE PutContactIntoLogFile (LogString: Str80);
+PROCEDURE PutContactIntoLogFile (LogString: STRING);
 
 { Takes a logstring that popped off the top of the editable log window and gets it
   into the log file and dupe/mult sheets. }
 
-VAR Time, QSONumber: INTEGER;
+VAR CharacterPosition, Time, QSONumber: INTEGER;
     Call, Exchange, LoggedCallsign: Str20;
     FileWrite: TEXT;
 
@@ -232,7 +232,8 @@ VAR Time, QSONumber: INTEGER;
         { We are going to recalculate what multipliers are there.  Let's clear
           out the part of the log string that has multiplier info - Aug 2024 }
 
-        LogString := Copy (LogString, 1, LogEntryMultAddress - 1);
+        FOR CharacterPosition := LogEntryMultAddress TO LogEntryPointsAddress - 1 DO
+            LogString [CharacterPosition] := ' ';
 
         VisibleLog.PutLogEntryIntoSheet (LogString);  { Takes care of setting mults }
         WriteLogEntry                   (LogString);
@@ -282,7 +283,7 @@ PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80;
                                                       MyQSO: BOOLEAN);
 
 VAR RData: ContestExchange;
-
+    TempString: STRING;
 
     BEGIN
     { If this is a QSO made on this instance of the program - send it off to the network

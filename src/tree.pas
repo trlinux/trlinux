@@ -2193,12 +2193,22 @@ VAR TempString: Str80;
     BEGIN
     TempString := Copy (LogEntry, LogEntryPointsAddress, LogEntryPointsWidth);
 
-    Address := LogEntryPointsAddress + LogEntryPointsWidth;
+    { This appears to be a hack to read in any integers that come after the two
+      character field.  In Sept 2024, I added the test of the length to see if
+      there is anything there before doing it and changed the WHILE to not go
+      beyond the length of the string }
 
-    WHILE (Copy (LogEntry, Address, 1) >= '0') AND (Copy (LogEntry, Address, 1) <= '9') DO
+    IF Length (LogEntry) > (LogEntryPointsAddress + LogEntryPointsWidth - 1) THEN
         BEGIN
-        TempString := TempString + LogEntry [Address];
-        Inc (Address);
+        Address := LogEntryPointsAddress + LogEntryPointsWidth;
+
+        WHILE Address < Length (LogEntry) DO
+            BEGIN
+            IF (Copy (LogEntry, Address, 1) >= '0') AND (Copy (LogEntry, Address, 1) <= '9') THEN
+                TempString := TempString + LogEntry [Address];
+
+            Inc (Address);
+            END;
         END;
 
     GetRidOfPrecedingSpaces (TempString);

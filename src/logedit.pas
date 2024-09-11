@@ -771,6 +771,7 @@ VAR Entry: INTEGER;
 FUNCTION EditableLog.PushLogEntry (NewEntry: STRING): STRING;
 
 VAR Entry: INTEGER;
+    TempString: STRING;
 
     BEGIN
     PushLogEntry := LogEntries [1];
@@ -3495,7 +3496,6 @@ VAR Heading, CharPosition, Distance: INTEGER;
         TempString := GetInitialExchangeFromTRMASTER (Call);
 
     InitialExchangeEntry := TempString;
-    Exit;  { testing }
 
     IF TempString <> '' THEN
         BEGIN

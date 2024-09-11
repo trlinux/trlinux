@@ -54,10 +54,18 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+11-Sep-2024
+ - Fixed QSO points not being present on log entries pushed up out of the
+   editable window - thus you are only getting QSO points in the editable
+   window towards your TotalScore.  This bug was introduced in August 2024.
+
 10-Sep-2024
  - Lots of work with the bandmap and visible dupesheet focus in TBSIQ.  Seems
    to work much better now. Also added display to the visible dupesheet showing
    which band/mode is displayed (in lower right corner).
+
+ - Fixed missing space after initial exchange put in exchange window.  Also
+   fixed showing multiplier status if possible.
 
 09-Sep-2024 (after CW Sprint)
  - In TBSIQ - any keystroke pressed on the incative radio when AUTO START SENDING
@@ -75,7 +83,7 @@ TODO List after 2023 WPX CW:
 11-Aug-2024
  - When reading in a log that has frequency data in the QSO number field -
    the program will just count the QSOs and use that as the QSO totals
-   for generatring QSO numebrs instead of the high QSO number sent.
+   for generatring QSO numbers instead of the high QSO number sent.
 
  - Added new Cabrillo category fields.  These are primarily intended to assist
    with the score reporting setup - but might eventually get used by POST.  The

@@ -2366,7 +2366,6 @@ VAR FileRead: TEXT;
 
                 { Here we are getting exchange data from the log entries }
 
-
                 IF SingleBand <> All THEN
                     IF TempRXData.Band <> SingleBand THEN
                         QSOPoints := 0;
@@ -2689,7 +2688,7 @@ FUNCTION ParseLogEntryIntoContestExchange (LogEntry: STRING;
   the ContestExchange record as best it can from the Log Entry with the
   intention of adding it to the sheets (after setting mult flags). }
 
-VAR OriginalString, ExchangeString: Str80;
+VAR TempString, OriginalString, ExchangeString: STRING;
     RSTTestString, FirstString, SecondString: Str40;
 
     BEGIN
@@ -2706,6 +2705,7 @@ VAR OriginalString, ExchangeString: Str80;
     RXData.Band      := GetLogEntryBand      (LogEntry);
     RXData.Mode      := GetLogEntryMode      (LogEntry);
     RXData.QSOPoints := GetLogEntryQSOPoints (LogEntry);
+
     RXData.Date      := GetLogEntryDateString  (LogEntry);
     RXData.Time      := GetLogEntryIntegerTime (LogEntry);
 
