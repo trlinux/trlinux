@@ -1740,6 +1740,28 @@ VAR TempQTH: QTHRecord;
             AddDomesticCountry ('KL');
             END;
 
+        IF CMD = 'SST' THEN
+            BEGIN
+            ActiveDomesticMult := DomesticFile;  { S48P13 }
+            ActiveDXMult := ARRLDXCCWithNoUSACanadaKH6OrKL7;
+            ActiveExchange := NameAndDomesticOrDXQTHExchange;
+            ActiveQSOPointMethod := K1USNQSOPointMethod;
+            CodeSpeed := 20;
+            ContestName := 'SST';
+            DomesticQTHDataFileName := 'S48P13.DOM';
+            AddDomesticCountry ('K');
+            AddDomesticCountry ('VE');
+
+            MultByBand := False;
+            QSOByBand := True;
+            FoundContest := True;
+
+            WriteLn ('Welcome to the SST contest - 20 WPM Max');
+            WriteLn ('Frequencies: 1812-1828 and 028-045 on other bands');
+            WriteLn ('Remember to respect the QRP frequency of 7030 khz +/- 0.5 kHz');
+            WaitForKeyPressed;
+            END;
+
         IF CMD = 'SWEEPSTAKES' THEN
             BEGIN
             ActiveDomesticMult := DomesticFile;

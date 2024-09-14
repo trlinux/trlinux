@@ -501,6 +501,7 @@ TYPE
                           InternetSixQSOPointMethod,
                           IOTAQSOPointMethod,
                           JapanInternationalDXQSOPointMethod,
+                          K1USNQSOPointMethod,
                           KCJQSOPointMethod,
                           MMCQSOPointMethod,
                           MQPQSOPointMethod,

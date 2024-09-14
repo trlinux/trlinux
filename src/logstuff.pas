@@ -6156,6 +6156,12 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     END;
             END;
 
+        K1USNQSOPointMethod:
+            IF RXData.Callsign = 'K1USN' THEN
+                RXData.QSOPoints := 50
+            ELSE
+                RXData.QSOPoints := 1;
+
         KCJQSOPointMethod:
             IF MyCountry = 'JA' THEN
                 BEGIN
