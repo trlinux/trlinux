@@ -54,6 +54,9 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+19-Sep-2024
+ - Changed Salmon Run QSO point method to 3 CW and 2 SSB.
+
 13-Sep-2024
  - Added SST contest.
 
