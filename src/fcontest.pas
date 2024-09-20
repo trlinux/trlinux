@@ -1634,10 +1634,9 @@ VAR TempQTH: QTHRecord;
                 END;
 
             ActiveQSOPointMethod := SalmonRunQSOPointMethod;
-
             ContestName := 'Washington State Salmon Run';
 
-            MultByMode := True;
+            MultByMode := False;
             MultByBand := False;
             QSOByMode := True;
             QSOByBand := True;
