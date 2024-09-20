@@ -6289,7 +6289,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
         SalmonRunQSOPointMethod:
             BEGIN
             IF RXData.Mode = CW THEN
-                RXData.QSOPoints := 4
+                RXData.QSOPoints := 3
             ELSE
                 RXData.QSOPoints := 2;
             END;
