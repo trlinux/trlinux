@@ -55,7 +55,7 @@ TODO List after 2023 WPX CW:
  - Alt-I seems to work once but not again (TBSIQ?)
 
 19-Sep-2024
- - Changed Salmon Run QSO point method to 3 CW and 2 SSB.
+ - Changed Salmon Run QSO point method to 3 CW and 2 SSB and fixed mult by mode.
 
 13-Sep-2024
  - Added SST contest.
