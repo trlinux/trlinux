@@ -1111,12 +1111,16 @@ PROCEDURE ArduinoKeyer.SetCwGrant (On: BOOLEAN);
             ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
 
             IF FootSwitchControlPTT THEN
-                ArduinoKeyerPort.PutChar (Char($01))   { Normal PTT mode }
+                BEGIN
+                ArduinoKeyerPort.PutChar (Char($01));  { Normal PTT mode }
+                AppendDebugFile ('Normal PTT Mode');
+                END
             ELSE
+                BEGIN
                 ArduinoKeyerPort.PutChar (Char($00));  { No PTT mode }
+                AppendDebugFile ('No PTTmode');
+                END;
             END;
-
-        AppendDebugFile ('Clear footswitch lockout mode');
         END;
     END;
 
@@ -1160,6 +1164,7 @@ PROCEDURE ArduinoKeyer.LetFootSwitchControlPTT;
         ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
         ArduinoKeyerPort.PutChar (Char ($01))  { Footswitch turns on PTT }
         END;
+
     AppendDebugFile ('LetFootswitchControlPTT');
     END;
 

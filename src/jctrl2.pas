@@ -427,16 +427,16 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            IF FootSwitchMode <> PreviousFootSwitchMode THEN
                BEGIN
                IF FootSwitchMode = Normal THEN
-                   BEGIN
-                   ActiveKeyer.LetFootSwitchControlPTT;  { This does nothing for YCCC }
-
-                   IF ActiveKeyer = ArdKeyer THEN
-                       ArdKeyer.LetFootSwitchControlPTT;
-                   END;
+                   IF ActiveKeyer <> ArdKeyer THEN
+                       ActiveKeyer.LetFootSwitchControlPTT;  { This does nothing for YCCC }
 
                IF ActiveKeyer = ArdKeyer THEN
                    BEGIN
                    CASE FootSwitchMode OF
+                       Normal:   BEGIN
+                                 ArdKeyer.setCWGrant (false);
+                                 ArdKeyer.LetFootSwitchControlPTT;
+                                 END;
 
                        TBSIQSSB: BEGIN
                                  ArdKeyer.setCWGrant (false);
@@ -449,8 +449,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                                  END;
 
                        ELSE
-                           IF FootSwitchMode <> TBSIQSSB THEN
-                               ArdKeyer.ClearFootSwitchControlPTT;
+                           ArdKeyer.ClearFootSwitchControlPTT;
                        END;
                    END;
 

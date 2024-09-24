@@ -54,6 +54,12 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+24-Sep-2024
+ - More Salmon run domestic file cleanup - added all of the VE mults.  Also
+   fixed issues with PE and MA.
+
+ - Fixed NORMAL PTT mode not working.
+
 19-Sep-2024
  - Changed Salmon Run QSO point method to 3 CW and 2 SSB and fixed mult by mode.
 
