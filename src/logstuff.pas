@@ -7087,6 +7087,7 @@ VAR TempString: STRING;
 
     QNumber.ReturnQSONumber (Band, QSONumber);
     QSONumberForThisQSO := -1;
+    ReturnQSONumber := True;
     END;
 
 

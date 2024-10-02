@@ -5,167 +5,7 @@ unit scorereporter;
 interface
 uses classes,baseunix,unix,ctypes;
 
-{ This Cabrillo stuff is being craeted initially for score reporting - so that
-  is why it is here.  However, it might find some utility in the Cabrillo file
-  generation as well. }
-
 TYPE
-   CategoryAssistedType = (NoCategoryAssistedType,
-                           AssistedType,
-                           NonAssistedType);
-
-   CategoryBandType     = (NoCategoryBandType,
-                           AllBandType,
-                           SingleBand160Type,
-                           SingleBand80Type,
-                           SingleBand40Type,
-                           SingleBand20Type,
-                           SingleBand15Type,
-                           SingleBand10Type);
-
-    CategoryModeType    = (NoCategoryModeType,
-                           CWModeType,
-                           DigiModeType,
-                           FMModeType,
-                           RTTYModeType,
-                           SSBModeType,
-                           MixedModeType);
-
-   CategoryOperatorType = (NoCategoryOperatorType,
-                           SingleOperatorType,
-                           MultiOperatorType,
-                           CheckLogType);
-
-   CategoryPowerType    = (NoCategoryPowerType,
-                           HighPowerType,
-                           LowPowerType,
-                           QRPPowerType);
-
-   CategoryStationType  = (NoCategoryStationType,
-                           DistributedStationType,
-                           FixedStationType,
-                           MobileStationType,
-                           PortableStationType,
-                           RoverStationType,
-                           RoverLimitedStationType,
-                           RoverUnlimitedStationType,
-                           ExpeditionStationType,
-                           HQStationType,
-                           SchoolStationType,
-                           ExplorerStationType);
-
-    CategoryTimeType    = (NoCategoryTimeType,
-                           SixHourTimeType,
-                           EightHourTimeType,
-                           TwelveHourTimeType,
-                           TwentyFourHourTimeType);
-
-    CategoryTransmitterType = (NoCategoryTransmitterType,
-                               OneTransmitterType,
-                               TwoTransmitterType,
-                               LimitedTransmitterType,
-                               UnlimitedTransmitterType,
-                               SWLTransmitterType);
-
-    CategoryOverlayType = (NoCategoryOverlayType,
-                           ClassicOverlayType,
-                           RookieOverlayType,
-                           TBWiresOverlayType,
-                           YouthOverlayType,
-                           NoviceTechOverlayType,
-                           YLOverlayType);
-
-CONST
-
-    CategoryAssistedStringList: ARRAY [CategoryAssistedType] OF STRING [20] =
-                                  ('NO CATEGORY ASSISTED',
-                                   'ASSISTED            ',
-                                   'NON-ASSISTED        ');
-
-    CategoryBandStringList: ARRAY [CategoryBandType] OF STRING [16] =
-                              ('NO CATEGORY BAND',
-                               'ALL             ',
-                               '160M            ',
-                               '80M             ',
-                               '40M             ',
-                               '20M             ',
-                               '15M             ',
-                               '10M             ');
-
-   CategoryModeStringList: ARRAY [CategoryModeType] OF STRING [16] =
-                             ('NO CATEGORY MODE',
-                              'CW              ',
-                              'DIGI            ',
-                              'FM              ',
-                              'RTTY            ',
-                              'SSB             ',
-                              'MIXED           ');
-
-
-   CategoryOperatorStringList: ARRAY [CategoryOperatorType] OF STRING [20] =
-                                 ('NO CATEGORY OPERATOR',
-                                  'SINGLE-OP           ',
-                                  'MULTI-OP            ',
-                                  'CHECKLOG            ');
-
-   CategoryPowerStringList: ARRAY [CategoryPowerType] OF STRING [17] =
-                              ('NO CATEGORY POWER',
-                               'HIGH POWER       ',
-                               'LOW POWER        ',
-                               'QRP              ');
-
-    CategoryStationStringList: ARRAY [CategoryStationType] OF STRING [19] =
-                                 ('NO CATEGORY STATION',
-                                  'DISTRIBUTED        ',
-                                  'FIXED              ',
-                                  'MOBILE             ',
-                                  'PORTABLE           ',
-                                  'ROVER              ',
-                                  'ROVER LIMITED      ',
-                                  'ROVER UNLIMITED    ',
-                                  'EXPEDITION         ',
-                                  'HQ                 ',
-                                  'SCHOOL             ',
-                                  'EXPLORER           ');
-
-    CategoryTimeStringList: ARRAY [CategoryTimeType] OF STRING [16] =
-                                     ('NO CATEGORY TIME',
-                                      '6-HOURS         ',
-                                      '8-HOURS         ',
-                                      '12-HOURS        ',
-                                      '24-HOURS        ');
-
-    CategoryTransmitterStringList: ARRAY [CategoryTransmitterType] OF STRING [23] =
-                                     ('NO CATEGORY TRANSMITTER',
-                                      'ONE                    ',
-                                      'TWO                    ',
-                                      'LIMITED                ',
-                                      'UNLIMITED              ',
-                                      'SWL                    ');
-
-   CategoryOverlayStringList: ARRAY [CategoryOverlayType] OF STRING [19] =
-                                ('NO CATEGORY OVERLAY',
-                                 'CLASSIC            ',
-                                 'ROOKIE             ',
-                                 'TB-WIRES           ',
-                                 'YOUTH              ',
-                                 'NOVICE-TECH        ',
-                                 'YL                 ');
-
-TYPE
-
-   CabrilloCategoryRecord = RECORD
-       CategoryAssisted: CategoryAssistedType;
-       CategoryBand: CategoryBandType;
-       CategoryMode: CategoryModeType;
-       CategoryOperator: CategoryOperatorType;
-       CategoryPower: CategoryPowerType;
-       CategoryStation: CategoryStationType;
-       CategoryTime: CategoryTimeType;
-       CategoryTransmitter: CategoryTransmitterType;
-       CategoryOverlay: CategoryOverlayType;
-       END;
-
    scorereport = class
       private
          call: string;
@@ -197,7 +37,8 @@ TYPE
          mult: array[1..4] of string;
          nmulttype: integer;
          procedure postfork;
-      public
+
+     public
          constructor create;
          procedure setenable(b: boolean);
          procedure setdebugenable(b: boolean);
@@ -220,6 +61,7 @@ TYPE
          procedure setdxmult(s: string);
          procedure setzonemult(s: string);
          procedure setprefixmult(s: string);
+         procedure setnmulttype (n: INTEGER);
          procedure writexmlmessage;
          procedure timer(caughtup: boolean);
          function enabled:boolean;
@@ -237,17 +79,13 @@ TYPE
    function unlockpt(fd:cint):cint;cdecl;external;
    function ptsname_r(fd:cint; buf:Pchar; buflen: size_t):cint;cdecl;external;
 
-VAR
-    ScoreReporterCabrilloContest: STRING;
-    ScoreReporterCabrilloCategory: CabrilloCategoryRecord;
-
 implementation
 
 uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
 
 //logcfg for version number
 //tree for date string
-//logdupe for mults and score?
+//logdupe for mults and score
 
    constructor scorereport.create;
    begin
@@ -358,6 +196,11 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
       prefixmult := s;
    end;
 
+   procedure scorereport.setnmulttype (n: INTEGER);
+       BEGIN
+       nmulttype := n;
+       END;
+
    procedure scorereport.setpassword(s: string);
    begin
       password := s;
@@ -388,116 +231,137 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
       assisted := s;
    end;
 
+
+
+
 PROCEDURE scorereport.writexmlmessage;
+
+{ This is the new version of this routine that leverages the ability to
+  put a $ in the contest name - which will get filled in based upon the
+  ActiveMode.  This is necessary because some contests need to be identified
+  by mode for the score reporter - but the MY CONTEST statement does not
+  have that information.  }
 
 { This is where the message is created and shipped off to the score reporting URL  }
 
 VAR Doc: TXMLDocument;
     n0,n1,n2,n3: TDOMNode;
-    localcontest, scorestr: string;
-    i,j: integer;
+    LocalContest, ScoreString: string;
+    ModePosition, i,j: integer;
     c: byte;
-    s: ansistring;
-    tempqsototals: QSOTotalArray;
+    s: AnsiString;
+    TempQSOTotals: QSOTotalArray;
     band: bandtype;
     m: modetype;
-    qpoints: longint;
+    QPoints: longint;
     MTotals: MultTotalArrayType;
     totalscore: longint;
     nmult: array[Bandtype,CW..Both,1..4] of integer;
     totalmults: array[1..4] of integer;
-    mtot: integer;
+    MultTotal: INTEGER;
 
     BEGIN
-    QPoints := TotalQSOPoints;
-    VisibleLog.IncrementQSOPointsWithContentsOfEditableWindow (QPoints);
+    IF contest = '' THEN Exit;  { Not sure why we are here }
+
+    { We will create the local variable LocalContest to use for this XML
+      message.  It will be the same as the contest field in the scorereporter
+      CLASS - unless there is a $ in the name.  In this case, the $ will be
+      relaced with either CW, PH or RTTY depending on ActiveMode. }
+
+    LocalContest := contest;
+
+    { Look for $ and if found - replace it with the mode: CW SSB or RTTY }
+
+    IF StringHas (contest, '$') THEN
+        BEGIN
+        LocalContest := contest;
+
+        ModePosition := Pos ('$', LocalContest);
+        Delete (LocalContest, ModePosition, 1);
+
+        CASE ActiveMode OF
+            CW:      Insert ('CW',   LocalContest, ModePosition);
+            Digital: Insert ('RTTY', LocalContest, ModePosition);
+            Phone:   Insert ('SSB',  LocalContest, ModePosition);
+            END;
+        END;
+
+    { Make sure the various category fields are sync'd up with the
+      Category record in LOGDUPE which is controlled by config commands }
+
+    TransferCategoryInformationIntoScoreReporterData;
+
+    { We will get the total QSO points from LogDupe and then add in any from
+      the editable log window - and also QTCs if enabled }
+
+    QPoints := TotalQSOPoints;  { From LogDupe }
+    VisibleLog.IncrementQSOPointsWithContentsOfEditableWindow (QPoints);  { Add in editable window }
     IF QTCsEnabled THEN QPoints := QPoints + TotalNumberQTCsProcessed;
-    tempqsototals := QSOTotals;
-    visiblelog.incrementqsototalswithcontentsofeditablewindow(tempqsototals);
 
-    IF ((ActiveDomesticMult = NoDomesticMults) AND
-        (ActiveDXMult       = NoDXMults) AND
-        (ActivePrefixMult   = NoPrefixMults) AND
-        (ActiveZoneMult     = NoZoneMults)) OR
-        (ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange) THEN
-        BEGIN
-         mtot := 1;
-        END
-    ELSE
-        BEGIN
-        Sheet.MultSheetTotals (MTotals);
-        VisibleLog.IncrementMultTotalsWithContentsOfEditableWindow (MTotals);
+    { Same process for QSOs }
 
-        FOR j := 1 TO nmulttype DO
-            FOR band := band160 TO all DO
-                BEGIN
-                FOR m := cw TO both DO
+    TempQSOTotals := QSOTotals; { From LogDupe }
+    VisibleLog.IncrementQSOTotalsWithContentsOfEditableWindow (TempQSOTotals);
+
+    { Now deal with multiplier totals }
+
+    MultTotal := 1;  { Default in case there are no active mults }
+
+    { This is copy exact from the W9CF routine except for the IF statement }
+
+    IF (ActiveDomesticMult <> NoDomesticMults) OR
+       (ActiveDXMult       <> NoDXMults) OR
+       (ActivePrefixMult   <> NoPrefixMults) OR
+       (ActiveZoneMult     <> NoZoneMults) THEN
+           BEGIN
+           Sheet.MultSheetTotals (MTotals);
+           VisibleLog.IncrementMultTotalsWithContentsOfEditableWindow (MTotals);
+
+           FOR j := 1 TO nmulttype DO
+               FOR Band := Band160 TO All DO
                    BEGIN
-                   nmult[band,m,j] := 0;
-                   IF domesticmult = mult[j] THEN nmult[band,m,j] :=
-                       nmult[band,m,j]+Mtotals[band,m].numberdomesticmults;
-                   IF dxmult = mult[j] THEN nmult[band,m,j] :=
-                       nmult[band,m,j]+Mtotals[band,m].numberdxmults;
-                   IF zonemult = mult[j] THEN nmult[band,m,j] :=
-                       nmult[band,m,j]+Mtotals[band,m].numberzonemults;
-                   IF prefixmult = mult[j] THEN nmult[band,m,j] :=
-                       nmult[band,m,j]+Mtotals[band,m].numberprefixmults;
+                   FOR m := cw TO both DO
+                      BEGIN
+                      nmult [band, m, j] := 0;
+                      IF domesticmult = mult[j] THEN nmult[band,m,j] :=
+                          nmult[band,m,j]+Mtotals[band,m].numberdomesticmults;
+                      IF dxmult = mult[j] THEN nmult[band,m,j] :=
+                          nmult[band,m,j]+Mtotals[band,m].numberdxmults;
+                      IF zonemult = mult[j] THEN nmult[band,m,j] :=
+                          nmult[band,m,j]+Mtotals[band,m].numberzonemults;
+                      IF prefixmult = mult[j] THEN nmult[band,m,j] :=
+                          nmult[band,m,j]+Mtotals[band,m].numberprefixmults;
+                      END;
                    END;
-                END;
 
-        IF SingleBand <> All THEN
-            BEGIN
-            FOR j:=1 TO nmulttype DO totalmults[j] := nmult[singleband,both,j];
-            END
-        ELSE
-            IF ActiveQSOPointMethod = WAEQSOPointMethod THEN
-                BEGIN
-                FOR j:=1 TO nmulttype DO totalmults[j] := nmult[band80,both,j]*4
-                   +nmult[band40,both,j]*3+nmult[band20,both,j]*2
-                   +nmult[band15,both,j]*2+nmult[band10,both,j]*2;
-                END
-            ELSE
-                FOR j:=1 TO nmulttype DO totalmults[j] := nmult[all,both,j];
+           IF SingleBand <> All THEN
+               BEGIN
+               FOR j:=1 TO nmulttype DO totalmults[j] := nmult[singleband,both,j];
+               END
+           ELSE
+               IF ActiveQSOPointMethod = WAEQSOPointMethod THEN
+                   BEGIN
+                   FOR j:=1 TO nmulttype DO totalmults[j] := nmult[band80,both,j]*4
+                      +nmult[band40,both,j]*3+nmult[band20,both,j]*2
+                      +nmult[band15,both,j]*2+nmult[band10,both,j]*2;
+                   END
+               ELSE
+                   FOR j:=1 TO nmulttype DO totalmults[j] := nmult[all,both,j];
 
-        mtot := 0;
+           MultTotal := 0;
 
-        FOR j:=1 TO nmulttype DO mtot := mtot + totalmults[j];
-        END;
+           FOR j:=1 TO nmulttype DO MultTotal := MultTotal + totalmults[j];
+           END;
 
-    totalscore := qpoints*mtot;
+    TotalScore := QPoints * MultTotal;
 
-    { Here we take a look at the Cabrillo Contest and determine what
-      contest to use for score reporting.  Typically, it is the same
-      as the Cabrillo CONTEST entry - execpt for some contests where
-      the mode is needed (like CQ WW CW, CQ WW SSB or CQ WW RTTY). In
-      those cases - we will setup the contest name by takeing a look
-      at the active mode.  localcontest is used for the report. }
-
-    IF contest <> '' THEN  { If someone has specified it - use what they want }
-        localcontest := contest
-    ELSE
-        BEGIN
-        END;
-
-{
-for band:=band160 to all do
-begin
-   for m:=cw to both do
-   begin
-      for j:=1 to nmulttype do
-      begin
-       writeln(stderr,j,' ',bandstring[band],modestring[m],' ',nmult[band,m,j]);
-      end;
-   end;
-end;
-}
-
-    { In August 2024 - N6TR was afraid to touch any of the code below }
+    { Now send the message - this is copy exact from W9CF's code I hope }
 
       try
          i := 0;
          tstr.size := 0;
          Doc := TXMLDocument.Create;
+
          n0 := Doc.CreateElement('dynamicresults');
          Doc.Appendchild(n0);
          n0 := Doc.DocumentElement;
@@ -516,133 +380,144 @@ end;
 
          n1 := Doc.CreateElement('contest');
          n0.Appendchild(n1);
-         n2 := Doc.CreateTextNode(localcontest);
+         n2 := Doc.CreateTextNode(LocalContest);
          n1.Appendchild(n2);
          inc(i);
 
          n1 := Doc.CreateElement('call');
          n0.Appendchild(n1);
-         n2 := Doc.CreateTextNode(call);
+         n2 := Doc.CreateTextNode (Call);
          n1.Appendchild(n2);
          inc(i);
 
          n1 := Doc.CreateElement('class');
-         TDOMElement(n1).SetAttribute('ops',ops);
-         if (mode <> '') then TDOMElement(n1).SetAttribute('mode',mode);
-         if (power <> '') then TDOMElement(n1).SetAttribute('power',power);
-         if (bands <> '') then TDOMElement(n1).SetAttribute('bands',bands);
+
+         TDOMElement(n1).SetAttribute('ops', ops);
+
+         { We add in more attributes if they have been specified }
+
+         if (mode <> '')  THEN TDOMElement(n1).SetAttribute('mode', mode);
+         if (power <> '') THEN TDOMElement(n1).SetAttribute('power', power);
+         if (bands <> '') THEN TDOMElement(n1).SetAttribute('bands', bands);
+
          if (transmitter <> '') then
-            TDOMElement(n1).SetAttribute('transmitter',transmitter);
+            TDOMElement(n1).SetAttribute('transmitter', transmitter);
+
          if (assisted <> '') then
-            TDOMElement(n1).SetAttribute('assisted',assisted);
-         if (overlay <> '') then
-            TDOMElement(n1).SetAttribute('overlay',overlay);
+            TDOMElement(n1).SetAttribute('assisted', assisted);
+
+          if (overlay <> '') then
+            TDOMElement(n1).SetAttribute('overlay', overlay);
+
          n0.Appendchild(n1);
          inc(i);
 
-         if (club <> '') then
-         begin
-            n1 := Doc.CreateElement('club');
-            n0.Appendchild(n1);
-            n2 := Doc.CreateTextNode(club);
-            n1.Appendchild(n2);
-            inc(i);
-         end;
+         IF club <> '' THEN
+             BEGIN
+             n1 := Doc.CreateElement('club');
+             n0.Appendchild (n1);
+             n2 := Doc.CreateTextNode (club);
+             n1.Appendchild (n2);
+             Inc (i);
+             END;
 
-         n1 := Doc.CreateElement('breakdown');
+         n1 := Doc.CreateElement ('breakdown');
          n0.Appendchild(n1);
 
-
          n2 := Doc.CreateElement('qso');
-         TDOMElement(n2).SetAttribute('band','total');
-         TDOMElement(n2).SetAttribute('mode','ALL');
-         n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[All,Both]));
+         TDOMElement(n2).SetAttribute('band', 'total');
+         TDOMElement(n2).SetAttribute('mode', 'ALL');
+         n3 := Doc.CreateTextNode (IntToStr (TempQSOTotals [All, Both]));
          n2.Appendchild(n3);
          n0.ChildNodes.Item[i].Appendchild(n2);
 
-         if breakdown then
-         begin
-            for band := Band160 to Band10 do
-            begin
-               if (tempqsototals[band,cw] > 0) then
-               begin
-                  n2 := Doc.CreateElement('qso');
-                  TDOMElement(n2).SetAttribute('band',BandString[band]);
-                  TDOMElement(n2).SetAttribute('mode','CW');
-                  n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,CW]));
-                  n2.Appendchild(n3);
-                  n0.ChildNodes.Item[i].Appendchild(n2);
-               end;
-               if (tempqsototals[band,phone] > 0) then
-               begin
-                  n2 := Doc.CreateElement('qso');
-                  TDOMElement(n2).SetAttribute('band',BandString[band]);
-                  TDOMElement(n2).SetAttribute('mode','PH');
-                  n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,Phone]));
-                  n2.Appendchild(n3);
-                  n0.ChildNodes.Item[i].Appendchild(n2);
-               end;
-               if (tempqsototals[band,both] > 0) then
-               begin
-                  n2 := Doc.CreateElement('qso');
-                  TDOMElement(n2).SetAttribute('band',BandString[band]);
-                  TDOMElement(n2).SetAttribute('mode','ALL');
-                  n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,both]));
-                  n2.Appendchild(n3);
-                  n0.ChildNodes.Item[i].Appendchild(n2);
-               end;
-            end;
-         end;
-
-         for j:=1 to nmulttype do
-         begin
-            n2 := Doc.CreateElement('mult');
-            TDOMElement(n2).SetAttribute('band','total');
-            TDOMElement(n2).SetAttribute('mode','ALL');
-            TDOMElement(n2).SetAttribute('type',mult[j]);
-            n3 := Doc.CreateTextNode(inttostr(totalmults[j]));
-            n2.Appendchild(n3);
-            n0.ChildNodes.Item[i].Appendchild(n2);
-            if breakdown then
-            begin
-               for band := Band160 to Band10 do
-               begin
-                  if multbymode then
-                  begin
-                     if (nmult[band,cw,j] > 0) then
-                     begin
-                        n2 := Doc.CreateElement('mult');
-                        TDOMElement(n2).SetAttribute('band',BandString[band]);
-                        TDOMElement(n2).SetAttribute('mode','CW');
-                        TDOMElement(n2).SetAttribute('type',mult[j]);
-                        n3 := Doc.CreateTextNode(inttostr(nmult[band,cw,j]));
-                        n2.Appendchild(n3);
-                        n0.ChildNodes.Item[i].Appendchild(n2);
-                     end;
-                     if (nmult[band,phone,j] > 0) then
-                     begin
-                        n2 := Doc.CreateElement('mult');
-                        TDOMElement(n2).SetAttribute('band',BandString[band]);
-                        TDOMElement(n2).SetAttribute('mode','PH');
-                        TDOMElement(n2).SetAttribute('type',mult[j]);
-                        n3 := Doc.CreateTextNode(inttostr(nmult[band,phone,j]));
-                        n2.Appendchild(n3);
-                        n0.ChildNodes.Item[i].Appendchild(n2);
-                     end;
-                  end;
-                  if (nmult[band,both,j] > 0) then
-                  begin
-                     n2 := Doc.CreateElement('mult');
+         IF breakdown THEN
+             FOR Band := Band160 TO Band10 DO
+                 BEGIN
+                 IF tempqsototals [Band, CW] > 0 THEN
+                     BEGIN
+                     n2 := Doc.CreateElement('qso');
                      TDOMElement(n2).SetAttribute('band',BandString[band]);
-                     TDOMElement(n2).SetAttribute('mode','ALL');
-                     TDOMElement(n2).SetAttribute('type',mult[j]);
-                     n3 := Doc.CreateTextNode(inttostr(nmult[band,both,j]));
+                     TDOMElement(n2).SetAttribute('mode','CW');
+                     n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,CW]));
                      n2.Appendchild(n3);
                      n0.ChildNodes.Item[i].Appendchild(n2);
-                  end;
-               end;
-            end;
-         end;
+                     END;
+
+                 IF tempqsototals [Band, Phone] > 0 THEN
+                     BEGIN
+                     n2 := Doc.CreateElement('qso');
+                     TDOMElement(n2).SetAttribute('band',BandString[band]);
+                     TDOMElement(n2).SetAttribute('mode','PH');
+                     n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,Phone]));
+                     n2.Appendchild(n3);
+                     n0.ChildNodes.Item[i].Appendchild(n2);
+                     END;
+
+                 IF tempqsototals [Band, Both] > 0 THEN
+                     BEGIN
+                     n2 := Doc.CreateElement('qso');
+                     TDOMElement(n2).SetAttribute('band',BandString[band]);
+                     TDOMElement(n2).SetAttribute('mode','ALL');
+                     n3 := Doc.CreateTextNode(inttostr(tempQSOTotals[band,both]));
+                     n2.Appendchild(n3);
+                     n0.ChildNodes.Item[i].Appendchild(n2);
+                     END;
+
+                 END;  { of FOR Band }
+
+         for j := 1 TO nmulttype DO
+             BEGIN
+             n2 := Doc.CreateElement('mult');
+             TDOMElement(n2).SetAttribute('band','total');
+             TDOMElement(n2).SetAttribute('mode','ALL');
+             TDOMElement(n2).SetAttribute('type',mult[j]);
+             n3 := Doc.CreateTextNode(inttostr(totalmults[j]));
+             n2.Appendchild(n3);
+             n0.ChildNodes.Item[i].Appendchild(n2);
+
+             IF breakdown THEN
+                 FOR Band := Band160 to Band10 DO
+                     BEGIN
+                     IF MultByMode THEN
+                         BEGIN
+                         IF (nmult [Band, CW, j] > 0) THEN
+                             BEGIN
+                             n2 := Doc.CreateElement('mult');
+                             TDOMElement(n2).SetAttribute('band',BandString[band]);
+                             TDOMElement(n2).SetAttribute('mode','CW');
+                             TDOMElement(n2).SetAttribute('type',mult[j]);
+                             n3 := Doc.CreateTextNode(inttostr(nmult[band,cw,j]));
+                             n2.Appendchild(n3);
+                             n0.ChildNodes.Item[i].Appendchild(n2);
+                             END;
+
+                         IF (nmult [Band, Phone, j] > 0) THEN
+                             BEGIN
+                             n2 := Doc.CreateElement('mult');
+                             TDOMElement(n2).SetAttribute('band',BandString[band]);
+                             TDOMElement(n2).SetAttribute('mode','PH');
+                             TDOMElement(n2).SetAttribute('type',mult[j]);
+                             n3 := Doc.CreateTextNode(inttostr(nmult[band,phone,j]));
+                             n2.Appendchild(n3);
+                             n0.ChildNodes.Item[i].Appendchild(n2);
+                             END;
+                         END;
+
+                     { Total mults by band for both modes }
+
+                     IF (nmult [Band, Both, j] > 0) then
+                         BEGIN
+                         n2 := Doc.CreateElement('mult');
+                         TDOMElement(n2).SetAttribute('band',BandString[band]);
+                         TDOMElement(n2).SetAttribute('mode','ALL');
+                         TDOMElement(n2).SetAttribute('type',mult[j]);
+                         n3 := Doc.CreateTextNode(inttostr(nmult[band,both,j]));
+                         n2.Appendchild(n3);
+                         n0.ChildNodes.Item[i].Appendchild(n2);
+                         END;
+                     END;
+             end;
 
          n2 := Doc.CreateElement('point');
          TDOMElement(n2).SetAttribute('band','total');
@@ -653,9 +528,9 @@ end;
 
          n1 := Doc.CreateElement('score');
          n0.Appendchild(n1);
-         scorestr := '';
-         str(TotalScore,scorestr);
-         n2 := Doc.CreateTextNode(scorestr);
+         scorestring := '';
+         str(TotalScore,scorestring);
+         n2 := Doc.CreateTextNode(scorestring);
          n1.Appendchild(n2);
 
          n1 := Doc.CreateElement('timestamp');
@@ -666,19 +541,24 @@ end;
          writeXMLFile(Doc,tstr);
 
          s := tstr.DataString;
-         for j := 1 to length(s) do
-         begin
-            c := ord(s[j]);
-            fpwrite(fd,c,1);
-         end;
-         c := 0; // tell poster that data is finished
-         j := fpwrite(fd,c,1);
-         c := 10; // newline to force transmission
+
+         FOR j := 1 to Length (s) DO
+             BEGIN
+             c := ord (s [j]);
+             fpwrite (fd, c, 1);
+             END;
+
+         c := 0;               // tell poster that data is finished
+         j := fpwrite(fd, c, 1);
+
+         c := 10;              // newline to force transmission
          j := fpwrite(fd,c,1);
       finally
          Doc.Free; // free memory
       end;
    end;
+
+
 
 PROCEDURE scorereport.timer(caughtup: boolean);
 
@@ -693,45 +573,285 @@ PROCEDURE scorereport.timer(caughtup: boolean);
 
 
 
-   procedure scorereport.setup;
-   begin
-      nmulttype := 0;
-      if ActiveDomesticMult = NoDomesticMults then domesticmult := 'none';
-      if ActiveDXMult = NoDXMults then dxmult := 'none';
-      if ActivePrefixMult = NoPrefixMults then prefixmult := 'none';
-      if ActiveZoneMult = NoZoneMults then zonemult := 'none';
+procedure scorereport.setup;
 
-      if (UPCASE(domesticmult) <> 'NONE') then
-      begin
-         inc(nmulttype);
-         mult[nmulttype] := domesticmult;
-      end;
-      if ((UPCASE(dxmult) <> 'NONE') and (dxmult <> domesticmult)) then
-      begin
-         inc(nmulttype);
-         mult[nmulttype] := dxmult;
-      end;
-      if ((UPCASE(zonemult) <> 'NONE') and (zonemult <> domesticmult)
-          and (zonemult <> dxmult)) then
-      begin
-         inc(nmulttype);
-         mult[nmulttype] := zonemult;
-      end;
-      if ((UPCASE(prefixmult) <> 'NONE') and (prefixmult <> domesticmult)
-          and (prefixmult <> dxmult) and (prefixmult <> zonemult)) then
-      begin
-         inc(nmulttype);
-         mult[nmulttype] := prefixmult;
-      end;
+{ This is the same as the old setup - except that we are going to determine
+  the mulitplier values based upon the contest instead of having the user
+  worry about them.  The values are taken from }
 
-      fd := getpt;
-      grantpt(fd);
-      unlockpt(fd);
-      setlength(slave,200);
-      ptsname_r(fd,@slave[1],200);
-      setlength(slave,strlen(pchar(@slave[0])));
-      postfork;
-   end;
+    BEGIN
+    IF contest = 'ARRL-FIELD-DAY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'JIDX-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'STEW-PERRY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = '7QP-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'AA-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'ARI-DX' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'ARRL-10' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'ARRL-160' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'ARRL-DX-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'ARRL-RTTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'ARRL-VHF' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'AP-Sprint-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'BALTIC-CONTEST' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'CA-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'CQ-160-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'CQ-M' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'CQ-VHF' THEN
+        BEGIN
+        setbreakdown (true);
+        setclassbands ('ALL');
+        setprefixmult ('wpxprefix');
+        setnmulttype (1);
+        END
+
+    ELSE IF contest = 'CQ-WPX-$' THEN
+        BEGIN
+        setbreakdown (true);
+        setclassbands ('ALL');
+        setprefixmult ('wpxprefix');
+        setnmulttype (2);
+        END
+
+    ELSE IF contest = 'CQ-WPX-RTTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'CQ-WW-$' THEN
+        BEGIN
+        setbreakdown (true);
+        setclassbands ('ALL');
+        setdxmult ('country');
+        setzonemult ('zone');
+        setnmulttype (2);
+        END
+
+    ELSE IF contest = 'CQ-WW-RTTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = '9A-DX' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'CW-Ops' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'CWOPS-Open' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'EUHFC' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'FL-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'HA-DX' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'HELVETIA' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'IARU-HF' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'RSGB-IOTA' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'JARTS-WW-RTTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'KCJ' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'KVP' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'MI-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'MARCONIMEMORIAL' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'MN-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'ICWC-MST' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'NAQP-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'NEWE-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'NY-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'NRAU-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'OH-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'OK-OM-DX' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'PACC' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'RAC' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'RDXC' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'WA-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'SAC-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'SP-DX' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'NA-SPRINT-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'K1USNSST' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'ARRL-SS-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'TX-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'UBA-DX' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'UKRAINIAN-DX' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'Oceania-DX-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'WAG' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'DARC-WAEDC-$' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'WI-QSO-PARTY' THEN
+        BEGIN
+        END
+
+    ELSE IF contest = 'YO-DX-HF' THEN
+        BEGIN
+        END
+
+    ELSE
+        BEGIN
+        WriteLn ('I do not recognize ', contest, ' in the scorereporter init procedure.');
+        WaitForKeyPressed;
+        Halt;
+        END;
+
+    { And now for the stuff from the old routine }
+
+    fd := getpt;
+    grantpt(fd);
+    unlockpt(fd);
+    setlength(slave,200);
+    ptsname_r(fd,@slave[1],200);
+    setlength(slave,strlen(pchar(@slave[0])));
+    postfork;
+    END;
+
+
 
    procedure scorereport.postfork;
    var fdslave: longint;
@@ -771,21 +891,4 @@ PROCEDURE scorereport.timer(caughtup: boolean);
 
 
    BEGIN
-   { Defaults for Score Reporter Cabrillo fields }
-
-   ScoreReporterCabrilloContest := '';
-
-   WITH ScoreReporterCabrilloCategory DO
-       BEGIN
-       CategoryAssisted    := NonAssistedType;
-       CategoryBand        := AllBandType;
-       CategoryMode        := NoCategoryModeType;
-       CategoryOperator    := SingleOperatorType;
-       CategoryPower       := NoCategoryPowerType;
-       CategoryStation     := NoCategoryStationType;
-       CategoryTime        := NoCategoryTimeType;
-       CategoryTransmitter := OneTransmitterType;
-       CategoryOverlay     := NoCategoryOverlayType;
-       END;
-
    END.

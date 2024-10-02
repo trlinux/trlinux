@@ -72,8 +72,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       CatMode,
                       CatOp,
                       CatPower,
-                      CatStation,
-                      CatTime,
                       CatTx,
                       CatOverLay,
 
@@ -196,17 +194,10 @@ TYPE MenuEntryType = (NoMenuEntry,
                       RT1,
                       RT2,
                       SHE,
-                      SO2RLM,
-                      SO2RHM,
-                      SO2RHS,
-                      SO2RBE,
-                      SO2RBV,
-                      SO2RMR,
-                      SO2RM1,
-                      SO2RM2,
-                      SHC,
-                      SCS,
-                      SML,
+                      SHC,   { Say hi rate cutoff }
+                      SCE,   { Score report enable }
+                      SCS,   { SCP Country String }
+                      SML,   { SCP Minimum Letters }
                       SAD,
                       SCF,
                       SQI,
@@ -216,8 +207,18 @@ TYPE MenuEntryType = (NoMenuEntry,
                       SEN,
                       SRM,
                       SAB,
-                      SMC,
-                      SBD,
+                      SMC,  { Slash Mark Character }
+
+                      SO2RLM,  { SO2R stuff }
+                      SO2RHM,
+                      SO2RHS,
+                      SO2RBE,
+                      SO2RBV,
+                      SO2RMR,
+                      SO2RM1,
+                      SO2RM2,
+
+                      SBD,  { Space Bar Dupe Enable }
                       SQR,
                       SPS, {KK1L: 6.71 StereoPinState}
                       SRP,
@@ -310,8 +311,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       CatMode:    Description := 'CATEGORY MODE';
       CatOp:      Description := 'CATEGORY OPERATOR';
       CatPower:   Description := 'CATEGORY POWER';
-      CatStation: Description := 'CATEGORY STATION';
-      CatTime:    Description := 'CATEGORY TIME';
       CatTx:      Description := 'CATEGORY TRANSMITTER';
       CatOverLay: Description := 'CATEGORY OVERLAY';
 
@@ -457,6 +456,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       SO2RM2: Description := 'SO2R RIG2 MAP';
       SHE: Description := 'SAY HI ENABLE';
       SHC: Description := 'SAY HI RATE CUTOFF';
+      SCE: Description := 'SCORE REPORT ENABLE';
       SCS: Description := 'SCP COUNTRY STRING';
       SML: Description := 'SCP MINIMUM LETTERS';
       SAD: Description := 'SEND ALT-D SPOTS TO PACKET';
@@ -565,15 +565,13 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       CAU: Write (CallsignUpdateEnable);
 
-      CatAss:     Write (CategoryAssistedStringList [ScoreReporterCabrilloCategory.CategoryAssisted]);
-      CatBand:    Write (CategoryBandStringList [ScoreReporterCabrilloCategory.CategoryBand]);
-      CatMode:    Write (CategoryModeStringList [ScoreReporterCabrilloCategory.CategoryMode]);
-      CatOp:      Write (CategoryOperatorStringList [ScoreReporterCabrilloCategory.CategoryOperator]);
-      CatPower:   Write (CategoryPowerStringList [ScoreReporterCabrilloCategory.CategoryPower]);
-      CatStation: Write (CategoryStationStringList [ScoreReporterCabrilloCategory.CategoryStation]);
-      CatTime:    Write (CategoryTimeStringList [ScoreReporterCabrilloCategory.CategoryTime]);
-      CatTx:      Write (CategoryTransmitterStringList [ScoreReporterCabrilloCategory.CategoryTransmitter]);
-      CatOverLay: Write (CategoryOverlayStringList [ScoreReporterCabrilloCategory.CategoryOverlay]);
+      CatAss:     Write (CategoryAssistedStringList [Category.CategoryAssisted]);
+      CatBand:    Write (CategoryBandStringList [Category.CategoryBand]);
+      CatMode:    Write (CategoryModeStringList [Category.CategoryMode]);
+      CatOp:      Write (CategoryOperatorStringList [Category.CategoryOperator]);
+      CatPower:   Write (CategoryPowerStringList [Category.CategoryPower]);
+      CatTx:      Write (CategoryTransmitterStringList [Category.CategoryTransmitter]);
+      CatOverLay: Write (CategoryOverlayStringList [Category.CategoryOverlay]);
 
       CLF: Write (CheckLogFileSize);
       CDE: Write (ColumnDupeSheetEnable);
@@ -833,6 +831,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       SHE: Write (SayHiEnable);
       SHC: Write (SayHiRateCutoff);
+      SCE: Write (scorerpt.enabled);
       SCS: Write (CD.CountryString);
       SML: Write (SCPMinimumLetters);
       SAD: Write (SendAltDSpotsToPacket);
@@ -1109,8 +1108,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
       CatMode,
       CatOp,
       CatPower,
-      CatStation,
-      CatTime,
       CatTx,
       CatOverLay: Write ('Data for score reporter');
 
@@ -1691,6 +1688,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Name sending is disabled');
 
       SHC: Write ('Rate above which name calling will stop');
+
+      SCE: IF scorerpt.enabled THEN
+               Write ('Score reporting enable')
+           ELSE
+               Write ('Score reporting disabled');
 
       SCS: IF CD.CountryString = '' THEN
                Write ('All SCP calls displayed')

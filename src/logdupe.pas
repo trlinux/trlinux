@@ -29,7 +29,7 @@ UNIT LogDupe;
 INTERFACE
 
 USES LogDom, trCrt, Dos, SlowTree, Tree, Country9, ZoneCont, LogWind,
-     LogHelp, radio, LogSCP, LogK1EA;
+     LogHelp, radio, LogSCP, LogK1EA, scorereporter;
 
 
 
@@ -55,6 +55,127 @@ CONST
     MaxPartialCallBlocks = 100;
 
 TYPE
+
+   { This stuff is all here but is really for the scorereporter.  You can
+     find the spec that it depends on at
+
+   blog.contestonlinescore.com/online-scoring-xml-specification  }
+
+   CategoryAssistedType = (NoCategoryAssistedType,  { means nothing goes out }
+                           AssistedType,
+                           NonAssistedType);
+
+   CategoryBandType     = (NoCategoryBandType,
+                           AllBandType,
+                           SingleBand160Type,
+                           SingleBand80Type,
+                           SingleBand40Type,
+                           SingleBand20Type,
+                           SingleBand15Type,
+                           SingleBand10Type);
+
+    CategoryModeType    = (NoCategoryModeType,   { nothing goes out }
+                           CWModeType,
+                           DigiModeType,
+                           RTTYModeType,
+                           SSBModeType,
+                           PSKModeType,
+                           FT8ModeType,
+                           FT4ModeType,
+                           MixedModeType);
+
+   CategoryOperatorType = (NoCategoryOperatorType,
+                           SingleOperatorType,
+                           MultiOneOperatorType,
+                           MultiTwoOperatorType,
+                           MultiMultiOperatorType);
+
+   CategoryPowerType    = (NoCategoryPowerType,   { nothing goes out }
+                           HighPowerType,
+                           LowPowerType,
+                           QRPPowerType);
+
+    CategoryTransmitterType = (NoCategoryTransmitterType, { nothing goes out }
+                               OneTransmitterType,
+                               TwoTransmitterType,
+                               UnlimitedTransmitterType);
+
+    CategoryOverlayType = (NoCategoryOverlayType,         { nothing goes out }
+                           ClassicOverlayType,
+                           RookieOverlayType,
+                           TBWiresOverlayType,
+                           WireOnlyOverlayType);
+
+CONST
+
+    CategoryAssistedStringList: ARRAY [CategoryAssistedType] OF STRING [20] =
+                                  ('NO CATEGORY ASSISTED',
+                                   'ASSISTED            ',
+                                   'NON-ASSISTED        ');
+
+    CategoryBandStringList: ARRAY [CategoryBandType] OF STRING [16] =
+                              ('NO CATEGORY BAND',
+                               'ALL             ',
+                               '160M            ',
+                               '80M             ',
+                               '40M             ',
+                               '20M             ',
+                               '15M             ',
+                               '10M             ');
+
+    CategoryModeStringList: ARRAY [CategoryModeType] OF STRING [16] =
+                              ('NO CATEGORY MODE',
+                               'CW              ',
+                               'DIGI            ',
+                               'RTTY            ',
+                               'SSB             ',
+                               'PSK             ',
+                               'FT8             ',
+                               'FT4             ',
+                               'MIXED           ');
+
+
+    { The scorereporter spec says that some loggers use MULTI-ONE and
+      MULTI-TWO.  I have gone that route here for now }
+
+    CategoryOperatorStringList: ARRAY [CategoryOperatorType] OF STRING [20] =
+                                  ('NO CATEGORY OPERATOR',
+                                   'SINGLE-OP           ',
+                                   'MULTI-ONE           ',
+                                   'MULTI-TWO           ',
+                                   'MULTI-MULTI         ');
+
+    CategoryPowerStringList: ARRAY [CategoryPowerType] OF STRING [17] =
+                               ('NO CATEGORY POWER',
+                                'HIGH POWER       ',
+                                'LOW POWER        ',
+                                'QRP              ');
+
+    CategoryTransmitterStringList: ARRAY [CategoryTransmitterType] OF STRING [23] =
+                                     ('NO CATEGORY TRANSMITTER',
+                                      'ONE                    ',
+                                      'TWO                    ',
+                                      'UNLIMITED              ');
+
+    CategoryOverlayStringList: ARRAY [CategoryOverlayType] OF STRING [19] =
+                                 ('NO CATEGORY OVERLAY',
+                                  'CLASSIC            ',
+                                  'ROOKIE             ',
+                                  'TB-WIRES           ',
+                                  'WIRE-ONLY          ');
+
+TYPE
+
+   CategoryRecord = RECORD      { Used for score reporter - almost Cabrillo }
+       CategoryAssisted:    CategoryAssistedType;
+       CategoryBand:        CategoryBandType;
+       CategoryMode:        CategoryModeType;
+       CategoryOperator:    CategoryOperatorType;
+       CategoryPower:       CategoryPowerType;
+       CategoryTransmitter: CategoryTransmitterType;
+       CategoryOverlay:     CategoryOverlayType;
+       END;
+
     ExchangeInformationRecord = RECORD
         Age:           BOOLEAN;
         Chapter:       BOOLEAN;
@@ -274,6 +395,7 @@ VAR
     AutoDupeEnableSAndP:    BOOLEAN;
 
     CallsignUpdateEnable:   BOOLEAN;
+    Category:               CategoryRecord;    { Set in ControlJ or LOGCFG }
     CountDomesticCountries: BOOLEAN;
 
     DoingDomesticMults:      BOOLEAN;
@@ -321,6 +443,7 @@ VAR
                           RemainingMultiplierType] OF RemainingMultListPointer;
 
     RestartVersionNumber: Str20;
+
     SingleBand: BandType;
     StartHour, StartMinute, StartSecond, StartSec100: WORD;
 
@@ -361,6 +484,8 @@ VAR
     PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
                                         VAR ExchangeInformation: ExchangeInformationRecord
                                         );
+
+    PROCEDURE TransferCategoryInformationIntoScoreReporterData;
 
     PROCEDURE WriteAllFile;
 
@@ -2688,7 +2813,7 @@ FUNCTION ParseLogEntryIntoContestExchange (LogEntry: STRING;
   the ContestExchange record as best it can from the Log Entry with the
   intention of adding it to the sheets (after setting mult flags). }
 
-VAR TempString, OriginalString, ExchangeString: STRING;
+VAR ExchangeString: STRING;
     RSTTestString, FirstString, SecondString: Str40;
 
     BEGIN
@@ -2728,7 +2853,6 @@ VAR TempString, OriginalString, ExchangeString: STRING;
     { Now - we start looking at the exchange data and parse it out }
 
     ExchangeString := GetLogEntryExchangeString (LogEntry);
-    OriginalString := ExchangeString;
 
     IF ExchangeInformation.RST THEN
         BEGIN
@@ -2992,6 +3116,87 @@ VAR Address: INTEGER;
     Close (FileWrite);
     END;
 
+
+
+PROCEDURE TransferCategoryInformationIntoScoreReporterData;
+
+{ This procedure is kind of a band aid to take the CATEGORY fields (which are
+  really Cabrillo-ish) and use that data to set the proper configuration of
+  the score reporter.  This should be called whenever a change is made to any
+  of the CATEGORY fields.  It should be called before generating an XML
+  score report.
+
+  There are some minor differences between the score reporter spec
+  and Cabrillo - primarily in the OVERLAY category.  Since I really don't use
+  the CATEGORY field for Cabrillo, we will make the CATEGORY fields align with
+  the score reporter spec.  }
+
+    BEGIN
+    WITH Category DO
+        BEGIN
+        CASE CategoryAssisted OF
+            NoCategoryAssistedType: scorerpt.setclassassisted ('');
+            AssistedType:           scorerpt.setclassassisted ('ASSISTED');
+            ELSE                    scorerpt.setclassassisted ('NON-ASSISTED');
+            END;  { of CASE CategoryAssisted }
+
+        CASE CategoryBand OF
+            NoCategoryBandType: scorerpt.setclassbands ('');
+            SingleBand160Type:  scorerpt.setclassbands ('160M');
+            SingleBand80Type:   scorerpt.setclassbands ('80M');
+            SingleBand40Type:   scorerpt.setclassbands ('40M');
+            SingleBand20Type:   scorerpt.setclassbands ('20M');
+            SingleBand15Type:   scorerpt.setclassbands ('15M');
+            SingleBand10Type:   scorerpt.setclassbands ('10M');
+            ELSE                scorerpt.setclassbands ('ALL');
+            END;  { of CASE CategoryBand }
+
+       CASE CategoryMode OF
+           NoCategoryModeType: scorerpt.setclassmode ('');
+           CWModeType:         scorerpt.setclassmode ('CW');
+           DigiModeType:       scorerpt.setclassmode ('DIGI');
+           RTTYModeType:       scorerpt.setclassmode ('RTTY');
+           SSBModeType:        scorerpt.setclassmode ('PH');
+           PSKModeType:        scorerpt.setclassmode ('PSK');
+           FT8ModeType:        scorerpt.setclassmode ('FT8');
+           FT4ModeType:        scorerpt.setclassmode ('FT4');
+           ELSE                scorerpt.setclassmode ('MIXED');
+           END;
+
+       { No checklog indicator for Scoreboard - and we can't leave it blank }
+
+       CASE CategoryOperator OF
+           NoCategoryOperatorType: scorerpt.setclassops ('');
+           SingleOperatorType:     scorerpt.setclassops ('SINGLE-OP');
+           MultiOneOperatorType:   scorerpt.setclassops ('MULTI-ONE');
+           MultiTwoOperatorType:   scorerpt.setclassops ('MULTI-TWO');
+           MultiMultiOperatorType: scorerpt.setclassops ('MULTI-MULTI');
+           END;
+
+       CASE CategoryPower OF
+           NoCategoryPowerType: scorerpt.setclasspower ('');
+           HighPowerType:       scorerpt.setclasspower ('HIGH');
+           LowPowerType:        scorerpt.setclasspower ('LOW');
+           QRPPowerType:        scorerpt.setclasspower ('QRP');
+           END;
+
+       CASE CategoryTransmitter OF
+           NoCategoryTransmitterType: scorerpt.setclasstransmitter ('');
+           OneTransmitterType:        scorerpt.setclasstransmitter ('ONE');
+           TwoTransmitterType:        scorerpt.setclasstransmitter ('TWO');
+           UnlimitedTransmitterType:  scorerpt.setclasstransmitter ('UNLIMITED');
+           END;
+
+       CASE CategoryOverlay OF
+           NoCategoryOverlayType: scorerpt.setclassoverlay ('');
+           ClassicOverlayType:    scorerpt.setclassoverlay ('CLASSIC');
+           RookieOverlayType:     scorerpt.setclassoverlay ('ROOKIE');
+           TBWiresOverlayType:    scorerpt.setclassoverlay ('TB-WIRES');
+           WireOnlyOverlayType:   scorerpt.setclassoverlay ('WIRE-ONLY');
+           END;
+
+       END;  { of case }
+    END;
 
 
 

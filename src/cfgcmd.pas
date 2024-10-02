@@ -467,9 +467,9 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'CATEGORY ASSISTED' THEN
         BEGIN
         ProcessConfigInstructions1 := True;
-        IF CMD = 'NO CATEGORY ASSISTED' THEN ScoreReporterCabrilloCategory.CategoryAssisted := NoCategoryAssistedType
-        ELSE IF CMD = 'ASSISTED'        THEN ScoreReporterCabrilloCategory.CategoryAssisted := AssistedType
-        ELSE IF CMD = 'NON-ASSISTED'    THEN ScoreReporterCabrilloCategory.CategoryAssisted := NonAssistedType
+        IF CMD = 'NO CATEGORY ASSISTED' THEN Category.CategoryAssisted := NoCategoryAssistedType
+        ELSE IF CMD = 'ASSISTED'        THEN Category.CategoryAssisted := AssistedType
+        ELSE IF CMD = 'NON-ASSISTED'    THEN Category.CategoryAssisted := NonAssistedType
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
@@ -477,14 +477,14 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'CATEGORY BAND' THEN
         BEGIN
         ProcessConfigInstructions1 := True;
-        IF CMD = 'NO CATEGORY BAND' THEN ScoreReporterCabrilloCategory.CategoryBand := NoCategoryBandType
-        ELSE IF CMD = 'ALL'         THEN ScoreReporterCabrilloCategory.CategoryBand := AllBandType
-        ELSE IF CMD = '160'         THEN ScoreReporterCabrilloCategory.CategoryBand := SingleBand160Type
-        ELSE IF CMD = '80'          THEN ScoreReporterCabrilloCategory.CategoryBand := SingleBand80Type
-        ELSE IF CMD = '40'          THEN ScoreReporterCabrilloCategory.CategoryBand := SingleBand40Type
-        ELSE IF CMD = '20'          THEN ScoreReporterCabrilloCategory.CategoryBand := SingleBand20Type
-        ELSE IF CMD = '15'          THEN ScoreReporterCabrilloCategory.CategoryBand := SingleBand15Type
-        ELSE IF CMD = '10'          THEN ScoreReporterCabrilloCategory.CategoryBand := SingleBand10Type
+        IF CMD = 'NO CATEGORY BAND' THEN Category.CategoryBand := NoCategoryBandType
+        ELSE IF CMD = 'ALL'         THEN Category.CategoryBand := AllBandType
+        ELSE IF CMD = '160M'        THEN Category.CategoryBand := SingleBand160Type
+        ELSE IF CMD = '80M'         THEN Category.CategoryBand := SingleBand80Type
+        ELSE IF CMD = '40M'         THEN Category.CategoryBand := SingleBand40Type
+        ELSE IF CMD = '20M'         THEN Category.CategoryBand := SingleBand20Type
+        ELSE IF CMD = '15M'         THEN Category.CategoryBand := SingleBand15Type
+        ELSE IF CMD = '10M'         THEN Category.CategoryBand := SingleBand10Type
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
@@ -492,13 +492,15 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'CATEGORY MODE' THEN
         BEGIN
         ProcessConfigInstructions1 := True;
-        IF CMD = 'NO CATEGORY MODE' THEN ScoreReporterCabrilloCategory.CategoryMode := NoCategoryModeType
-        ELSE IF CMD = 'CW'          THEN ScoreReporterCabrilloCategory.CategoryMode := CWModeType
-        ELSE IF CMD = 'DIGI'        THEN ScoreReporterCabrilloCategory.CategoryMode := DigiModeType
-        ELSE IF CMD = 'FM'          THEN ScoreReporterCabrilloCategory.CategoryMode := FMModeType
-        ELSE IF CMD = 'RTTY'        THEN ScoreReporterCabrilloCategory.CategoryMode := RTTYModeType
-        ELSE IF CMD = 'SSB'         THEN ScoreReporterCabrilloCategory.CategoryMode := SSBModeType
-        ELSE IF CMD = 'MIXED'       THEN ScoreReporterCabrilloCategory.CategoryMode := MixedModeType
+        IF CMD = 'NO CATEGORY MODE' THEN Category.CategoryMode := NoCategoryModeType
+        ELSE IF CMD = 'CW'          THEN Category.CategoryMode := CWModeType
+        ELSE IF CMD = 'DIGI'        THEN Category.CategoryMode := DigiModeType
+        ELSE IF CMD = 'RTTY'        THEN Category.CategoryMode := RTTYModeType
+        ELSE IF CMD = 'SSB'         THEN Category.CategoryMode := SSBModeType
+        ELSE IF CMD = 'PSK'         THEN Category.CategoryMode := PSKModeType
+        ELSE IF CMD = 'FT8'         THEN Category.CategoryMode := FT8ModeType
+        ELSE IF CMD = 'FT4'         THEN Category.CategoryMode := FT4ModeType
+        ELSE IF CMD = 'MIXED'       THEN Category.CategoryMode := MixedModeType
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
@@ -506,10 +508,11 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'CATEGORY OPERATOR' THEN
         BEGIN
         ProcessConfigInstructions1 := True;
-        IF CMD = 'NO CATEGORY OPERATOR' THEN ScoreReporterCabrilloCategory.CategoryOperator := NoCategoryOperatorType
-        ELSE IF CMD = 'SINGLE-OP'       THEN ScoreReporterCabrilloCategory.CategoryOperator := SingleOperatorType
-        ELSE IF CMD = 'MULTI-OP'        THEN ScoreReporterCabrilloCategory.CategoryOperator := MultiOperatorType
-        ELSE IF CMD = 'CHECKLOG'        THEN ScoreReporterCabrilloCategory.CategoryOperator := CheckLogType
+        IF CMD = 'NO CATEGORY OPERATOR' THEN Category.CategoryOperator := NoCategoryOperatorType
+        ELSE IF CMD = 'SINGLE-OP'       THEN Category.CategoryOperator := SingleOperatorType
+        ELSE IF CMD = 'MULTI-ONE'       THEN Category.CategoryOperator := MultiOneOperatorType
+        ELSE IF CMD = 'MULTI-TWO'       THEN Category.CategoryOperator := MultiTwoOperatorType
+        ELSE IF CMD = 'MULTI-OP'        THEN Category.CategoryOperator := MultiMultiOperatorType
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
@@ -517,41 +520,10 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'CATEGORY POWER' THEN
         BEGIN
         ProcessConfigInstructions1 := True;
-        IF CMD = 'NO CATEGORY POWER' THEN ScoreReporterCabrilloCategory.CategoryPower := NoCategoryPowerType
-        ELSE IF CMD = 'HIGH POWER'   THEN ScoreReporterCabrilloCategory.CategoryPower := HighPowerType
-        ELSE IF CMD = 'LOW POWER'    THEN ScoreReporterCabrilloCategory.CategoryPower := LowPowerType
-        ELSE IF CMD = 'QRP       '   THEN ScoreReporterCabrilloCategory.CategoryPower := QRPPowerType
-        ELSE ProcessConfigInstructions1 := False;
-        Exit;
-        END;
-
-    IF ID = 'CATEGORY STATION' THEN
-        BEGIN
-        ProcessConfigInstructions1 := True;
-        IF CMD = 'NO CATEGORY STATION'  THEN ScoreReporterCabrilloCategory.CategoryStation := NoCategoryStationType
-        ELSE IF CMD = 'DISTRIBUTED'     THEN ScoreReporterCabrilloCategory.CategoryStation := DistributedStationType
-        ELSE IF CMD = 'FIXED'           THEN ScoreReporterCabrilloCategory.CategoryStation := FixedStationType
-        ELSE IF CMD = 'MOBILE'          THEN ScoreReporterCabrilloCategory.CategoryStation := MobileStationType
-        ELSE IF CMD = 'PORTABLE'        THEN ScoreReporterCabrilloCategory.CategoryStation := PortableStationType
-        ELSE IF CMD = 'ROVER'           THEN ScoreReporterCabrilloCategory.CategoryStation := RoverStationType
-        ELSE IF CMD = 'ROVER LIMITED'   THEN ScoreReporterCabrilloCategory.CategoryStation := RoverLimitedStationType
-        ELSE IF CMD = 'ROVER UNLIMITED' THEN ScoreReporterCabrilloCategory.CategoryStation := RoverUnlimitedStationType
-        ELSE IF CMD = 'EXPEDITION'      THEN ScoreReporterCabrilloCategory.CategoryStation := ExpeditionStationType
-        ELSE IF CMD = 'HQ'              THEN ScoreReporterCabrilloCategory.CategoryStation := HQStationType
-        ELSE IF CMD = 'SCHOOL'          THEN ScoreReporterCabrilloCategory.CategoryStation := SchoolStationType
-        ELSE IF CMD = 'EXPLORER'        THEN ScoreReporterCabrilloCategory.CategoryStation := ExplorerStationType
-        ELSE ProcessConfigInstructions1 := False;
-        Exit;
-        END;
-
-    IF ID = 'CATEGORY TIME' THEN
-        BEGIN
-        ProcessConfigInstructions1 := True;
-        IF CMD = 'NO CATEGORY TIME' THEN ScoreReporterCabrilloCategory.CategoryTime := NoCategoryTimeType
-        ELSE IF CMD = '6-HOURS'     THEN ScoreReporterCabrilloCategory.CategoryTime := SixHourTimeType
-        ELSE IF CMD = '8-HOURS'     THEN ScoreReporterCabrilloCategory.CategoryTime := EightHourTimeType
-        ELSE IF CMD = '12-HOURS'    THEN ScoreReporterCabrilloCategory.CategoryTime := TwelveHourTimeType
-        ELSE IF CMD = '24-HOURS'    THEN ScoreReporterCabrilloCategory.CategoryTime := TwentyFourHourTimeType
+        IF CMD = 'NO CATEGORY POWER' THEN Category.CategoryPower := NoCategoryPowerType
+        ELSE IF CMD = 'HIGH POWER'   THEN Category.CategoryPower := HighPowerType
+        ELSE IF CMD = 'LOW POWER'    THEN Category.CategoryPower := LowPowerType
+        ELSE IF CMD = 'QRP       '   THEN Category.CategoryPower := QRPPowerType
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
@@ -559,12 +531,10 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'CATEGORY TRANSMITTER' THEN
         BEGIN
         ProcessConfigInstructions1 := True;
-        IF CMD = 'NO CATEGORY TRANSMITTER' THEN ScoreReporterCabrilloCategory.CategoryTransmitter := NoCategoryTransmitterType
-        ELSE IF CMD = 'ONE'                THEN ScoreReporterCabrilloCategory.CategoryTransmitter := OneTransmitterType
-        ELSE IF CMD = 'TWO'                THEN ScoreReporterCabrilloCategory.CategoryTransmitter := TwoTransmitterType
-        ELSE IF CMD = 'LIMITED'            THEN ScoreReporterCabrilloCategory.CategoryTransmitter := LimitedTransmitterType
-        ELSE IF CMD = 'UNLIMITED'          THEN ScoreReporterCabrilloCategory.CategoryTransmitter := UnlimitedTransmitterType
-        ELSE IF CMD = 'SWL'                THEN ScoreReporterCabrilloCategory.CategoryTransmitter := SWLTransmitterType
+        IF CMD = 'NO CATEGORY TRANSMITTER' THEN Category.CategoryTransmitter := NoCategoryTransmitterType
+        ELSE IF CMD = 'ONE'                THEN Category.CategoryTransmitter := OneTransmitterType
+        ELSE IF CMD = 'TWO'                THEN Category.CategoryTransmitter := TwoTransmitterType
+        ELSE IF CMD = 'UNLIMITED'          THEN Category.CategoryTransmitter := UnlimitedTransmitterType
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
@@ -572,13 +542,11 @@ VAR xResult, Speed, TempValue: INTEGER;
     IF ID = 'CATEGORY OVERLAY' THEN
         BEGIN
         ProcessConfigInstructions1 := True;
-        IF CMD = 'NO CATEGORY OVERLAY' THEN ScoreReporterCabrilloCategory.CategoryOverlay := NoCategoryOverlayType
-        ELSE IF CMD = 'CLASSIC'        THEN ScoreReporterCabrilloCategory.CategoryOverlay := ClassicOverlayType
-        ELSE IF CMD = 'ROOKIE '        THEN ScoreReporterCabrilloCategory.CategoryOverlay := RookieOverlayType
-        ELSE IF CMD = 'TB-WIRES'       THEN ScoreReporterCabrilloCategory.CategoryOverlay := TBWiresOverlayType
-        ELSE IF CMD = 'YOUTH'          THEN ScoreReporterCabrilloCategory.CategoryOverlay := YouthOverlayType
-        ELSE IF CMD = 'NOVICE-TECH'    THEN ScoreReporterCabrilloCategory.CategoryOverlay := NoviceTechOverlayType
-        ELSE IF CMD = 'YL'             THEN ScoreReporterCabrilloCategory.CategoryOverlay := YLOverlayType
+        IF CMD = 'NO CATEGORY OVERLAY' THEN Category.CategoryOverlay := NoCategoryOverlayType
+        ELSE IF CMD = 'CLASSIC'        THEN Category.CategoryOverlay := ClassicOverlayType
+        ELSE IF CMD = 'ROOKIE '        THEN Category.CategoryOverlay := RookieOverlayType
+        ELSE IF CMD = 'TB-WIRES'       THEN Category.CategoryOverlay := TBWiresOverlayType
+        ELSE IF CMD = 'WIRE-ONLY'      THEN Category.CategoryOverlay := WireOnlyOverlayType
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
@@ -3858,6 +3826,8 @@ VAR xResult: INTEGER;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
+
+    { End of items that get over written by the Cabrillo stuff }
 
     IF ID = 'SCORE REPORT CLUB' then
         BEGIN
