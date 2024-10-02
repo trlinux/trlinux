@@ -242,28 +242,28 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
               IF CategoryBand < SingleBand10Type THEN
                   Inc (CategoryBand)
               ELSE
-                  CategoryBand := AllBandType;
+                  CategoryBand := NoCategoryBandType;
 
       CatMode:
           WITH Category DO
               IF CategoryMode < MixedModeType THEN
                   Inc (CategoryMode)
               ELSE
-                  CategoryMode := CWModeType;
+                  CategoryMode := NoCategoryModeType;
 
       CatOp:
           WITH Category DO
               IF CategoryOperator < MultiMultiOperatorType THEN
                   Inc (CategoryOperator)
               ELSE
-                  CategoryOperator := SingleOperatorType;
+                  CategoryOperator := NoCategoryOperatorType;
 
       CatPower:
           WITH Category DO
               IF CategoryPower < QRPPowerType THEN
                   Inc (CategoryPower)
               ELSE
-                  CategoryPower := HighPowerType;
+                  CategoryPower := NoCategoryPowerType;
 
       CatTx:
           WITH Category DO
