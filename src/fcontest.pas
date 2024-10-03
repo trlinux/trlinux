@@ -840,6 +840,7 @@ VAR TempQTH: QTHRecord;
         ActiveExchange := CWTExchange;
         ActiveDomesticMult := WYSIWYGDomestic;  { Ends up being callsigns worked }
         ActiveQSOPointMethod := OnePointPerQSO;
+
         ContestName := 'CWT';
         LiteralDomesticQTH := True;
         MultByBand := False;
@@ -1033,7 +1034,6 @@ VAR TempQTH: QTHRecord;
 
     IF (CMD = 'IARU') OR (CMD = 'WRTC') THEN
         BEGIN
-
         scorerpt.setcontest ('IARU-HF');
 
         LastLocateCall := '';

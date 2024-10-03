@@ -256,7 +256,7 @@ VAR Doc: TXMLDocument;
     QPoints: longint;
     MTotals: MultTotalArrayType;
     totalscore: longint;
-    nmult: array[Bandtype,CW..Both,1..4] of integer;
+    nmult: array[Bandtype, CW..Both, 1..4] of integer;
     totalmults: array[1..4] of integer;
     MultTotal: INTEGER;
 
@@ -323,7 +323,7 @@ VAR Doc: TXMLDocument;
                    FOR m := cw TO both DO
                       BEGIN
                       nmult [band, m, j] := 0;
-                      IF domesticmult = mult[j] THEN nmult[band,m,j] :=
+                      IF domesticmult = mult [j] THEN nmult[band,m,j] :=
                           nmult[band,m,j]+Mtotals[band,m].numberdomesticmults;
                       IF dxmult = mult[j] THEN nmult[band,m,j] :=
                           nmult[band,m,j]+Mtotals[band,m].numberdxmults;
@@ -683,6 +683,7 @@ procedure scorereport.setup;
 
     ELSE IF contest = 'CW-Ops' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'CWOPS-Open' THEN
@@ -841,6 +842,34 @@ procedure scorereport.setup;
         END;
 
     { And now for the stuff from the old routine }
+
+    { First populate the nmult array with the right settings }
+
+    IF UpperCase (domesticmult) <> 'NONE' THEN
+        BEGIN
+        Inc (nmulttype);
+        mult [nmulttype] := domesticmult;
+        END;
+
+    IF (UpperCase (dxmult) <> 'NONE') AND (dxmult <> domesticmult) THEN
+        BEGIN
+        Inc (nmulttype);
+        mult [nmulttype] := dxmult;
+        END;
+
+    IF (UpperCase (zonemult) <> 'NONE') AND (zonemult <> domesticmult)
+       AND (zonemult <> dxmult) THEN
+        BEGIN
+        Inc (nmulttype);
+        mult [nmulttype] := zonemult;
+        END;
+
+    IF (UpperCase (prefixmult) <> 'NONE') AND (prefixmult <> domesticmult)
+       AND (prefixmult <> dxmult) AND (prefixmult <> zonemult) THEN
+        BEGIN
+        Inc (nmulttype);
+        mult [nmulttype] := prefixmult;
+        END;
 
     fd := getpt;
     grantpt(fd);

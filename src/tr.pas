@@ -54,6 +54,29 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+02-Oct-2024
+ - Added the score reporter category fields to the control-J menu.  This
+   allows for you to set them up quickly for the contest you are running
+   instead of having to edit your config file.  Also - the score reporter
+   contest name and multiplier configuration is automatically derived
+   from the MY CONTEST statement.  For those contest names that include
+   a mode (like CQ-WW-CW) - the mode will be appended at the time the
+   score report is generated based upon the active mode.
+
+   The legal values are in the score reporter specification here:
+
+   blog.contestonlinescore.com/online-scoring-xml-specification/
+
+   The legal values are:
+
+   CATEGORY ASSISTED     (ASSISTED, NON-ASSISTED)
+   CATEGORY BAND         (ALL, 160M, 80M, 40M, 20M, 15M, 10M)
+   CATEGORY MODE         (CW, DIGI, RTTY, SSB, PSK, FT8, FT4, MIXED)
+   CATEGORY OPERATOR     (SINGLE-OP, MULTI-ONE, MULTI-TWO, MULTI-MULTI)
+   CATEGORY POWER        (HIGH POWER, LOW POWER, QRP)
+   CATEGORY TRANSMITTER  (ONE, TWO, UNLIMITED)
+   CATEGORY OVERLAY      (CLASSIC, ROOKIE, TB-WIRES, WIRE-ONLY)
+
 29-Sep-2024
  - Made SCORE REPORT ENABLE available on the Control-J menu.
 
@@ -99,25 +122,6 @@ TODO List after 2023 WPX CW:
  - When reading in a log that has frequency data in the QSO number field -
    the program will just count the QSOs and use that as the QSO totals
    for generatring QSO numbers instead of the high QSO number sent.
-
- - Added new Cabrillo category fields.  These are primarily intended to assist
-   with the score reporting setup - but might eventually get used by POST.  The
-   following parameters have been implemented and all available on the Control-J
-   menu.  You can set the value to "NO " + the name of the field to clear it.
-   For example: CATEGORY TIME = NO CATEGORY TIME.
-
-   CATEGORY ASSISTED     (ASSISTED, NON-ASSISTED)
-   CATEGORY BAND         (ALL, 160, 80, 40, 20, 15, 10)
-   CATEGORY MODE         (CW, DIGI, FM, RTTY, SSB, MIXED)
-   CATEGORY OPERATOR     (SINGLE-OP, MULTI-OP, CHECKLOG)
-   CATEGORY POWER        (HIGH POWER, LOW POWER, QRP)
-
-   CATEGORY STATION      (DISTRIBUTED, FIXED, MOBILE, PORTABLE, ROVER, ROVER LIMITED,
-                          ROVER UNLIMITED, EXPEDITION, HQ, SCHOOL, EXPLORER)
-
-   CATEGORY TIME         (6-HOURS, 8-HOURS, 12-HOURS, 24-HOURS)
-   CATEGORY TRANSMITTER  (ONE, TWO, LIMITED, UNLIMITED, SWL)
-   CATEGORY OVERLAY      (CLASSIC, ROOKIE, TB-WIRES, YOUTH, NOVICE-TECH, YL)
 
 10-Aug-2024
  - Removed MULTI MULTS ONLY command.

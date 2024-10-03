@@ -1092,13 +1092,13 @@ VAR FileWrite: TEXT;
       BPD: WriteLn (FileWrite, Packet.BroadcastAllPacketData);
       CAU: WriteLn (FileWrite, CallsignUpdateEnable);
 
-      CatAss:     Write (FileWrite, CategoryAssistedStringList [Category.CategoryAssisted]);
-      CatBand:    Write (FileWrite, CategoryBandStringList [Category.CategoryBand]);
-      CatMode:    Write (FileWrite, CategoryModeStringList [Category.CategoryMode]);
-      CatOp:      Write (FileWrite, CategoryOperatorStringList [Category.CategoryOperator]);
-      CatPower:   Write (FileWrite, CategoryPowerStringList [Category.CategoryPower]);
-      CatTx:      Write (FileWrite, CategoryTransmitterStringList [Category.CategoryTransmitter]);
-      CatOverLay: Write (FileWrite, CategoryOverlayStringList [Category.CategoryOverlay]);
+      CatAss:     WriteLn (FileWrite, CategoryAssistedStringList [Category.CategoryAssisted]);
+      CatBand:    WriteLn (FileWrite, CategoryBandStringList [Category.CategoryBand]);
+      CatMode:    WriteLn (FileWrite, CategoryModeStringList [Category.CategoryMode]);
+      CatOp:      WriteLn (FileWrite, CategoryOperatorStringList [Category.CategoryOperator]);
+      CatPower:   WriteLn (FileWrite, CategoryPowerStringList [Category.CategoryPower]);
+      CatTx:      WriteLn (FileWrite, CategoryTransmitterStringList [Category.CategoryTransmitter]);
+      CatOverLay: WriteLn (FileWrite, CategoryOverlayStringList [Category.CategoryOverlay]);
 
       CLF: WriteLn (FileWrite, CheckLogFileSize);
       CDE: WriteLn (FileWrite, ColumnDupeSheetEnable);
