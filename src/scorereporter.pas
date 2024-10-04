@@ -61,10 +61,10 @@ TYPE
          procedure setdxmult(s: string);
          procedure setzonemult(s: string);
          procedure setprefixmult(s: string);
-         procedure setnmulttype (n: INTEGER);
          procedure writexmlmessage;
          procedure timer(caughtup: boolean);
-         function enabled:boolean;
+         function  getcontest: string;
+         function  enabled:boolean;
          procedure refork;
          procedure setup;
    end;
@@ -113,6 +113,15 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
       zonemult := 'none';
       prefixmult := 'none';
    end;
+
+FUNCTION scorereport.getcontest: string;
+
+{ Returns the value set for the contest }
+
+    BEGIN
+    getcontest := contest;
+    END;
+
 
    procedure scorereport.setenable(b: boolean);
    begin
@@ -195,11 +204,6 @@ uses sysutils,dom,xmlwrite,logcfg,tree,logedit,logdupe,logwind,logdom,logstuff;
    begin
       prefixmult := s;
    end;
-
-   procedure scorereport.setnmulttype (n: INTEGER);
-       BEGIN
-       nmulttype := n;
-       END;
 
    procedure scorereport.setpassword(s: string);
    begin
@@ -565,120 +569,155 @@ PROCEDURE scorereport.timer(caughtup: boolean);
 { Give this some oxygen so that the score reports will go out every so often }
 
     BEGIN
-    Inc (icount);
-    if (not caughtup) or (icount < intervalcount) then exit;
-    icount := 0;
-    writexmlmessage;
+    if enabled THEN  { someome might disable it }
+        BEGIN
+        Inc (icount);
+        if (not caughtup) or (icount < intervalcount) then exit;
+        icount := 0;
+        writexmlmessage;
+        END;
     END;
 
 
 
 procedure scorereport.setup;
 
-{ This is the same as the old setup - except that we are going to determine
-  the mulitplier values based upon the contest instead of having the user
-  worry about them.  The values are taken from }
+{ Note that we now call setup every time the program is started - whether or
+  not scorereport is enabled.  This will allow someone to enable it after
+  starting the program - if there is a valid contest name set in FCONTEST }
 
     BEGIN
+    IF contest = '' THEN Exit;  { We shouldn't have gotten here }
+
+    { These are the contests that the score reporter knows about how to
+      handle.  The contest name is set in FCONTEST and is not the same
+      as the name of the TR Log Config file CONTEST name.
+
+      A name that has the $ character is looking to get the mode for the
+      contest named during runtime based upon ActiveMode.
+
+      The legal mult IDs per the ScoreReporter spec are: zone, country,
+      state, gridsquare, wpxprefix, prefix or hq.
+
+      This web page shows which ones to use for the various contests:
+
+      contestonlinescore.com/settings/    }
+
     IF contest = 'ARRL-FIELD-DAY' THEN
         BEGIN
+        { No multipliers }
         END
 
     ELSE IF contest = 'JIDX-$' THEN
         BEGIN
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'STEW-PERRY' THEN
         BEGIN
+        { No multipliers }
         END
 
     ELSE IF contest = '7QP-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');     { Counties, DXCC, State, Province }
         END
 
     ELSE IF contest = 'AA-$' THEN
         BEGIN
+        setprefixmult ('wpxprefix');
         END
 
     ELSE IF contest = 'ARI-DX' THEN
         BEGIN
+        setdxmult ('country');
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'ARRL-10' THEN
         BEGIN
+        setdxmult ('country');         { Note - these are backwards compared to ARRL 160 }
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'ARRL-160' THEN
         BEGIN
+        setdomesticmult ('state');
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'ARRL-DX-$' THEN
         BEGIN
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'ARRL-RTTY' THEN
         BEGIN
+        setdomesticmult ('state');
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'ARRL-VHF' THEN
         BEGIN
+        setdomesticmult ('gridsquare');
         END
 
     ELSE IF contest = 'AP-Sprint-$' THEN
         BEGIN
+        setprefixmult ('wpxprefix');
         END
 
     ELSE IF contest = 'BALTIC-CONTEST' THEN
         BEGIN
+        { no mults }
         END
 
     ELSE IF contest = 'CA-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'CQ-160-$' THEN
         BEGIN
+        setdxmult ('country');
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'CQ-M' THEN
         BEGIN
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'CQ-VHF' THEN
         BEGIN
-        setbreakdown (true);
-        setclassbands ('ALL');
-        setprefixmult ('wpxprefix');
-        setnmulttype (1);
+        setdomesticmult ('gridsquare');
         END
 
     ELSE IF contest = 'CQ-WPX-$' THEN
         BEGIN
-        setbreakdown (true);
-        setclassbands ('ALL');
         setprefixmult ('wpxprefix');
-        setnmulttype (2);
         END
 
     ELSE IF contest = 'CQ-WPX-RTTY' THEN
         BEGIN
+        setprefixmult ('wpxprefix');
         END
 
     ELSE IF contest = 'CQ-WW-$' THEN
         BEGIN
-        setbreakdown (true);
-        setclassbands ('ALL');
         setdxmult ('country');
         setzonemult ('zone');
-        setnmulttype (2);
         END
 
     ELSE IF contest = 'CQ-WW-RTTY' THEN
         BEGIN
+        setdxmult ('country');         { Needs to be country and domestic mults }
+        setzonemult ('zone');
         END
 
     ELSE IF contest = '9A-DX' THEN
         BEGIN
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'CW-Ops' THEN
@@ -688,162 +727,213 @@ procedure scorereport.setup;
 
     ELSE IF contest = 'CWOPS-Open' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'EUHFC' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'FL-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');     { Needs counties, DXCC, states and provinces }
         END
 
     ELSE IF contest = 'HA-DX' THEN
         BEGIN
+        setdomesticmult ('state');     { HA counties / Members }
         END
 
     ELSE IF contest = 'HELVETIA' THEN
         BEGIN
+        setdxmult ('country');
+        setdomesticmult ('state');     { HB cantons }
         END
 
     ELSE IF contest = 'IARU-HF' THEN
         BEGIN
+        setprefixmult ('zone');
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'RSGB-IOTA' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'JARTS-WW-RTTY' THEN
         BEGIN
+        setdxmult ('country');
+        setdomesticmult ('state');     { Call areas }
         END
 
     ELSE IF contest = 'KCJ' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'KVP' THEN
         BEGIN
+        setdomesticmult ('state');     { Prec }
         END
 
     ELSE IF contest = 'MI-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'MARCONIMEMORIAL' THEN
         BEGIN
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'MN-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'ICWC-MST' THEN
         BEGIN
+        setdomesticmult ('state');     { calls }
         END
 
     ELSE IF contest = 'NAQP-$' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'NEWE-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'NY-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'NRAU-$' THEN
         BEGIN
+        setdomesticmult ('state');     { Region }
         END
 
     ELSE IF contest = 'OH-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');     { Counties, DXCC, State, Province }
         END
 
     ELSE IF contest = 'OK-OM-DX' THEN
         BEGIN
+        setdxmult ('country');
+        setdomesticmult ('state');       { State only for SSB?  Weird }
         END
 
     ELSE IF contest = 'PACC' THEN
         BEGIN
+        setdomesticmult ('state');      { PA provinces }
         END
 
     ELSE IF contest = 'RAC' THEN
         BEGIN
+        setdomesticmult ('state');      { Provinces }
         END
 
     ELSE IF contest = 'RDXC' THEN
         BEGIN
+        setdomesticmult ('state');      { Oblasts }
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'WA-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');      { Counties, states, provinces, countries }
         END
 
     ELSE IF contest = 'SAC-$' THEN
         BEGIN
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'SP-DX' THEN
         BEGIN
+        setdomesticmult ('state');     { Provinces and Countries }
         END
 
     ELSE IF contest = 'NA-SPRINT-$' THEN
         BEGIN
+        setdomesticmult ('state');     { states/provinces + NA countries?? }
         END
 
     ELSE IF contest = 'K1USNSST' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'ARRL-SS-$' THEN
         BEGIN
+        setdomesticmult ('state');
         END
 
     ELSE IF contest = 'TX-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');     { Counties, states, provinces, DXCC }
         END
 
     ELSE IF contest = 'UBA-DX' THEN
         BEGIN
+        setdxmult ('country');         { SSB is state? }
         END
 
     ELSE IF contest = 'UKRAINIAN-DX' THEN
         BEGIN
+        setdxmult ('country');
+        setdomesticmult ('state');     { Oblasts }
         END
 
     ELSE IF contest = 'Oceania-DX-$' THEN
         BEGIN
+        setprefixmult ('wpxprefix');
         END
 
     ELSE IF contest = 'WAG' THEN
         BEGIN
+        setdxmult ('country');         { Includes districts? }
         END
 
     ELSE IF contest = 'DARC-WAEDC-$' THEN
         BEGIN
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'WI-QSO-PARTY' THEN
         BEGIN
+        setdomesticmult ('state');     { counties, DXCC, state and provinces }
         END
 
     ELSE IF contest = 'YO-DX-HF' THEN
         BEGIN
+        setdxmult ('country');
+        setdomesticmult ('state');     { YO counties }
         END
-
     ELSE
         BEGIN
         WriteLn ('I do not recognize ', contest, ' in the scorereporter init procedure.');
-        WaitForKeyPressed;
-        Halt;
+        WriteLn ('Scorereporter will be disabled.');
+        WriteLn ('Let N6TR (tree@kkn.net) know about this problem.');
+        enable := false;
+        contest := '';
+        Exit;
         END;
 
     { And now for the stuff from the old routine }
 
-    { First populate the nmult array with the right settings }
+    { First populate the nmult array with the right settings.  It starts at
+      index of 1 and has an entry for each of the possible scorereporter
+      multiplier idents: zone, country, state, gridsquare, wpxprefix,
+      prefix or hq }
+
+    nmulttype := 0;
 
     IF UpperCase (domesticmult) <> 'NONE' THEN
         BEGIN

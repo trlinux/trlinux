@@ -449,12 +449,17 @@ VAR FileWrite: TEXT;
     rig1.setcwreverse(Radio1CwReverse);
     rig2.setcwreverse(Radio2CwReverse);
 
-    if scorerpt.enabled then
-    begin
-       scorerpt.setcall(MyCall);
-       scorerpt.setup;
-       addtimer(@scorerpt.timer);
-    end;
+    { If we have a contest name that score reporter can work with,
+      we will initialize the score reporter even if not currently
+      enabled.  This allows the operator to enable it from the
+      control-J menu and have it all ready to go. }
+
+    IF scorerpt.getcontest <> '' THEN
+        BEGIN
+        scorerpt.setcall(MyCall);
+        scorerpt.setup;
+        addtimer(@scorerpt.timer);
+        END;
 
     ActiveKeyer.debug(keyerdebug);
     InitializeKeyer;
