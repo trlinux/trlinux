@@ -220,6 +220,7 @@ TYPE
           Frequency:      LONGINT;
           InhibitMults:   BOOLEAN;
           Kids:           Str40;                      { Used for whole ex string }
+          LeftOverQTH:    Str40;                      { Gets set if / found in QTH data }
           Mode:           ModeType;
           Name:           Str20;
           NameSent:       BOOLEAN;
@@ -576,14 +577,13 @@ FUNCTION FoundDomesticQTH (VAR RXData: ContestExchange): BOOLEAN;
 VAR QTHString: Str40;
 
     BEGIN
-    FoundDomesticQTH := False;
-
-    IF RXData.QTHString = '' THEN Exit;
+    IF RXData.QTHString = '' THEN
+        BEGIN
+        FoundDomesticQTH := False;
+        Exit;
+        END;
 
     QTHString := UpperCase (RXData.QTHString);
-
-    IF StringHas (QTHString, '/') THEN QTHString := PrecedingString (QTHString, '/');
-
     GetRidOfPrecedingSpaces (QTHString);
     GetRidOfPostcedingSpaces (QTHString);
 
@@ -822,6 +822,7 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     Exchange.Frequency        := 0;
     Exchange.InhibitMults     := False;
     Exchange.Mode             := NoMode;
+    Exchange.LeftOverQTH      := '';
     Exchange.Name             := '';
     Exchange.NameSent         := False;
     Exchange.NumberReceived   := -1;

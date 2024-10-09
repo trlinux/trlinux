@@ -41,7 +41,7 @@ UNIT LogStuff;
   following settings: Standard, QSLButDoNotLog and QSLAndLog.  This shows
   up as the config command QSL MODE which you can find in the Control-J menu.
 
-  Standard: Needs correc info to QSL and log
+  Standard: Needs correct info to QSL and log
   QSLButNoLog: Needs correct info to log, not to QSL
   QSLAndLog: No syntax checking of exchange
 
@@ -58,7 +58,7 @@ UNIT LogStuff;
   This is done with CalculateQSOPoints which is here in this unit and uses
   either the ActiveQSOPointMethod or the more generic QSOPoints globals.
 
-  If the ParametersOkay function is happy (returnning TRUE), then the
+  If the ParametersOkay function is happy (returning TRUE), then the
   procedure LogContact in logsubs2 gets called.
 
   LogContact will check to see if this is a dupe, determine if there are
@@ -2192,7 +2192,6 @@ VAR xResult: INTEGER;
                     NumberString := Str1
                 ELSE
                     NumberString := '1';
-
 
     { Now the QTH - which isn't so hard either }
 
@@ -5135,6 +5134,7 @@ PROCEDURE StuffInit;
     RadioSetFreq               := 0;
     RateDisplay                := QSOs;
     ReadInLogFileOpen          := False;
+    ReceivedData.LeftOverQTH   := '';
 
     SendExchangeKeyWhenCWHasStopped := NullKey;
 

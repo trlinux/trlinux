@@ -4242,10 +4242,10 @@ VAR I: INTEGER;
         Exit;
         END;
 
-    RData.Time       := Hours * 100 + Minutes;
-    RData.Band       := Band;
-    RData.Mode       := Mode;
-    RData.Frequency  := Freq;
+    RData.Time        := Hours * 100 + Minutes;
+    RData.Band        := Band;
+    RData.Mode        := Mode;
+    RData.Frequency   := Freq;
 
     IF RData.RSTSent = '' THEN
         IF ActiveMode = Phone THEN RData.RSTSent := LogRSSent
