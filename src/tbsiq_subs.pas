@@ -5007,7 +5007,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     Message, TempString: STRING;
     TempExchange: ContestExchange;
     Dest: BYTE;
-    PacketSpotCall: CallString;
+    BandMapCall, PacketSpotCall: CallString;
     FirstString: STRING;
 
     BEGIN
@@ -5615,6 +5615,61 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
               WindowEditor in LOGSUBS2.PAS if you want to put some of them back in }
 
             CASE ExtendedKeyChar OF
+                ControlEnd:
+                    IF BandMapEnable THEN
+                        BEGIN
+                        EditBandMap;
+
+                        IF (BandMapCursorData <> nil) AND (NOT EscapeFromEditBandMap) THEN
+                            WITH BandMapCursorData^ DO
+                                BEGIN
+                                { Fix up the windows }
+
+                                BandMapCall := BandMapExpandedString (Call);
+
+                                IF (QSOState = QST_SearchAndPounce) THEN
+                                    BEGIN
+                                    IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                                        BEGIN
+                                        CallWindowString := BandMapCall;
+                                        ClrScr;
+                                        Write (CallWindowString);
+                                        END
+                                    ELSE
+                                        BEGIN   { Not CallWindow - clear exchange window }
+                                        ClrScr;
+                                        ExchangeWindowString := '';
+                                        ExchangeWindowCursorPosition := 1;
+                                        SwapWindows;
+                                        ClrScr;
+                                        CallWindowString := BandMapCall;
+                                        Write (CallWindowString);
+                                        SwapWindows;
+
+                                        { KeyChar := TabKey; ??? }
+                                        Exit;
+                                        END;
+                                    END
+                                ELSE
+                                    { Not in S&P }
+
+                                    IF (TBSIQ_ActiveWindow = TBSIQ_CallWindow) THEN
+                                        BEGIN
+                                        RemoveExchangeWindow;
+                                        CallWindowString := BandMapCall;
+                                        ClrScr;
+                                        Write (CallWindowString);
+                                        END
+                                    ELSE
+                                        BEGIN
+                                        SwapWindows;
+                                        RemoveExchangeWindow;
+                                        CallWindowString := BandMapCall;
+                                        ClrScr;
+                                        Write (CallWindowString);
+                                        END;
+                                END;
+                        END;
 
                   AltC:
                       BEGIN
@@ -6703,6 +6758,7 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
             KeyStatus.KeyChar := RightArrow;
             IF ControlKey THEN KeyStatus.KeyChar := ControlRightArrow;
             END;
+
 
        107: BEGIN                               { End key }
             KeyStatus.ExtendedKey := True;
