@@ -377,7 +377,6 @@ VAR TimeString, MultiString, MessageString: STRING;
     Points: INTEGER;
     Freq, QSX: LONGINT;
     Time, ReturnedQSONumber, ReservedQSONumber: INTEGER;
-    MessageOriginator: BYTE;
     ControlByte: BYTE;
     Year, Month, Day, Hour, Minute, Second: WORD;
     Dupe, Mult, FirstCommand, NewMult: BOOLEAN;
@@ -388,10 +387,6 @@ VAR TimeString, MultiString, MessageString: STRING;
 
     MultiString := GetMultiPortCommand;
     IF MultiString = '' THEN Exit;
-
-    { Save who sent this message in case we need to respond just to them }
-
-    MessageOriginator := Ord (Multistring [1]);
 
     { Unpack the message }
 
@@ -1972,7 +1967,6 @@ VAR Result: INTEGER;
 
                 DualingCQState := DualGettingExchange;
                 END;
-
 
             DualSendingCQ:
                 IF (WindowString = '') AND (ActiveWindow = CallWindow) THEN
@@ -4427,15 +4421,16 @@ PROCEDURE LogContact (VAR RXData: ContestExchange);
   QTHs separated with /'s and generate multiple QSO entries.  }
 
 VAR LogString: Str80;
-    Address: INTEGER;
-    RememberQSOPoints: INTEGER;
+    FirstSlashPosition, Address: INTEGER;
 
     BEGIN
-    IF StringHas (RXData.QTHString, '/') THEN
+    IF Pos ('/', RXData.QTHString) > 0 THEN  { Someone is sending multiple counties }
         BEGIN
-        RXData.LeftOverQTH := PostcedingString (RXData.QTHString, '/');
-        RXData.QTHString := PrecedingString (RXData.QTHString, '/');
-        RememberQSOPoints := RXData.QSOPoints;
+        FirstSlashPosition := Pos ('/', RXData.QTHString);
+        RXData.LeftOverQTH := Copy (RXData.QTHString,
+                                    FirstSlashPosition + 1,
+                                    Length (RXData.QTHString) - FirstSlashPosition);
+        RXData.QTHString := Copy (RXData.QTHString, 1, FirstSlashPosition - 1);
         END;
 
     RXData.NumberSent := QSONumberForThisQSO;
@@ -4600,21 +4595,21 @@ VAR LogString: Str80;
 
         IF RXData.LeftOverQTH = '' THEN Exit;
 
-        { We have another domestic QTH to log }
+        RXData.QTHString := RXData.LeftOverQTH;
+        RXData.LeftOverQTH := '';
 
-        IF StringHas (RXData.LeftOverQTH, '/') THEN
+        IF Pos ('/', RXData.QTHString) > 0 THEN  { Still multiple counties }
             BEGIN
-            RXData.LeftOverQTH := PostcedingString (RXData.QTHString, '/');
-            RXData.QTHString := PrecedingString (RXData.QTHString, '/');
-            END
-        ELSE
-            BEGIN
-            RXData.QTHString := RXData.LeftOverQTH;
-            RXData.LeftOverQTH := '';
+            FirstSlashPosition := Pos ('/', RXData.QTHString);
+            RXData.LeftOverQTH := Copy (RXData.QTHString,
+                                        FirstSlashPosition + 1,
+                                        Length (RXData.QTHString) - FirstSlashPosition);
+            RXData.QTHString := Copy (RXData.QTHString, 1, FirstSlashPosition - 1);
             END;
 
-        IF NOT ProcessExchange (RXData.QTHString, RXData) THEN
-            Exit;
+        { Protect from a bad QTH }
+
+        IF NOT FoundDomesticQTH (RXData) THEN Exit;
 
     UNTIL False;
     END;

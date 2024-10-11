@@ -839,12 +839,7 @@ PROCEDURE SendCrypticMessage (Message: Str160);
         END;
 
     CASE ActiveMode OF
-        Phone:
-            BEGIN
-            IF DVKEnable THEN
-                SendDVKMessage (Message);
-            END;
-
+        Phone: IF DVKEnable THEN SendDVKMessage (Message);
         CW: SendCrypticCWString (Message);
         Digital: SendCrypticDigitalString (Message);
         END;
@@ -911,9 +906,6 @@ VAR QSONumberString: Str20;
 
                    IF Pos (ControlD, Message) = 0 THEN FlushCWBufferAndClearPTT;
                END;
-
-
-           {QuickDisplay2('SendFunctionKeyMessage..1..2..3..4');}
 
            IF (ActiveMode = Phone) AND DVKEnable AND (Key >= ControlF1) AND (Key <= ControlF10) AND DVKControlKeyRecord THEN
                BEGIN

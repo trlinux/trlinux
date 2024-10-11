@@ -54,6 +54,16 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+11-Oct-2024
+ - Changed QSONumber and DomesticQTH exchagne to require a QSO number
+   and not default to one if none is entered.
+
+10-Oct-2024
+ - Added ability to enter multiple domestic QTHs in the exchange window
+   using the / character between them.  They currently are logged with
+   no QSO points - but the multiplier flagging works.  This works in
+   both Classic UI and TBSIQ.
+
 02-Oct-2024
  - Added the score reporter category fields to the control-J menu.  This
    allows for you to set them up quickly for the contest you are running

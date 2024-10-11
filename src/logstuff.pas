@@ -2152,8 +2152,10 @@ VAR ThirdString: Str20;
 FUNCTION ProcessQSONumberAndDomesticQTHExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
 
 { If the the two entries are separated by a space, they may appear in either
-  order.  If only one entry appears, it is assumed to be the Domestic QTH
-  and the QSO number will be one.  }
+  order.
+
+  NEW October 2024 - we now require a QSO number so an entry won't be logged
+  as #1 as a default. }
 
 VAR xResult: INTEGER;
     NumberString, Str1, Str2, Str3, Str4: Str20;
@@ -2191,7 +2193,7 @@ VAR xResult: INTEGER;
                 IF StringIsAllNumbers (Str1) THEN
                     NumberString := Str1
                 ELSE
-                    NumberString := '1';
+                    Exit;  { No longer default to one }
 
     { Now the QTH - which isn't so hard either }
 

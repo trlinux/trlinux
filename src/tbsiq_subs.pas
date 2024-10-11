@@ -7419,20 +7419,20 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                                 END;
 
                        Phone:   BEGIN
-                                Message := ExpandCrypticString (SearchAndPouncePhoneExchange);
+                                Message := SearchAndPouncePhoneExchange;
                                 IF Message = '' THEN
-                                    Message := ExpandCrypticString (GetExMemoryString (Phone, Key));
+                                    Message := GetExMemoryString (Phone, Key);
                                 END;
 
                        Digital: BEGIN
-                                Message := ExpandCrypticString (GetExMemoryString (Digital, Key));
+                                Message := GetExMemoryString (Digital, Key);
                                 SearchAndPounceExchangeSent := True;
                                 END;
 
                        END;  { of CASE Mode }
 
                ELSE
-                   Message := ExpandCrypticString (GetEXMemoryString (Mode, Key));
+                   Message := GetEXMemoryString (Mode, Key);
 
                END;  { of CASE Key }
 
@@ -7456,9 +7456,12 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
             END;
         END;
 
-    { This sends the message if you are on SSB }
+    { This sends the message if you are on SSB or digital }
 
     Message := ExpandCrypticString (Message);
+
+    IF Mode = Phone THEN
+        ShowCWMessage (Message);
 
     IF (Mode = CW) AND (Message <> '') THEN
         BEGIN
@@ -7664,11 +7667,25 @@ PROCEDURE TBSIQ_LogContact (VAR RXData: ContestExchange);
 
 { This procedure will log the contact just completed.  It will be
   pushed onto the editable log and the log entry popped off the editable
-  log will be examined and written to the LOG.DAT file.                 }
+  log will be examined and written to the LOG.DAT file.
+
+  It is highly leveraged from the LogContact procedure in logsubs2.pas.
+  And in October 2024, we added multi-county parsing using / in the
+  exchange string. }
 
 VAR LogString: Str80;
+    FirstSlashPosition: INTEGER;
 
     BEGIN
+    IF Pos ('/', RXData.QTHString) > 0 THEN  { Someone is sending multiple counties }
+        BEGIN
+        FirstSlashPosition := Pos ('/', RXData.QTHString);
+        RXData.LeftOverQTH := Copy (RXData.QTHString,
+                                    FirstSlashPosition + 1,
+                                    Length (RXData.QTHString) - FirstSlashPosition);
+        RXData.QTHString := Copy (RXData.QTHString, 1, FirstSlashPosition - 1);
+        END;
+
     RXData.TimeSeconds := GetTimeSeconds;
 
     VisibleDupeSheetChanged := True;
@@ -7688,61 +7705,84 @@ VAR LogString: Str80;
 
     { This is simplified from LOGSUBS2 }
 
-    IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) THEN
-        RXData.QSOPoints := 0
-    ELSE
-        VisibleLog.ProcessMultipliers (RXData);  { Yes! This is in LOGEDIT.PAS }
+    REPEAT  { We are going to loop if we have multiple QTHs }
 
-    LogString := MakeLogString (RXData);  { Yes!  This is in LOGSTUFF.PAS }
+        IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) THEN
+            RXData.QSOPoints := 0
+        ELSE
+            VisibleLog.ProcessMultipliers (RXData);  { Yes! This is in LOGEDIT.PAS }
 
-    IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
-        Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
+        LogString := MakeLogString (RXData);  { Yes!  This is in LOGSTUFF.PAS }
 
-    TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString, True);
+        IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
+            Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
 
-    IF DoingDomesticMults AND
-       (MultByBand OR MultByMode) AND
-       (RXData.DomesticQTH <> '') THEN
-           VisibleLog.ShowDomesticMultiplierStatus (RXData.DomMultQTH);
+        TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString, True);
 
-    Inc (NumberContactsThisMinute);
-    NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + RXData.QSOPoints;
+        IF DoingDomesticMults AND
+           (MultByBand OR MultByMode) AND
+           (RXData.DomesticQTH <> '') THEN
+               VisibleLog.ShowDomesticMultiplierStatus (RXData.DomMultQTH);
 
-{   DisplayTotalScore (TotalScore); }
+        Inc (NumberContactsThisMinute);
+        NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + RXData.QSOPoints;
 
-    IF FloppyFileSaveFrequency > 0 THEN
-        IF QSOTotals [All, Both] > 0 THEN
-            IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
-                SaveLogFileToFloppy;
+    {   DisplayTotalScore (TotalScore); }
 
-    IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
+        IF FloppyFileSaveFrequency > 0 THEN
+            IF QSOTotals [All, Both] > 0 THEN
+                IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
+                    SaveLogFileToFloppy;
 
-    UpdateTotals;
-    DisplayTotalScore (TotalScore);
-    VisibleLog.ShowRemainingMultipliers;
+        IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
 
-    IF BandMapEnable THEN
-        BEGIN
-        UpdateBandMapMultiplierStatus;
-        UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
-        END;
+        UpdateTotals;
+        DisplayTotalScore (TotalScore);
+        VisibleLog.ShowRemainingMultipliers;
 
-    { New for Jan 2023 - send QSO data to UDP port }
+        IF BandMapEnable THEN
+            BEGIN
+            UpdateBandMapMultiplierStatus;
+            UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
+            END;
 
-    IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
-        BEGIN
-        RXData.Date := GetFullDateString;
-        SendQSOToUDPPort (RXData);
-        END;
+        { New for Jan 2023 - send QSO data to UDP port }
 
-    { New for Mar 2024 - send to N1MM using WSJT port }
+        IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
+            BEGIN
+            RXData.Date := GetFullDateString;
+            SendQSOToUDPPort (RXData);
+            END;
 
-    IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
-        BEGIN
-        RXData.Date := GetFullDateString;
-        N1MM_QSO_Portal.SendQSOToN1MM (RXData);
-        END;
+        { New for Mar 2024 - send to N1MM using WSJT port }
 
+        IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+            BEGIN
+            RXData.Date := GetFullDateString;
+            N1MM_QSO_Portal.SendQSOToN1MM (RXData);
+            END;
+
+        { See if we are done }
+
+        IF RXData.LeftOverQTH = '' THEN Exit;
+
+        RXData.QTHString := RXData.LeftOverQTH;
+        RXData.LeftOverQTH := '';
+
+        IF Pos ('/', RXData.QTHString) > 0 THEN  { Still multiple counties }
+            BEGIN
+            FirstSlashPosition := Pos ('/', RXData.QTHString);
+            RXData.LeftOverQTH := Copy (RXData.QTHString,
+                                        FirstSlashPosition + 1,
+                                        Length (RXData.QTHString) - FirstSlashPosition);
+            RXData.QTHString := Copy (RXData.QTHString, 1, FirstSlashPosition - 1);
+            END;
+
+        { Protect from a bad QTH }
+
+        IF NOT FoundDomesticQTH (RXData) THEN Exit;
+
+    UNTIL False;
     END;
 
 
