@@ -166,6 +166,7 @@ TYPE
         RadioMovingInBandMode: BOOLEAN;      { Replaces the classis RadioMovingInBandMode [radio] }
         RadioOnTheMove: BOOLEAN;             { Replaces the classic RadioOntheMove [radio] }
         RadioInterfaced: InterfacedRadioType;
+        RadioQuickDisplayTimeout: INTEGER;
         RememberQSOState: TBSIQ_QSOStateType;
 
         RequestBandMap: BOOLEAN;             { Set to TRUE if you think you should be the focus of bandmap and visible dupesheet}
@@ -1690,6 +1691,42 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     { Code following this will be exectued once for each new calendar second }
     { The time gets displayed in the upper left corner of the Total Window }
+
+    WITH Radio1QSOMachine DO
+        IF RadioQuickDisplayTimeout > 0 THEN
+            BEGIN
+            Dec (RadioQuickDisplayTimeout);
+            IF RadioQuickDisplayTimeout = 0 THEN
+                BEGIN
+                SaveActiveWindow;
+                Window (TBSIQ_R1_QuickCommandWindowLX,
+                        TBSIQ_R1_QuickCommandWindowLY,
+                        TBSIQ_R1_QuickCommandWindowRX,
+                        TBSIQ_R1_QuickCommandWindowRY);
+
+                SetBackGround (SelectedColors.WholeScreenBackground);
+                ClrScr;
+                RestorePreviousWindow;
+                END
+            END;
+
+    WITH Radio2QSOMachine DO
+        IF RadioQuickDisplayTimeout > 0 THEN
+            BEGIN
+            Dec (RadioQuickDisplayTimeout);
+            IF RadioQuickDisplayTimeout = 0 THEN
+                BEGIN
+                SaveActiveWindow;
+                Window (TBSIQ_R2_QuickCommandWindowLX,
+                        TBSIQ_R2_QuickCommandWindowLY,
+                        TBSIQ_R2_QuickCommandWindowRX,
+                        TBSIQ_R2_QuickCommandWindowRY);
+
+                SetBackGround (SelectedColors.WholeScreenBackground);
+                ClrScr;
+                RestorePreviousWindow;
+                END
+            END;
 
     IF TestLoopDelayCount > 0 THEN
         Dec (TestLoopDelayCount);
@@ -4458,6 +4495,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     OkayToPutUpBandMapCall := False;
     QSOState := QST_Idle;
     RadioOnTheMove := False;
+    RadioQuickDisplayTimeout := 0;
     SearchAndPounceExchangeSent := False;
     SearchAndPounceStationCalled := False;
     SSBTransmissionStarted := False;
@@ -4537,7 +4575,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             TBSIQ_R1_QuickCommandWindowLX := WindowLocationX;
             TBSIQ_R1_QuickCommandWindowLY := WindowLocationY + 4;
-            TBSIQ_R1_QuickCommandWindowRX := WindowLocationX + 39;
+            TBSIQ_R1_QuickCommandWindowRX := WindowLocationX + 38;
             TBSIQ_R1_QuickCommandWindowRY := WindowLocationY + 4;
 
             TBSIQ_R1_StartSendingWindowLX := WindowLocationX + 12;
@@ -4635,7 +4673,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
 
             TBSIQ_R2_QuickCommandWindowLX := WindowLocationX;
             TBSIQ_R2_QuickCommandWindowLY := WindowLocationY + 4;
-            TBSIQ_R2_QuickCommandWindowRX := WindowLocationX + 39;
+            TBSIQ_R2_QuickCommandWindowRX := WindowLocationX + 38;
             TBSIQ_R2_QuickCommandWindowRY := WindowLocationY + 4;
 
             TBSIQ_R2_StartSendingWindowLX := WindowLocationX + 12;
@@ -5646,11 +5684,14 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                     { If someone is in the middle of a CQ QSO - we are going to ignore
                       Control-End }
 
-                    IF QSOState = QST_CQWaitingForExchange THEN
-                        BEGIN
-                        RadioQuickDisplay ('Finish or exit this QSO first');
-                        Exit;
-                        END;
+                    IF (QSOState = QST_CQWaitingForExchange) OR
+                       (QSOState = QST_CQExchangeBeingSent) OR
+                       (QSOState = QST_CQExchangeBeingSentAndExchangeWindowUp) THEN
+                           BEGIN
+                           RadioQuickDisplay ('Finish or exit this QSO first');
+                           RadioQuickDisplayTimeout := 5;   { Erase after five seconds }
+                           Exit;
+                           END;
 
                     IF BandMapEnable THEN
                         BEGIN
@@ -7474,7 +7515,6 @@ PROCEDURE QSOMachineObject.RadioQuickDisplay (Message: STRING);
         TBSIQ_R2_QuickCommandWindowRX,
         TBSIQ_R2_QuickCommandWindowRY);
         END;
-
 
     SetBackGround (SelectedColors.QuickCommandWindowBackground);
     SetColor      (SelectedColors.QuickCommandWindowColor);
