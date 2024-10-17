@@ -54,6 +54,13 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+17-Oct-2024
+ - Implemented Control-End key for 2BSIQ case.
+
+12-Oct-2024
+ - Made Control-End get into the packet window in TBSIQ - however if you
+   select a call and hit RETURN - things are not working yet.
+
 11-Oct-2024
  - Changed QSONumber and DomesticQTH exchagne to require a QSO number
    and not default to one if none is entered.

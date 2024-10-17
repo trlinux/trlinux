@@ -69,7 +69,8 @@ TYPE
                           QST_SearchAndPounceSpaceBarPressed,
                           QST_SendingKeyboardCW,
                           QST_StartSendingKeyboardCW,
-                          QST_SendingKeyboardCWWaiting);
+                          QST_SendingKeyboardCWWaiting,
+                          QST_Trap);    { used for debugging }
 
     QSOMachineObject = CLASS
         { These paramaters need to be set for the specific instance using the
@@ -184,6 +185,7 @@ TYPE
 
         TBSIQ_ActiveWindow: TBSIQ_WindowType;
         TransmitCountDown: INTEGER;      { Set > 0 for # of seconds to fake "I am transmitting" }
+        TrapCode: INTEGER;               { Used when doing a trap and wanting to communicate something }
 
         WeAskedForAQSONumber: BOOLEAN;
 
@@ -2369,6 +2371,14 @@ VAR Key, ExtendedKey: CHAR;
     BEGIN
     UpdateRadioDisplay;  { Update radio band/mode/frequency }
 
+    IF QSOState = QST_Trap THEN  { We are debugging and someone trapped execution }
+        BEGIN
+        ShowStateMachineStatus;
+        LastQSOState := QSOState;
+        ShowTransmitStatus;                { Update TX and Cue indicators }
+        Exit;
+        END;
+
     IF PartialCallEnable AND (LastPartialCall <> CallWindowString) THEN
         BEGIN
         VisibleLog.GeneratePartialCalls (CallWindowString, Band, Mode, TBSIQPossibleCallList);
@@ -2514,6 +2524,10 @@ VAR Key, ExtendedKey: CHAR;
     ELSE { Normal mode }
         IF (QSOState <> QST_StartSendingKeyboardCW) THEN
             WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
+
+    { Check to see if WindowEditor wants to trap execution }
+
+    IF QSOState = QST_Trap THEN Exit;
 
     { This is a VERY POWERFUL command...  not totally sure of the consequences just
       yet - but basically I am trying to lock out anything being done if both rigs
@@ -2931,7 +2945,6 @@ VAR Key, ExtendedKey: CHAR;
 
                 END; { of case Key }
             END;
-
 
         QST_CallingCQ:
             BEGIN
@@ -3513,6 +3526,8 @@ VAR Key, ExtendedKey: CHAR;
 
             IF ActionRequired THEN
                 BEGIN
+                { I seem to be getting here after selecting a callsign in the bandmap }
+
                 CASE Key OF
                     TabKey: SwapWindows;
 
@@ -4300,7 +4315,15 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         QST_SearchAndPounceInit: Write ('Search and Pounce Init');
         QST_StartSendingKeyboardCW: Write ('Starting keyboard CW');
         QST_SendingKeyboardCW: Write ('Keyboard CW - RETURN to end');
-        QST_SendingKeyboardCWWaiting: Write ('Keyboard CW - waiting on other TX')
+        QST_SendingKeyboardCWWaiting: Write ('Keyboard CW - waiting on other TX');
+
+        QST_Trap:
+            BEGIN
+            Write ('Trapped Code = ', TrapCode);
+            RestorePreviousWindow;      { Don't show TransmitCountdown }
+            Exit;
+            END;
+
         ELSE Write ('???');
         END;
 
@@ -4439,6 +4462,7 @@ PROCEDURE QSOMachineObject.InitializeQSOMachine (KBFile: CINT;
     SearchAndPounceStationCalled := False;
     SSBTransmissionStarted := False;
     TransmitCountDown := 0;
+    TrapCode := 0;
     WeAskedForAQSONumber := False;
 
     { Setup the window locations derived from the X,Y reference }
@@ -5615,23 +5639,51 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
               WindowEditor in LOGSUBS2.PAS if you want to put some of them back in }
 
             CASE ExtendedKeyChar OF
-                ControlEnd:
+                ControlEnd:                     { Edit band map }
+                    BEGIN
+                    ActionRequired := False;    { Just in case }
+
+                    { If someone is in the middle of a CQ QSO - we are going to ignore
+                      Control-End }
+
+                    IF QSOState = QST_CQWaitingForExchange THEN
+                        BEGIN
+                        RadioQuickDisplay ('Finish or exit this QSO first');
+                        Exit;
+                        END;
+
                     IF BandMapEnable THEN
                         BEGIN
                         EditBandMap;
+                        ClearKeyCache := True;
+
+                        { Let's see if someone selected a callsign from the bandmap }
 
                         IF (BandMapCursorData <> nil) AND (NOT EscapeFromEditBandMap) THEN
+
+                            { We have a callsign from the bandmap to process }
+
                             WITH BandMapCursorData^ DO
                                 BEGIN
-                                { Fix up the windows }
-
                                 BandMapCall := BandMapExpandedString (Call);
+
+                                { If we are in Search and Pounce - we need to put the
+                                  callsign into the call window and set things up to
+                                  call this station with a RETURN.  We should also
+                                  clear out the exchange window. }
 
                                 IF (QSOState = QST_SearchAndPounce) THEN
                                     BEGIN
                                     IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                                         BEGIN
+                                        SwapWindows;
+                                        ClrScr;
+                                        ExchangeWindowString := '';
+                                        ExchangeWindowCursorPosition := 1;
+                                        SwapWindows;
+                                        ClrScr;
                                         CallWindowString := BandMapCall;
+                                        WindowString := BandMapCall;
                                         ClrScr;
                                         Write (CallWindowString);
                                         END
@@ -5643,15 +5695,16 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                                         SwapWindows;
                                         ClrScr;
                                         CallWindowString := BandMapCall;
+                                        WindowString := BandMapCall;
                                         Write (CallWindowString);
-                                        SwapWindows;
 
-                                        { KeyChar := TabKey; ??? }
-                                        Exit;
+                                        { Leave cursor in call window }
                                         END;
                                     END
                                 ELSE
-                                    { Not in S&P }
+                                    BEGIN
+                                    { Not in S&P - we should go into S&P and put the
+                                      call into the call window }
 
                                     IF (TBSIQ_ActiveWindow = TBSIQ_CallWindow) THEN
                                         BEGIN
@@ -5659,17 +5712,29 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                                         CallWindowString := BandMapCall;
                                         ClrScr;
                                         Write (CallWindowString);
+                                        WindowString := CallWindowString;
+                                        KeyChar := TabKey;
+                                        ActionRequired := True;
                                         END
                                     ELSE
                                         BEGIN
                                         SwapWindows;
                                         RemoveExchangeWindow;
-                                        CallWindowString := BandMapCall;
-                                        ClrScr;
-                                        Write (CallWindowString);
+                                        KeyChar := TabKey;
+                                        ActionRequired := True;
                                         END;
+
+                                    CallWindowString := BandMapCall;
+                                    ClrScr;
+                                    Write (CallWindowString);
+                                    WindowString := CallWindowString;
+                                    CallWindowCursorPosition := Length (WindowString) + 1;
+                                    END;
+
+                                Exit;  { All done }
                                 END;
                         END;
+                    END;
 
                   AltC:
                       BEGIN
