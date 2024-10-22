@@ -1317,7 +1317,7 @@ VAR Key: CHAR;
 
                     ControlEnd:
                         BEGIN
-                        EditBandMap;
+                        EditBandMap (NoRadio);
                         SaveSetAndClearActiveWindow (QuickCommandWindow);
                         END;
 
@@ -2171,128 +2171,6 @@ VAR Result: INTEGER;
     END;
 
 
-
-PROCEDURE GoToLastCQFrequency;
-
-    BEGIN
-    IF LastCQFrequency > 0 THEN
-        BEGIN
-        IF CommandUseInactiveRadio THEN {KK1L: 6.73}
-            BEGIN
-            SetRadioFreq (InactiveRadio, LastCQFrequency, LastCQMode, 'A');
-            CASE InactiveRadio OF
-                RadioOne:
-                    BEGIN
-                    PreviousRadioOneFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    END;
-                RadioTwo:
-                    BEGIN
-                    PreviousRadioTwoFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    END;
-                END;
-            END
-        ELSE
-            BEGIN
-            SetRadioFreq (ActiveRadio, LastCQFrequency, LastCQMode, 'A');
-            CASE ActiveRadio OF {KK1L: 6.69 Keeps LASTCQFREQ from changing to S&P Mode}
-                RadioOne:
-                    BEGIN
-                    PreviousRadioOneFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    END;
-                RadioTwo:
-                    BEGIN
-                    PreviousRadioTwoFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    END;
-                END;
-            END;
-        END;
-    END;
-
-
-PROCEDURE GoToNextBandMapFrequency;
-    BEGIN
-    {KK1L: 6.73}
-    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
-       (NextNonDupeEntryInBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
-            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
-    ELSE
-        IF NextNonDupeEntryInBandMap (ActiveBand, ActiveMode) THEN
-            BEGIN
-            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
-
-            IF ActiveWindow = ExchangeWindow THEN
-                BEGIN
-                ClrScr;
-                ExchangeWindowString := '';
-                RestorePreviousWindow;
-                END;
-            END;
-    END;
-
-
-{KK1L: 6.68}
-PROCEDURE GoToNextMultBandMapFrequency;
-    BEGIN
-    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
-       (NextMultiplierEntryInBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
-            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
-    ELSE
-        IF NextMultiplierEntryInBandMap (ActiveBand, ActiveMode) THEN
-            BEGIN
-            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
-
-            IF ActiveWindow = ExchangeWindow THEN
-                BEGIN
-                ClrScr;
-                ExchangeWindowString := '';
-                RestorePreviousWindow;
-                END;
-            END;
-    END;
-
-
-
-PROCEDURE GoToNextDisplayedBandMapFrequency;
-    BEGIN
-    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
-       (NextNonDupeEntryInDisplayedBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
-            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
-    ELSE
-        IF NextNonDupeEntryInDisplayedBandMap (ActiveBand, ActiveMode) THEN
-            BEGIN
-            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
-
-            IF ActiveWindow = ExchangeWindow THEN
-                BEGIN
-                ClrScr;
-                ExchangeWindowString := '';
-                RestorePreviousWindow;
-                END;
-            END;
-    END;
-
-
-{KK1L: 6.68}
-PROCEDURE GoToNextMultDisplayedBandMapFrequency;
-    BEGIN
-    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
-       (NextMultiplierEntryInDisplayedBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
-            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
-    ELSE
-        IF NextMultiplierEntryInDisplayedBandMap (ActiveBand, ActiveMode) THEN
-            BEGIN
-            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
-
-            IF ActiveWindow = ExchangeWindow THEN
-                BEGIN
-                ClrScr;
-                ExchangeWindowString := '';
-                RestorePreviousWindow;
-                END;
-            END;
-    END;
-
-
 
 FUNCTION FoundCommand (VAR SendString: Str160): BOOLEAN;
 
@@ -3866,7 +3744,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   ControlInsert: {KK1L: 6.65 Insert BM place holder entry}
                       BEGIN
-                      AddBandMapPlaceHolder;
+                      { AddBandMapPlaceHolder; }
                       END;
 
                   ControlDelete: {KK1L: 6.65 Delete BM entry while logging}
@@ -3886,7 +3764,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   ControlEnd:
                       IF BandMapEnable THEN
                           BEGIN
-                          EditBandMap;
+                          EditBandMap (NoRadio);
 
                           {KK1L: 6.65 Added NOT EscapeFromEditBandMap to not display call in window on escape}
                           IF (BandMapCursorData <> nil) AND (NOT EscapeFromEditBandMap) THEN

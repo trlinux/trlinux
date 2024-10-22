@@ -4328,13 +4328,6 @@ VAR xResult: INTEGER;
         Exit;
         END;
 
-    IF ID = 'WIDE FREQUENCY DISPLAY' THEN
-        BEGIN
-        WideFreqDisplay := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions3 := True;
-        Exit;
-        END;
-
     IF ID = 'WILDCARD PARTIALS' THEN
         BEGIN
         WildCardPartials := UpCase (CMD [1]) = 'T';

@@ -458,7 +458,7 @@ FUNCTION CheckMouse (VAR XPos: INTEGER;
 
 
     BEGIN
-       CheckMouse := false;
+    CheckMouse := false;
     END;
 
 

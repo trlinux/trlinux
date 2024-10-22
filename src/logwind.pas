@@ -15,7 +15,7 @@
 //
 //You should have received a copy of the GNU General
 //    Public License along with TR log for linux.  If not, see
-//<http://www.gnu.org/licenses/>.                                                         w
+//<http://www.gnu.org/licenses/>.
 //
 
 UNIT LogWind;
@@ -861,7 +861,6 @@ VAR
     WakeUpTimeOut: BYTE;
     WakeUpCount:   BYTE;
     WARCBandsEnabled: BOOLEAN;
-    WideFreqDisplay:  BOOLEAN; {KK1L: 6.73}
     WRTC2018: BOOLEAN;
 
   PROCEDURE ActivateExchangeWindow;
@@ -947,7 +946,7 @@ VAR
   PROCEDURE DisplayTotalScore (Score: LONGINT);
   PROCEDURE DisplayUserInfo (Call: CallString);
 
-  PROCEDURE EditBandMap;
+  PROCEDURE EditBandMap (UseThisRadio: RadioType);
 
   {KK1L: 6.64 Created procedure because I needed to get this info more than once}
   PROCEDURE GetBandMapDisplayInfo (VAR MaxEntriesPerPage: INTEGER; VAR NumberBandMapRows: INTEGER);
@@ -1134,16 +1133,8 @@ CONST
     FrequencyTwoWindowLY = 21; {KK1L: 6.73}
     FrequencyTwoWindowRY = 21; {KK1L: 6.73}
 
-    {IF WideFreqDisplay THEN                   }
-    {    BEGIN                                 }
-    {    FrequencyTwoWindowLX = 67;} {KK1L: 6.73}
-    {    FrequencyTwoWindowRX = 79;} {KK1L: 6.73}
-    {    END                                   }
-    {ELSE                                      }
-    {    BEGIN                                 }
-        FrequencyTwoWindowLX = 15; {KK1L: 6.73}
-        FrequencyTwoWindowRX = 27; {KK1L: 6.73}
-    {    END;                                  }
+    FrequencyTwoWindowLX = 15; {KK1L: 6.73}
+    FrequencyTwoWindowRX = 27; {KK1L: 6.73}
 
     AltCallWindowLX = 58; {KK1L: 6.73}
     AltCallWindowLY = 21; {KK1L: 6.73}
@@ -5830,10 +5821,13 @@ VAR EntryNumber : INTEGER;
 
 
 
-PROCEDURE EditBandMap;
+PROCEDURE EditBandMap (UseThisRadio: RadioType);
 
 { BandMapCursorData gets left with data from active entry.  Frequency will
-  be = 0 if no entry left.  }
+  be = 0 if no entry left.
+
+  New for Oct 2024 - can specify which radio - intended for 2BSIQ.  Call with
+  NoRadio for previous functionality. }
 
 VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER;
     Button1, Button2: BOOLEAN;
@@ -5907,11 +5901,20 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
                 CarriageReturn:
                     BEGIN
                     IF BandMapCursorData = Nil then exit;
-                    IF (BandMapBand = BandMemory[InactiveRadio]) and
-                      (BandMapBand <> BandMemory[ActiveRadio]) THEN {KK1L: 6.73}
-                        SetUpBandMapEntry (BandMapCursorData, InactiveRadio) {KK1L: 6.73 Added InactiveRadio}
+
+                    { We can be told which radio to use }
+
+                    IF UseThisRadio = NoRadio THEN
+                        BEGIN
+                        IF (BandMapBand = BandMemory[InactiveRadio]) and
+                          (BandMapBand <> BandMemory[ActiveRadio]) THEN {KK1L: 6.73}
+                            SetUpBandMapEntry (BandMapCursorData, InactiveRadio) {KK1L: 6.73 Added InactiveRadio}
+                        ELSE
+                            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: 6.73 Added ActiveRadio}
+                        END
                     ELSE
-                        SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: 6.73 Added ActiveRadio}
+                        SetUpBandMapEntry (BandMapCursorData, UseThisRadio); {KK1L: 6.73 Added InactiveRadio}
+
                     ShowBandMapCursor (CursorEntryNumber, NumberBandMapEntries, True);
                     RemoveWindow (QuickCommandWindow);
                     {KK1L 6.65 no longer needed}
@@ -6023,7 +6026,11 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
             BEGIN
             IF Button1 THEN
                 BEGIN
-                SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: 6.73 Adeed ActiveRadio}
+                IF UseThisRadio = NoRadio THEN
+                    SetUpBandMapEntry (BandMapCursorData, ActiveRadio) {KK1L: 6.73 Adeed ActiveRadio}
+                ELSE
+                    SetUpBandMapEntry (BandMapCursorData, UseThisRadio);
+
                 DisplayBandMap;
                 RemoveWindow (QuickCommandWindow);
                 {KK1L 6.65 no longer needed}
@@ -6835,8 +6842,6 @@ VAR Band: BandType;
 
     TenMinuteTime.Band          := NoBand;
     TenMinuteTime.Mode          := NoMode;
-
-    WideFreqDisplay             := FALSE; {KK1L: 6.73 Never changed anywhere...yet.}
 
     FOR Band := Band160 TO Band10 DO
         TimeSpentByBand [Band] := 0;

@@ -5695,7 +5695,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                     IF BandMapEnable THEN
                         BEGIN
-                        EditBandMap;
+                        EditBandMap (Radio);
                         ClearKeyCache := True;
 
                         { Let's see if someone selected a callsign from the bandmap }

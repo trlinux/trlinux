@@ -62,17 +62,16 @@ PROCEDURE SetConfigurationDefaultValues;
     BandMapDisplayCQ        := True;
 
     BandMapModeCutoffFrequency [Band160] :=   1840000;
-    BandMapModeCutoffFrequency [Band80]  :=   3700000;
-    BandMapModeCutoffFrequency [Band40]  :=   7100000;
+    BandMapModeCutoffFrequency [Band80]  :=   3650000;
+    BandMapModeCutoffFrequency [Band40]  :=   7125000;
     BandMapModeCutoffFrequency [Band30]  :=  10150000;
-    BandMapModeCutoffFrequency [Band20]  :=  14100000;
+    BandMapModeCutoffFrequency [Band20]  :=  14150000;
     BandMapModeCutoffFrequency [Band17]  :=  18110000;
     BandMapModeCutoffFrequency [Band15]  :=  21200000;
     BandMapModeCutoffFrequency [Band12]  :=  24930000;
     BandMapModeCutoffFrequency [Band10]  :=  28300000;
     BandMapModeCutoffFrequency [Band6]   :=  50100000;
     BandMapModeCutoffFrequency [Band2]   := 144200000;
-
 
     BandMapDecayTime        := 60;
     BandMapDecayValue       := 60; {KK1L: 6.65}
