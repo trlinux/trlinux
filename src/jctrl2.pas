@@ -157,10 +157,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            DisplayBandMap;
            END;
 
-     { BMO: BEGIN                                                         }
-     {      BandMapMultsOnly        := NOT BandMapMultsOnly; }{KK1L: 6.xx}
-     {      DisplayBandMap;                                               }
-     {      END;                                                          }
+      BMO: BEGIN
+           BandMapMultsOnly        := NOT BandMapMultsOnly;
+           DisplayBandMap;
+           END;
 
       BCW: BandMapCallWindowEnable := NOT BandMapCallWindowEnable;
 
@@ -1071,7 +1071,7 @@ VAR FileWrite: TEXT;
 
       BAB: WriteLn (FileWrite, BandMapAllBands);
       BAM: WriteLn (FileWrite, BandMapAllModes);
-      {BMO: WriteLn (FileWrite, BandMapMultsOnly);} {KK1L: 6.xx}
+      BMO: WriteLn (FileWrite, BandMapMultsOnly);
       BCW: WriteLn (FileWrite, BandMapCallWindowEnable);
       BDD: WriteLn (FileWrite, BandMapDupeDisplay);
       BMD: WriteLn (FileWrite, BandMapDecayValue);
@@ -1461,7 +1461,7 @@ VAR TempString: Str40;
 
       BAB: IF BandMapAllBands THEN TempString := 'TRUE';
       BAM: IF BandMapAllModes THEN TempString := 'TRUE';
-      {BMO: IF BandMapMultsOnly THEN TempString := 'TRUE';} {KK1L: 6.xx}
+      BMO: IF BandMapMultsOnly THEN TempString := 'TRUE';
       BCW: IF BandMapCallWindowEnable THEN TempString := 'TRUE';
       BDD: IF BandMapDupeDisplay THEN TempString := 'TRUE';
       BMD: Str (BandMapDecayValue, TempString);

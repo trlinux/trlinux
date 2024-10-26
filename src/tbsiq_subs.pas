@@ -7944,6 +7944,7 @@ VAR LogString: Str80;
         IF NOT FoundDomesticQTH (RXData) THEN Exit;
 
     UNTIL False;
+    DisplayBandMap;
     END;
 
 

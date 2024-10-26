@@ -4348,7 +4348,7 @@ VAR LogString: Str80;
     { At this point, we are going to look at RXData.LeftOverQTH and repeat everything
       if there is something there }
 
-    REPEAT
+  REPEAT
         IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) OR
            ((ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) AND (NumberGridSquaresInList > 0)) THEN
             IF NOT (ActiveQSOPointMethod = AlwaysOnePointPerQSO) THEN
@@ -4490,6 +4490,8 @@ VAR LogString: Str80;
         IF NOT FoundDomesticQTH (RXData) THEN Exit;
 
     UNTIL False;
+
+    DisplayBandMap;  { Update the bandmap with new dupe and mult data }
     END;
 
 

@@ -53,7 +53,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       BAM,
                       BCW,
                       BMD,
-                      {BMO, }{KK1L: 6.xx}
+                      BMO,
                       BCQ,
                       BDD,
                       BME,
@@ -291,6 +291,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       BAM: Description := 'BAND MAP ALL MODES';
       BCW: Description := 'BAND MAP CALL WINDOW ENABLE';
       BMD: Description := 'BAND MAP DECAY TIME';
+      BMO: Description := 'BAND MAP MULTS ONLY';
       BCQ: Description := 'BAND MAP DISPLAY CQ';
       BDD: Description := 'BAND MAP DUPE DISPLAY';
       BME: Description := 'BAND MAP ENABLE';
@@ -543,7 +544,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       BAB: Write (BandMapAllBands);
       BAM: Write (BandMapAllModes);
-      {BMO: Write (BandMapMultsOnly); }{KK1L: 6.xx}
+      BMO: Write (BandMapMultsOnly);
       BCW: Write (BandMapCallWindowEnable);
       BMD: Write (BandMapDecayValue);
       BCQ: Write (BandMapDisplayCQ);
@@ -1031,11 +1032,10 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Only active mode shown on band map');
 
-      {KK1L: 6.xx}
-      {BMO: IF BandMapMultsOnly THEN
+      BMO: IF BandMapMultsOnly THEN
                Write ('Only multipliers shown on band map')
            ELSE
-               Write ('Not only multipliers shown on band map');}
+               Write ('Not only multipliers shown on band map');
 
       BCW: IF BandMapCallWindowEnable THEN
                Write ('Band map blinking call in call window')
