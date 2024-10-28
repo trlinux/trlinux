@@ -67,6 +67,7 @@ TYPE
         QSONumberSent: STRING [4];
         Date: STRING [10];
         Time: STRING [4];
+        Matched: BOOLEAN;         { Indicates that this entry was matched up to log file }
         END;
 
     LongLogFileArrayType = ARRAY [0..MaxLongLogFileEntries - 1] OF
@@ -2946,12 +2947,12 @@ VAR CabrilloFrequencyString: STRING;
 
                 IF Copy (CabrilloFrequencyString, 1, 2) = Copy (Frequency, 1, 2) THEN
                     BEGIN
-
                     { Substitute the frequency data }
 
                     Delete (CabrilloString, 6, 5);
                     Insert (Frequency, CabrilloString, 6);
                     Inc (NumberCabrilloEntriesModified);
+                    Matched := True;   { Remember that we matched this LONGLOG entry up }
                     Exit;
                     END;
                 END;
@@ -3066,7 +3067,7 @@ VAR TestString, ADIFFrequencyEntry: STRING;
             IF (LongLogBand <> ADIFBand) OR (ADIFDate <> Date) OR (ADIFTime <> Time) THEN
                 Continue;
 
-            { We have matched the QSO.  Now fold the frequency data into the entry +++ }
+            { We have matched the QSO.  Now fold the frequency data into the entry }
 
             FreqLength := Length (Frequency);
             Str (FreqLength, FreqLengthString);
@@ -3085,6 +3086,45 @@ VAR TestString, ADIFFrequencyEntry: STRING;
     { We didn't find a matching entry }
 
     WriteLn (ADIFString);
+    END;
+
+
+
+PROCEDURE SpitOutUnMatchedQSOs;
+
+VAR Address, NumberUnmatchedQSOs: INTEGER;
+    FileWrite: TEXT;
+
+    BEGIN
+    IF NumberLongLogFileEntries = 0 THEN Exit;
+
+    NumberUnmatchedQSOs := 0;
+
+    FOR Address := 0 TO NumberLongLogFileEntries - 1 DO
+        WITH LongLogFileArray^ [Address] DO
+            IF NOT Matched THEN
+                BEGIN
+                IF NumberUnMatchedQSOs = 0 THEN   { First one }
+                    BEGIN
+                    WriteLn;
+                    WriteLn ('There were some QSOs in the LONGLOG file that were not matched up to to the');
+                    WriteLn ('log file.  You might need to manually edit the new Cabrillo file to add the');
+                    WriteLn ('frequency information.');
+
+                    OpenFileForWrite (FileWrite, 'NOTMATCHED.TXT');
+                    END;
+
+                WriteLn (FileWrite, Frequency, ' ', Date, ' ', Time, ' ', Callsign);
+                WriteLn (Frequency, ' ', Date, ' ', Time, ' ', Callsign);
+                Inc (NumberUnmatchedQSOs);
+                END;
+
+    IF NumberUnmatchedQSOs > 0 THEN
+        BEGIN
+        Close (FileWrite);
+        WriteLn ('There were ', NumberUnmatchedQSOs, ' unmatched QSOs found in the LONGLOG file.');
+        WriteLn ('They are displayed above and also in the NOTMATCHED.TXT file.');
+        END;
     END;
 
 
@@ -3143,6 +3183,15 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
             END;
 
         OutputFileName := GetResponse ('Enter output filename (none to abort) : ');
+
+        IF CabrilloFileName = OutputFileName THEN
+            BEGIN
+            WriteLn ('Sorry - you cannot have the same input and output file name');
+            WaitForKeyPressed;
+            Close (CabrilloFileRead);
+            Close (LongLogFileRead);
+            Exit;
+            END;
 
         IF OutputFileName = '' THEN
             BEGIN
@@ -3214,6 +3263,7 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
                 ELSE
                     Frequency := Copy (TempString, 1, 5);
 
+                Matched := False;   { Until we match this entry up with a log entry }
                 END;
 
             Inc (NumberLongLogFileEntries);
@@ -3229,7 +3279,6 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
                 WaitForKeyPressed;
                 Exit;
                 END;
-
             END;
 
         Close (LongLogFileRead);
@@ -3238,7 +3287,7 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
 
         IF NumberLongLogFileEntries = 0 THEN
             BEGIN
-            WriteLn ('Aborting...');
+            WriteLn ('No entries found in the long file - aborting...');
             Dispose (LongLogFileArray);
             Close (CabrilloFileRead);
             Close (OutputFile);
@@ -3294,24 +3343,12 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
 
                 WriteLn ('Operation complete.  There were ', NumberCabrilloEntriesModified, ' entries updated.');
 
-                IF NumberUnmatchedQSOs > 0 THEN
-                    BEGIN
-                    WriteLn (NumberUnmatchedQSOs, ' QSOs did not match up and have the default frequency.');
-                    WriteLn ('Those QSOs were printed out above');
-                    END;
-
+                SpitOutUnMatchedQSOs;
                 WaitForKeyPressed;
                 Exit;
                 END;
 
             AddFrequencyDataFromLongLogDataToCabrilloString (CabrilloFileString);
-
-            IF UpperCase (CabrilloFileString) = UpperCase (OriginalCabrilloString) THEN
-                BEGIN
-                WriteLn (OriginalCabrilloString);
-                Inc (NumberUnmatchedQSOs);
-                END;
-
             WriteLn (OutputFile, CabrilloFileString);
             END;
 
@@ -3324,6 +3361,7 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
         WriteLn ('Operation complete.');
         WriteLn ('We did not see END-OF-FILE: at the end of your Cabrillo log.  We added it');
         WriteLn ('There were ', NumberCabrilloEntriesModified, ' entries updated.');
+        SpitOutUnMatchedQSOs;
         WaitForKeyPressed;
         Exit;
         END;
