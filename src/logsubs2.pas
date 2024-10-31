@@ -4720,7 +4720,7 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             WindowDupeCheck;
 
-                            { See if this was a dupe and we want the same bahavior as above }
+                            { See if this was a dupe and we want the same behavior as above }
 
                             IF TwoVFOState = TwoVFOSwapped THEN
                                 IF CallWindowString = '' THEN
@@ -5742,7 +5742,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                             PutUpExchangeWindow;
                             DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                             ClearContestExchange (ReceivedData);
-                            QSONumberForthisQSO := -1;
+                            QSONumberForthisQSO := -1;    { Not sure this is right }
                             ExchangeHasBeenSent := False;
                             SearchAndPounceStatus := SearchAndPounce;
                         UNTIL (NOT SearchAndPounceStatus) OR (TwoRadioState = SendingExchange);
@@ -5836,7 +5836,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                         PutUpExchangeWindow;
                         DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                         ClearContestExchange (ReceivedData);
-                        QSONumberForThisQSO := -1;
                         ExchangeHasBeenSent := False;
                     UNTIL NOT SearchAndPounce;
 

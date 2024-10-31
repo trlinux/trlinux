@@ -2899,7 +2899,7 @@ PROCEDURE AddFrequencyDataFromLongLogDataToCabrilloString (VAR CabrilloString: S
 
 VAR CabrilloFrequencyString: STRING;
     CabrilloDate, CabrilloTime, CabrilloCall: Str20;
-    Address: INTEGER;
+    CabrilloFrequency, FrequencyValue, Address: INTEGER;
 
     BEGIN
     IF NumberLongLogFileEntries = 0 THEN Exit;
@@ -2938,6 +2938,7 @@ VAR CabrilloFrequencyString: STRING;
     CabrilloTime := Copy (CabrilloString, 26, 4);
     CabrilloCall := Copy (CabrilloString, 56, 14);
     GetRidOfPostcedingSpaces (CabrilloCall);
+    Val (CabrilloFrequencyString, CabrilloFrequency);
 
     FOR Address := 0 TO NumberLongLogFileEntries - 1 DO
         WITH LongLogFileArray^ [Address] DO
@@ -2945,7 +2946,9 @@ VAR CabrilloFrequencyString: STRING;
                 BEGIN
                 { We might have a match - should make sure the bands are the same. }
 
-                IF Copy (CabrilloFrequencyString, 1, 2) = Copy (Frequency, 1, 2) THEN
+                Val (Frequency, FrequencyValue);
+
+                IF (CabrilloFrequency - FrequencyValue) < 1500 THEN  { Probably same band }
                     BEGIN
                     { Substitute the frequency data }
 

@@ -54,6 +54,10 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+31-Oct-2024
+ - Fixed S/N getting incremented when using SPACE BAR to call station while
+   in CQ mode - going into S&P mode.
+
 25-Oct-2024 (during CQ WW SSB)
  - Put Band Map Mults Only back into Control-J - it seems to work.
  - Painted new bandmap when logging a QSO so mults were up to date.  BUT

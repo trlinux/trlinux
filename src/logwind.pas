@@ -5191,13 +5191,13 @@ VAR StartBand, StopBand: BandType;
         ELSE
             Write ('DUPES OFF');
 
-        {KK1L: 6.xx Ready for mults mode}
-        {GoToXY (51, NumberBandMapRows+1); }
-        {TextColor (White);                }
-        {IF BandMapMultsOnlyDisplay THEN   }
-        {    Write ('MULTS ONLY');         }
-        {ELSE                              }
-        {    Write ('          ');         }
+        GoToXY (51, NumberBandMapRows+1);
+        TextColor (White);
+
+        IF BandMapMultsOnly THEN
+            Write ('MULTS ONLY')
+        ELSE
+            Write ('          ');
 
         {KK1L: 6.64 Show markers to tell if bandmap spills off either or both sides of display}
         IF FirstDisplayableBandMapCursor > 0 THEN
