@@ -523,7 +523,7 @@ VAR xResult, Speed, TempValue: INTEGER;
         IF CMD = 'NO CATEGORY POWER' THEN Category.CategoryPower := NoCategoryPowerType
         ELSE IF CMD = 'HIGH POWER'   THEN Category.CategoryPower := HighPowerType
         ELSE IF CMD = 'LOW POWER'    THEN Category.CategoryPower := LowPowerType
-        ELSE IF CMD = 'QRP       '   THEN Category.CategoryPower := QRPPowerType
+        ELSE IF CMD = 'QRP'          THEN Category.CategoryPower := QRPPowerType
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
