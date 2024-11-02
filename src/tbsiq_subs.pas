@@ -4339,6 +4339,7 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
             BEGIN
             Write ('CQ Called');
             IF DualingCQState <> NoDualingCQs THEN Write (' Dualing CQs');
+            IF QSONumberUnused THEN Write (' Unused #') ELSE Write (' Used #');
             END;
 
         QST_AutoCQCalling: Write ('Calling Auto-CQ');

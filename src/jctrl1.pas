@@ -153,6 +153,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       PAS,
                       PBS,
                       PBP,
+                      PDS,
                       PF8,
                       PLF,
                       PRM,
@@ -404,6 +405,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       PAS: Description := 'PACKET AUTO SPOT ENABLE';
       PBS: Description := 'PACKET BAND SPOTS';
       PBP: Description := 'PACKET BEEP';
+      PDS: Description := 'PACKET DISPLAY SPOTS';
       PF8: Description := 'PACKET FT8 SPOTS';
       PLF: Description := 'PACKET LOG FILENAME';
       PRM: Description := 'PACKET RETURN PER MINUTE';
@@ -742,6 +744,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       PAS: Write (Packet.AutoSpotEnable);
       PBS: Write (Packet.PacketBandSpots);
       PBP: Write (Packet.PacketBeep);
+      PDS: Write (Packet.DisplaySpots);
       PF8: Write (Packet.FT8SpotEnable);
       PLF: Write (Packet.PacketLogFileName);
 
@@ -1452,6 +1455,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Beep when packet spots come in')
            ELSE
                Write ('Display incoming spots without beep');
+
+      PDS: IF Packet.DisplaySpots THEN
+               Write ('Spots displayed when they come in')
+           ELSE
+               Write ('Spots are not displayed when they come');
 
       PF8: IF Packet.FT8SpotEnable THEN
                Write ('Spots on FT8 frequencies shown')

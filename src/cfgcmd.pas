@@ -2461,6 +2461,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'PACKET DISPLAY SPOTS' THEN
+        BEGIN
+        Packet.DisplaySpots := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'PACKET FT8 SPOTS' THEN
         BEGIN
         Packet.FT8SpotEnable := UpCase (CMD [1]) = 'T';

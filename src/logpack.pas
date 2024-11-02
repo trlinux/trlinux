@@ -62,6 +62,7 @@ TYPE
         AutoSpotEnable:           BOOLEAN;    { If TRUE - any dupecheck in S&P makes spot }
         BroadcastAllPacketData:   BOOLEAN;
 
+        DisplaySpots:             BOOLEAN;
         EightBitPacketPort:       BOOLEAN;
 
         FT8SpotEnable:            BOOLEAN;
@@ -1001,8 +1002,11 @@ PROCEDURE PacketObject.PushPacketSpot (DXSpot: DXSpotType);
             BEGIN
             IF PacketBeep THEN Tone.DoABeep (Single);
 
-            QuickDisplay (SourceCall + ' says ' + Call + ' is on ' + FrequencyString + '  ' + Notes);
-            ReminderPostedCount := 60;
+            IF DisplaySpots THEN
+                BEGIN
+                QuickDisplay (SourceCall + ' says ' + Call + ' is on ' + FrequencyString + '  ' + Notes);
+                ReminderPostedCount := 60;
+                END;
             END;
 
     PushPacketMemory (DXSpot);

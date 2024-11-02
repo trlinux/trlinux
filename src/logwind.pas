@@ -4486,13 +4486,11 @@ VAR TempMode: ModeType;
 
     BEGIN
     CalculateBandMode (Frequency, Band, TempMode);
-    IF (Mode <> CW) AND (Mode <> Phone) THEN
-        BEGIN
-        IF Frequency > BandMapModeCutoffFrequency [Band] THEN
-            Mode := Phone
-        ELSE
-            Mode := CW;
-        END;
+
+    IF Frequency > BandMapModeCutoffFrequency [Band] THEN
+        Mode := Phone
+    ELSE
+        Mode := CW;
     END;
 
 

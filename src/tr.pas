@@ -54,6 +54,22 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+01-Nov-2024
+ - Removed LogBadQSOString because I just don't see what it is doing - or
+   why it should ever do anything.  See commeted code in LOGSTUFF.PAS in
+   MakeLogString.
+
+ - Changed how the default received RS/RST is determined in the process
+   exchange subroutines.  Instead of relaying on the global variable
+   ActiveMode - which could be wrong in some TBSIQ situations - the mode
+   is now read from the contest exchange data structure - which will always
+   have the correct mode in it.  This hopefully eliminates the bug where
+   occasionally we get SSB QSOs with 599 as the received RST.
+
+ - Added PACKET DISPLAY SPOTS config command (also in Control-J) to turn
+   off the contstant displaying of incoming packet spots.  When using
+   skimmer spots on CW - they are very distracting.
+
 31-Oct-2024
  - Fixed S/N getting incremented when using SPACE BAR to call station while
    in CQ mode - going into S&P mode.
@@ -4256,7 +4272,11 @@ VAR I: INTEGER;
         GetRidOfPostcedingSpaces (ExchangeString);
 
         ParametersOkay := True;
+
+        { Can someone remember what this is doing? }
+
         LogBadQSOString := ExchangeString;
+
         CalculateQSOPoints (RData);
         Exit;
         END;

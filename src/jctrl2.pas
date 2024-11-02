@@ -635,6 +635,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       PBS: Packet.PacketBandSpots       := NOT Packet.PacketBandSpots;
       PBP: Packet.PacketBeep            := NOT Packet.PacketBeep;
+      PDS: Packet.DisplaySpots          := NOT Packet.DisplaySpots;
       PF8: Packet.FT8SpotEnable         := NOT Packet.FT8SpotEnable;
 
       PLF: Packet.PacketLogFileName := QuickEditResponse ('Enter packet log file name (none to disable) : ', 20);
@@ -1250,6 +1251,7 @@ VAR FileWrite: TEXT;
       PAS: WriteLn (FileWrite, Packet.AutoSpotEnable);
       PBS: WriteLn (FileWrite, Packet.PacketBandSpots);
       PBP: WriteLn (FileWrite, Packet.PacketBeep);
+      PDS: WriteLn (FileWrite, Packet.DisplaySpots);
       PF8: WriteLn (FileWrite, Packet.FT8SpotEnable);
       PLF: WriteLn (FileWrite, Packet.PacketLogFileName);
 
@@ -1639,6 +1641,7 @@ VAR TempString: Str40;
       PAs: IF Packet.AutoSpotEnable THEN TempString := 'TRUE';
       PBS: IF Packet.PacketBandSpots THEN TempString := 'TRUE';
       PBP: IF Packet.PacketBeep THEN TempString := 'TRUE';
+      PDS: IF Packet.DisplaySpots THEN TempString := 'TRUE';
       PF8: IF Packet.FT8SpotEnable THEN TempString := 'TRUE';
 
       PRM: Str (PacketReturnPerMinute, TempString);

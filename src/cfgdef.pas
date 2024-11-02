@@ -85,6 +85,7 @@ PROCEDURE SetConfigurationDefaultValues;
     BandMapSplitMode        := ByCutoffFrequency; {KK1L: 6.64}
 
     Packet.BroadcastAllPacketData  := True;
+    Packet.DisplaySpots            := True;
 
     CallsignUpdateEnable    := False;
     CallWindowPosition      := NormalCallWindowPosition;

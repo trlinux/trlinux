@@ -309,7 +309,7 @@ VAR
     LastQSOLogged:             ContestExchange;
 
     LeaveCursorInCallWindow:   BOOLEAN;
-    LogBadQSOString:           Str80;
+    LogBadQSOString:           Str80;    { What does this do? }
     LogFileRead:               TEXT;
     LogFrequencyEnable:        BOOLEAN;
     LogRSSent:                 Str10;
@@ -1989,7 +1989,7 @@ VAR TempString: Str80;
             BEGIN
             IF Length (TempString) = 1 THEN
                 BEGIN
-                CASE ActiveMode OF
+                CASE RXData.Mode OF
                     CW:    RXData.RSTReceived := '5' + TempString + '9';
                     Phone: RXData.RSTReceived := '5' + TempString;
                     END;
@@ -2289,7 +2289,7 @@ VAR TestString: Str20;
                 BEGIN
                 IF Length (TestString) = 1 THEN
                     BEGIN
-                    CASE ActiveMode OF
+                    CASE RXData.Mode OF
                         CW:    RXData.RSTReceived := '5' + TestString + '9';
                         Phone: RXData.RSTReceived := '5' + TestString;
                         END;
@@ -2341,7 +2341,7 @@ VAR TestString: Str20;
 
     IF (RXData.DomesticQTH <> '') AND (RXData.RSTReceived = '') THEN
         BEGIN
-        CASE ActiveMode OF
+        CASE RXData.Mode OF
             Phone: RXData.RSTReceived := '59';
             ELSE   RXData.RSTReceived := '599';
             END;
@@ -3080,7 +3080,7 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 1 THEN         { Everything as one entry }
         BEGIN
-        IF ActiveMode = CW THEN
+        IF RXData.Mode = CW THEN
             BEGIN
             CASE Length (Entries [0]) OF
                 2, 3: IF ValidAllJAPrefecture (Entries [0]) THEN
@@ -3162,10 +3162,10 @@ VAR ExchangeString: Str20;
                 CASE Length (Entries [1]) OF
                     1: RXData.RSTReceived [2] := Entries [1] [1];
 
-                    2: IF ActiveMode = Phone THEN
+                    2: IF RXData.Mode = Phone THEN
                            RXData.RSTReceived := Entries [1];
 
-                    3: IF ActiveMode = CW THEN
+                    3: IF RXData.Mode = CW THEN
                            RXData.RSTReceived := Entries [1];
 
                     END;
@@ -3179,10 +3179,10 @@ VAR ExchangeString: Str20;
                 CASE Length (Entries [0]) OF
                     1: RXData.RSTReceived [2] := Entries [0] [1];
 
-                    2: IF ActiveMode = Phone THEN
+                    2: IF RXData.Mode = Phone THEN
                            RXData.RSTReceived := Entries [0];
 
-                    3: IF ActiveMode = CW THEN
+                    3: IF RXData.Mode = CW THEN
                            RXData.RSTReceived := Entries [0];
 
                     END;
@@ -3193,8 +3193,8 @@ VAR ExchangeString: Str20;
                 BEGIN
                 CASE Length (Entries [0]) OF
                     1: RXData.RSTReceived [2] := Entries [0] [1];
-                    2: IF ActiveMode = Phone THEN RXData.RSTReceived := Entries [0];
-                    3: IF ActiveMode = CW    THEN RXData.RSTReceived := Entries [0];
+                    2: IF RXData.Mode = Phone THEN RXData.RSTReceived := Entries [0];
+                    3: IF RXData.Mode = CW    THEN RXData.RSTReceived := Entries [0];
                     END;
 
                 RXData.QTHString := Entries [1];
@@ -3250,10 +3250,10 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 2 THEN
         BEGIN
-        IF LooksLikeRST (Entries [0], RXData.RSTReceived, ActiveMode) THEN
+        IF LooksLikeRST (Entries [0], RXData.RSTReceived, RXData.Mode) THEN
             RXData.Age := Entries [1]
         ELSE
-            IF LooksLikeRST (Entries [1], RXData.RSTReceived, ActiveMode) THEN
+            IF LooksLikeRST (Entries [1], RXData.RSTReceived, RXData.Mode) THEN
                 RXData.Age := Entries [0]
             ELSE
                 RXData.Age := Entries [1];
@@ -3264,10 +3264,10 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 3 THEN
         BEGIN
-        IF LooksLikeRST (Entries [1], RXData.RSTReceived, ActiveMode) THEN
+        IF LooksLikeRST (Entries [1], RXData.RSTReceived, RXData.Mode) THEN
             RXData.Age := Entries [2]
         ELSE
-            IF LooksLikeRST (Entries [2], RXData.RSTReceived, ActiveMode) THEN
+            IF LooksLikeRST (Entries [2], RXData.RSTReceived, RXData.Mode) THEN
                 RXData.Age := Entries [1]
             ELSE
                 RXData.Age := Entries [2];
@@ -3292,14 +3292,14 @@ VAR ExchangeString: Str20;
            END;
 
         4: BEGIN
-           IF ActiveMode <> Phone THEN Exit;
+           IF RXData.Mode <> Phone THEN Exit;
            RXData.RSTReceived := Copy (Exchange, 1, 2);
            RXData.Age := Copy (Exchange, 3, 2);
            ProcessRSTAndAgeExchange := True;
            END;
 
         5: BEGIN
-           IF ActiveMode <> CW THEN Exit;
+           IF RXData.Mode <> CW THEN Exit;
            RXData.RSTReceived := Copy (Exchange, 1, 3);
            RXData.Age := Copy (Exchange, 4, 2);
            ProcessRSTAndAgeExchange := True;
@@ -3342,10 +3342,10 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 2 THEN
         BEGIN
-        IF LooksLikeRST (Entries [0], RXData.RSTReceived, ActiveMode) THEN
+        IF LooksLikeRST (Entries [0], RXData.RSTReceived, RXData.Mode) THEN
             RXData.QTHString := 'p' + Entries [1]
         ELSE
-            IF LooksLikeRST (Entries [1], RXData.RSTReceived, ActiveMode) THEN
+            IF LooksLikeRST (Entries [1], RXData.RSTReceived, RXData.Mode) THEN
                 RXData.QTHString := 'p' + Entries [0]
             ELSE
                 RXData.QTHString := 'p' + Entries [1];
@@ -3356,10 +3356,10 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 3 THEN
         BEGIN
-        IF LooksLikeRST (Entries [1], RXData.RSTReceived, ActiveMode) THEN
+        IF LooksLikeRST (Entries [1], RXData.RSTReceived, RXData.Mode) THEN
             RXData.QTHString := 'p' + Entries [2]
         ELSE
-            IF LooksLikeRST (Entries [2], RXData.RSTReceived, ActiveMode) THEN
+            IF LooksLikeRST (Entries [2], RXData.RSTReceived, RXData.Mode) THEN
                 RXData.QTHString := 'p' + Entries [1]
             ELSE
                 RXData.QTHString := 'p' + Entries [2];
@@ -3384,14 +3384,14 @@ VAR ExchangeString: Str20;
            END;
 
         4: BEGIN
-           IF ActiveMode <> Phone THEN Exit;
+           IF RXData.Mode <> Phone THEN Exit;
            RXData.RSTReceived := Copy (Exchange, 1, 2);
            RXData.QTHString := 'p' + Copy (Exchange, 3, 2);
            ProcessRSTAndPrefectureExchange := FoundDomesticQTH (RXData);
            END;
 
         5: BEGIN
-           IF ActiveMode <> CW THEN Exit;
+           IF RXData.Mode <> CW THEN Exit;
            RXData.RSTReceived := Copy (Exchange, 1, 3);
            RXData.QTHString := 'p' + Copy (Exchange, 4, 2);
            ProcessRSTAndPrefectureExchange := FoundDomesticQTH (RXData);
@@ -3433,7 +3433,7 @@ VAR TempString: Str80;
             BEGIN
             IF Length (TempString) = 1 THEN
                 BEGIN
-                CASE ActiveMode OF
+                CASE RXData.Mode OF
                     CW:    RXData.RSTReceived := '5' + TempString + '9';
                     Phone: RXData.RSTReceived := '5' + TempString;
                     END;
@@ -3492,7 +3492,7 @@ VAR TempString: Str80;
             BEGIN
             IF Length (TempString) = 1 THEN
                 BEGIN
-                CASE ActiveMode OF
+                CASE RXData.Mode OF
                     CW:    RXData.RSTReceived := '5' + TempString + '9';
                     Phone: RXData.RSTReceived := '5' + TempString;
                     END;
@@ -3531,7 +3531,7 @@ FUNCTION ProcessRSTAndDomesticOrDXQTHExchange (Exchange: Str80; VAR RXData: Cont
         Exit;
         END;
 
-    IF NOT ValidRST (Exchange, RXData.RSTReceived, ActiveMode) THEN Exit;
+    IF NOT ValidRST (Exchange, RXData.RSTReceived, RXData.Mode) THEN Exit;
     ProcessRSTAndDomesticOrDXQTHExchange := True;
     END;
 
@@ -3672,7 +3672,7 @@ VAR xResult: INTEGER;
         ProcessRSTAndQSONumberExchange := True;
         END
     ELSE
-        IF ValidRST (Exchange, RXData.RSTReceived, ActiveMode) THEN
+        IF ValidRST (Exchange, RXData.RSTReceived, RXData.Mode) THEN
             BEGIN
             Exchange := RemoveFirstString (Exchange);
             Val (Exchange, RXData.NumberReceived, xResult);
@@ -3722,20 +3722,20 @@ VAR FirstString, SecondString, ThirdString: Str20;
 
     IF StringIsAllNumbers (ThirdString) AND (Length (ThirdString) <= 3) THEN
         BEGIN
-        IF NOT ValidRST (ThirdString, RXData.RSTReceived, ActiveMode) THEN Exit;
+        IF NOT ValidRST (ThirdString, RXData.RSTReceived, RXData.Mode) THEN Exit;
         END
     ELSE
         IF StringIsAllNumbers (SecondString) AND (Length (SecondString) <= 3) THEN
             BEGIN
-            IF NOT ValidRST (SecondString, RXData.RSTReceived, ActiveMode) THEN Exit;
+            IF NOT ValidRST (SecondString, RXData.RSTReceived, RXData.Mode) THEN Exit;
             END
         ELSE
             IF StringIsAllNumbers (FirstString) AND (Length (FirstString) <= 3) THEN
                 BEGIN
-                IF NOT ValidRST (FirstString, RXData.RSTReceived, ActiveMode) THEN Exit;
+                IF NOT ValidRST (FirstString, RXData.RSTReceived, RXData.Mode) THEN Exit;
                 END
             ELSE
-                IF ActiveMode = CW THEN
+                IF RXData.Mode = CW THEN
                     RXData.RSTReceived := '599'
                 ELSE
                     RXData.RSTReceived := '59';
@@ -4290,7 +4290,7 @@ VAR FirstString, SecondString, ThirdString: Str20;
 
     IF ThirdString <> '' THEN
         BEGIN
-        IF NOT ValidRST (FirstString, RXData.RSTReceived, ActiveMode) THEN Exit;
+        IF NOT ValidRST (FirstString, RXData.RSTReceived, RXData.Mode) THEN Exit;
         RXData.Zone      := SecondString;
         RXData.QTHString := ThirdString;
         END
@@ -4305,7 +4305,7 @@ VAR FirstString, SecondString, ThirdString: Str20;
                 END
             ELSE
                 BEGIN
-                IF NOT ValidRST (FirstString, RXData.RSTReceived, ActiveMode) THEN Exit;
+                IF NOT ValidRST (FirstString, RXData.RSTReceived, RXData.Mode) THEN Exit;
                 RXData.Zone := SecondString;
                 END;
             END
@@ -4360,13 +4360,13 @@ VAR FirstString, SecondString, ThirdString: Str20;
         BEGIN
         IF NOT StringIsAllNumbers (SecondString) THEN  { SecondString = QTH }
             BEGIN
-            IF NOT ValidRST (FirstString, RXData.RSTReceived, ActiveMode) THEN Exit;
+            IF NOT ValidRST (FirstString, RXData.RSTReceived, RXData.Mode) THEN Exit;
             RXData.QTHString   := SecondString;
             ProcessRSTAndDomesticQTHOrZoneExchange := FoundDomesticQTH (RXData);
             END
         ELSE
             BEGIN
-            IF NOT ValidRST (SecondString, RXData.RSTReceived, ActiveMode) THEN Exit;
+            IF NOT ValidRST (SecondString, RXData.RSTReceived, RXData.Mode) THEN Exit;
             RXData.Zone := FirstString;
             ProcessRSTAndDomesticQTHOrZoneExchange := StringIsAllNumbers (FirstString) AND
                                                               (Length (FirstString) <= 2);
@@ -4412,7 +4412,7 @@ FUNCTION ProcessRSTAndPowerExchange (Exchange:Str80; VAR RXData: ContestExchange
 
     IF StringHas (Exchange, ' ') THEN
         BEGIN
-        IF NOT ValidRST (Exchange, RXData.RSTReceived, ActiveMode) THEN Exit;
+        IF NOT ValidRST (Exchange, RXData.RSTReceived, RXData.Mode) THEN Exit;
         GetRidOfPrecedingSpaces (Exchange);
         RXData.Power := Exchange;
         END
@@ -4445,11 +4445,17 @@ VAR FirstString, SecondString, ThirdString: Str20;
     BEGIN
     ProcessRSTAndZoneExchange := False;
     IF NOT StringIsAllNumbersOrSpaces (Exchange) THEN Exit;
-    RXData.RSTReceived := DefaultRST;
+
+    { No more RXData.RSTReceived := DefaultRST; }
+
+    IF RXData.Mode = PHONE THEN
+        RXData.RSTReceived := '59'
+    ELSE
+        RXData.RSTReceived := '599';
 
     IF StringHas (Exchange, ' ') THEN
         BEGIN
-        IF ActiveMode = CW THEN
+        IF RXData.Mode = CW THEN
             BEGIN
             ParseExchange (Exchange, FirstString, SecondString, ThirdString);
 
@@ -4464,7 +4470,7 @@ VAR FirstString, SecondString, ThirdString: Str20;
                 END;
             END;
 
-        IF NOT ValidRST (Exchange, RXData.RSTReceived, ActiveMode) THEN Exit;
+        IF NOT ValidRST (Exchange, RXData.RSTReceived, RXData.Mode) THEN Exit;
         GetRidOfPrecedingSpaces (Exchange);
         END;
 
@@ -5493,6 +5499,8 @@ VAR TempString, LogString: STRING;
             RSTReceivedStamp (RXData, LogString);
             END;
 
+        { I don't know why this is here - disabled 1Nov2024
+
         IF LogBadQSOString <> '' THEN
             BEGIN
             LogString := LogString + LogBadQSOString;
@@ -5500,7 +5508,7 @@ VAR TempString, LogString: STRING;
             QSOPointStamp   (RXData, LogString);
             MakeLogString := LogString;
             Exit;
-            END;
+            END;  }
 
         {KK1L: 6.70 Sometimes there is just not a pretty way to do it!!}
 
