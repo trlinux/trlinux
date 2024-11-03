@@ -8001,7 +8001,7 @@ PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; My
 
 PROCEDURE TBSIQ_PutContactIntoLogFile (LogString: Str80);
 
-VAR Time, QSONumber: INTEGER;
+VAR CharacterPosition, Time, QSONumber: INTEGER;
     Call, Exchange, LoggedCallsign: Str20;
     FileWrite: TEXT;
 
@@ -8030,7 +8030,11 @@ VAR Time, QSONumber: INTEGER;
             IF QSOTotals [All, Both] MOD 10 = 0 THEN
                 WriteLogEntry ('');
 
-        LogString := Copy (LogString, 1, LogEntryMultAddress - 1);
+        { We are going to recalculate what multipliers are there.  Let's clear
+          out the part of the log string that has multiplier info - Aug 2024 }
+
+        FOR CharacterPosition := LogEntryMultAddress TO LogEntryPointsAddress - 1 DO
+            LogString [CharacterPosition] := ' ';
 
         VisibleLog.PutLogEntryIntoSheet (LogString);
         WriteLogEntry                   (LogString);
