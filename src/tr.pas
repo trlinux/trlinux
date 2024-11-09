@@ -54,6 +54,14 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+09-Nov-2024
+ - Improved 2BSIQ behavior when using ESCAPE in the middle of a
+   CQ Mode QSO.  Before - you could end up stuck in the exchange
+   window.
+
+- Fixed PartialCallAcceptKey not working when in call window in
+  2BSIQ.
+
 01-Nov-2024
  - Removed LogBadQSOString because I just don't see what it is doing - or
    why it should ever do anything.  See commeted code in LOGSTUFF.PAS in

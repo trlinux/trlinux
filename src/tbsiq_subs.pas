@@ -3186,6 +3186,22 @@ VAR Key, ExtendedKey: CHAR;
 
             IF ActionRequired THEN
                 CASE Key OF
+                    EscapeKey:  { This is new in Nov 2024 }
+                        BEGIN
+                        { We will have an empty window and no CW.  If we are in the exchange
+                          window - we will want to back up and get back into the
+                          call window and likely clear it as well }
+
+                        IF TBSIQ_Activewindow = TBSIQ_ExchangeWindow THEN
+                            RemoveExchangeWindow;
+
+                        Clrscr;
+                        WindowString := '';
+                        CallWindowCursorPosition := 1;
+                        CallWindowString := '';
+                        QSOState := QST_Idle;
+                        END;
+
                     CarriageReturn:
                         BEGIN
                         { Not sure what to do about this }
@@ -5247,7 +5263,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                 IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
                     BEGIN
                     ClrScr;
-                    Write (WindowString);
+                    Write (CallWindowString);  { Was WindowString until Nov 2024 }
                     END
                 ELSE
                     BEGIN
@@ -5363,6 +5379,8 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                 ClrScr;
                 WindowString := '';
                 CursorPosition := 1;
+
+                { Falling through to the bottom will set ActionRequired := False }
                 END
             ELSE
                 { Nothing for WindowEditor to do - let the caller deal with it }
@@ -5588,6 +5606,10 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                 InitialExchangePutUp := False;  { Cancel it - we are going to edit it }
 
             OkayToPutUpBandMapCall := False;
+
+            { Hope this fixes bug where call disappears }
+
+            BandMapCallPutUp := '';
 
             { Backspace needs to be AutoStartSend aware }
 

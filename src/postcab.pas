@@ -1787,7 +1787,7 @@ Call fields end here for length=12                                
                 BEGIN
                 IF (FileString [1] = ';') THEN Continue;
 
-                IF Length (FileString) < 60 THEN Continue;
+                IF Length (FileString) < 40 THEN Continue;
                 IF Copy (FileString, 1, 1) = LineFeed THEN Continue;
 
                 ExpandTabs (FileString);
