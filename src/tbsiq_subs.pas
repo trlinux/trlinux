@@ -970,6 +970,8 @@ VAR FileName, CommandString: Str40;
             CommandString := UpperCase (PrecedingString (CommandString, '='));
             END;
 
+        CommandString := UpperCase (CommandString);
+
         IF CommandString = 'BANDUP' THEN
             BEGIN
             RememberFrequency; {KK1L: 6.72 Added to match all other calls. Needed for loss of coms}
