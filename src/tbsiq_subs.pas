@@ -354,6 +354,65 @@ VAR DualingCQState: DualingCQStates;
 
 
 
+PROCEDURE TBSIQ_ExchangeRadios;
+
+{ Swaps the band/mode/frequency between the two radios }
+
+VAR TimeOut: INTEGER;
+    ModeOne, ModeTwo: ModeType;
+    BandOne, BandTwo: BandType;
+    FreqOne, FreqTwo: LONGINT;
+
+    BEGIN
+    IF ActiveMode = CW THEN FlushCWBufferAndClearPTT;
+
+    BandOne := BandMemory [RadioTwo]; {KK1L: 6.71 Save the values to become RadioOne values}
+    ModeOne := ModeMemory [RadioTwo]; {KK1L: 6.71 Save the values to become RadioOne values}
+    FreqOne := StableRadio2Freq;      {KK1L: 6.71 Save the values to become RadioOne values}
+
+    BandTwo := BandMemory [RadioOne]; {KK1L: 6.71 Save the values to become RadioTwo values}
+    ModeTwo := ModeMemory [RadioOne]; {KK1L: 6.71 Save the values to become RadioTwo values}
+    FreqTwo := StableRadio1Freq;      {KK1L: 6.71 Save the values to become RadioTwo values}
+
+    SetRadioFreq (RadioTwo, FreqTwo, ModeTwo, 'A'); {KK1L: 6.71 Need yet to handle split mode and VFO B}
+    BandMemory [RadioTwo] := BandTwo; {KK1L: 6.71 Set RadioTwo stuff from RadioOne stuff}
+    ModeMemory [RadioTwo] := ModeTwo; {KK1L: 6.71 Set RadioTwo stuff from RadioOne stuff}
+    IF FrequencyMemoryEnable THEN FreqMemory [BandTwo, ModeTwo] := FreqTwo;
+
+    Delay(100); {KK1L: 6.73}
+
+    SetRadioFreq (RadioOne, FreqOne, ModeOne, 'A'); {KK1L: 6.71 Need yet to handle split mode and VFO B}
+    BandMemory [RadioOne] := BandOne; {KK1L: 6.71 Set RadioOne stuff from what was RadioTwo stuff}
+    ModeMemory [RadioOne] := ModeOne; {KK1L: 6.71 Set RadioOne stuff from what was RadioTwo stuff}
+    IF FrequencyMemoryEnable THEN FreqMemory [BandOne, ModeOne] := FreqOne;
+
+    Delay(100); {KK1L: 6.73}
+
+    CodeSpeed := SpeedMemory[RadioTwo];  {KK1L: 6.73}
+    SpeedMemory[RadioTwo] := SpeedMemory[RadioOne]; {KK1L: 6.73 array for speed}
+    SpeedMemory[RadioOne] := CodeSpeed; {KK1L: 6.73}
+
+    SetSpeed (CodeSpeed);
+    DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
+    SetUpToSendOnActiveRadio;
+    DisplayRadio (ActiveRadio);
+    DisplayBandMode (ActiveBand, ActiveMode, False);
+    UpdateTotals;
+
+    IF MultByBand THEN
+        BEGIN
+        VisibleLog.ShowRemainingMultipliers;
+        VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
+        END;
+
+    BandMapBand := ActiveBand;
+    BandMapMode := ActiveMode;
+    DisplayBandMap;
+    VisibleDupeSheetChanged := True;
+    END;
+
+
+
 PROCEDURE QSOMachineObject.SetUpNextQSONumber;
 
 { Normally, this would come from ReserveNewQSONumber in LOGWIND, however, if the QSO
@@ -1109,6 +1168,8 @@ VAR FileName, CommandString: Str40;
             else
                 rig1.directcommand(filename);
 
+        IF CommandString = 'EXCHANGERADIOS'  THEN TBSIQ_ExchangeRadios;
+
         IF CommandString = 'TOGGLECW'        THEN ToggleCW (False);
         IF CommandString = 'TOGGLEMODES'     THEN ToggleModes;
         IF CommandString = 'TOGGLESTEREOPIN' THEN ToggleStereoPin; {KK1L: 6.71}
@@ -1336,6 +1397,8 @@ PROCEDURE TBSIQ_CheckBandMap;
             TBSIQ_CheckBandMap;
             Exit;
             END;
+
+    { Don't go blind!! }
 
     IF (Radio1QSOMachine.QSOState = QST_SearchAndPounce) AND
        (Radio2QSOMachine.QSOState = QST_SearchAndPounce) THEN
