@@ -54,6 +54,24 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+16-Nov-2024
+ - Supported function key command EXCHANGERADIOS in 2BSIQ.
+
+ - Made check coming from TRMASTER have a leading zero if only one
+   character.  Also removed space after check.
+
+ - Added PACKET PORT COMMAND which lets you define a string to start
+   up your cluster connection.  A | character will be handled as a
+   carriage return.  Typical string might be telnet dxc.wc2l.com
+   7373|N6TR.
+
+ - Made bandmap blinking call in call window go away when tuning away
+   when that call was put there with a Control-End execution.
+
+ - When making S&P QSO - Alt-Return would try to send an exchange before
+   logging the QSO.  Removed that.
+
+
 09-Nov-2024
  - Improved 2BSIQ behavior when using ESCAPE in the middle of a
    CQ Mode QSO.  Before - you could end up stuck in the exchange

@@ -2500,6 +2500,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'PACKET PORT COMMAND' THEN
+        BEGIN
+        Packet.PacketPortCommand := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'PACKET PORT BAUD RATE' THEN
         BEGIN
         Val (CMD, Packet.PacketBaudRate, xResult);

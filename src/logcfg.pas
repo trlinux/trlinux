@@ -125,7 +125,7 @@ FUNCTION ConfigurationOkay: BOOLEAN;
 PROCEDURE SetUpGlobalsAndInitialize;
 
 VAR FileWrite: TEXT;
-    Minute: INTEGER;
+    CharPos, Minute: INTEGER;
 
     BEGIN
     WriteLn ('Initializing program..');
@@ -311,6 +311,15 @@ VAR FileWrite: TEXT;
             ActivePacketPort.setparams(Packet.PacketBaudRate,8,NoParity,2)
         ELSE
             ActivePacketPort.setparams(Packet.PacketBaudRate,7,EvenParity,1);
+
+        IF Packet.PacketPortCommand <> '' THEN
+            BEGIN
+            FOR CharPos := 1 TO Length (Packet.PacketPortCommand) DO
+                IF Packet.PacketPortCommand [CharPos] = '|' THEN
+                    SendChar (ActivePacketPort, CarriageReturn)
+                ELSE
+                    SendChar (ActivePacketPort, Packet.PacketPortCommand [CharPos]);
+            END;
         END;
 
     IF ActiveRTTYPort <> nil THEN

@@ -3285,7 +3285,10 @@ VAR CustomString, Exchange, Command, TempString: STRING;
 
                 IF Command = 'CHECK' THEN
                     IF CD.GetEntry (Call, Data) AND (Data.Check <> '') THEN
-                        Exchange := Exchange + Data.Check + ' ';
+                        IF Length (Data.Check) = 1 THEN
+                            Exchange := Exchange + '0' + Data.Check
+                        ELSE
+                            Exchange := Exchange + Data.Check;
 
                 IF Command = 'OLDCALL' THEN
                     IF CD.GetEntry (Call, Data) AND (Data.OldCall <> '') THEN
@@ -3355,8 +3358,16 @@ VAR CustomString, Exchange, Command, TempString: STRING;
 
         CheckSectionInitialExchange:
             IF CD.GetEntry (Call, Data) THEN
-                IF (Data.Check   <> '') AND (Data.Section <> '') THEN
-                    TempString := Data.Check + Data.Section + ' ';
+                BEGIN
+                { Am I just giving both and never one? }
+
+                IF (Data.Check <> '') AND (Data.Section <> '') THEN
+                    IF Length (Data.Check) = 1 THEN
+                        TempString := '0' + Data.Check + Data.Section + ' '
+                    ELSE
+                        TempString := Data.Check + Data.Section + ' ';
+                END;
+
 
         SectionInitialExchange:
             IF CD.GetEntry (Call, Data) THEN

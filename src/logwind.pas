@@ -5232,23 +5232,6 @@ VAR StartBand, StopBand: BandType;
 
                 WHIlE BandMapEntryRecord <> nil DO
                    BEGIN
-                   { If it is a dupe and we don't display dupes - skip it }
-
-                   {KK1L: 6.65 Following IF not needed. I It actually gets in the way of both}
-                   {           the CallWindowShowAllSpots option as well as not letting      }
-                   {           undisplayed (dupe) spots age!                                 }
-                   {IF (NOT BandMapDupeDisplay) AND                               }
-                   {   ((BandMapEntryRecord^.StatusByte AND $40) <> 0) THEN       }
-                   {      BEGIN                                                   }
-                   {      BandMapEntryRecord := BandMapEntryRecord^.NextEntry;    }
-                   {      Continue;                                               }
-                   {      END;                                                    }
-
-                   {KK1L: 6.64 Set FirstDisplayedBandMapFrequency for use on next call to DisplayBandMap}
-                   {KK1L: 6.65 Changed to = NumberBandMapRows from 0 to mimic display movement of EditBM}
-                   {KK1L: 6.65 Changed it back because I like it better}
-                   {KK1L: 6.69 Changed to = NumberBandMapRows from 0 to mimic display movement of EditBM}
-
                    IF NumberEntriesDisplayed = NumberBandMapRows THEN
                      FirstDisplayedBandMapFrequency := BandMapEntryRecord^.Frequency;
 

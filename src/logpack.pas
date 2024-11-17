@@ -89,6 +89,7 @@ TYPE
         PacketMemoryEnd:          INTEGER;
         PacketMessage:            STRING;
         PacketMessageFromNetwork: Str80;
+        PacketPortCommand:        Str80;
         PacketSpots:              PacketSpotModeType;
 
         PROCEDURE AnalyzePacketString (PacketString: STRING);

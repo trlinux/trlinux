@@ -3085,7 +3085,10 @@ VAR QString, TString, TempString: Str40;
                         IF TempString = '' THEN
                             TempString := QString
                         ELSE
-                            TempString := TempString + ' ' + QString;
+                            IF ActiveExchange <> QSONumberPrecedenceCheckDomesticQTHExchange THEN
+                                TempString := TempString + ' ' + QString
+                            ELSE
+                                TempString := TempString + QString;
             END;
 
         IF ExchangeInformation.Power THEN

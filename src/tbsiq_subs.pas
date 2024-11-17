@@ -3917,6 +3917,9 @@ VAR Key, ExtendedKey: CHAR;
 
                         ELSE
                             CASE ExtendedKey OF
+
+                                { This is a ControlEnter or something like that }
+
                                 CarriageReturn:   { Just like CarriageReturn without CW }
                                     BEGIN
                                     IF AutoDupeEnableSandP AND (NOT SearchAndPounceStationCalled) AND WindowDupeCheck THEN
@@ -3927,7 +3930,7 @@ VAR Key, ExtendedKey: CHAR;
 
                                     { Not a dupe - or we are far enough along in the QSO not to care anymore }
 
-                                    IF NOT SearchAndPounceStationCalled THEN
+                                    IF TRUE OR NOT SearchAndPounceStationCalled THEN
                                         BEGIN
                                         IF GoodCallSyntax (CallWindowString) THEN
                                             BEGIN
@@ -3950,8 +3953,6 @@ VAR Key, ExtendedKey: CHAR;
 
                                         SearchAndPounceStationCalled := True;
                                         END
-
-                                    { Send the exchange if not sent already and try to log the QSO }
 
                                     ELSE
                                         BEGIN
@@ -5795,6 +5796,11 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                             WITH BandMapCursorData^ DO
                                 BEGIN
                                 BandMapCall := BandMapExpandedString (Call);
+
+                                { Attempt in Nov 2024 to make entry go away
+                                  when tuning away }
+
+                                BandMapCallPutUp := BandMapCall;
 
                                 { If we are in Search and Pounce - we need to put the
                                   callsign into the call window and set things up to
