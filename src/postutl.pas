@@ -1055,7 +1055,7 @@ VAR Key: CHAR;
     UNTIL (Key = 'Y');
     WriteLn;
 
-    { Save current databse to ASCII file }
+    { Save current database to ASCII file }
 
     Call := '000';
 
@@ -2011,32 +2011,8 @@ VAR OutputFileName, InputFileName: Str40;
 
     WriteLn;
 
-    IF FileExists ('LONGLOG.DAT') THEN
-        BEGIN
-        WriteLn ('You appear to have the file LONGLOG.DAT available.  This file will be used');
-        WriteLn ('for your input file since it has full frequency data.  However, any edits');
-        WriteLn ('you had made using Alt-E will not be processed,');
-        WriteLn;
-
-        REPEAT
-            Key := UpCase (GetKey ('Is this okay? (Y/N or escape to abort) : '));
-            IF Key = EscapeKey THEN Exit;
-        UNTIL (Key = 'Y') OR (Key = 'N');
-        WriteLn;
-
-        IF Key = 'Y' THEN
-            InputFileName := 'LONGLOG.DAT'
-        ELSE
-            BEGIN
-            InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
-            IF InputFileName = '' THEN Exit;
-            END;
-        END
-    ELSE
-        BEGIN
-        InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
-        IF InputFileName = '' THEN Exit;
-        END;
+    InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
+    IF InputFileName = '' THEN Exit;
 
     OutputFileName := GetResponse ('Enter ADIF output filename (none to exit) : ');
     IF OutputFileName = '' THEN Exit;
@@ -2909,25 +2885,12 @@ VAR CabrilloFrequencyString: STRING;
 
     { Check to see if the frequency data is already updated }
 
-    IF Length (CabrilloFrequencyString) = 5 THEN
-        IF Copy (CabrilloFrequencyString, 3, 3) <> '000' THEN Exit;
-
-    IF Length (CabrilloFrequencyString) = 4 THEN
-        BEGIN
-        IF CabrilloFrequencyString [1] = '1' THEN    { 160 meters }
-            IF Copy (CabrilloFrequencyString, 2, 3) <> '800' THEN Exit;
-
-        IF CabrilloFrequencyString [1] = '3' THEN    { 160 meters }
-            IF Copy (CabrilloFrequencyString, 2, 3) <> '500' THEN Exit;
-
-        IF CabrilloFrequencyString [1] = '7' THEN    { 160 meters }
-            IF Copy (CabrilloFrequencyString, 2, 3) <> '000' THEN Exit;
-
-        { We do this for checking the band later on - makes the first two characters
-          match the Frequency data in the LongLog array }
-
-        CabrilloFrequencyString := ' ' + CabrilloFrequencyString;
-        END;
+    IF (CabrilloFrequencyString <> '1800') AND
+       (CabrilloFrequencyString <> '3500') AND
+       (CabrilloFrequencyString <> '7000') AND
+       (CabrilloFrequencyString <> '14000') AND
+       (CabrilloFrequencyString <> '21000') AND
+       (CabrilloFrequencyString <> '28000') THEN Exit;
 
     { Okay - we have a default frequency of 1800, 3500, 7000, 14000, 21000 or 28000 }
 
@@ -2936,19 +2899,20 @@ VAR CabrilloFrequencyString: STRING;
 
     CabrilloDate := Copy (CabrilloString, 15, 10);
     CabrilloTime := Copy (CabrilloString, 26, 4);
-    CabrilloCall := Copy (CabrilloString, 56, 14);
-    GetRidOfPostcedingSpaces (CabrilloCall);
+    CabrilloCall := Copy (CabrilloString, 56, 12);
+    CabrilloCall := GetFirstString (CabrilloCall);  { Might have part of ex at end }
     Val (CabrilloFrequencyString, CabrilloFrequency);
 
     FOR Address := 0 TO NumberLongLogFileEntries - 1 DO
         WITH LongLogFileArray^ [Address] DO
+            BEGIN
             IF (Date = CabrilloDate) AND (Time = CabrilloTime) AND (Callsign = CabrilloCall) THEN
                 BEGIN
                 { We might have a match - should make sure the bands are the same. }
 
                 Val (Frequency, FrequencyValue);
 
-                IF (CabrilloFrequency - FrequencyValue) < 1500 THEN  { Probably same band }
+                IF Abs (CabrilloFrequency - FrequencyValue) < 1500 THEN  { Probably same band }
                     BEGIN
                     { Substitute the frequency data }
 
@@ -2959,6 +2923,7 @@ VAR CabrilloFrequencyString: STRING;
                     Exit;
                     END;
                 END;
+            END;
     END;
 
 
@@ -2977,7 +2942,7 @@ VAR QSONumberSentString, CabrilloDate, CabrilloTime, CabrilloCall: Str20;
     CabrilloDate := Copy (CabrilloString, 15, 10);
     CabrilloTime := Copy (CabrilloString, 26, 4);
     CabrilloCall := Copy (CabrilloString, 56, 14);
-    GetRidOfPostcedingSpaces (CabrilloCall);
+    CabrilloCall := GetFirstString (CabrilloCall);  { Might have some ex at end }
 
     FOR Address := 0 TO NumberLongLogFileEntries - 1 DO
         WITH LongLogFileArray^ [Address] DO

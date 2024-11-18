@@ -71,6 +71,7 @@ TODO List after 2023 WPX CW:
  - When making S&P QSO - Alt-Return would try to send an exchange before
    logging the QSO.  Removed that.
 
+ - Improved ControlEnter operation in S&P mode.
 
 09-Nov-2024
  - Improved 2BSIQ behavior when using ESCAPE in the middle of a

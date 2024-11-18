@@ -509,7 +509,7 @@ VAR Message: STRING;
             Str (QSONumberForThisQSO, QSONumberString);
             NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
             LastCQFrequency := Frequency;
-            LastCQMode := Mode;
+            LastCQMode:= Mode;
             END;
 
         DualingCQState := DualingCQOnRadioTwo;
@@ -3107,6 +3107,7 @@ VAR Key, ExtendedKey: CHAR;
 
         QST_CQStationBeingAnswered:
             BEGIN
+            ShowStationInformation (CallWindowString);
             QSONumberUnused := False;
             ListenToOtherRadio;
 
@@ -3194,6 +3195,7 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             ListenToOtherRadio;
             QSOState := QST_CQExchangeBeingSent;
+            ShowStationInformation (CallWindowString);
             END;
 
         { We are sending the CQ exchange to the guy who came back.  We can get the
@@ -3746,6 +3748,7 @@ VAR Key, ExtendedKey: CHAR;
                                     END;
 
                                 DoPossibleCalls (CallWindowString);
+                                ShowStationInformation (CallWindowString);
                                 END;
                             END
 
@@ -3918,20 +3921,89 @@ VAR Key, ExtendedKey: CHAR;
                         ELSE
                             CASE ExtendedKey OF
 
-                                { This is a ControlEnter or something like that }
+                                { This is a ControlEnter - moves QSO along without sending }
 
-                                CarriageReturn:   { Just like CarriageReturn without CW }
+                                CarriageReturn:
                                     BEGIN
+                                    { We won't process frequency input here }
+
+                                    { Let's see if I have a dupe in the call window }
+
+                                    { This is a thing I don't normally do when programming - but it is very
+                                      important that WindowDupeCheck be last in the next IF statement!  You
+                                      do not want it executed if you have started the QSO }
+
                                     IF AutoDupeEnableSandP AND (NOT SearchAndPounceStationCalled) AND WindowDupeCheck THEN
                                         BEGIN  { get out of here }
-                                        QSOState := QST_SearchAndPounceInit;
+                                        SearchAndPounceStationCalled := False;
                                         Exit;
+                                        END;
+
+                                    { This is different than the CarriageReturn.
+                                      If we are in the Exchange window - log the
+                                      QSO right away if possible }
+
+
+                                    IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
+                                        BEGIN
+                                        IF TBSIQ_ParametersOkay (CallWindowString,
+                                                                 QSONumberForThisQSO,
+                                                                 ExchangeWindowString,
+                                                                 Band, Mode, Frequency, RData) THEN
+                                            BEGIN
+                                            LoggedSAndPCall := CallWindowString;
+                                            MarkTime (LoggedSAndPCallTime);
+
+                                            RData.SearchAndPounce := True;
+                                            RData.Radio := Radio;
+                                            TBSIQ_LogContact (RData);
+
+                                            IF VisibleDupeSheetEnable THEN
+                                                BEGIN
+                                                VisibleDupeSheetChanged := True;
+                                                VisibleLog.DisplayVisibleDupeSheet (Band, Mode);
+                                                TBSIQ_BandMapFocus := Radio;
+                                                END;
+
+                                            ShowStationInformation (CallWindowString);
+
+                                            ExchangeWindowString := '';
+                                            ExchangeWindowCursorPosition := 1;
+                                            SetTBSIQWindow (TBSIQ_ExchangeWindow);
+                                            ClrScr;
+
+                                            CallWindowString := '';
+                                            CallWindowCursorPosition := 1;
+                                            SetTBSIQWindow (TBSIQ_CallWindow);
+                                            ClrScr;
+
+                                            QSONumberForPreviousQSO := QSONumberForThisQSO;
+                                            SetUpNextQSONumber;
+
+                                            IF SprintQSYRule THEN
+                                                BEGIN
+                                                QSOState := QST_Idle;
+                                                RemoveExchangeWindow;
+                                                ENd
+                                            ELSE
+                                                QSOState := QST_SearchAndPounceInit;
+                                            END
+                                        ELSE
+                                            BEGIN
+                                            ShowCWMessage ('Unable to log this QSO yet');
+                                            SearchAndPounceStationCalled := True;
+                                            SearchAndPounceExchangeSent := True;
+                                            END;
                                         END;
 
                                     { Not a dupe - or we are far enough along in the QSO not to care anymore }
 
-                                    IF TRUE OR NOT SearchAndPounceStationCalled THEN
+                                    IF NOT SearchAndPounceStationCalled THEN
                                         BEGIN
+                                        SearchAndPounceStationCalled := True;
+
+                                        { Now - do we go to the exchange window? }
+
                                         IF GoodCallSyntax (CallWindowString) THEN
                                             BEGIN
                                             SetTBSIQWindow (TBSIQ_ExchangeWindow);
@@ -3950,12 +4022,17 @@ VAR Key, ExtendedKey: CHAR;
 
                                             DoPossibleCalls (CallWindowString);
                                             END;
-
-                                        SearchAndPounceStationCalled := True;
                                         END
+
+                                    { Send the exchange if not sent already and try to log the QSO }
 
                                     ELSE
                                         BEGIN
+                                        { Send exchange if it hasn't already been sent }
+
+                                        IF NOT SearchAndPounceExchangeSent THEN
+                                            SearchAndPounceExchangeSent := True;
+
                                         { Maybe we haven't entered an exchange yet }
 
                                         IF ExchangeWindowString = '' THEN
@@ -3980,7 +4057,9 @@ VAR Key, ExtendedKey: CHAR;
                                                                  ExchangeWindowString,
                                                                  Band, Mode, Frequency, RData) THEN
                                             BEGIN
-                                            EscapeDeletedCallEntry := CallWindowString;
+                                            LoggedSAndPCall := CallWindowString;
+                                            MarkTime (LoggedSAndPCallTime);
+
                                             RData.SearchAndPounce := True;
                                             RData.Radio := Radio;
                                             TBSIQ_LogContact (RData);
@@ -4018,7 +4097,7 @@ VAR Key, ExtendedKey: CHAR;
                                         ELSE
                                             ShowCWMessage ('Unable to log this QSO yet');
                                         END;
-                                    END;  { of CarriageReturn }
+                                    END;  { of Control-CarriageReturn }
 
                                 UpArrow:
                                     IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
@@ -6649,7 +6728,10 @@ VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
 
         28: BEGIN                               { Carriage Return }
             KeyStatus.KeyChar := CarriageReturn;
-            IF ControlKey THEN KeyStatus.ExtendedKey := True;
+            IF ControlKey THEN KeyStatus.ExtendedKey := True;  { Control-Enter }
+
+            { AltEnter does weird stuff with the window - likely I never see it }
+
             IF AltKey THEN KeyStatus.ExtendedKey := True;   { Treat the same as control-enter }
             END;
 
