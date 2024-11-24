@@ -1463,6 +1463,7 @@ VAR TempString, MultiString, MessageString: STRING;
 
     BEGIN
     CheckForLostMultiMessages;
+
     MultiString := GetMultiPortCommand;
     IF MultiString = '' THEN Exit;
 
@@ -1572,6 +1573,7 @@ VAR TempString, MultiString, MessageString: STRING;
             ELSE
                 TBSIQ_PutContactIntoLogFile (MessageString);
 
+
             Inc (NumberContactsThisMinute);
             NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
 
@@ -1596,7 +1598,7 @@ VAR TempString, MultiString, MessageString: STRING;
             IF BandMapEnable THEN {KK1L: 6.69 should get BM matching new data}
                 BEGIN
                 UpdateBandMapMultiplierStatus;
-                UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
+                UpdateBandMapDupeStatus(Call, Band, Mode, True);
                 END;
 
             END;

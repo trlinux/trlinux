@@ -54,6 +54,9 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+23-Nov-2024
+ - Fixed crash when using TBSIQ and a network QSO comes over.
+
 16-Nov-2024
  - Supported function key command EXCHANGERADIOS in 2BSIQ.
 

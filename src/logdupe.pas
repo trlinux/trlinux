@@ -143,7 +143,7 @@ CONST
                                    'SINGLE-OP           ',
                                    'MULTI-ONE           ',
                                    'MULTI-TWO           ',
-                                   'MULTI-MULTI         ');
+                                   'MULTI-OP            ');
 
     CategoryPowerStringList: ARRAY [CategoryPowerType] OF STRING [17] =
                                ('NO CATEGORY POWER',

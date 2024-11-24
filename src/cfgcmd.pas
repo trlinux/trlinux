@@ -513,6 +513,7 @@ VAR xResult, Speed, TempValue: INTEGER;
         ELSE IF CMD = 'MULTI-ONE'       THEN Category.CategoryOperator := MultiOneOperatorType
         ELSE IF CMD = 'MULTI-TWO'       THEN Category.CategoryOperator := MultiTwoOperatorType
         ELSE IF CMD = 'MULTI-OP'        THEN Category.CategoryOperator := MultiMultiOperatorType
+        ELSE IF CMD = 'MULTI-MULTI'     THEN Category.CategoryOperator := MultiMultiOperatorType
         ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
