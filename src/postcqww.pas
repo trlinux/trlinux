@@ -3927,8 +3927,8 @@ PROCEDURE AssignTXID;
 { Assigns TXID to the run transmitter and the rest of the QSOs to the mult }
 
 VAR RunFileRead, CabrilloFileRead, CabrilloFileWrite: TEXT;
-    CabrilloString, CabrilloDateString, CabrilloTimeString: STRING;
-    RunFileData, CabrilloInputFileName, CabrilloOutputFileName: STRING;
+    CabrilloString, CabrilloDateString, CabrilloTimeString, CabrilloFrequencyString: STRING;
+    RunFileData, RunFileName, CabrilloInputFileName, CabrilloOutputFileName: STRING;
     OriginalCabrilloString: STRING;
     FrequencyString, RunFileDataDate, RunFileDataTime: STRING;
     CabrilloFrequency: LONGINT;
@@ -4091,112 +4091,6 @@ VAR RunFileRead, CabrilloFileRead, CabrilloFileWrite: TEXT;
 
 
 
-PROCEDURE CallAndZoneChecker;
-
-VAR Call, Exchange, FileString, InputFileName: STRING;
-    FileRead: TEXT;
-    CheckZones: BOOLEAN;
-    Band: BandType;
-    Mode: ModeType;
-    ReceivedZone, Zone, Country: INTEGER;
-
-    BEGIN
-    ClearScreenAndTitle ('CHECK COUNTRIES OF CALLS AND OPTIONALLY DEFAULT ZONES');
-    WriteLn ('This procedure will look through a log file and find any callsigns that');
-    WriteLn ('do not appear to be from a valid country.  It can also check your zones');
-    WriteLn ('and highlight any that do not match the default zone from the CTY.DAT.');
-    WriteLn ('file.');
-
-    InputFileName := GetResponse ('Enter log filename to process (none to abort) : ');
-
-    IF NOT OpenFileForRead (FileRead, InputFileName) THEN
-        BEGIN
-        WriteLn ('Unable to open ', InputFileName, '.  Aborting...');
-        WaitForKeyPressed;
-        Exit;
-        END;
-
-    REPEAT
-        Key := UpCase (GetKey ('Check (C)Q, (I)TU or (N)one zones? (Escape to abort) : '));
-        IF Key = EscapeKey THEN
-            BEGIN
-            Close (FileRead);
-            Exit;
-            END;
-    UNTIL (Key = 'C') OR (Key = 'I') OR (Key = 'N');
-    WriteLn;
-
-    WHILE NOT Eof (FileRead) DO
-        BEGIN
-        ReadLn (FileRead, FileString);
-
-        IF Length (FileString) < 40 THEN Continue;
-
-        Band := GetLogEntryBand (FileString);
-        Mode := GetLogEntryMode (FileString);
-
-        IF (Band = NoBand) OR (Mode = NoMode) THEN Continue;
-
-        Call := GetLogEntryCall (FileString);
-
-        IF Key <> 'N' THEN
-            BEGIN
-            Exchange := GetLogEntryExchangeString (FileString);
-            RemoveFirstString (Exchange);   { Remove sent RST }
-            RemoveFirstString (Exchange);   { Remove received RST }
-            END;
-
-        { Check country first }
-
-        IF CountryTable.GetCQCountry (Call, False) = -1 THEN
-            WriteLn ('Unknown country for ', Call);
-
-        IF Key <> 'N' THEN
-            BEGIN
-            Exchange := GetLogEntryExchangeString (FileString);
-            RemoveFirstString (Exchange);   { Remove sent RST }
-            RemoveFirstString (Exchange);   { Remove received RST }
-            GetRidOfPrecedingSpaces (Exchange);
-
-            IF StringIsAllNumbers (Exchange) THEN
-                Val (Exchange, ReceivedZone);
-
-            { Have received zone as a string in Exchange }
-
-            IF Key = 'C' THEN
-                BEGIN
-                Zone := CountryTable.GetCQZone (Call);
-                IF Zone <> ReceivedZone THEN
-                    WriteLn ('Unexpected CQ zone for ', Call);
-                END;
-
-            IF Key = 'I' THEN
-                BEGIN
-                IF StringIsAllNumbers (Exchange) THEN
-                    BEGIN
-                    Zone := CountryTable.GetITUZone (Call);
-                    IF Zone <> ReceivedZone THEN
-                        WriteLn ('Unexpected ITU zone for ', Call);
-                    END
-                ELSE
-                    BEGIN
-                    Exchange := UpperCase (Exchange);
-                    IF HQAbbreviation (Call) <> Exchange THEN
-                        BEGIN
-                        Write ('Incorrect or unknown HQ ID for ', Call);
-                        WriteLn ('  Received = ', Exchange, '  Expected = ', HQAbbreviation (Call));
-                        END;
-                    END;
-                END;
-
-            END;
-        END;
-
-    WaitForKeyPressed;
-    END;
-
-
-
 FUNCTION UtilityMenu: BOOLEAN;
 
 VAR Key: CHAR;
@@ -4220,7 +4114,6 @@ VAR Key: CHAR;
     WriteLn ('  L - Convert Cabrillo Log to TR Log.');
     WriteLn ('  M - Merge Cabrillo files into single file.');
     WriteLn ('  N - NameEdit (old NAMES.CMQ database editor).');
-    WriteLn ('  O - Check countries of calls and optionally default zones.');
     WriteLn ('  P - Pull Frequency Data from LONGLOG.DAT into Cabrillo or ADIF.');
     WriteLn ('  Q - NAQP exchange checker');
     WriteLn ('  R - ARRL DX exchange checker');
@@ -4252,7 +4145,6 @@ VAR Key: CHAR;
             'L': BEGIN ConvertCabrilloToTR;  Exit; END;
             'M': BEGIN MergeCabrilloLogs;    Exit; END;
             'N': BEGIN NameEditor;           Exit; END;
-            'O': BEGIN CallAndZoneChecker;   Exit; END;
             'P': BEGIN PullFrequencyData;    Exit; END;
             'Q': BEGIN NAQPExchangeChecker;  Exit; END;
             'R': BEGIN ARRLDXExchangeChecker;  Exit; END;

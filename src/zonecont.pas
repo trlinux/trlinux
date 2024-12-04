@@ -49,6 +49,8 @@ VAR FirstDomesticCountryRecord: DomesticCountryRecordPointer;
 
     FUNCTION  GetVEInitialExchange (Call: CallString): Str20;
 
+    FUNCTION  HQAbbreviation (Call: CallString): Str20;
+
     PROCEDURE LocateCall (Call: CallString;
                           VAR QTH: QTHRecord;
                           UseStandardCallFormat: BOOLEAN);
@@ -61,6 +63,97 @@ VAR FirstDomesticCountryRecord: DomesticCountryRecordPointer;
 
 IMPLEMENTATION
 
+FUNCTION HQAbbreviation (Call: CallString): Str20;
+
+    BEGIN
+    Call := UpperCase (RootCall (Call));
+
+    IF Call = '3D2HQ' THEN BEGIN HQAbbreviation := 'FARA'; Exit; END;
+    IF Call = '3D2TF' THEN BEGIN HQAbbreviation := 'FARA'; Exit; END;
+    IF Call = '4A0HQ' THEN BEGIN HQAbbreviation := 'FMRE'; Exit; END;
+    IF Call = '4L0HQ' THEN BEGIN HQAbbreviation := 'NARG'; Exit; END;
+    IF Call = '7A4HQ' THEN BEGIN HQAbbreviation := 'ORARI'; Exit; END;
+    IF Call = '8N1HQ' THEN BEGIN HQAbbreviation := 'JARL'; Exit; END;
+    IF Call = '8N6HQ' THEN BEGIN HQAbbreviation := 'JARL'; Exit; END;
+    IF Call = '9A0HQ' THEN BEGIN HQAbbreviation := 'HRS'; Exit; END;
+    IF Call = 'AT1HQ' THEN BEGIN HQAbbreviation := 'ARSI'; Exit; END;
+    IF Call = 'B1HQ' THEN BEGIN HQAbbreviation := 'CRAC'; Exit; END;
+    IF Call = 'B4HQ' THEN BEGIN HQAbbreviation := 'CRAC'; Exit; END;
+    IF Call = 'B5HQ' THEN BEGIN HQAbbreviation := 'CRAC'; Exit; END;
+    IF Call = 'B7HQ' THEN BEGIN HQAbbreviation := 'CRAC'; Exit; END;
+    IF Call = 'C37HQ' THEN BEGIN HQAbbreviation := 'URA'; Exit; END;
+    IF Call = 'CS5HQ' THEN BEGIN HQAbbreviation := 'REP'; Exit; END;
+    IF Call = 'CX1AA' THEN BEGIN HQAbbreviation := 'RCU'; Exit; END;
+    IF Call = 'DA0HQ' THEN BEGIN HQAbbreviation := 'DARC'; Exit; END;
+    IF Call = 'DF2OO' THEN BEGIN HQAbbreviation := 'AC'; Exit; END;
+    IF Call = 'DJ3HW' THEN BEGIN HQAbbreviation := 'R1'; Exit; END;
+    IF Call = 'DX0HQ' THEN BEGIN HQAbbreviation := 'PARA'; Exit; END;
+    IF Call = 'E2HQ' THEN BEGIN HQAbbreviation := 'RAST'; Exit; END;
+    IF Call = 'E7HQ' THEN BEGIN HQAbbreviation := 'ARABH'; Exit; END;
+    IF Call = 'EF4HQ' THEN BEGIN HQAbbreviation := 'URE'; Exit; END;
+    IF Call = 'EI0HQ' THEN BEGIN HQAbbreviation := 'IRTS'; Exit; END;
+    IF Call = 'ER7HQ' THEN BEGIN HQAbbreviation := 'ARM'; Exit; END;
+    IF Call = 'ES9A' THEN BEGIN HQAbbreviation := 'ERAU'; Exit; END;
+    IF Call = 'EX9HQ' THEN BEGIN HQAbbreviation := 'ARUKR'; Exit; END;
+    IF Call = 'GR2HQ' THEN BEGIN HQAbbreviation := 'RSGB'; Exit; END;
+    IF Call = 'HB0HQ' THEN BEGIN HQAbbreviation := 'AFVL'; Exit; END;
+    IF Call = 'HB9HQ' THEN BEGIN HQAbbreviation := 'USKA'; Exit; END;
+    IF Call = 'HB9JOE' THEN BEGIN HQAbbreviation := 'R1'; Exit; END;
+    IF Call = 'HC2GRC' THEN BEGIN HQAbbreviation := 'GRC'; Exit; END;
+    IF Call = 'HG0HQ' THEN BEGIN HQAbbreviation := 'MRASZ'; Exit; END;
+    IF Call = 'HL0HQ' THEN BEGIN HQAbbreviation := 'KARL'; Exit; END;
+    IF Call = 'II0HQ' THEN BEGIN HQAbbreviation := 'ARI'; Exit; END;
+    IF Call = 'II2HQ' THEN BEGIN HQAbbreviation := 'ARI'; Exit; END;
+    IF Call = 'II4HQ' THEN BEGIN HQAbbreviation := 'ARI'; Exit; END;
+    IF Call = 'II6HQ' THEN BEGIN HQAbbreviation := 'ARI'; Exit; END;
+    IF Call = 'II9HQ' THEN BEGIN HQAbbreviation := 'ARI'; Exit; END;
+    IF Call = 'IV3KKW' THEN BEGIN HQAbbreviation := 'R1'; Exit; END;
+    IF Call = 'JA1CJP' THEN BEGIN HQAbbreviation := 'R3'; Exit; END;
+    IF Call = 'JH1NBN' THEN BEGIN HQAbbreviation := 'R3'; Exit; END;
+    IF Call = 'LN2HQ' THEN BEGIN HQAbbreviation := 'NRRL'; Exit; END;
+    IF Call = 'LN3HQ' THEN BEGIN HQAbbreviation := 'NRRL'; Exit; END;
+    IF Call = 'LT4RCA' THEN BEGIN HQAbbreviation := 'RCA'; Exit; END;
+    IF Call = 'LZ0HQ' THEN BEGIN HQAbbreviation := 'BFRA'; Exit; END;
+    IF Call = 'NU1AW' THEN BEGIN HQAbbreviation := 'IARU'; Exit; END;
+    IF Call = 'OA4O' THEN BEGIN HQAbbreviation := 'RCP'; Exit; END;
+    IF Call = 'OE0HQ' THEN BEGIN HQAbbreviation := 'OV'; Exit; END;
+    IF Call = 'OH2HQ' THEN BEGIN HQAbbreviation := 'SRAL'; Exit; END;
+    IF Call = 'OP0HQ' THEN BEGIN HQAbbreviation := 'UBA'; Exit; END;
+    IF Call = 'OY1CT' THEN BEGIN HQAbbreviation := 'FRA'; Exit; END;
+    IF Call = 'OZ1HQ' THEN BEGIN HQAbbreviation := 'EDR'; Exit; END;
+    IF Call = 'PA6HQ' THEN BEGIN HQAbbreviation := 'VERON'; Exit; END;
+    IF Call = 'PB2T' THEN BEGIN HQAbbreviation := 'R1'; Exit; END;
+    IF Call = 'PJ2HQ' THEN BEGIN HQAbbreviation := 'VRONA'; Exit; END;
+    IF Call = 'PT2ADM' THEN BEGIN HQAbbreviation := 'R2'; Exit; END;
+    IF Call = 'R4HQ' THEN BEGIN HQAbbreviation := 'SRR'; Exit; END;
+    IF Call = 'R9HQ' THEN BEGIN HQAbbreviation := 'SRR'; Exit; END;
+    IF Call = 'S50HQ' THEN BEGIN HQAbbreviation := 'ZRS'; Exit; END;
+    IF Call = 'SK9HQ' THEN BEGIN HQAbbreviation := 'SSA'; Exit; END;
+    IF Call = 'SM6EAN' THEN BEGIN HQAbbreviation := 'AC'; Exit; END;
+    IF Call = 'SN0HQ' THEN BEGIN HQAbbreviation := 'PZK'; Exit; END;
+    IF Call = 'SX0HQ' THEN BEGIN HQAbbreviation := 'RAAG'; Exit; END;
+    IF Call = 'TC3HQ' THEN BEGIN HQAbbreviation := 'TRAC'; Exit; END;
+    IF Call = 'TI0HQ' THEN BEGIN HQAbbreviation := 'RCCR'; Exit; END;
+    IF Call = 'UN1HQ' THEN BEGIN HQAbbreviation := 'KFRR'; Exit; END;
+    IF Call = 'VE3YV' THEN BEGIN HQAbbreviation := 'R2'; Exit; END;
+    IF Call = 'VE5RAC' THEN BEGIN HQAbbreviation := 'RAC'; Exit; END;
+    IF Call = 'VE6SH' THEN BEGIN HQAbbreviation := 'AC'; Exit; END;
+    IF Call = 'VJ3O' THEN BEGIN HQAbbreviation := 'R3'; Exit; END;
+    IF Call = 'VK3WIA' THEN BEGIN HQAbbreviation := 'WIA'; Exit; END;
+    IF Call = 'VR2HK' THEN BEGIN HQAbbreviation := 'HARTS'; Exit; END;
+    IF Call = 'W1AW' THEN BEGIN HQAbbreviation := 'ARRL'; Exit; END;
+    IF Call = 'W5ZN' THEN BEGIN HQAbbreviation := 'AC'; Exit; END;
+    IF Call = 'YR0HQ' THEN BEGIN HQAbbreviation := 'FRR'; Exit; END;
+    IF Call = 'YT0HQ' THEN BEGIN HQAbbreviation := 'SRS'; Exit; END;
+    IF Call = 'Z30HQ' THEN BEGIN HQAbbreviation := 'RSM'; Exit; END;
+    IF Call = 'Z60HQ' THEN BEGIN HQAbbreviation := 'SHRAK'; Exit; END;
+    IF Call = 'ZF1A' THEN BEGIN HQAbbreviation := 'CARS'; Exit; END;
+    IF Call = 'ZS9HQ' THEN BEGIN HQAbbreviation := 'SARL'; Exit; END;
+
+    HQAbbreviation := '';
+    END;
+
+
 
 FUNCTION GetVEInitialExchange (Call: CallString): Str20;
 
