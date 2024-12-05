@@ -4172,11 +4172,14 @@ VAR Call, Exchange, FileString, InputFileName: STRING;
 
             IF Key = 'I' THEN
                 BEGIN
-                IF StringIsAllNumbers (Exchange) THEN
+                IF StringIsAllNumbers (Exchange) AND (HQAbbreviation (Call) = '') THEN
                     BEGIN
                     Zone := CountryTable.GetITUZone (Call);
                     IF Zone <> ReceivedZone THEN
-                        WriteLn ('Unexpected ITU zone for ', Call);
+                        BEGIN
+                        Write ('Unexpected ITU zone for ', Call);
+                        WriteLn ('  Received = ', ReceivedZone, '  Expected = ', Zone);
+                        END
                     END
                 ELSE
                     BEGIN
