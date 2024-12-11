@@ -389,6 +389,27 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'BAND OUTPUT UDP IP' THEN
+        BEGIN
+        BandOutputUDPIP := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'BAND OUTPUT UDP PORT' THEN
+        BEGIN
+        Val (Cmd, BandOutputUDPPort, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'BAND OUTPUT UPDATE SECONDS' THEN
+        BEGIN
+        Val (Cmd, BandOutputUpdateSeconds, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
+        Exit;
+        END;
+
     IF ID = 'BEEP SOUNDCARD ENABLE' THEN
        BEGIN
        BeepSoundCardEnable := UpCase (CMD [1]) = 'T';

@@ -78,6 +78,11 @@ PROCEDURE SetConfigurationDefaultValues;
     BandMapDecayMultiplier  := 1; {KK1L: 6.65}
     BandMapDupeDisplay      := True;
     BandMapGuardBand        := 200;
+
+    BandOutputUDPIP := '';
+    BandOutputUDPPort := -1;
+    BandOutputUpdateSeconds := 5;
+
     Tone.SetBeepEnable(True);
     BeepSoundCardEnable     := False;
     BeepEvery10QSOs         := False;
