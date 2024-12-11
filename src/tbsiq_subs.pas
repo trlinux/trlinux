@@ -4386,12 +4386,36 @@ VAR FrequencyChange, TempFreq: LONGINT;
     DisplayTXColor;
     DisplayActiveRadio;
 
+    { If this radio is on the move - send an updated BandOutput packet }
+
+    IF (BandOutputUDPPort <> -1) AND (BandOutputUDPIP <> '') THEN
+        IF RadioOnTheMove THEN
+            BEGIN
+            SendBandOutputData (Radio1QSOMachine.Frequency, Radio2QSOMachine.Frequency);
+            BandOutputTimer := BandOutputUpdateSeconds;
+            END;
+
     { Check to see if the second clock has ticked }
 
     IF TimeString = LastFullTimeString THEN Exit;
     LastFullTimeString := TimeString;
 
     { We are now only executing this code once a second - per radio }
+
+    { We will monitor the global variable for BandOutputTimer with radio one only
+      so that we don't get twice the requested number of updates }
+
+    IF Radio = RadioOne THEN
+        IF (BandOutputUDPPort <> -1) AND (BandOutputUDPIP <> '') THEN
+            BEGIN
+            Dec (BandOutputTimer);
+
+            IF BandOutputTimer <=0 THEN
+                BEGIN
+                SendBandOutputData (Radio1QSOMachine.Frequency, Radio2QSOMachine.Frequency);
+                BandOutputTimer := BandOutputUpdateSeconds;
+                END;
+            END;
 
     IF TransmitCountDown > 0 THEN Dec (TransmitCountDown);
 

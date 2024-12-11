@@ -54,6 +54,21 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+12-Dec-2024
+ - Added new commands to output band/frequency information to the network
+   using UDP packets.
+
+     BAND OUTPUT UDP IP = 192.168.1.101
+     BAND OUTPUT UDP PORT = xxxx
+     BAND OUTPUT UPDATE SECONDS = xxxx
+
+  A packet will be sent that looks like this:
+
+      TRBAND,1,160,1814,2,40,7035
+
+  If a VFO is moved - an update will be sent instantly (well - in classic
+  mode it is instant - in 2BSIQ mode - it might take a second maximum)
+
 23-Nov-2024
  - Fixed crash when using TBSIQ and a network QSO comes over.
 

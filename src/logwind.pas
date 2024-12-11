@@ -595,6 +595,7 @@ VAR
     BandChangesThisHour: INTEGER;
     BandMemory: ARRAY [RadioType] OF BandType;
 
+    BandOutputTimer: INTEGER;
     BandOutputUDPIP: STRING;
     BandOutputUDPPort: INTEGER;
     BandOutputUDPOutputPortOpen: BOOLEAN;
@@ -1241,7 +1242,6 @@ TYPE
 
 VAR
     Band: BandType;
-    BandOutputTimer: INTEGER;
     Continent: ContinentType;
 
     NumberSavedWindows:     INTEGER;
