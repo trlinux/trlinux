@@ -60,7 +60,7 @@ TODO List after 2023 WPX CW:
 
      BAND OUTPUT UDP IP = 192.168.1.101
      BAND OUTPUT UDP PORT = xxxx
-     BAND OUTPUT UPDATE SECONDS = xxxx
+     BAND OUTPUT UPDATE SECONDS = xxxx  (default is 5 seconds)
 
   A packet will be sent that looks like this:
 
