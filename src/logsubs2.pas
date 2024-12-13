@@ -5905,6 +5905,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                         SendFunctionKeyMessage (ExtendedKey, CQOpMode);
 
                         IF (ExtendedKey = F1) OR (ExtendedKey = F2) THEN
+                            BEGIN
                             IF FrequencyDisplayed THEN
                                 BEGIN
                                 LastCQFrequency := DisplayedFrequency;
@@ -5912,6 +5913,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 END
                             ELSE
                                 LastCQFrequency := 0;
+
+                            CallAlreadySent := False;  { New in Dec 2024 }
+                            END;
 
                         IF CWMessageCommand = CWCommandSAPMode THEN
                             BEGIN
