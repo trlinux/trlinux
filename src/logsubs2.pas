@@ -3980,7 +3980,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   Exit;
                   END;
 
-              IF (KeyChar = PacketSpotKey) AND (ActivePacketPort <> nil) OR (ActiveMultiPort <> nil) OR (MultiUDPPOrt > -1) THEN
+              IF (KeyChar = PacketSpotKey) AND ((ActivePacketPort <> nil) OR (ActiveMultiPort <> nil) OR (MultiUDPPOrt > -1)) THEN
                   IF NOT PacketSpotDisable THEN
                       BEGIN
                       IF ActiveWindow = CallWindow THEN

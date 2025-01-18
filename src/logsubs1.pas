@@ -144,7 +144,10 @@ VAR StringPointer, QSONumber: INTEGER;
                      END;
 
                 IF CallWindowString <> '' THEN
-                     OutputString := OutputString + CallWindowString;
+                    BEGIN
+                    OutputString := OutputString + CallWindowString;
+                    CallsignICameBackTo := CallWindowString;
+                    END;
                 END;
 
             ':': SendKeysToRTTY;
@@ -641,7 +644,10 @@ VAR CharPointer, CharacterCount, QSONumber: INTEGER;
                      END;
 
                 IF CallWindowString <> '' THEN
-                         AddStringToBuffer (CallWindowString, CWTone);
+                    BEGIN
+                    AddStringToBuffer (CallWindowString, CWTone);
+                    CallsignICameBackTo := CallWindowString;
+                    END
                 END;
 
             '$': IF SayHiEnable AND (Rate < SayHiRateCutoff) THEN SayHello (CallWindowString);
