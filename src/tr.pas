@@ -54,6 +54,10 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+18-Jan-2025
+ - Fixed issue with PACKET SPOT key.
+ - At some point, I made Control-End work in TBSIQ mode.
+
 15-Dec-2024
  - Fixed @ not updating CallsignICameBackTo in classic UI
 
