@@ -123,8 +123,6 @@ VAR StringPointer, QSONumber: INTEGER;
 
                  TempString := QSONumberString (QSONumber);
 
-                 OutputString := OutputString + TempString;
-
                  WHILE LeadingZeros > Length (TempString) DO
                      TempString := LeadingZeroCharacter + TempString;
 
