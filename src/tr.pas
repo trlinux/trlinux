@@ -54,6 +54,9 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+06-Feb-2025
+ - Added NS LADDER contest.  Basically the NA SPRINT with MultiByBand set to true
+
 18-Jan-2025
  - Fixed issue with PACKET SPOT key.
  - At some point, I made Control-End work in TBSIQ mode.

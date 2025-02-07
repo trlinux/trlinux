@@ -1836,7 +1836,7 @@ VAR TempQTH: QTHRecord;
         AddDomesticCountry ('KL');
         END;
 
-    IF CMD = 'NA LADDER' THEN
+    IF CMD = 'NS LADDER' THEN
         BEGIN
         scorerpt.setcontest ('NA-SPRINT-$');  { $ will be mode }
 
