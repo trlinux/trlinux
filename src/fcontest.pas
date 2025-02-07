@@ -1851,8 +1851,6 @@ VAR TempQTH: QTHRecord;
 
         AddDomesticCountry ('KH6');
 
-        MultByBand := True;
-
         SetCQMemoryString (CW, AltF1,  'NA \ NA');
 
         CQExchange := '^\ # ' + MyName + ' ' + MyState;
@@ -1881,7 +1879,7 @@ VAR TempQTH: QTHRecord;
         SetExMemoryString (CW, AltF4, 'NAME?');
         SetExMemoryString (CW, AltF5, 'QTH?');
 
-        MultByBand := False;
+        MultByBand := True;
         MultByMode := False;
         QSOByBand := True;
         QSOByMode := False;
