@@ -1836,6 +1836,64 @@ VAR TempQTH: QTHRecord;
         AddDomesticCountry ('KL');
         END;
 
+    IF CMD = 'NA LADDER' THEN
+        BEGIN
+        scorerpt.setcontest ('NA-SPRINT-$');  { $ will be mode }
+
+        ActiveBand := Band15;
+        ActiveExchange := QSONumberNameDomesticOrDXQTHExchange;
+        ActiveDomesticMult := DomesticFile;
+        ActiveDXMult := NorthAmericanARRLDXCCWithNoUSACanadaOrkL7;
+        ActiveInitialExchange := NameQTHInitialExchange;
+        ActiveQSOPointMethod := OnePointPerQSO;
+        ContestName := 'NS LADDER';
+        DomesticQTHDataFileName := 'SPRINT.DOM';
+
+        AddDomesticCountry ('KH6');
+
+        MultByBand := True;
+
+        SetCQMemoryString (CW, AltF1,  'NA \ NA');
+
+        CQExchange := '^\ # ' + MyName + ' ' + MyState;
+        QSLMessage := 'TU';
+        QuickQSLMessage1 := 'EE';
+        QSOBeforeMessage := 'B4 \ NA';
+        SearchAndPounceExchange := '@ # ' + MyName + ' ' + MyState + ' \';
+        RepeatSearchAndPounceExchange := '# ' + MyName + ' ' + MyState;
+        CorrectedCallMessage := '} R';
+
+        SetCQMemoryString (CW, F1,  'NA \');
+        SetCQMemoryString (CW, F2,  'CQ^NA CQ^NA \ \ NA');
+        SetCQMemoryString (CW, F5,  '?');
+        SetCQMemoryString (CW, F6,  'NA \ NA');
+        SetCQMemoryString (CW, F7,  'CQ^NA \ \ NA');
+        SetCQMemoryString (CW, F8,  'CQ^NA CQ^NA \ \ NA');
+        SetCQMemoryString (CW, AltF1,  'NA \ \ NA');
+
+        SetExMemoryString (CW, F3, 'NR #');
+        SetExMemoryString (CW, F4, MyName);
+        SetExMemoryString (CW, F5, MyState);
+        SetExMemoryString (CW, F6, '@ \ NR^# ' + MyName + ' ' + MyState);
+        SetExMemoryString (CW, F7,  'CQ^NA \ \ NA');
+        SetExMemoryString (CW, F8,  'CQ^NA CQ^NA \ \ NA');
+        SetExMemoryString (CW, AltF3, 'NR?');
+        SetExMemoryString (CW, AltF4, 'NAME?');
+        SetExMemoryString (CW, AltF5, 'QTH?');
+
+        MultByBand := False;
+        MultByMode := False;
+        QSOByBand := True;
+        QSOByMode := False;
+        SprintQSYRule := True;
+        VisibleDupeSheetEnable := True;
+        FoundContest := True;
+
+        AddDomesticCountry ('K');
+        AddDomesticCountry ('VE');
+        AddDomesticCountry ('KL');
+        END;
+
     IF CMD = 'SST' THEN
         BEGIN
         scorerpt.setcontest ('K1USNSST');
