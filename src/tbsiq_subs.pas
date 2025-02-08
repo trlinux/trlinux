@@ -4237,6 +4237,16 @@ PROCEDURE QSOMachineObject.DisplayBandMode;
 
         RestorePreviousWindow;
 
+        { We need to do something with the QSO Number if we are
+          QSONumberByBand }
+
+        IF QNumber.QSONumberByBand THEN
+            BEGIN
+            ReturnQSONumber (DisplayedBand, QSONumberForThisQSO);
+            QSONumberForThisQSO := ReserveNewQSONumberForThisRadio;
+            DisplayQSONumber;
+            END;
+
         DisplayedBand := Band;
         DisplayedMode := Mode;
         DisplayCodeSpeed;

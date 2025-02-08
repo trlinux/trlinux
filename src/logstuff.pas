@@ -7080,7 +7080,9 @@ FUNCTION ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
 
   We will set the QSONumberForThisQSO to minus one in any case, indicating
   that we no longer have a QSO number assigned for the next QSO to be made
-  in the classic interface. }
+  in the classic interface.
+
+  It seems this rountine also gets called by the TBSIQ stuff as well }
 
 VAR TempString: STRING;
 

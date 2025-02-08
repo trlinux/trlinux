@@ -54,6 +54,15 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+ - When changing band - and have a QSO number in the call window - we
+   need to check that back in and get a new number if QSO BY BAND.
+
+08-Feb-2025
+ - Worked on improving behavior of QSONumberByBand with TBSIQ mode.
+   If you change bands - it will return the old QSO Number and get
+   a new correct one for the band.  Previously - it didn't update the
+   number, so you would send the one from the previous band.
+
 07-Feb-2025
  - Fixed bug in RTTY serial numbers where the number was always
    sent twice per #.
@@ -264,7 +273,7 @@ Release 0.60 - June 20, 2024 > 16-Jul-2024
    There are status messages on both sides of the request/response with time stamps
    to provide visability on what is actually happening.
 
- - Added PING command ih the call window.  Enter PING and RETURN and see if there
+ - Added PING command in the call window.  Enter PING and RETURN and see if there
    is someone answering you on the other side of the network.  The delay time only
    has 10 ms resolution - so is typically shown as zero.  This is non blocking, so
    if there is no response - life goes on.
