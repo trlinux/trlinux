@@ -70,6 +70,10 @@ TYPE
                           QST_SendingKeyboardCW,
                           QST_StartSendingKeyboardCW,
                           QST_SendingKeyboardCWWaiting,
+
+                          QST_SendingKeyboardRTTY,
+                          QST_StartSendingKeyboardRTTY,
+
                           QST_Trap);    { used for debugging }
 
     QSOMachineObject = CLASS
@@ -170,6 +174,7 @@ TYPE
         RememberQSOState: TBSIQ_QSOStateType;
 
         RequestBandMap: BOOLEAN;             { Set to TRUE if you think you should be the focus of bandmap and visible dupesheet}
+        RTTYString: STRING;
 
         SCPScreenFull: BOOLEAN;
         SearchAndPounceStationCalled: BOOLEAN;
@@ -237,7 +242,6 @@ TYPE
 
         PROCEDURE SendFunctionKeyMessage (Key: CHAR; VAR Message: STRING);
 
-        PROCEDURE SendKeyboardInput;
         PROCEDURE SetCodeSpeed (Speed: INTEGER);
         PROCEDURE SetTBSIQWindow (TBSIQ_Window: TBSIQ_WindowType);
         PROCEDURE ShowCWMessage (Message: STRING);
@@ -2032,132 +2036,6 @@ VAR Call: CallString;
 
 
 
-PROCEDURE QSOMachineObject.SendKeyboardInput;
-
-{ This procedure will take input from the keyboard and send it until a
-  return is pressed.
-
-  This routine needs to be aware that the other radio might be sending
-  a CW message and wait until it is over before sending any characters.
-
-  It will prevent the other transmitter from doing anything until the
-  message is complate.
-
-  The complete message will be shown in the CWMessageWindow.  Perhaps
-  someday, we will change the color on text that has been sent.  This
-  probably could be integrated into the main loop of CheckQSOStateMachine,
-  but it lives here for now. }
-
-VAR Key: CHAR;
-    TimeMark: TimeRecord;
-    Buffer: SendBufferType;
-    BufferStart, BufferEnd: INTEGER;
-
-    BEGIN
-    BufferStart := 0;
-    BufferEnd := 0;
-    Buffer[0] := ' '; //to kill buffer not initialized warning
-
-    IF NOT CWEnable THEN Exit;
-
-    ActiveRadio := Radio;
-    ActiveMode := Mode;
-
-    SendingOnRadioOne := False;
-    SendingOnRadioTwo := False;
-    SetUpToSendOnActiveRadio;
-
-    CASE Radio OF
-        RadioOne: SaveAndSetActiveWindow (TBSIQ_R1_CWMessageWindow);
-        RadioTwo: SaveAndSetActiveWindow (TBSIQ_R2_CWMessageWindow);
-        END;
-
-    ClrScr;
-    Write ('Keyboard CW - ENTER to exit.');
-
-    REPEAT
-        MarkTime (TimeMark);
-
-        REPEAT
-            IF ActiveKeyer.BufferEmpty THEN
-                IF BufferStart <> BufferEnd THEN
-                    BEGIN
-                    ActiveKeyer.AddCharacterToBuffer (Buffer [BufferStart]);
-                    Inc (BufferStart);
-                    IF BufferStart = 256 THEN BufferStart := 0;
-                    TBSIQ_DisplayBuffer (Buffer, BufferStart, BufferEnd);
-                    END;
-            millisleep;
-        UNTIL TBSIQ_KeyPressed (Radio);
-
-        Key := UpCase (TBSIQ_ReadKey (Radio));
-
-        IF Key >= ' ' THEN
-            BEGIN
-            IF BufferStart = BufferEnd THEN ClrScr;
-            Buffer [BufferEnd] := Key;
-            Inc (BufferEnd);
-            IF BufferEnd = 256 THEN BufferEnd := 0;
-            Write (Key);
-            END
-        ELSE
-            CASE Key OF
-                CarriageReturn:
-                    BEGIN
-                    WHILE BufferStart <> BufferEnd DO
-                        BEGIN
-                        ActiveKeyer.AddCharacterToBuffer (Buffer [BufferStart]);
-                        Inc (BufferStart);
-                        IF BufferStart = 256 THEN BufferStart := 0;
-                        END;
-
-                    ActiveKeyer.PTTUnForce;
-                    RemoveAndRestorePreviousWindow;
-                    ClearKeyCache := True;
-                    Exit;
-                    END;
-
-                BackSpace:
-                    IF BufferEnd <> BufferStart THEN
-                        BEGIN
-                        Dec (BufferEnd);
-                        IF BufferEnd < 0 THEN BufferEnd := 255;
-                        TBSIQ_DisplayBuffer (Buffer, BufferStart, BufferEnd);
-                        END;
-
-                EscapeKey:
-                    BEGIN
-                    FlushCWBufferAndClearPTT;
-                    RemoveAndRestorePreviousWindow;
-                    ClearKeyCache := True;
-                    Exit;
-                    END;
-
-                NullKey:
-                    CASE NewReadKey OF
-                        F10: BEGIN
-                             FlushCWBufferAndClearPTT;
-                             RemoveAndRestorePreviousWindow;
-                             ClearKeyCache := True;
-                             Exit;
-                             END;
-
-                        DeleteKey:
-                            IF BufferEnd <> BufferStart THEN
-                                BEGIN
-                                Dec (BufferEnd);
-                                IF BufferEnd < 0 THEN BufferEnd := 255;
-                                TBSIQ_DisplayBuffer (Buffer, BufferStart, BufferEnd);
-                                END;
-
-                        END;
-                END;
-
-    UNTIL False;
-    END;
-
-
-
 FUNCTION QSOMachineObject.ExpandCrypticString (SendString: STRING): STRING;
 
 { This is a scaled down version of what is in classic mode }
@@ -2210,7 +2088,13 @@ VAR CharacterCount: INTEGER;
             ':': BEGIN   { Forget everything and setup to send CW from keyboard }
                  ExpandCrypticString := '';  { Make sure we don't try to send something }
                  RememberQSOState := QSOState;
-                 QSOState := QST_StartSendingKeyboardCW;
+
+                 IF Mode = CW THEN
+                     QSOState := QST_StartSendingKeyboardCW;
+
+                 IF Mode = Digital THEN
+                     QSOState := QST_StartSendingKeyboardRTTY;
+
                  Exit;
                  END;
 
@@ -2626,8 +2510,9 @@ VAR Key, ExtendedKey: CHAR;
         END
 
     ELSE { Normal mode }
-        IF (QSOState <> QST_StartSendingKeyboardCW) THEN
-            WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
+        IF ((QSOState <> QST_StartSendingKeyboardCW) AND
+            (QSOState <> QST_StartSendingKeyboardRTTY))THEN
+                WindowEditor (WindowString, Key, ExtendedKey, ActionRequired);
 
     { Check to see if WindowEditor wants to trap execution }
 
@@ -3513,9 +3398,30 @@ VAR Key, ExtendedKey: CHAR;
             BEGIN
             KeyboardCWMessage := '';
             QSOState := QST_SendingKeyboardCWWaiting;
+            END;
 
-            IF Mode = Digital THEN
-                StartRTTYTransmission ('');
+        QST_StartSendingKeyboardRTTY:  { Only called once }
+            BEGIN
+            RTTYString := '';
+            QSOState := QST_SendingKeyboardRTTY;
+            END;
+
+        QST_SendingKeyboardRTTY:
+            BEGIN
+            IF ActionRequired THEN
+                CASE Key OF
+                    CarriageReturn, EscapeKey:
+                        BEGIN
+                        FinishRTTYTransmission (RTTYString);
+                        QSOState := RememberQSOState;
+                        Exit;
+                        END;
+
+                    ELSE
+                        IF (Key >= ' ') AND (Key <= 'z') THEN
+                            RTTYString := RTTYString + UpCase (Key);
+
+                    END;  { of CASE Key }
             END;
 
         QST_SendingKeyboardCWWaiting:
@@ -3536,10 +3442,6 @@ VAR Key, ExtendedKey: CHAR;
                     CarriageReturn, EscapeKey:
                         BEGIN
                         QSOState := RememberQSOState;
-
-                        IF Mode = Digital THEN
-                            FinishRTTYTransmission ('');
-
                         Exit;
                         END;
 
@@ -4551,6 +4453,8 @@ PROCEDURE QSOMachineObject.ShowStateMachineStatus;
         QST_StartSendingKeyboardCW: Write ('Starting keyboard CW');
         QST_SendingKeyboardCW: Write ('Keyboard CW - RETURN to end');
         QST_SendingKeyboardCWWaiting: Write ('Keyboard CW - waiting on other TX');
+        QST_StartSendingKeyboardRTTY: Write ('Starting keyboard RTTY.');
+        QST_SendingKeyboardRTTY: Write ('Keyboard RTTY - RETURN TO end');
 
         QST_Trap:
             BEGIN
@@ -5373,7 +5277,8 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
     { Special keystrokes }
 
-    IF (QSOState = QST_StartSendingKeyboardCW) OR (QSOState = QST_SendingKeyboardCW) THEN
+    IF (QSOState = QST_StartSendingKeyboardCW) OR (QSOState = QST_SendingKeyboardCW)
+       OR (QSOState = QST_StartSendingKeyboardRTTY) OR (QSOState = QST_SendingKeyboardRTTY) THEN
         Exit;  { All keystrokes handled there }
 
     IF KeyChar <> NullKey THEN

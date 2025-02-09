@@ -57,6 +57,13 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+09-Feb-2025
+ - Added support for F10 in 2BSIQ for RTTY.  Currently - no feedback
+   of your message - you just type it and hit RETURN and it will
+   start.  I couldn't figure out how to send individual characters
+   and make it work for some reason.  Note that there is no support
+   in classic UI for this.
+
 08-Feb-2025
  - Worked on improving behavior of QSONumberByBand with TBSIQ mode.
    If you change bands - it will return the old QSO Number and get
