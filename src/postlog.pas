@@ -42,7 +42,17 @@ IMPLEMENTATION
 uses keycode;
 
 
-TYPE WorkedArrayType = ARRAY [BandType, CW..Both, 0..400] OF BOOLEAN;
+TYPE QSORecordPointer = ^QSORecord;
+
+    QSORecord = RECORD
+         LogString: STRING;
+         DayOfYear: INTEGER; { Use the function ComputeDayOfYear to get this }
+         Time: INTEGER;      { Use GetLogEntryIntegerTime from tree.pas }
+         PreviousQSOPointer: QSORecordPointer;
+         NextQSOPointer: QSORecordPointer;
+         END;
+
+     WorkedArrayType = ARRAY [BandType, CW..Both, 0..400] OF BOOLEAN;
      WorkedArrayPtr  = ^WorkedArrayType;
 
      PrefixArrayType = ARRAY [0..2000] OF FourBytes;
@@ -54,7 +64,8 @@ TYPE WorkedArrayType = ARRAY [BandType, CW..Both, 0..400] OF BOOLEAN;
          NumberPrefixes: INTEGER;
          END;
 
-VAR PrefixLists: ARRAY [BandType, CW..Both] OF PrefixArrayRecordType;
+VAR
+    PrefixLists: ARRAY [BandType, CW..Both] OF PrefixArrayRecordType;
 
 
 
@@ -2728,6 +2739,369 @@ VAR Key, ComputerID: CHAR;
     WaitForKeyPressed;
     END;
 
+
+
+FUNCTION ComputeDayOfYear (DateString: Str20): INTEGER;
+
+{ Counts Jan 1 as day one - always assumes leap yaer.  Date is in format
+  of 17-Feb-24 }
+
+VAR Day: INTEGER;
+    DayString: Str20;
+
+    BEGIN
+    DateString := UpperCase (DateString);
+
+    DayString := PrecedingString (DateString, '-');
+    Val (DayString, Day);
+
+    IF StringHas (DateString, 'JAN') THEN
+        BEGIN
+        ComputeDayOfYear := Day;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'FEB') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 31;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'MAR') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 60;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'APR') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 91;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'MAY') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 121;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'JUN') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 152;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'JUL') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 182;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'AUG') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 213;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'SEP') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 244;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'OCT') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 274;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'NOV') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 305;
+        Exit;
+        END;
+
+    { We must be in December }
+
+    ComputeDayOfYear := Day + 335;
+    END;
+
+
+
+PROCEDURE SortLog;
+
+{ Well - here we are in February 2025 with a nice ARRL DX CW effort with two
+  computers where we didn't send QSOs across the network until they popped of
+  the editable log window - so we have non-monotonic times for the combined
+  log.  This routine is written to sort the QSOs into date/time order.  Yeah,
+  excel could do this in a heartbeat, but can't output the data in exactly the
+  .DAT format...  and it's been awhile since I have programmed a linked list,
+  so here we go.
+
+  The idea is to create a linked list (with forward and backward pointers) and
+  start at the end of the list for each QSO we find.  Hopefully, that minimizes
+  the amount of data we look at and makes it execute quickly in one pass. }
+
+VAR FirstQSORecord, ActiveQSORecord, LastQSORecord: ^QSORecord;
+    NewEntry: ^QSORecord;
+    FileRead, FileWrite: TEXT;
+    InputFileName, OutputFileName: Str80;
+    FileString: STRING;
+    NumberQSOsFound, NumberQSOsSaved: INTEGER;
+    LogEntryDay, LogEntryTime: INTEGER;
+
+    BEGIN
+    FirstQSORecord := nil;
+    NumberQSOsFound := 0;
+
+    { We need to make sure we have an open file and get the very first QSO
+      record into the linked list.  Once we have that done, we can start
+      looping until the end of the file }
+
+    InputFileName := GetResponse ('Log filename to sort (none to abort) : ');
+    IF InputFileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (FileRead, InputFileName) THEN
+        BEGIN
+        WriteLn (InputFileName, ' not found.');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    OutputFileName := GetResponse ('Filename to save sorted file to (none to abort) : ');
+    IF OutputFileName = '' THEN Exit;
+
+    { This first loop will only run until the very first QSO is found in the
+      log file - or if one is never found - it will exit }
+
+    WHILE NOT Eof (FileRead) DO
+        BEGIN
+        ReadLn (FileRead, FileString);
+
+        IF GetLogEntryBand (FileString) <> NoBand THEN
+            IF GetLogEntryMode (FileString) <> NoMode THEN  { Valid QSO entry }
+                BEGIN
+                GetMem (FirstQSORecord, SizeOf (QSORecord));
+
+                WITH FirstQSORecord^ DO
+                    BEGIN
+                    LogString := FileString;
+                    DayOfYear := ComputeDayOfYear (GetLogEntryDateString (FileString));
+                    Time := GetLogEntryIntegerTime (FileString);
+                    PreviousQSOPointer := nil;
+                    NextQSOPointer := nil;
+                    END;
+
+                LastQSORecord := FirstQSORecord;
+                NumberQSOsFound := 1;
+
+                Break;  { Done with this loop }
+                END;
+        END;
+
+    IF NumberQSOsFound = 0 THEN  { We never found a QSO }
+        BEGIN
+        WriteLn ('No QSOs found in ', InputFileName);
+        Close (FileRead);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    { Okay - we have the first QSO setup in the linked list - now read
+      in the rest of the log inserting each QSO into the proper place
+      of the linked list.  Note - we start looking at the end of the
+      list. }
+
+    WHILE NOT Eof (FileRead) DO
+        BEGIN
+        ReadLn (FileRead, FileString);
+
+        IF GetLogEntryBand (FileString) <> NoBand THEN
+            IF GetLogEntryMode (FileString) <> NoMode THEN  { Valid QSO entry }
+                BEGIN
+                Inc (NumberQSOsFound);
+
+                LogEntryDay := ComputeDayOfYear (GetLogEntryDateString (FileString));
+                LogEntryTime := GetLogEntryIntegerTime (FileString);
+
+                { Does this QSO just go at the end of the list? }
+
+                WITH LastQSORecord^ DO
+                    IF (LogEntryDay > DayOfYear) OR
+                       ((LogEntryDay = DayOfYear) AND (LogEntryTime >= Time)) THEN
+                            BEGIN
+                            GetMem (NextQSOPointer, SizeOf (QSORecord));
+
+                            WITH NextQSOPointer^ DO  { Pointing at new record }
+                                BEGIN
+                                LogString := FileString;
+                                DayOfYear := LogEntryDay;
+                                Time := LogEntryTime;
+                                PreviousQSOPointer := LastQSORecord;
+                                NextQSOPointer := nil;
+                                END;
+
+                            LastQSORecord := NextQSOPointer;
+                            Continue;
+                            END;
+
+                { Let's make sure it isn't going near the front - or at the
+                  first entry }
+
+                { Is it at the same time as the first entry? }
+
+                IF ((LogEntryDay = FirstQSORecord^.DayOfYear) AND (LogEntryTime = FirstQSORecord^.Time)) THEN
+                    BEGIN
+                    { We want to put it after all of the entries with this same
+                      time and date }
+
+                    ActiveQSORecord := FirstQSORecord;  { Where we are looking }
+
+                    REPEAT
+                        { First - check to make sure we aren't at the last entry }
+
+                        IF ActiveQSORecord^.NextQSOPointer = nil THEN  { No more entries }
+                            BEGIN
+                            { BTW - we have to be at the LastQSORecord }
+
+                            GetMem (ActiveQSORecord^.NextQSOPointer, SizeOf (QSORecord));
+
+                            ActiveQSORecord := ActiveQSORecord^.NextQSOPointer;
+
+                            WITH ActiveQSORecord^ DO
+                                BEGIN
+                                LogString := FileString;
+                                DayOfYear := LogEntryDay;
+                                Time := LogEntryTime;
+                                PreviousQSOPointer := LastQSORecord;
+                                NextQSOPointer := nil;
+                                END;
+
+                            LastQSORecord := ActiveQSORecord;  { new last entry }
+
+                            Continue;  { All done - get the next log entry }
+                            END;
+
+                        { Point to the next entry in the linked list }
+
+                        ActiveQSORecord := ActiveQSORecord^.NextQSOPointer;
+
+                    { See if we are there yet }
+
+                    UNTIL (LogEntryDay < ActiveQSORecord^.DayOfYear) OR
+                           ((LogEntryDay = ActiveQSORecord^.DayOfYear) AND (LogEntryTime < ActiveQSORecord^.Time));
+
+                    { Okay - ActiveQSORecord is pointing to a QSO that takes place
+                      after the log entry - so we need to squeeze it in }
+
+                    { Create the new entry }
+
+                    GetMem (NewEntry, SizeOf (QSORecord));
+
+                    { Splice in the new record }
+
+                    ActiveQSORecord^.PreviousQSOPointer^.NextQSOPointer := NewEntry;
+                    ActiveQSORecord^.PreviousQSOPointer := NewEntry;
+
+                    WITH NewEntry^ DO
+                        BEGIN
+                        LogString := FileString;
+                        DayOfYear := LogEntryDay;
+                        Time := LogEntryTime;
+                        PreviousQSOPointer := ActiveQSORecord^.PreviousQSOPointer;
+                        NextQSOPointer := ActiveQSORecord;
+                        END;
+
+                    Continue;  { onto the next LogEntry }
+                    END;
+
+                { And now for the case where the LogEntry is before the first
+                  entry in the linked list }
+
+                WITH FirstQSORecord^ DO
+                    IF (LogEntryDay < DayOfYear) OR
+                       ((LogEntryDay = DayOfYear) AND (LogEntryTime <= Time)) THEN
+                        BEGIN
+                        { Put this QSO in the first entry }
+
+
+                        Continue;  { onto the next LogEntry }
+                        END;
+
+                { Okay - this QSO takes place after the first QSO in the linked
+                  list and before the last QSO in the linked list.  We need to
+                  find the record that needs to have this QSO inserted before.  }
+
+                ActiveQSORecord := LastQSORecord;
+
+                WHILE (ActiveQSORecord^.PreviousQSOPointer^.DayOfYear > LogEntryDay) OR
+                      ((ActiveQSORecord^.PreviousQSOPointer^.DayOfYear = LogEntryDay) AND
+                       (ActiveQSORecord^.PreviousQSOPointer^.Time > LogEntryTime)) DO
+                            BEGIN
+                            ActiveQSORecord := ActiveQSORecord^.PreviousQSOPointer;
+
+                            { This should not happen - but just in case }
+
+                            IF ActiveQSORecord = nil THEN
+                                BEGIN
+                                Writeln ('Oh my - this is bad!! - W7RM error');
+                                Halt;
+                                END;
+                            END;
+
+                { We have backed up to the place we need to squeeze in the new
+                  QSO - before ActiveQSORecord }
+
+                GetMem (NewEntry, SizeOf (QSORecord));
+
+                { Splice in the new record }
+
+                ActiveQSORecord^.PreviousQSOPointer^.NextQSOPointer := NewEntry;
+                ActiveQSORecord^.PreviousQSOPointer := NewEntry;
+
+                WITH NewEntry^ DO
+                    BEGIN
+                    LogString := FileString;
+                    DayOfYear := LogEntryDay;
+                    Time := LogEntryTime;
+                    PreviousQSOPointer := ActiveQSORecord^.PreviousQSOPointer;
+                    NextQSOPointer := ActiveQSORecord;
+                    END;
+
+                END;
+        END;
+
+    Close (FileRead);
+
+    { We are done reading in the log - now spit out the sorted log to
+      the OutputFile }
+
+    OpenFileForWrite (FileWrite, OutputFileName);
+
+    ActiveQSORecord := FirstQSORecord;
+    NumberQSOsSaved := 0;
+
+    WHILE ActiveQSORecord <> nil DO
+        BEGIN
+        WriteLn (FileWrite, ActiveQSORecord^.LogString);
+        ActiveQSORecord := ActiveQSORecord^.NextQSOPointer;
+        Inc (NumberQSOsSaved);
+        END;
+
+    Close (FileWrite);
+
+    WriteLn ('There were ', NumberQSOsFound, ' QSOs found in ', InputFileName);
+    WriteLn ('There were ', NumberQSOsSaved, ' QSOs saved in ', OutputFileName);
+
+    IF NumberQSOsFound = NumberQSOsSaved THEN
+        WriteLn ('It is good that they are the same number!!')
+    ELSE
+        WriteLn ('Oops - not sure why they are different.  Contact N6TR.');
+
+    WaitForKeyPressed;
+    END;
+
+
 
 FUNCTION LogProcedureMenu: BOOLEAN;
 
@@ -2749,6 +3123,7 @@ VAR Key: CHAR;
     WriteLn ('  J - Create log check file for KCJ contest.');
     WriteLn ('  M - Multiplier check.  Complete check of all multiplier types.');
     WriteLn ('  P - Pull out log for one specific computer ID in a multi-multi.');
+    WriteLn ('  S - Sort log.  Generate new log with QSOs in date/time order.');
     WriteLn ('  V - View log segments.');
     WriteLn ('  X - Exit log procedure menu.');
     WriteLn;
@@ -2771,6 +3146,7 @@ VAR Key: CHAR;
             'J': BEGIN MakeKCJLog;              Exit; END;
             'M': BEGIN MultCheck;               Exit; END;
             'P': BEGIN PullSpecificComputerLog; Exit; END;
+            'S': BEGIN SortLog;                 Exit; END;
             'V': BEGIN ViewLog;                 Exit; END;
 
             'X', EscapeKey:

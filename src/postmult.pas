@@ -1598,9 +1598,10 @@ VAR FileRead: TEXT;
     HourString, MultString, LastHourProcessed: Str20;
 
     BEGIN
+    { Initialize global data }
+
     FOR HourIndex := 0 TO 49 DO
         BEGIN
-
         LogHourTotals^ [HourIndex].HourName := '';
 
         FOR Band := Band160 TO NoBand DO
@@ -1653,10 +1654,10 @@ VAR FileRead: TEXT;
     REPEAT
         REPEAT
             ReadLn (FileRead, FileString);
+            WriteLn (FileString);
             Band := GetLogEntryBand (FileString);
             Mode := GetLogEntryMode (FileString);
             Inc (LineNumber);
-
         UNTIL ((Band <> NoBand) AND (Mode <> NoMode)) OR EOF (FileRead);
 
         IF (Band <> NoBand) AND (Mode <> NoMode) THEN
