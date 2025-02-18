@@ -2843,7 +2843,7 @@ PROCEDURE SortLog;
   the amount of data we look at and makes it execute quickly in one pass. }
 
 VAR FirstQSORecord, ActiveQSORecord, LastQSORecord: ^QSORecord;
-    NewEntry: ^QSORecord;
+    NextRecord, NewEntry: ^QSORecord;
     FileRead, FileWrite: TEXT;
     InputFileName, OutputFileName: Str80;
     FileString: STRING;
@@ -3084,7 +3084,11 @@ VAR FirstQSORecord, ActiveQSORecord, LastQSORecord: ^QSORecord;
     WHILE ActiveQSORecord <> nil DO
         BEGIN
         WriteLn (FileWrite, ActiveQSORecord^.LogString);
-        ActiveQSORecord := ActiveQSORecord^.NextQSOPointer;
+        NextRecord := ActiveQSORecord^.NextQSOPointer;
+
+        FreeMem (ActiveQSORecord , SizeOf (QSORecord));
+        ActiveQSORecord := NextRecord;
+
         Inc (NumberQSOsSaved);
         END;
 
