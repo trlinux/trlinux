@@ -57,6 +57,18 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+20-Feb-2025
+ - Deleted some obsolete routines in the Post Log menu.
+
+19-Feb-2025
+ - A few changes to the RST And Power exchange.  Zeros are no longer
+   used to determine if a string looks like an RST (this actually
+   affects any exchange that uses RST).  Also - if you enter something
+   like 100 100 (where the first 100 came from the exchange memory),
+   it will just log it as 100 with the default RST instead of making
+   the RST 100.  I guess that is only an issue now if the power looks
+   like a valid RST like 555 or something like that.
+
 09-Feb-2025
  - Added support for F10 in 2BSIQ for RTTY.  Currently - no feedback
    of your message - you just type it and hit RETURN and it will

@@ -4341,7 +4341,7 @@ VAR  RSTString, DefaultRST: Str20;
     GetRidOfPrecedingSpaces (Ex);
     RSTString := '';
 
-    WHILE (Copy (Ex, 1, 1) >= '0') AND (Copy (Ex, 1, 1) <='9') DO
+    WHILE (Copy (Ex, 1, 1) >= '1') AND (Copy (Ex, 1, 1) <='9') DO
         BEGIN
         RSTString := RSTString + Copy (Ex, 1, 1);
         Delete (Ex, 1, 1);

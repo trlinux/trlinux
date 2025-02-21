@@ -4397,6 +4397,7 @@ VAR FirstString, SecondString, ThirdString: Str20;
 
 FUNCTION ProcessRSTAndPowerExchange (Exchange:Str80; VAR RXData: ContestExchange): BOOLEAN;
 
+
 { Each entry of the exchange must be separated by spaces.  The following
   formats work:
 
@@ -4404,14 +4405,29 @@ FUNCTION ProcessRSTAndPowerExchange (Exchange:Str80; VAR RXData: ContestExchange
    ---------   ---------
    RS(T)       Power
    Power                     (RS(T) = default)
+   Power       Power          Will use the second entry
 
   You can enter just the strength of the RS(T) if you like.       }
+
+VAR TestString, FirstString, SecondString: Str40;
 
     BEGIN
     ProcessRSTAndPowerExchange := False;
 
     IF StringHas (Exchange, ' ') THEN
         BEGIN
+        TestString := Exchange;
+        FirstString := RemoveFirstString (TestString);
+        SecondString := RemoveFirstString (TestString);
+
+        IF FirstString = SecondString THEN
+            BEGIN
+            RXData.RSTReceived := DefaultRST;
+            RXData.Power := FirstString;
+            ProcessRSTAndPowerExchange := True;
+            Exit;
+            END;
+
         IF NOT ValidRST (Exchange, RXData.RSTReceived, RXData.Mode) THEN Exit;
         GetRidOfPrecedingSpaces (Exchange);
         RXData.Power := Exchange;
