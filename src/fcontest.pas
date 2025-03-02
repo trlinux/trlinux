@@ -74,10 +74,18 @@ PROCEDURE SetUpFileNames (FileRoot: Str20);
 PROCEDURE SetUpRSTQSONumberExchange;
 
     BEGIN
-    CQExchange := '_~ %5NN #';
+    CQExchangeR1 := '_~ %5NN #';
+    CQExchangeR2 := '_~ %5NN #';
+
     ExchangeFunctionKeyMenu := 'F1-DE+Cl  F2-Ex  F3-RST  F4-NR  F5-Cl+Ex  F8-EE  F9-?  Alt-AskforHis';
-    RepeatSearchAndPounceExchange := '5NN #';
-    SearchAndPounceExchange := '~ %5NN #';
+
+    RepeatSearchAndPounceExchangeR1 := '5NN #';
+    RepeatSearchAndPounceExchangeR2 := '5NN #';
+
+    SearchAndPounceExchangeR1 := '~ %5NN #';
+    SearchAndPounceExchangeR2 := '~ %5NN #';
+
+    SetCQMemoryString (CW, F3, '5NN #');
     SetCQMemoryString (CW, F3, '5NN #');
     SetExMemoryString (CW, F3, '5NN');
     SetExMemoryString (CW, F4, 'NR #');
@@ -148,7 +156,10 @@ VAR TempQTH: QTHRecord;
             ActiveZoneMult := NoZoneMults;
             ContestName := 'WRTC 2018';
             SCPMinimumLetters := 0; {KK1L: 6.68 closes SCP to WRTC}
-            CQExchange := ' $5NN ' + MyZone;
+
+            CQExchangeR1 := ' $5NN ' + MyZone;
+            CQExchangeR2 := ' $5NN ' + MyZone;
+
             ExchangeFunctionKeyMenu := 'F1-DE  F2-Ex  F3-RST  F4-Zone F5-Cl+Ex F8-EE  F9-?  Alt = Ask for his';
             NoMultMarineMobile := True;
             NoMultDxIfDomestic := True;
@@ -157,8 +168,12 @@ VAR TempQTH: QTHRecord;
             MultByMode := False;
             QSOByBand  := True;
             QSOByMode  := True;
-            RepeatSearchAndPounceExchange := '5NN ' + MyZone;
-            SearchAndPounceExchange := '~ %5NN ' + MyZone;
+
+            RepeatSearchAndPounceExchangeR1 := '5NN ' + MyZone;
+            RepeatSearchAndPounceExchangeR2 := '5NN ' + MyZone;
+
+            SearchAndPounceExchangeR1 := '~ %5NN ' + MyZone;
+            SearchAndPounceExchangeR2 := '~ %5NN ' + MyZone;
 
             SetCQMemoryString (CW, F3, '5NN ' + MyZone);
 
@@ -210,10 +225,14 @@ VAR TempQTH: QTHRecord;
         SetCQMemoryString (CW, F1, 'CQ^FD \ \ FD');
         SetCQMemoryString (CW, F2, 'CQ^FD CQ^FD \ \ FD');
 
-        CQExchange  := ' ' + MyFDClass + ' ' + MySection;
-        SearchAndPounceExchange := MyFDClass + ' ' + MySection;
+        CQExchangeR1  := ' ' + MyFDClass + ' ' + MySection;
+        CQExchangeR2  := ' ' + MyFDClass + ' ' + MySection;
 
-        QSLMessage  := '73 \ FD';
+        SearchAndPounceExchangeR1 := MyFDClass + ' ' + MySection;
+        SearchAndPounceExchangeR2 := MyFDClass + ' ' + MySection;
+
+        QSLMessageR1  := '73 \ FD';
+        QSLMessageR2  := '73 \ FD';
 
         FoundContest := True;
 
@@ -292,8 +311,11 @@ VAR TempQTH: QTHRecord;
         QSOByMode  := False;
         FoundContest := True;
 
-        CQExchange  := ' ' + MyGrid;
-        SearchAndPounceExchange := MyGrid;
+        CQExchangeR1  := ' ' + MyGrid;
+        CQExchangeR2  := ' ' + MyGrid;
+
+        SearchAndPounceExchangeR1 := MyGrid;
+        SearchAndPounceExchangeR2 := MyGrid;
         END;
 
     IF CMD = '7QP' THEN
@@ -430,15 +452,21 @@ VAR TempQTH: QTHRecord;
 
         IF MyState <> '' THEN
             BEGIN
-            CQExchange := ' 5NN ' + MyState;
+            CQExchangeR1 := ' 5NN ' + MyState;
+            CQExchangeR2 := ' 5NN ' + MyState;
+
             SetCQMemoryString (CW, F3, '5NN ' + MyState);
             SetEXMemoryString (CW, F3, '5NN');
             SetExMemoryString (CW, F4, MyState);
             SetExMemoryString (CW, F5, '@ DE \ 5NN ' + MyState);
             SetExMemoryString (CW, AltF3, 'RST?');
             SetExMemoryString (CW, AltF4, 'QTH?');
-            RepeatSearchAndPounceExchange := '5NN ' + MyState;
-            SearchAndPounceExchange := '~ %5NN ' + MyState;
+
+            RepeatSearchAndPounceExchangeR1 := '5NN ' + MyState;
+            RepeatSearchAndPounceExchangeR2 := '5NN ' + MyState;
+
+            SearchAndPounceExchangeR1 := '~ %5NN ' + MyState;
+            SearchAndPounceExchangeR2 := '~ %5NN ' + MyState;
             END
         ELSE
             SetUpRSTQSONumberExchange;
@@ -770,7 +798,10 @@ VAR TempQTH: QTHRecord;
         ActiveQSOPointMethod := CQWWQSOPointMethod;
         ActiveZoneMult := CQZones;
         ContestName := 'CQ WW Contest';
-        CQExchange := '5NN ' + MyZone;
+
+        CQExchangeR1 := '5NN ' + MyZone;
+        CQExchangeR2 := '5NN ' + MyZone;
+
         ExchangeFunctionKeyMenu := 'F1-DE Call  F2-RST#  F3-RST  F4-Zone  Alt-AskForHis  F5-Cl+Ex  AltF10-CfmCl';
         SetCQMemoryString (CW, F3, '5NN ' + MyZone);
         SetEXMemoryString (CW, F3, '5NN');
@@ -779,8 +810,11 @@ VAR TempQTH: QTHRecord;
         SetExMemoryString (CW, AltF3, 'RST?');
         SetExMemoryString (CW, AltF4, 'NR?');
 
-        RepeatSearchAndPounceExchange := '5NN ' + MyZone;
-        SearchAndPounceExchange := '~ %5NN ' + MyZone;
+        RepeatSearchAndPounceExchangeR1 := '5NN ' + MyZone;
+        RepeatSearchAndPounceExchangeR2 := '5NN ' + MyZone;
+
+        SearchAndPounceExchangeR1 := '~ %5NN ' + MyZone;
+        SearchAndPounceExchangeR2 := '~ %5NN ' + MyZone;
 
         MultByBand := True;
         MultByMode := False;
@@ -869,8 +903,12 @@ VAR TempQTH: QTHRecord;
         ActiveQSOPointMethod := OnePointPerQSO;
         ActiveZoneMult := EUHFCYear;
         ContestName := 'European HF Championship';
-        CQExchange := '5NN ' + MyZone;
+
+        CQExchangeR1 := '5NN ' + MyZone;
+        CQExchangeR2 := '5NN ' + MyZone;
+
         ExchangeFunctionKeyMenu := 'F1-DE Call  F2-RST#  F3-RST  F4-Year Alt-AskForHis  F5-Cl+Ex  AltF10-CfmCl';
+
         SetCQMemoryString (CW, F1, 'CQ EU DE \ \ ');
         SetCQMemoryString (CW, F2, 'CQ EU CQ EU \ \ TEST');
         SetCQMemoryString (CW, F3, '5NN ' + MyZone);
@@ -879,8 +917,13 @@ VAR TempQTH: QTHRecord;
         SetExMemoryString (CW, F5, '@ DE \ 5NN ' + MyZone);
         SetExMemoryString (CW, AltF3, 'RST?');
         SetExMemoryString (CW, AltF4, 'NR?');
-        RepeatSearchAndPounceExchange := '@ 5NN ' + MyZone;
-        SearchAndPounceExchange := 'TU 5NN ' + MyZone;
+
+        RepeatSearchAndPounceExchangeR1 := '@ 5NN ' + MyZone;
+        RepeatSearchAndPounceExchangeR2 := '@ 5NN ' + MyZone;
+
+        SearchAndPounceExchangeR1 := 'TU 5NN ' + MyZone;
+        SearchAndPounceExchangeR2 := 'TU 5NN ' + MyZone;
+
         MultByBand := True;
         MultByMode := False;
         QSOByBand  := True;
@@ -1052,14 +1095,21 @@ VAR TempQTH: QTHRecord;
         ActiveQSOPointMethod := IARUQSOPointMethod;
         ActiveZoneMult := ITUZones;
         ContestName := 'IARU Radiosport';
-        CQExchange := ' $5NN ' + MyZone;
+
+        CQExchangeR1 := ' $5NN ' + MyZone;
+        CQExchangeR2 := ' $5NN ' + MyZone;
+
         ExchangeFunctionKeyMenu := 'F1-DE  F2-Ex  F3-RST  F4-Zone F5-Cl+Ex F8-EE  F9-?  Alt = Ask for his';
         MultByBand := True;
         MultByMode := False;
         QSOByBand  := True;
         QSOByMode  := True;
-        RepeatSearchAndPounceExchange := '5NN ' + MyZone;
-        SearchAndPounceExchange := '~ %5NN ' + MyZone;
+
+        RepeatSearchAndPounceExchangeR1 := '5NN ' + MyZone;
+        RepeatSearchAndPounceExchangeR2 := '5NN ' + MyZone;
+
+        SearchAndPounceExchangeR1 := '~ %5NN ' + MyZone;
+        SearchAndPounceExchangeR2 := '~ %5NN ' + MyZone;
 
         SetCQMemoryString (CW, F3, '5NN ' + MyZone);
 
@@ -1125,10 +1175,17 @@ VAR TempQTH: QTHRecord;
         VisibleDupeSheetEnable := False;
         FoundContest := True;
 
-        SearchAndPounceExchange := '@ # ( ' + MyState + ' \';
-        RepeatSearchAndPounceExchange := '@ # ( ' + MyState;
-        CQExchange := ' \ # ( ' + MyState;
-        QSLMessage := 'EE';
+        SearchAndPounceExchangeR1 := '@ # ( ' + MyState + ' \';
+        SearchAndPounceExchangeR2 := '@ # ( ' + MyState + ' \';
+
+        RepeatSearchAndPounceExchangeR1 := '@ # ( ' + MyState;
+        RepeatSearchAndPounceExchangeR2 := '@ # ( ' + MyState;
+
+        CQExchangeR1 := ' \ # ( ' + MyState;
+        CQExchangeR2 := ' \ # ( ' + MyState;
+
+        QSLMessageR1 := 'EE';
+        QSLMessageR2 := 'EE';
 
         SetCQMemoryString (CW, F1,  'INT \');
         SetCQMemoryString (CW, F2, 'CQ^INT \ \ INT');
@@ -1205,13 +1262,26 @@ VAR TempQTH: QTHRecord;
 
         ExchangeFunctionKeyMenu := 'F1-DE  F2-Ex  F3-RST  F4-QTH  F5-Cl+Ex  F8-EE  F9-?  Alt = Ask for his';
 
-        CQExchange := '_~ %5NN ' + CountryTable.GetContinentName (MyContinent);
-        QSLMessage := '73 \ KCJ';
-        QSOBeforeMessage := '_SRI QSO B4 73 \ KCJ';
-        QuickQSLMessage1 := 'QSL TU EE';
-        QuickQSLMessage2 := 'TU EE';
-        RepeatSearchAndPounceExchange := '5NN ' + CountryTable.GetContinentName (MyContinent);
-        SearchAndPounceExchange := '~ %5NN ' + CountryTable.GetContinentName (MyContinent);
+        CQExchangeR1 := '_~ %5NN ' + CountryTable.GetContinentName (MyContinent);
+        CQExchangeR2 := '_~ %5NN ' + CountryTable.GetContinentName (MyContinent);
+
+        QSLMessageR1 := '73 \ KCJ';
+        QSLMessageR2 := '73 \ KCJ';
+
+        QSOBeforeMessageR1 := '_SRI QSO B4 73 \ KCJ';
+        QSOBeforeMessageR2 := '_SRI QSO B4 73 \ KCJ';
+
+        QuickQSLMessage1R1 := 'QSL TU EE';
+        QuickQSLMessage1R2 := 'QSL TU EE';
+        QuickQSLMessage2R1 := 'TU EE';
+        QuickQSLMessage2R2 := 'TU EE';
+
+        RepeatSearchAndPounceExchangeR1 := '5NN ' + CountryTable.GetContinentName (MyContinent);
+        RepeatSearchAndPounceExchangeR2 := '5NN ' + CountryTable.GetContinentName (MyContinent);
+
+        SearchAndPounceExchangeR1 := '~ %5NN ' + CountryTable.GetContinentName (MyContinent);
+        SearchAndPounceExchangeR2 := '~ %5NN ' + CountryTable.GetContinentName (MyContinent);
+
         SetCQMemoryString (CW, F1, 'CQTEST CQKCJ  \ \ KCJ');
         SetCQMemoryString (CW, F2, 'CQKCJ CQTEST CQKCJ  \  \  \ KCJ');
 
@@ -1250,7 +1320,10 @@ VAR TempQTH: QTHRecord;
         ActiveQSOPointMethod := OnePhoneTwoCW;
         ActiveZoneMult := BranchZones;
         ContestName := 'KV Prvenstvo ZRS';
-        CQExchange := '5NN ' + MyZone;
+
+        CQExchangeR1 := '5NN ' + MyZone;
+        CQExchangeR2 := '5NN ' + MyZone;
+
         ExchangeFunctionKeyMenu := 'F1-DE Call  F2-RST#  F3-RST  F4-Leto  Alt-AskForHis  F5-Cl+Ex  AltF10-CfmCl';
         SetCQMemoryString (CW, F1, 'CQ ZRS DE \ \ ');
         SetCQMemoryString (CW, F2, 'CQ ZRS CQ ZRS \ \ TEST');
@@ -1260,8 +1333,13 @@ VAR TempQTH: QTHRecord;
         SetExMemoryString (CW, F5, '@ DE \ 5NN ' + MyZone);
         SetExMemoryString (CW, AltF3, 'RST?');
         SetExMemoryString (CW, AltF4, 'NR?');
-        RepeatSearchAndPounceExchange := '@ 5NN ' + MyZone;
-        SearchAndPounceExchange := 'TU 5NN ' + MyZone;
+
+        RepeatSearchAndPounceExchangeR1 := '@ 5NN ' + MyZone;
+        RepeatSearchAndPounceExchangeR2 := '@ 5NN ' + MyZone;
+
+        SearchAndPounceExchangeR1 := 'TU 5NN ' + MyZone;
+        SearchAndPounceExchangeR2 := 'TU 5NN ' + MyZone;
+
         MultByBand := True;
         MultByMode := True;
         MultipleBandsEnabled := False;
@@ -1390,12 +1468,23 @@ VAR TempQTH: QTHRecord;
         QSOByMode := False;
         FoundContest := True;
 
-        CQExchange := ' ' + MyName + ' ' + MyState;
-        QSLMessage := '73 \ NA>';
-        QuickQSLMessage1 := 'TU';
-        QSOBeforeMessage := ' QSO B4 \ NA';
-        SearchAndPounceExchange := MyName + ' ' + MyState;
-        CorrectedCallMessage := '} R';
+        CQExchangeR1 := ' ' + MyName + ' ' + MyState;
+        CQExchangeR2 := ' ' + MyName + ' ' + MyState;
+
+        QSLMessageR1 := '73 \ NA>';
+        QSLMessageR2 := '73 \ NA>';
+
+        QuickQSLMessage1R1 := 'TU';
+        QuickQSLMessage1R2 := 'TU';
+
+        QSOBeforeMessageR1 := ' QSO B4 \ NA';
+        QSOBeforeMessageR2 := ' QSO B4 \ NA';
+
+        SearchAndPounceExchangeR1 := MyName + ' ' + MyState;
+        SearchAndPounceExchangeR2 := MyName + ' ' + MyState;
+
+        CorrectedCallMessageR1 := '} R';
+        CorrectedCallMessageR2 := '} R';
 
         SetCQMemoryString (CW, F1, 'CQ^NA \ \ NA>');
         SetCQMemoryString (CW, F2, 'CQ^NA CQ^NA \ \ NA>');
@@ -1666,10 +1755,17 @@ VAR TempQTH: QTHRecord;
         QSOByBand := True;
         FoundContest := True;
 
-        CQExchange := '_~ %5NN ' + MyPostalCode;
+        CQExchangeR1 := '_~ %5NN ' + MyPostalCode;
+        CQExchangeR2 := '_~ %5NN ' + MyPostalCode;
+
         ExchangeFunctionKeyMenu := 'F1-DE+Cl  F2-Ex  F3-RST  F4-Postal F5-Cl+Ex  F8-EE  F9-?  Alt-AskforHis';
-        RepeatSearchAndPounceExchange := '5NN (';
-        SearchAndPounceExchange := '~ %5NN (';
+
+        RepeatSearchAndPounceExchangeR1 := '5NN (';
+        RepeatSearchAndPounceExchangeR2 := '5NN (';
+
+        SearchAndPounceExchangeR1 := '~ %5NN (';
+        SearchAndPounceExchangeR2 := '~ %5NN (';
+
         SetCQMemoryString (CW, F3, '5NN (');
         SetExMemoryString (CW, F3, '5NN');
         SetExMemoryString (CW, F4, '(');
@@ -1797,13 +1893,26 @@ VAR TempQTH: QTHRecord;
 
         SetCQMemoryString (CW, AltF1,  'NA \ NA');
 
-        CQExchange := '^\ # ' + MyName + ' ' + MyState;
-        QSLMessage := 'TU';
-        QuickQSLMessage1 := 'EE';
-        QSOBeforeMessage := 'B4 \ NA';
-        SearchAndPounceExchange := '@ # ' + MyName + ' ' + MyState + ' \';
-        RepeatSearchAndPounceExchange := '# ' + MyName + ' ' + MyState;
-        CorrectedCallMessage := '} R';
+        CQExchangeR1 := '^\ # ' + MyName + ' ' + MyState;
+        CQExchangeR2 := '^\ # ' + MyName + ' ' + MyState;
+
+        QSLMessageR1 := 'TU';
+        QSLMessageR2 := 'TU';
+
+        QuickQSLMessage1R1 := 'EE';
+        QuickQSLMessage1R2 := 'EE';
+
+        QSOBeforeMessageR1 := 'B4 \ NA';
+        QSOBeforeMessageR2 := 'B4 \ NA';
+
+        SearchAndPounceExchangeR1 := '@ # ' + MyName + ' ' + MyState + ' \';
+        SearchAndPounceExchangeR2 := '@ # ' + MyName + ' ' + MyState + ' \';
+
+        RepeatSearchAndPounceExchangeR1 := '# ' + MyName + ' ' + MyState;
+        RepeatSearchAndPounceExchangeR2 := '# ' + MyName + ' ' + MyState;
+
+        CorrectedCallMessageR1 := '} R';
+        CorrectedCallMessageR2 := '} R';
 
         SetCQMemoryString (CW, F1,  'NA \');
         SetCQMemoryString (CW, F2,  'CQ^NA CQ^NA \ \ NA');
@@ -1853,13 +1962,26 @@ VAR TempQTH: QTHRecord;
 
         SetCQMemoryString (CW, AltF1,  'NA \ NA');
 
-        CQExchange := '^\ # ' + MyName + ' ' + MyState;
-        QSLMessage := 'TU';
-        QuickQSLMessage1 := 'EE';
-        QSOBeforeMessage := 'B4 \ NA';
-        SearchAndPounceExchange := '@ # ' + MyName + ' ' + MyState + ' \';
-        RepeatSearchAndPounceExchange := '# ' + MyName + ' ' + MyState;
-        CorrectedCallMessage := '} R';
+        CQExchangeR1 := '^\ # ' + MyName + ' ' + MyState;
+        CQExchangeR2 := '^\ # ' + MyName + ' ' + MyState;
+
+        QSLMessageR1 := 'TU';
+        QSLMessageR2 := 'TU';
+
+        QuickQSLMessage1R1 := 'EE';
+        QuickQSLMessage1R2 := 'EE';
+
+        QSOBeforeMessageR1 := 'B4 \ NA';
+        QSOBeforeMessageR2 := 'B4 \ NA';
+
+        SearchAndPounceExchangeR1 := '@ # ' + MyName + ' ' + MyState + ' \';
+        SearchAndPounceExchangeR2 := '@ # ' + MyName + ' ' + MyState + ' \';
+
+        RepeatSearchAndPounceExchangeR1 := '# ' + MyName + ' ' + MyState;
+        RepeatSearchAndPounceExchangeR2 := '# ' + MyName + ' ' + MyState;
+
+        CorrectedCallMessageR1 := '} R';
+        CorrectedCallMessageR2 := '} R';
 
         SetCQMemoryString (CW, F1,  'NA \');
         SetCQMemoryString (CW, F2,  'CQ^NA CQ^NA \ \ NA');
@@ -1937,19 +2059,32 @@ VAR TempQTH: QTHRecord;
 
         SetCQMemoryString (CW, AltF1,  'CQ^SS \ SS');
 
-        CQExchange := '_# ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
+        CQExchangeR1 := '_# ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
+        CQExchangeR2 := '_# ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
 
-        SearchAndPounceExchange := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
-        RepeatSearchAndPounceExchange := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
+        SearchAndPounceExchangeR1 := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
+        SearchAndPounceExchangeR2 := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
 
-        QSLMessage := '73 ' + MyCall + ' SS>';
-        QSOBeforeMessage := 'SRI QSO ' + MyCall + ' SS';
+        RepeatSearchAndPounceExchangeR1 := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
+        RepeatSearchAndPounceExchangeR2 := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
 
-        QuickQSLMessage1 := 'TU>';
+        QSLMessageR1 := '73 ' + MyCall + ' SS>';
+        QSLMessageR2 := '73 ' + MyCall + ' SS>';
 
-        SearchAndPounceExchange := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
-        RepeatSearchAndPounceExchange := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
-        CorrectedCallMessage := '} R';
+        QSOBeforeMessageR1 := 'SRI QSO ' + MyCall + ' SS';
+        QSOBeforeMessageR2 := 'SRI QSO ' + MyCall + ' SS';
+
+        QuickQSLMessage1R1 := 'TU>';
+        QuickQSLMessage1R2 := 'TU>';
+
+        SearchAndPounceExchangeR1 := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
+        SearchAndPounceExchangeR2 := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
+
+        RepeatSearchAndPounceExchangeR1 := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
+        RepeatSearchAndPounceExchangeR2 := 'NR # ' + MyPrec + ' ' + MyCall + ' ' + MyCheck + ' ' + MySection;
+
+        CorrectedCallMessageR1 := '} R';
+        CorrectedCallMessageR2 := '} R';
 
         SetCQMemoryString (CW, F1, 'SS ' + MyCall + ' SS>');
         SetCQMemoryString (CW, F2, 'CQ^SS ' + MyCall + ' ' + MyCall + ' SS>');

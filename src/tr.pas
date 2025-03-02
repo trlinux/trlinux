@@ -57,6 +57,43 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+1-March-2025
+ - Function Key Memories are now stored by radio.  When using Alt-P, you
+   will be shown the memories for the ActiveRadio (or in TBSIQ - for the
+   radio that corresponds to the keyboard being used).  Changes made with
+   Alt-P will only be made to the specific radio.
+
+   Backwards compatability is maintained for the old LOGCFG commands that do
+   not specify a radio.  They will be loaded in for both radios.
+
+   For the config commands - the old ones look like this:
+
+   EX MEMORY F1 = xxxxx
+   EX CW MEMORY F1 = xxxxx
+   EX SSB MEMORY F1 = xxxxx
+   EX DIGITAL MEMORY F1 = xxxxx
+
+   and the radio specific ones look like this:
+
+   EX MEMORY RADIO1 AltF1 = xxxx
+   EX CW RADIO1 MEMORY F1 = xxxxx
+   EX SSB RADIO1 MEMORY F1 = xxxxx
+   EX DIGITAL RADIO1 MEMORY F1 = xxxxx
+
+   The same applies to the various message in the (O)ther memories such
+   as QSL MESSAGE.
+
+   QSL MESSAGE = xxxx   <- will program both Radio1 and Radio2
+   QSL MESSAGE RADIO1 = xxxx
+   QSL MESSAGE RADIO2 = yyyy
+
+   As always - you have to be careful with the order of commands in
+   the STDCFG and LOGCFG files.  Doing this will not likely give you
+   what you want:
+
+   TAIL END MESSAGE RADIO1 = xxx
+   TAIL END MESSAGE = yyy           <- This will be for both radios
+
 20-Feb-2025
  - Deleted some obsolete routines in the Post Log menu.
 

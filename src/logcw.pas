@@ -25,13 +25,14 @@ UNIT LogCW;
 
 INTERFACE
 
-USES N4OGW, SlowTree, Tree, LogWind, Dos, LogK1EA, trCrt,communication,keycode;
+USES Radio, N4OGW, SlowTree, Tree, LogWind, Dos, LogK1EA, trCrt,communication,keycode;
 
 TYPE
      SendBufferType = ARRAY [0..255] OF Char;
 
      MessagePointer = ^Str80;
-     FunctionKeyMemoryArray = ARRAY [CW..PHONE, F1..AltF12] OF MessagePointer;
+
+     FunctionKeyMemoryArray = ARRAY [RadioType, CW..PHONE, F1..AltF12] OF MessagePointer;
 
      CWMessageCommandType = (NoCWCommand,
                              CWCommandControlEnter,
@@ -45,13 +46,24 @@ VAR
 
     AutoSidetoneLevel: INTEGER;  { Zero defeats the function }
 
-    CorrectedCallMessage:      Str80;
-    CorrectedCallPhoneMessage: Str80;
+    CorrectedCallMessageR1:    Str80;
+    CorrectedCallMessageR2:    Str80;
 
-    CQExchange:               Str160;
-    CQExchangeNameKnown:      Str160;
-    CQPhoneExchange:          Str80;
-    CQPhoneExchangeNameKnown: Str80;
+    CorrectedCallPhoneMessageR1: Str80;
+    CorrectedCallPhoneMessageR2: Str80;
+
+    CQExchangeR1:             Str160;
+    CQExchangeR2:             Str160;
+
+    CQExchangeNameKnownR1:    Str160;
+    CQExchangeNameKnownR2:    Str160;
+
+    CQPhoneExchangeR1:        Str80;
+    CQPhoneExchangeR2:        Str80;
+
+    CQPhoneExchangeNameKnownR1: Str80;
+    CQPhoneExchangeNameKnownR2: Str80;
+
     CWEnable:                 BOOLEAN;
     CWMessageCommand:         CWMessageCommandType;
     CWMessageDone:            BOOLEAN;  { Indicates that if you were sending a message - it is done now }
@@ -59,6 +71,7 @@ VAR
     CWTone: INTEGER;
 
     CQMemory:  FunctionKeyMemoryArray;
+
     DetectedPaddleActivityR1: BOOLEAN;
     DetectedPaddleActivityR2: BOOLEAN;
 
@@ -73,22 +86,43 @@ VAR
 
     NeedToSetCQMode:       BOOLEAN; {KK1L: 6.69 This variable is used to leap around some AutoS&PMode code.}
 
-    QSLMessage:            Str160;
-    QSLPhoneMessage:       Str80;
-    QSOBeforeMessage:      Str160;
-    QSOBeforePhoneMessage: Str80;
-    QuickQSLPhoneMessage:  Str80;
-    QuickQSLMessage1:      Str80;
-    QuickQSLMessage2:      Str80;
+    QSLMessageR1:          Str160;
+    QSLMessageR2:          Str160;
+
+    QSLPhoneMessageR1:     Str80;
+    QSLPhoneMessageR2:     Str80;
+
+    QSOBeforeMessageR1:    Str160;
+    QSOBeforeMessageR2:    Str160;
+
+    QSOBeforePhoneMessageR1: Str80;
+    QSOBeforePhoneMessageR2: Str80;
+
+    QuickQSLPhoneMessageR1:  Str80;
+    QuickQSLPhoneMessageR2:  Str80;
+
+    QuickQSLMessage1R1:      Str80;
+    QuickQSLMessage1R2:      Str80;
+
+    QuickQSLMessage2R1:      Str80;
+    QuickQSLMessage2R2:      Str80;
 
     RememberCWSpeed:         INTEGER;
-    RepeatSearchAndPounceExchange: Str80;
-    RepeatSearchAndPouncePhoneExchange: Str80;
+
+    RepeatSearchAndPounceExchangeR1: Str80;
+    RepeatSearchAndPounceExchangeR2: Str80;
+
+    RepeatSearchAndPouncePhoneExchangeR1: Str80;
+    RepeatSearchAndPouncePhoneExchangeR2: Str80;
 
     RTTYTransmissionStarted: BOOLEAN;
 
-    SearchAndPounceExchange: Str80;
-    SearchAndPouncePhoneExchange: Str80;
+    SearchAndPounceExchangeR1: Str80;
+    SearchAndPounceExchangeR2: Str80;
+
+    SearchAndPouncePhoneExchangeR1: Str80;
+    SearchAndPouncePhoneExchangeR2: Str80;
+
     SendingOnRadioOne: BOOLEAN; {KK1L: 6.72 Moved from local (IMPLIMENTATION section) for use in LOGSUBS}
     SendingOnRadioTwo: BOOLEAN; {KK1L: 6.72 Moved from local (IMPLIMENTATION section) for use in LOGSUBS}
 
@@ -96,8 +130,12 @@ VAR
     Short1: CHAR;
     Short2: CHAR;
     Short9: CHAR;
-    TailEndMessage: Str80;
-    TailEndPhoneMessage: Str80;
+
+    TailEndMessageR1: Str80;
+    TailEndMessageR2: Str80;
+
+    TailEndPhoneMessageR1: Str80;
+    TailEndPhoneMessageR2: Str80;
 
 
 
@@ -117,10 +155,10 @@ VAR
 
     PROCEDURE InitializeKeyer;
 
-    FUNCTION  GetCQMemoryString (Mode: ModeType; Key: CHAR): Str80;{KK1L: 6.73 Added mode}
-    FUNCTION  GetEXMemoryString (Mode: ModeType; Key: CHAR): Str80;{KK1L: 6.73 Added mode}
+    FUNCTION  GetCQMemoryString (Radio: RadioType; Mode: ModeType; Key: CHAR): Str80;{KK1L: 6.73 Added mode}
+    FUNCTION  GetEXMemoryString (Radio: RadioType; Mode: ModeType; Key: CHAR): Str80;{KK1L: 6.73 Added mode}
 
-    PROCEDURE MemoryProgram;
+    PROCEDURE MemoryProgram (Radio: RadioType; Mode: ModeType);
 
     PROCEDURE PTTForceOn;
 
@@ -133,6 +171,8 @@ VAR
     PROCEDURE SetSpeed (Speed: INTEGER);
     PROCEDURE SetCQMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
     PROCEDURE SetEXMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
+    PROCEDURE SetCQMemoryStringRadio (Radio: RadioType; Mode: ModeType; Key: CHAR; MemoryString: Str80);
+    PROCEDURE SetEXMemoryStringRadio (Radio: RadioType; Mode: ModeType; Key: CHAR; MemoryString: Str80);
     PROCEDURE SetNewCodeSpeed;
     PROCEDURE SetUpToSendOnActiveRadio;
     PROCEDURE SetUpToSendOnInactiveRadio;
@@ -144,7 +184,7 @@ VAR
 
 IMPLEMENTATION
 
-USES CfgCmd,radio,timer,so2r,sysutils;
+USES CfgCmd,timer,so2r,sysutils;
 
 TYPE
      SendData = RECORD
@@ -157,6 +197,26 @@ TYPE
 VAR KeyStatus: KeyStatusType;
     {SendingOnRadioOne: BOOLEAN;} {KK1L: 6.72 Moved to global (INTERFACE section) for use in LOGSUBS}
     {SendingOnRadioTwo: BOOLEAN;} {KK1L: 6.72 Moved to global (INTERFACE section) for use in LOGSUBS}
+
+
+
+PROCEDURE SetCQMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
+
+    BEGIN
+    SetCQMemoryStringRadio (NoRadio, Mode, Key, MemoryString);
+    SetCQMemoryStringRadio (RadioOne, Mode, Key, MemoryString);
+    SetCQMemoryStringRadio (RadioTwo, Mode, Key, MemoryString);
+    END;
+
+
+
+PROCEDURE SetEXMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
+
+    BEGIN
+    SetEXMemoryStringRadio (NoRadio, Mode, Key, MemoryString);
+    SetEXMemoryStringRadio (RadioOne, Mode, Key, MemoryString);
+    SetEXMemoryStringRadio (RadioTwo, Mode, Key, MemoryString);
+    END;
 
 
 
@@ -873,34 +933,34 @@ PROCEDURE DisplayCrypticSSBMenu;
 
 
 
-PROCEDURE ShowCQFunctionKeyStatus;
+PROCEDURE ShowCQFunctionKeyStatus (Radio: RadioType; Mode: ModeType);
 
 VAR Key: CHAR;
     TempString: Str160;
-    modetmp: modetype;
 
     BEGIN
     { We use CW CQ Function Keys for Digital }
 
-    if ActiveMode = Digital THEN
-        modetmp := CW
-    else
-        modetmp := ActiveMode;
+    IF Mode = Digital THEN Mode := CW;
 
     GoToXY (1, 1);
 
     CASE KeyStatus OF
         NormalKeys:
             BEGIN
-            WriteLnCenter ('CQ ' + ModeString [modetmp] + ' FUNCTION KEY MEMORY STATUS');
+            CASE Radio OF
+                NoRadio:  WriteLnCenter ('CQ ' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioOne: WriteLnCenter ('RADIO ONE CQ ' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioTwo: WriteLnCenter ('RADIO TWO CQ ' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                END;
 
             FOR Key := F1 TO F10 DO
                 BEGIN
                 Str (Ord (Key) - Ord (F1) + 1, TempString);
                 TempString := 'F' + TempString +  ' - ';
 
-                IF GetCQMemoryString (modetmp, Key) <> '' THEN
-                    TempString := TempString + GetCQMemoryString (modetmp, Key);
+                IF GetCQMemoryString (Radio, Mode, Key) <> '' THEN
+                    TempString := TempString + GetCQMemoryString (Radio, Mode, Key);
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
@@ -912,15 +972,19 @@ VAR Key: CHAR;
 
         AltKeys:
             BEGIN
-            WriteLnCenter ('ALT-CQ ' + ModeString [modetmp] + ' FUNCTION KEY MEMORY STATUS');
+            CASE Radio OF
+                NoRadio:  WriteLnCenter ('ALT-CQ ' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioOne: WriteLnCenter ('RADIO ONE ALT-CQ ' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioTwo: WriteLnCenter ('RADIO TWO ALT-CQ ' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                END;
 
             FOR Key := AltF1 TO AltF10 DO
                 BEGIN
                 Str (Ord (Key) - Ord (AltF1) + 1, TempString);
                 TempString := 'Alt-F' + TempString +  ' - ';
 
-                IF GetCQMemoryString (modetmp, Key) <> '' THEN {KK1L: 6.73 Added Mode}
-                    TempString := TempString + GetCQMemoryString (modetmp, Key); {KK1L: 6.73 Added Mode}
+                IF GetCQMemoryString (Radio, Mode, Key) <> '' THEN {KK1L: 6.73 Added Mode}
+                    TempString := TempString + GetCQMemoryString (Radio, Mode, Key); {KK1L: 6.73 Added Mode}
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
@@ -932,15 +996,19 @@ VAR Key: CHAR;
 
         ControlKeys:
             BEGIN
-            WriteLnCenter ('CONTROL-CQ ' + ModeString [modetmp] + ' FUNCTION KEY MEMORY STATUS');
+            CASE Radio OF
+                NoRadio:  WriteLnCenter ('CONTROL-CQ ' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioOne: WriteLnCenter ('RADIO ONE CONTROL-CQ ' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioTwo: WriteLnCenter ('RADIO TWO CONTROL-CQ ' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                END;
 
             FOR Key := ControlF1 TO ControlF10 DO
                 BEGIN
                 Str (Ord (Key) - Ord (ControlF1) + 1, TempString);
                 TempString := 'Ctrl-F' + TempString +  ' - ';
 
-                IF GetCQMemoryString (modetmp, Key) <> '' THEN {KK1L: 6.73 Added mode}
-                    TempString := TempString + GetCQMemoryString (modetmp, Key); {KK1L: 6.73 Added mode}
+                IF GetCQMemoryString (Radio, Mode, Key) <> '' THEN {KK1L: 6.73 Added mode}
+                    TempString := TempString + GetCQMemoryString (Radio, Mode, Key); {KK1L: 6.73 Added mode}
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
@@ -954,7 +1022,7 @@ VAR Key: CHAR;
 
 
 
-PROCEDURE ShowExFunctionKeyStatus;
+PROCEDURE ShowExFunctionKeyStatus (Radio: RadioType; Mode: ModeType);
 
 VAR Key: CHAR;
     TempString: Str160;
@@ -962,10 +1030,16 @@ VAR Key: CHAR;
     BEGIN
     GoToXY (1, 1);
 
+    IF Mode = Digital THEN Mode := CW;
+
     CASE KeyStatus OF
         NormalKeys:
             BEGIN
-            WriteLnCenter ('EXCHANGE ' + ModeString [ActiveMode] + ' FUNCTION KEY MEMORY STATUS');
+            CASE Radio OF
+                NoRadio:  WriteLnCenter ('EXCHANGE' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioOne: WriteLnCenter ('RADIO ONE EXCHANGE' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioTwo: WriteLnCenter ('RADIO TWO EXCHANGE' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                END;
 
             IF ActiveMode = CW THEN
                 BEGIN
@@ -977,8 +1051,8 @@ VAR Key: CHAR;
                     Str (Ord (Key) - Ord (F1) + 1, TempString);
                     TempString := 'F' + TempString +  ' - ';
 
-                    IF GetEXMemoryString (CW, Key) <> '' THEN
-                        TempString := TempString + GetEXMemoryString (CW, Key);
+                    IF GetEXMemoryString (Radio, CW, Key) <> '' THEN
+                        TempString := TempString + GetEXMemoryString (Radio, CW, Key);
 
                     IF Length (TempString) > 79 THEN
                         TempString := Copy (TempString, 1, 78) + '+';
@@ -993,8 +1067,8 @@ VAR Key: CHAR;
                     Str (Ord (Key) - Ord (F1) + 1, TempString);
                     TempString := 'F' + TempString +  ' - ';
 
-                    IF GetExMemoryString (ActiveMode, Key) <> '' THEN
-                        TempString := TempString + GetExMemoryString (ActiveMode, Key);
+                    IF GetExMemoryString (Radio, Mode, Key) <> '' THEN
+                        TempString := TempString + GetExMemoryString (Radio, Mode, Key);
 
                     IF Length (TempString) > 79 THEN
                         TempString := Copy (TempString, 1, 78) + '+';
@@ -1006,15 +1080,19 @@ VAR Key: CHAR;
 
         AltKeys:
             BEGIN
-            WriteLnCenter ('ALT-EXCHANGE ' + ModeString [ActiveMode] + ' FUNCTION KEY MEMORY STATUS');
+            CASE Radio OF
+                NoRadio:  WriteLnCenter ('ALT-EXCHANGE' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioOne: WriteLnCenter ('RADIO ONE ALT-EXCHANGE' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioTwo: WriteLnCenter ('RADIO TWO ALT-EXCHANGE' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                END;
 
             FOR Key := AltF1 TO AltF10 DO
                 BEGIN
                 Str (Ord (Key) - Ord (AltF1) + 1, TempString);
                 TempString := 'Alt-F' + TempString +  ' - ';
 
-                IF GetExMemoryString (ActiveMode, Key) <> '' THEN
-                    TempString := TempString + GetExMemoryString (ActiveMode, Key);
+                IF GetExMemoryString (Radio, ActiveMode, Key) <> '' THEN
+                    TempString := TempString + GetExMemoryString (Radio, Mode, Key);
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
@@ -1026,15 +1104,19 @@ VAR Key: CHAR;
 
         ControlKeys:
             BEGIN
-            WriteLnCenter ('CONTROL-EXCHANGE FUNCTION KEY MEMORY STATUS');
+            CASE Radio OF
+                NoRadio:  WriteLnCenter ('CONTROL-EXCHANGE' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioOne: WriteLnCenter ('RADIO ONE CONTROL-EXCHANGE' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                RadioTwo: WriteLnCenter ('RADIO TWO CONTROL-EXCHANGE' + ModeString [Mode] + ' FUNCTION KEY MEMORY STATUS');
+                END;
 
             FOR Key := ControlF1 TO ControlF10 DO
                 BEGIN
                 Str (Ord (Key) - Ord (ControlF1) + 1, TempString);
                 TempString := 'Ctrl-F' + TempString +  ' - ';
 
-                IF GetExMemoryString (ActiveMode, Key) <> '' THEN
-                    TempString := TempString + GetExMemoryString (ActiveMode, Key);
+                IF GetExMemoryString (Radio, ActiveMode, Key) <> '' THEN
+                    TempString := TempString + GetExMemoryString (Radio, Mode, Key);
 
                 IF Length (TempString) > 79 THEN
                     TempString := Copy (TempString, 1, 78) + '+';
@@ -1048,136 +1130,271 @@ VAR Key: CHAR;
 
 
 
-PROCEDURE ShowOtherMemoryStatus;
+PROCEDURE ShowOtherMemoryStatus (Radio: RadioType; Mode: ModeType);
 
 VAR TempString: Str160;
 
     BEGIN
-    IF (ActiveMode = CW) OR (ActiveMode = Digital) THEN
-        BEGIN
-        GoToXY (1, 1);
-        WriteLnCenter ('OTHER CW/DIGITAL MESSAGE MEMORY STATUS');
-
-        ClrEol;
-        TempString := ' 1. Call Okay Now - ' + CorrectedCallMessage;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl (TempString);
-
-        ClrEol;
-
-        IF ActiveMode = CW THEN
+    CASE RADIO OF
+        RadioOne:
             BEGIN
-            TempString := ' 2. CQ Exchange   - ' + CQExchange;
-            IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-            WriteLnControl (TempString);
-            END
-        ELSE
-            WriteLn ('2. Use Exchange Memory F2 for Digital CQ Exchange');
+            IF (ActiveMode = CW) OR (ActiveMode = Digital) THEN
+                BEGIN
+                GoToXY (1, 1);
+                WriteLnCenter ('OTHER CW/DIGITAL MESSAGE MEMORY STATUS RADIO ONE');
 
-        ClrEol;
-        TempString := ' 3. CQ Ex Name    - ' + CQExchangeNameKnown;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                ClrEol;
+                TempString := ' 1. Call Okay Now - ' + CorrectedCallMessageR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl (TempString);
 
-        ClrEol;
-        TempString := ' 4. QSL Message   - ' + QSLMessage;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                ClrEol;
 
-        ClrEol;
-        TempString := ' 5. QSO Before    - ' + QSOBeforeMessage;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                IF ActiveMode = CW THEN
+                    BEGIN
+                    TempString := ' 2. CQ Exchange   - ' + CQExchangeR1;
+                    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                    WriteLnControl (TempString);
+                    END
+                ELSE
+                    WriteLn ('2. Use Exchange Memory F2 for Digital CQ Exchange');
 
-        ClrEol;
-        TempString := ' 6. Quick QSL     - ' + QuickQSLMessage1;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                ClrEol;
+                TempString := ' 3. CQ Ex Name    - ' + CQExchangeNameKnownR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
 
-        IF ActiveMode = CW THEN
+                ClrEol;
+                TempString := ' 4. QSL Message   - ' + QSLMessageR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 5. QSO Before    - ' + QSOBeforeMessageR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 6. Quick QSL     - ' + QuickQSLMessage1R1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                IF ActiveMode = CW THEN
+                    BEGIN
+                    ClrEol;
+                    TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPounceExchangeR1;
+                    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                    WriteLnControl(TempString);
+                    END
+                ELSE
+                    Write ('7. Use Exchange Memory F3 for REPEAT S&P Exchange');
+
+                IF ActiveMode = CW THEN
+                    BEGIN
+                    ClrEol;
+                    TempString := ' 8. S&P Exchange  - ' + SearchAndPounceExchangeR1;
+                    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                    WriteLnControl (TempString);
+                    END
+                ELSE
+                    WriteLn ('8. Use Exchange Memory F2 for S&P Exchange');
+
+                ClrEol;
+                TempString := ' 9. Tail end msg  - ' + TailEndMessageR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                Write   ('A. Short 0 = ', Short0, '   ',
+                         'B. Short 1 = ', Short1, '   ',
+                         'C. Short 2 = ', Short2, '   ',
+                         'D. Short 9 = ', Short9);
+                END
+
+            ELSE  { Phone mode }
+                BEGIN
+                GoToXY (1, 1);
+                WriteLnCenter ('OTHER SSB MESSAGE MEMORY STATUS RADIO ONE');
+
+                ClrEol;
+                TempString := ' 1. Call Okay Now - ' + CorrectedCallPhoneMessageR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 2. CQ Exchange   - ' + CQPhoneExchangeR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 3. CQ Ex Name    - ' + CQPhoneExchangeNameKnownR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 4. QSL Message   - ' + QSLPhoneMessageR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 5. QSO Before    - ' + QSOBeforePhoneMessageR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 6. Quick QSL     - ' + QuickQSLPhoneMessageR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPouncePhoneExchangeR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 8. S&P Exchange  - ' + SearchAndPouncePhoneExchangeR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl (TempString);
+
+                ClrEol;
+                TempString := ' 9. Tail end msg  - ' + TailEndPhoneMessageR1;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl (TempString);
+
+                ClrEol;
+                END;
+            END;
+
+        RadioTwo:
             BEGIN
-            ClrEol;
-            TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPounceExchange;
-            IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-            WriteLnControl(TempString);
-            END
-        ELSE
-            Write ('7. Use Exchange Memory F3 for REPEAT S&P Exchange');
+            IF (ActiveMode = CW) OR (ActiveMode = Digital) THEN
+                BEGIN
+                GoToXY (1, 1);
+                WriteLnCenter ('OTHER CW/DIGITAL MESSAGE MEMORY STATUS RADIO TWO');
 
-        IF ActiveMode = CW THEN
-            BEGIN
-            ClrEol;
-            TempString := ' 8. S&P Exchange  - ' + SearchAndPounceExchange;
-            IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-            WriteLnControl (TempString);
-            END
-        ELSE
-            WriteLn ('8. Use Exchange Memory F2 for S&P Exchange');
+                ClrEol;
+                TempString := ' 1. Call Okay Now - ' + CorrectedCallMessageR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl (TempString);
 
-        ClrEol;
-        TempString := ' 9. Tail end msg  - ' + TailEndMessage;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                ClrEol;
 
-        ClrEol;
-        Write   ('A. Short 0 = ', Short0, '   ',
-                 'B. Short 1 = ', Short1, '   ',
-                 'C. Short 2 = ', Short2, '   ',
-                 'D. Short 9 = ', Short9);
-        END
+                IF ActiveMode = CW THEN
+                    BEGIN
+                    TempString := ' 2. CQ Exchange   - ' + CQExchangeR2;
+                    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                    WriteLnControl (TempString);
+                    END
+                ELSE
+                    WriteLn ('2. Use Exchange Memory F2 for Digital CQ Exchange');
 
-    ELSE  { Phone mode }
-        BEGIN
-        GoToXY (1, 1);
-        WriteLnCenter ('OTHER SSB MESSAGE MEMORY STATUS');
+                ClrEol;
+                TempString := ' 3. CQ Ex Name    - ' + CQExchangeNameKnownR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
 
-        ClrEol;
-        TempString := ' 1. Call Okay Now - ' + CorrectedCallPhoneMessage;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                ClrEol;
+                TempString := ' 4. QSL Message   - ' + QSLMessageR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
 
-        ClrEol;
-        TempString := ' 2. CQ Exchange   - ' + CQPhoneExchange;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                ClrEol;
+                TempString := ' 5. QSO Before    - ' + QSOBeforeMessageR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
 
-        ClrEol;
-        TempString := ' 3. CQ Ex Name    - ' + CQPhoneExchangeNameKnown;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                ClrEol;
+                TempString := ' 6. Quick QSL     - ' + QuickQSLMessage1R2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
 
-        ClrEol;
-        TempString := ' 4. QSL Message   - ' + QSLPhoneMessage;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                IF ActiveMode = CW THEN
+                    BEGIN
+                    ClrEol;
+                    TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPounceExchangeR2;
+                    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                    WriteLnControl(TempString);
+                    END
+                ELSE
+                    Write ('7. Use Exchange Memory F3 for REPEAT S&P Exchange');
 
-        ClrEol;
-        TempString := ' 5. QSO Before    - ' + QSOBeforePhoneMessage;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                IF ActiveMode = CW THEN
+                    BEGIN
+                    ClrEol;
+                    TempString := ' 8. S&P Exchange  - ' + SearchAndPounceExchangeR2;
+                    IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                    WriteLnControl (TempString);
+                    END
+                ELSE
+                    WriteLn ('8. Use Exchange Memory F2 for S&P Exchange');
 
-        ClrEol;
-        TempString := ' 6. Quick QSL     - ' + QuickQSLPhoneMessage;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                ClrEol;
+                TempString := ' 9. Tail end msg  - ' + TailEndMessageR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
 
-        ClrEol;
-        TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPouncePhoneExchange;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl(TempString);
+                ClrEol;
+                Write   ('A. Short 0 = ', Short0, '   ',
+                         'B. Short 1 = ', Short1, '   ',
+                         'C. Short 2 = ', Short2, '   ',
+                         'D. Short 9 = ', Short9);
+                END
 
-        ClrEol;
-        TempString := ' 8. S&P Exchange  - ' + SearchAndPouncePhoneExchange;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl (TempString);
+            ELSE  { Phone mode }
+                BEGIN
+                GoToXY (1, 1);
+                WriteLnCenter ('OTHER SSB MESSAGE MEMORY STATUS RADIO TWO');
 
-        ClrEol;
-        TempString := ' 9. Tail end msg  - ' + TailEndPhoneMessage;
-        IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
-        WriteLnControl (TempString);
+                ClrEol;
+                TempString := ' 1. Call Okay Now - ' + CorrectedCallPhoneMessageR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
 
-        ClrEol;
-        END;
+                ClrEol;
+                TempString := ' 2. CQ Exchange   - ' + CQPhoneExchangeR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 3. CQ Ex Name    - ' + CQPhoneExchangeNameKnownR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 4. QSL Message   - ' + QSLPhoneMessageR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 5. QSO Before    - ' + QSOBeforePhoneMessageR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 6. Quick QSL     - ' + QuickQSLPhoneMessageR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 7. Repeat S&P Ex - ' + RepeatSearchAndPouncePhoneExchangeR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl(TempString);
+
+                ClrEol;
+                TempString := ' 8. S&P Exchange  - ' + SearchAndPouncePhoneExchangeR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl (TempString);
+
+                ClrEol;
+                TempString := ' 9. Tail end msg  - ' + TailEndPhoneMessageR2;
+                IF Length (TempString) > 79 THEN TempString := Copy (TempString, 1, 78) + '+';
+                WriteLnControl (TempString);
+
+                ClrEol;
+                END;
+            END;
+
+        END;  { of CASE Radio }
     END;
 
 
@@ -1235,16 +1452,35 @@ PROCEDURE DVKRecordMessage (MemoryString: Str20);
 
 
 
-PROCEDURE MemoryProgram;
+PROCEDURE MemoryProgram (Radio: RadioType; Mode: ModeType);
 
 VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
-    TempString: Str160;
+    ModeString, RadioString, TempString: Str160;
     TimeMark: TimeRecord;
 
     BEGIN
-    CASE ActiveMode OF
-        Phone, Digital: FirstExchangeFunctionKey := F1;
-        CW:             FirstExchangeFunctionKey := F3;
+    CASE Radio OF
+        NoRadio:  RadioString := '';
+        RadioOne: RadioString := 'RADIO1';
+        RadioTwo: RadioString := 'RADIO2';
+        END;
+
+    CASE Mode OF
+        Phone:  BEGIN
+                FirstExchangeFunctionKey := F1;
+                ModeString := 'SSB';
+                END;
+
+        Digital:
+                BEGIN
+                FirstExchangeFunctionKey := F1;
+                ModeString := 'RTTY';
+                END;
+
+        CW:     BEGIN
+                FirstExchangeFunctionKey := F3;
+                ModeString := 'CW';
+                END;
         END;
 
     RemoveWindow (QuickCommandWindow);
@@ -1278,7 +1514,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
     RemoveWindow (TotalWindow);
     SaveSetAndClearActiveWindow (BigWindow);
 
-    IF (ActiveMode = CW) OR (ActiveMode = Digital) THEN
+    IF (Mode = CW) OR (Mode = Digital) THEN
         DisplayCrypticCWMenu
     ELSE
         DisplayCrypticSSBMenu;
@@ -1293,7 +1529,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
         'C': BEGIN
              REPEAT
-                 ShowCQFunctionKeyStatus;
+                 ShowCQFunctionKeyStatus (Radio, Mode);
                  GoToXY (1, Hi (WindMax));
                  Write (' Press CQ function key to program (F1, AltF1, CtrlF1), or ESCAPE to exit) : '); {KK1L: 6.72 changed}
 
@@ -1333,7 +1569,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                          IF KeyStatus <> AltKeys THEN
                              BEGIN
                              KeyStatus := AltKeys;
-                             ShowCQFunctionKeyStatus;
+                             ShowCQFunctionKeyStatus (Radio, Mode);
                              END;
                          END
                      ELSE
@@ -1342,45 +1578,45 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                              IF KeyStatus <> ControlKeys THEN
                                  BEGIN
                                  KeyStatus := ControlKeys;
-                                 ShowCQFunctionKeyStatus;
+                                 ShowCQFunctionKeyStatus (Radio, Mode);
                                  END;
                              END
                          ELSE
                              IF KeyStatus <> NormalKeys THEN
                                  BEGIN
                                  KeyStatus := NormalKeys;
-                                 ShowCQFunctionKeyStatus;
+                                 ShowCQFunctionKeyStatus (Radio, Mode);
                                  END;
 
                      SaveSetAndClearActiveWindow (QuickCommandWindow);
 
                      REPEAT
                          TempString := LineInput ('Msg = ',
-                                              GetCQMemoryString (ActiveMode, FunctionKey),  {KK1L: 6.73 Added mode}
+                                              GetCQMemoryString (Radio, Mode, FunctionKey),  {KK1L: 6.73 Added mode}
                                               True,
-                                              (ActiveMode = Phone) AND (DVKEnable));
+                                              (Mode = Phone) AND (DVKEnable));
 
                          IF TempString [1] = NullKey THEN
                                  IF DVKEnable THEN
                                      CASE TempString [2] OF
                                          {KK1L: 6.73 Added mode}
-                                         AltW: DVKRecordMessage (GetCQMemoryString (ActiveMode, FunctionKey));
+                                         AltW: DVKRecordMessage (GetCQMemoryString (Radio, Mode, FunctionKey));
                                          {KK1L: 6.73 Added mode}
-                                         AltR: DVKListenMessage (GetCQMemoryString (ActiveMode, FunctionKey));
+                                         AltR: DVKListenMessage (GetCQMemoryString (Radio, Mode, FunctionKey));
                                          END;
                          millisleep;
                      UNTIL (TempString [1] <> NullKey);
 
                      IF (TempString <> EscapeKey) AND
                         {KK1L: 6.73 Added mode}
-                        (GetCQMemoryString (ActiveMode, FunctionKey) <> TempString) THEN
+                        (GetCQMemoryString (Radio, Mode, FunctionKey) <> TempString) THEN
                             BEGIN
-                            SetCQMemoryString (ActiveMode, FunctionKey, TempString);
+                            SetCQMemoryStringRadio (Radio, Mode, FunctionKey, TempString);
 
-                            IF ActiveMode = Phone THEN
-                                AppendConfigFile ('CQ SSB MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString)
+                            IF Mode = Phone THEN
+                                AppendConfigFile ('CQ SSB MEMORY ' + RadioString + ' ' + KeyId (FunctionKey) + ' = ' + TempString)
                             ELSE
-                                AppendConfigFile ('CQ MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
+                                AppendConfigFile ('CQ MEMORY ' + RadioString + ' ' + KeyId (FunctionKey) + ' = ' + TempString);
                             END;
 
                      RemoveAndRestorePreviousWindow;
@@ -1389,7 +1625,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
              END;   { End of CQ memories }
 
         'E': REPEAT
-                 ShowEXFunctionKeyStatus;
+                 ShowEXFunctionKeyStatus (Radio, Mode);
                  GoToXY (1, Hi (WindMax));
                  Write (' Press ex function key to program (F3-F12, Alt/Ctrl F1-F12) or ESCAPE to exit :');
                  {KK1L: 6.72 changed above line}
@@ -1429,7 +1665,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                          IF KeyStatus <> AltKeys THEN
                              BEGIN
                              KeyStatus := AltKeys;
-                             ShowEXFunctionKeyStatus;
+                             ShowEXFunctionKeyStatus (Radio, Mode);
                              END;
                          END
                      ELSE
@@ -1438,14 +1674,14 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                              IF KeyStatus <> ControlKeys THEN
                                  BEGIN
                                  KeyStatus := ControlKeys;
-                                 ShowEXFunctionKeyStatus;
+                                 ShowEXFunctionKeyStatus (Radio, Mode);
                                  END;
                              END
                          ELSE
                              IF KeyStatus <> NormalKeys THEN
                                  BEGIN
                                  KeyStatus := NormalKeys;
-                                 ShowEXFunctionKeyStatus;
+                                 ShowEXFunctionKeyStatus (Radio, Mode);
                                  END;
 
                      SaveSetAndClearActiveWindow (QuickCommandWindow);
@@ -1453,16 +1689,16 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                      REPEAT
                          TempString := LineInput ('Msg = ',
                                                   {KK1L: 6.73 Added mode to GetExMemoryString}
-                                                  GetEXMemoryString (ActiveMode, FunctionKey),
+                                                  GetEXMemoryString (Radio, Mode, FunctionKey),
                                                   True,
-                                                  (ActiveMode = Phone) AND (DVKEnable));
+                                                  (Mode = Phone) AND (DVKEnable));
 
                          IF TempString [1] = NullKey THEN
                                  IF DVKEnable THEN
                                      CASE TempString [2] OF
                                          {KK1L: 6.73 Added mode to GetExMemoryString}
-                                         AltW: DVKRecordMessage (GetEXMemoryString (ActiveMode, FunctionKey));
-                                         AltR: DVKListenMessage (GetEXMemoryString (ActiveMode, FunctionKey));
+                                         AltW: DVKRecordMessage (GetEXMemoryString (Radio, Mode, FunctionKey));
+                                         AltR: DVKListenMessage (GetEXMemoryString (Radio, Mode, FunctionKey));
                                          END;
 
                          millisleep;
@@ -1470,19 +1706,19 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
                      IF TempString <> EscapeKey THEN
                          BEGIN
-                         SetExMemoryString (ActiveMode, FunctionKey, TempString);
+                         SetExMemoryStringRadio (Radio, Mode, FunctionKey, TempString);
 
-                         CASE ActiveMode OF
+                         CASE Mode OF
                              Phone:
-                                 AppendConfigFile ('EX SSB MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
+                                 AppendConfigFile ('EX SSB MEMORY ' + RadioString + ' ' + KeyId (FunctionKey) + ' = ' + TempString);
 
                              CW:
-                                 AppendConfigFile ('EX MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
+                                 AppendConfigFile ('EX MEMORY ' + RadioString + ' ' + KeyId (FunctionKey) + ' = ' + TempString);
 
                              Digital:
-                                 AppendConfigFile ('EX DIGITAL MEMORY ' + KeyId (FunctionKey) + ' = ' + TempString);
+                                 AppendConfigFile ('EX DIGITAL MEMORY ' + RadioString + ' ' + KeyId (FunctionKey) + ' = ' + TempString);
 
-                             END;  { of CASE ActiveMode }
+                             END;  { of CASE Mode }
                          END;
 
                      RemoveAndRestorePreviousWindow;
@@ -1491,7 +1727,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
 
         'O': REPEAT
-                 ShowOtherMemoryStatus;
+                 ShowOtherMemoryStatus (Radio, Mode);
                  GoToXY (1, Hi (WindMax));
 
                  Write ('Number or letter of message to be programmed (1-9, A-D, or ESCAPE to exit) : ');
@@ -1525,322 +1761,657 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
                  CASE FunctionKey OF
                        '1': BEGIN
-                            IF ActiveMode <> Phone THEN
+                            IF Mode <> Phone THEN
                                 BEGIN
-                                TempString := LineInput ('Msg = ',
-                                                          CorrectedCallMessage,
-                                                          True,
-                                                          False);
-
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    CorrectedCallMessage := TempString;
-                                    AppendConfigFile ('CALL OK NOW MESSAGE = ' + TempString);
+                                    TempString := LineInput ('Msg = ',
+                                                             CorrectedCallMessageR1,
+                                                             True,
+                                                             False);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CorrectedCallMessageR1 := TempString;
+                                        AppendConfigFile ('CALL OK NOW MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE   { Radio two }
+                                    BEGIN
+                                    TempString := LineInput ('Msg = ',
+                                                             CorrectedCallMessageR2,
+                                                             True,
+                                                             False);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CorrectedCallMessageR2 := TempString;
+                                        AppendConfigFile ('CALL OK NOW MESSAGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
                                 END
-                            ELSE
-                                BEGIN
-                                REPEAT
-                                    TempString := LineInput ('Msg = ',
-                                                             CorrectedCallPhoneMessage,
-                                                             True,
-                                                             True);
-
-
-                                    IF TempString [1] = NullKey THEN
-                                            IF DVKEnable THEN
-                                                CASE TempString [2] OF
-                                                    AltW: DVKRecordMessage (CorrectedCallPhoneMessage);
-                                                    AltR: DVKListenMessage (CorrectedCallPhoneMessage);
-                                                    END;
-
-
-                                    millisleep;
-                                UNTIL (TempString [1] <> NullKey);
-
-                                IF TempString <> EscapeKey THEN
+                            ELSE    { Phone }
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    CorrectedCallPhoneMessage := TempString;
-                                    AppendConfigFile ('CALL OK NOW SSB MESSAGE = ' + TempString);
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 CorrectedCallPhoneMessageR1,
+                                                                 True,
+                                                                 True);
+
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (CorrectedCallPhoneMessageR1);
+                                                        AltR: DVKListenMessage (CorrectedCallPhoneMessageR1);
+                                                        END;
+
+
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CorrectedCallPhoneMessageR1 := TempString;
+                                        AppendConfigFile ('CALL OK NOW SSB MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE      { Radio Two }
+                                    BEGIN
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 CorrectedCallPhoneMessageR2,
+                                                                 True,
+                                                                 True);
+
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (CorrectedCallPhoneMessageR2);
+                                                        AltR: DVKListenMessage (CorrectedCallPhoneMessageR2);
+                                                        END;
+
+
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CorrectedCallPhoneMessageR2 := TempString;
+                                        AppendConfigFile ('CALL OK NOW SSB MESSAGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
-                                END;
-                            END;
+
+                            END;  { of 1 }
 
                        '2': BEGIN
-                            IF ActiveMode <> Phone THEN
+                            IF Mode <> Phone THEN
                                 BEGIN
-                                TempString := LineInput ('Msg = ', CQExchange, True, False);
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    CQExchange := TempString;
-                                    AppendConfigFile ('CQ EXCHANGE = ' + TempString);
+                                    TempString := LineInput ('Msg = ', CQExchangeR1, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CQExchangeR1 := TempString;
+                                        AppendConfigFile ('CQ EXCHANGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE    { Radio Two }
+                                    BEGIN
+                                    TempString := LineInput ('Msg = ', CQExchangeR2, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CQExchangeR2 := TempString;
+                                        AppendConfigFile ('CQ EXCHANGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
                                 END
-                            ELSE
-                                BEGIN
-                                REPEAT
-                                    TempString := LineInput ('Msg = ',
-                                                             CQPhoneExchange,
-                                                             True,
-                                                             True);
-
-                                    IF TempString [1] = NullKey THEN
-                                            IF DVKEnable THEN
-                                                CASE TempString [2] OF
-                                                    AltW: DVKRecordMessage (CQPhoneExchange);
-                                                    AltR: DVKListenMessage (CQPhoneExchange);
-                                                    END;
-                                    millisleep;
-                                UNTIL (TempString [1] <> NullKey);
-
-                                IF TempString <> EscapeKey THEN
+                            ELSE  { Phone }
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    CQPhoneExchange := TempString;
-                                    AppendConfigFile ('CQ SSB EXCHANGE = ' + TempString);
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 CQPhoneExchangeR1,
+                                                                 True,
+                                                                 True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (CQPhoneExchangeR1);
+                                                        AltR: DVKListenMessage (CQPhoneExchangeR1);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CQPhoneExchangeR1 := TempString;
+                                        AppendConfigFile ('CQ SSB EXCHANGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE { Radio 2 Phone }
+                                    BEGIN
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 CQPhoneExchangeR2,
+                                                                 True,
+                                                                 True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (CQPhoneExchangeR2);
+                                                        AltR: DVKListenMessage (CQPhoneExchangeR2);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CQPhoneExchangeR2 := TempString;
+                                        AppendConfigFile ('CQ SSB EXCHANGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
-                                END;
-                            END;
+
+                            END;  { of 2 }
 
                        '3': BEGIN
-                            IF ActiveMode <> Phone THEN
+                            IF Mode <> Phone THEN
                                 BEGIN
-                                TempString := LineInput ('Msg = ', CQExchangeNameKnown, True, False);
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    CQExchangeNameKnown := TempString;
-                                    AppendConfigFile ('CQ EXCHANGE NAME KNOWN = ' + TempString);
+                                    TempString := LineInput ('Msg = ', CQExchangeNameKnownR1, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CQExchangeNameKnownR1 := TempString;
+                                        AppendConfigFile ('CQ EXCHANGE NAME KNOWN RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN  { Radio Two }
+                                    TempString := LineInput ('Msg = ', CQExchangeNameKnownR2, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CQExchangeNameKnownR2 := TempString;
+                                        AppendConfigFile ('CQ EXCHANGE NAME KNOWN RADIO2 = ' + TempString);
+                                        END;
                                     END;
                                 END
-                            ELSE
-                                BEGIN
-                                REPEAT
-                                    TempString := LineInput ('Msg = ',
-                                                             CQPhoneExchangeNameKnown,
-                                                             True,
-                                                             True);
-
-                                    IF TempString [1] = NullKey THEN
-                                            IF DVKEnable THEN
-                                                CASE TempString [2] OF
-                                                    AltW: DVKRecordMessage (CQPhoneExchangeNameKnown);
-                                                    AltR: DVKListenMessage (CQPhoneExchangeNameKnown);
-                                                    END;
-                                    millisleep;
-                                UNTIL (TempString [1] <> NullKey);
-
-                                IF TempString <> EscapeKey THEN
+                            ELSE  { Phone }
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    CQPhoneExchangeNameKnown := TempString;
-                                    AppendConfigFile ('CQ SSB EXCHANGE NAME KNOWN = ' + TempString);
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 CQPhoneExchangeNameKnownR1,
+                                                                 True,
+                                                                 True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (CQPhoneExchangeNameKnownR1);
+                                                        AltR: DVKListenMessage (CQPhoneExchangeNameKnownR1);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CQPhoneExchangeNameKnownR1 := TempString;
+                                        AppendConfigFile ('CQ SSB EXCHANGE NAME KNOWN RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN { Radio 2 Phone }
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 CQPhoneExchangeNameKnownR2,
+                                                                 True,
+                                                                 True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (CQPhoneExchangeNameKnownR2);
+                                                        AltR: DVKListenMessage (CQPhoneExchangeNameKnownR2);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        CQPhoneExchangeNameKnownR2 := TempString;
+                                        AppendConfigFile ('CQ SSB EXCHANGE NAME KNOWN RADIO2 = ' + TempString);
+                                        END;
                                     END;
-                                END;
-                            END;
+
+                            END;  { of 3 }
 
                        '4': BEGIN
-                            IF ActiveMode <> Phone THEN
+                            IF Mode <> Phone THEN
                                 BEGIN
-                                TempString := LineInput ('Msg = ', QSLMessage, True, False);
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    QSLMessage := TempString;
-                                    AppendConfigFile ('QSL MESSAGE = ' + TempString);
+                                    TempString := LineInput ('Msg = ', QSLMessageR1, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QSLMessageR1 := TempString;
+                                        AppendConfigFile ('QSL MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN { radio 2 }
+                                    TempString := LineInput ('Msg = ', QSLMessageR2, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QSLMessageR2 := TempString;
+                                        AppendConfigFile ('QSL MESSAGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
                                 END
-                            ELSE
-                                BEGIN
-                                REPEAT
-                                    TempString := LineInput ('Msg = ',
-                                                             QSLPhoneMessage,
-                                                             True, True);
-
-                                    IF TempString [1] = NullKey THEN
-                                            IF DVKEnable THEN
-                                                CASE TempString [2] OF
-                                                    AltW: DVKRecordMessage (QSLPhoneMessage);
-                                                    AltR: DVKListenMessage (QSLPhoneMessage);
-                                                    END;
-                                    millisleep;
-                                UNTIL (TempString [1] <> NullKey);
-
-                                IF TempString <> EscapeKey THEN
+                            ELSE  { Phone }
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    QSLPhoneMessage := TempString;
-                                    AppendConfigFile ('QSL SSB MESSAGE = ' + TempString);
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 QSLPhoneMessageR1,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (QSLPhoneMessageR1);
+                                                        AltR: DVKListenMessage (QSLPhoneMessageR1);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QSLPhoneMessageR1 := TempString;
+                                        AppendConfigFile ('QSL SSB MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN  { Phone radio 2 }
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 QSLPhoneMessageR2,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (QSLPhoneMessageR2);
+                                                        AltR: DVKListenMessage (QSLPhoneMessageR2);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QSLPhoneMessageR2 := TempString;
+                                        AppendConfigFile ('QSL SSB MESSAGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
-                                END;
-                            END;
+
+                            END; { of 4 }
 
                        '5': BEGIN
-                            IF ActiveMode <> Phone THEN
+                            IF Mode <> Phone THEN
                                 BEGIN
-                                TempString := LineInput ('Msg = ', QSOBeforeMessage, True, False);
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    QSOBeforeMessage := TempString;
-                                    AppendConfigFile ('QSO BEFORE MESSAGE = ' + TempString);
+                                    TempString := LineInput ('Msg = ', QSOBeforeMessageR1, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QSOBeforeMessageR1 := TempString;
+                                        AppendConfigFile ('QSO BEFORE MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN  { radio Two }
+                                    TempString := LineInput ('Msg = ', QSOBeforeMessageR2, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QSOBeforeMessageR2 := TempString;
+                                        AppendConfigFile ('QSO BEFORE MESSAGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
                                 END
-                            ELSE
-                                BEGIN
-                                REPEAT
-                                    TempString := LineInput ('Msg = ',
-                                                             QSOBeforePhoneMessage,
-                                                             True, True);
-
-                                    IF TempString [1] = NullKey THEN
-                                            IF DVKEnable THEN
-                                                CASE TempString [2] OF
-                                                    AltW: DVKRecordMessage (QSOBeforePhoneMessage);
-                                                    AltR: DVKListenMessage (QSOBeforePhoneMessage);
-                                                    END;
-                                    millisleep;
-                                UNTIL (TempString [1] <> NullKey);
-
-                                IF TempString <> EscapeKey THEN
+                            ELSE  { Phone }
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    QSOBeforePhoneMessage := TempString;
-                                    AppendConfigFile ('QSO BEFORE SSB MESSAGE = ' + TempString);
-                                    END;
-                                END;
-                            END;
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 QSOBeforePhoneMessageR1,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (QSOBeforePhoneMessageR1);
+                                                        AltR: DVKListenMessage (QSOBeforePhoneMessageR1);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QSOBeforePhoneMessageR1 := TempString;
+                                        AppendConfigFile ('QSO BEFORE SSB MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN  { Phone Radio 2 }
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 QSOBeforePhoneMessageR2,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (QSOBeforePhoneMessageR2);
+                                                        AltR: DVKListenMessage (QSOBeforePhoneMessageR2);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QSOBeforePhoneMessageR2 := TempString;
+                                        AppendConfigFile ('QSO BEFORE SSB MESSAGE RADIO2 = ' + TempString);
+                                        END;
+                                    END
+
+                            END; { of 5 }
 
                        '6': BEGIN
-                            IF ActiveMode <> Phone THEN
+                            IF Mode <> Phone THEN
                                 BEGIN
-                                TempString := LineInput ('Msg = ', QuickQSLMessage1, True, False);
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    QuickQSLMessage1 := TempString;
-                                    AppendConfigFile ('QUICK QSL MESSAGE= ' + TempString);
+                                    TempString := LineInput ('Msg = ', QuickQSLMessage1R1, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QuickQSLMessage1R1 := TempString;
+                                        AppendConfigFile ('QUICK QSL MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE  { Radio two }
+                                    BEGIN
+                                    TempString := LineInput ('Msg = ', QuickQSLMessage1R2, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QuickQSLMessage1R2 := TempString;
+                                        AppendConfigFile ('QUICK QSL MESSAGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
                                 END
-                            ELSE
-                                BEGIN
-                                REPEAT
-                                    TempString := LineInput ('Msg = ',
-                                                             QuickQSLPhoneMessage,
-                                                             True, True);
-
-                                    IF TempString [1] = NullKey THEN
-                                            IF DVKEnable THEN
-                                                CASE TempString [2] OF
-                                                    AltW: DVKRecordMessage (QuickQSLPhoneMessage);
-                                                    AltR: DVKListenMessage (QuickQSLPhoneMessage);
-                                                    END;
-                                    millisleep;
-                                UNTIL (TempString [1] <> NullKey);
-
-                                IF TempString <> EscapeKey THEN
+                            ELSE  { Phone }
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    QuickQSLPhoneMessage := TempString;
-                                    AppendConfigFile ('QUICK QSL SSB MESSAGE = ' + TempString);
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 QuickQSLPhoneMessageR1,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (QuickQSLPhoneMessageR1);
+                                                        AltR: DVKListenMessage (QuickQSLPhoneMessageR1);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QuickQSLPhoneMessageR1 := TempString;
+                                        AppendConfigFile ('QUICK QSL SSB MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN { Phone radio 2 }
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 QuickQSLPhoneMessageR2,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (QuickQSLPhoneMessageR2);
+                                                        AltR: DVKListenMessage (QuickQSLPhoneMessageR2);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        QuickQSLPhoneMessageR2 := TempString;
+                                        AppendConfigFile ('QUICK QSL SSB MESSAGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
-                                END;
-                            END;
+
+                            END;  { of 6 }
 
                        '7': BEGIN
-                            IF ActiveMode <> Phone THEN
+                            IF Mode <> Phone THEN
                                 BEGIN
-                                TempString := LineInput ('Msg = ', RepeatSearchAndPounceExchange, True, False);
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    RepeatSearchAndPounceExchange := TempString;
-                                    AppendConfigFile ('REPEAT S&P EXCHANGE = ' + TempString);
+                                    TempString := LineInput ('Msg = ', RepeatSearchAndPounceExchangeR1, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        RepeatSearchAndPounceExchangeR1 := TempString;
+                                        AppendConfigFile ('REPEAT S&P EXCHANGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN
+                                    TempString := LineInput ('Msg = ', RepeatSearchAndPounceExchangeR2, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        RepeatSearchAndPounceExchangeR2 := TempString;
+                                        AppendConfigFile ('REPEAT S&P EXCHANGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
                                 END
-                            ELSE
-                                BEGIN
-                                REPEAT
-                                    TempString := LineInput ('Msg = ',
-                                                             RepeatSearchAndPouncePhoneExchange,
-                                                             True, True);
-
-                                    IF TempString [1] = NullKey THEN
-                                            IF DVKEnable THEN
-                                                CASE TempString [2] OF
-                                                    AltW: DVKRecordMessage (RepeatSearchAndPouncePhoneExchange);
-                                                    AltR: DVKListenMessage (RepeatSearchAndPouncePhoneExchange);
-                                                    END;
-                                    millisleep;
-                                UNTIL (TempString [1] <> NullKey);
-
-                                IF TempString <> EscapeKey THEN
+                            ELSE  { Phone }
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    RepeatSearchAndPouncePhoneExchange := TempString;
-                                    AppendConfigFile ('REPEAT S&P SSB EXCHANGE = ' + TempString);
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 RepeatSearchAndPouncePhoneExchangeR1,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (RepeatSearchAndPouncePhoneExchangeR1);
+                                                        AltR: DVKListenMessage (RepeatSearchAndPouncePhoneExchangeR1);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        RepeatSearchAndPouncePhoneExchangeR1 := TempString;
+                                        AppendConfigFile ('REPEAT S&P SSB EXCHANGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 RepeatSearchAndPouncePhoneExchangeR2,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (RepeatSearchAndPouncePhoneExchangeR2);
+                                                        AltR: DVKListenMessage (RepeatSearchAndPouncePhoneExchangeR2);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        RepeatSearchAndPouncePhoneExchangeR2 := TempString;
+                                        AppendConfigFile ('REPEAT S&P SSB EXCHANGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
-                                END;
-                            END;
+
+                            END; { of 7 }
 
                        '8': BEGIN
-                            IF ActiveMode <> Phone THEN
+                            IF Mode <> Phone THEN
                                 BEGIN
-                                TempString := LineInput ('Msg = ', SearchAndPounceExchange, True, False);
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    SearchAndPounceExchange := TempString;
-                                    AppendConfigFile ('S&P EXCHANGE = ' + TempString);
+                                    TempString := LineInput ('Msg = ', SearchAndPounceExchangeR1, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        SearchAndPounceExchangeR1 := TempString;
+                                        AppendConfigFile ('S&P EXCHANGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN
+                                    TempString := LineInput ('Msg = ', SearchAndPounceExchangeR2, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        SearchAndPounceExchangeR2 := TempString;
+                                        AppendConfigFile ('S&P EXCHANGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
                                 END
                             ELSE
-                                BEGIN
-                                REPEAT
-                                    TempString := LineInput ('Msg = ',
-                                                             SearchAndPouncePhoneExchange,
-                                                             True, True);
-
-                                    IF TempString [1] = NullKey THEN
-                                            IF DVKEnable THEN
-                                                CASE TempString [2] OF
-                                                    AltW: DVKRecordMessage (SearchAndPouncePhoneExchange);
-                                                    AltR: DVKListenMessage (SearchAndPouncePhoneExchange);
-                                                    END;
-                                    millisleep;
-                                UNTIL (TempString [1] <> NullKey);
-
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    SearchAndPouncePhoneExchange := TempString;
-                                    AppendConfigFile ('S&P SSB EXCHANGE = ' + TempString);
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 SearchAndPouncePhoneExchangeR1,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (SearchAndPouncePhoneExchangeR1);
+                                                        AltR: DVKListenMessage (SearchAndPouncePhoneExchangeR1);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        SearchAndPouncePhoneExchangeR1 := TempString;
+                                        AppendConfigFile ('S&P SSB EXCHANGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 SearchAndPouncePhoneExchangeR2,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (SearchAndPouncePhoneExchangeR2);
+                                                        AltR: DVKListenMessage (SearchAndPouncePhoneExchangeR2);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        SearchAndPouncePhoneExchangeR2 := TempString;
+                                        AppendConfigFile ('S&P SSB EXCHANGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
-                                END;
-                            END;
+
+                            END; { of 8 }
 
                        '9': BEGIN
-                            IF ActiveMode <> Phone THEN
+                            IF Mode <> Phone THEN
                                 BEGIN
-                                TempString := LineInput ('Msg = ', TailEndMessage, True, False);
-                                IF TempString <> EscapeKey THEN
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    TailEndMessage := TempString;
-                                    AppendConfigFile ('TAIL END MESSAGE = ' + TempString);
+                                    TempString := LineInput ('Msg = ', TailEndMessageR1, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        TailEndMessageR1 := TempString;
+                                        AppendConfigFile ('TAIL END MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN
+                                    TempString := LineInput ('Msg = ', TailEndMessageR2, True, False);
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        TailEndMessageR2 := TempString;
+                                        AppendConfigFile ('TAIL END MESSAGE RADIO2 = ' + TempString);
+                                        END;
                                     END;
                                 END
-                            ELSE
-                                BEGIN
-                                REPEAT
-                                    TempString := LineInput ('Msg = ',
-                                                             TailEndPhoneMessage,
-                                                             True, True);
-
-                                    IF TempString [1] = NullKey THEN
-                                            IF DVKEnable THEN
-                                                CASE TempString [2] OF
-                                                    AltW: DVKRecordMessage (TailEndPhoneMessage);
-                                                    AltR: DVKListenMessage (TailEndPhoneMessage);
-                                                    END;
-                                    millisleep;
-                                UNTIL (TempString [1] <> NullKey);
-
-                                IF TempString <> EscapeKey THEN
+                            ELSE   { Phone }
+                                IF Radio = RadioOne THEN
                                     BEGIN
-                                    TailEndPhoneMessage := TempString;
-                                    AppendConfigFile ('TAIL END SSB MESSAGE = ' + TempString);
-                                    END;
-                                END;
-                            END;
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 TailEndPhoneMessageR1,
+                                                                 True, True);
 
-                       'A': IF ActiveMode <> Phone THEN
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (TailEndPhoneMessageR1);
+                                                        AltR: DVKListenMessage (TailEndPhoneMessageR1);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        TailEndPhoneMessageR1 := TempString;
+                                        AppendConfigFile ('TAIL END SSB MESSAGE RADIO1 = ' + TempString);
+                                        END;
+                                    END
+                                ELSE
+                                    BEGIN
+                                    REPEAT
+                                        TempString := LineInput ('Msg = ',
+                                                                 TailEndPhoneMessageR2,
+                                                                 True, True);
+
+                                        IF TempString [1] = NullKey THEN
+                                                IF DVKEnable THEN
+                                                    CASE TempString [2] OF
+                                                        AltW: DVKRecordMessage (TailEndPhoneMessageR2);
+                                                        AltR: DVKListenMessage (TailEndPhoneMessageR2);
+                                                        END;
+                                        millisleep;
+                                    UNTIL (TempString [1] <> NullKey);
+
+                                    IF TempString <> EscapeKey THEN
+                                        BEGIN
+                                        TailEndPhoneMessageR2 := TempString;
+                                        AppendConfigFile ('TAIL END SSB MESSAGE RADIO2 = ' + TempString);
+                                        END;
+                                    END;
+
+
+                            END; { of 9 }
+
+                       'A': IF Mode <> Phone THEN
                                 BEGIN
                                 TempString := LineInput ('Enter character for short zeros : ', '', True, False);
 
@@ -1851,7 +2422,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                     END;
                                 END;
 
-                       'B': IF ActiveMode <> Phone THEN
+                       'B': IF Mode <> Phone THEN
                                 BEGIN
                                 TempString := LineInput ('Enter character for short ones : ', '', True, False);
 
@@ -1862,7 +2433,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                     END;
                                 END;
 
-                       'C': IF ActiveMode <> Phone THEN
+                       'C': IF Mode <> Phone THEN
                                 BEGIN
                                 TempString := LineInput ('Enter character for short twos : ', '', True, False);
 
@@ -1873,7 +2444,7 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
                                     END;
                                 END;
 
-                       'D': IF ActiveMode <> Phone THEN
+                       'D': IF Mode <> Phone THEN
                                 BEGIN
                                 TempString := LineInput ('Enter character for short nines : ', '', True, False);
 
@@ -1893,62 +2464,64 @@ VAR Key, FirstExchangeFunctionKey, FunctionKey: CHAR;
 
 
 
-FUNCTION GetCQMemoryString (Mode: ModeType; Key: CHAR): Str80; {KK1L: 6.73 Added Mode to do split mode}
+FUNCTION GetCQMemoryString (Radio: RadioType; Mode: ModeType; Key: CHAR): Str80; {KK1L: 6.73 Added Mode to do split mode}
 
     BEGIN
     IF Mode = Digital THEN Mode := CW;
 
-    IF CQMemory [Mode, Key] <> nil THEN
-        GetCQMemoryString := CQMemory [Mode, Key]^
+    IF CQMemory [Radio, Mode, Key] <> nil THEN
+        GetCQMemoryString := CQMemory [Radio, Mode, Key]^
     ELSE
         GetCQMemoryString := '';
     END;
 
 
-FUNCTION GetEXMemoryString (Mode: ModeType; Key: CHAR): Str80; {KK1L: 6.73 Added Mode to do split mode}
+FUNCTION GetEXMemoryString (Radio: RadioType; Mode: ModeType; Key: CHAR): Str80; {KK1L: 6.73 Added Mode to do split mode}
 
     BEGIN
     GetEXMemoryString := '';
 
     CASE MODE OF
         CW, Phone:
-            IF EXMemory [Mode, Key] <> Nil THEN
-                GetEXMemoryString := EXMemory [Mode, Key]^;
+            IF EXMemory [Radio, Mode, Key] <> Nil THEN
+                GetEXMemoryString := EXMemory [Radio, Mode, Key]^;
 
         { For Digital, use Digital EX memory if there - otherwise, use CW }
 
         Digital:
-            IF ExMemory [Mode, Key] <> Nil then
-                GetEXMemoryString := EXMemory [Mode, Key]^
+            IF ExMemory [Radio, Mode, Key] <> Nil then
+                GetEXMemoryString := EXMemory [Radio, Mode, Key]^
             ELSE
-                IF ExMemory [CW, Key] <> Nil THEN
-                    GetExMemoryString := ExMemory [CW, Key]^;
+                IF ExMemory [Radio, CW, Key] <> Nil THEN
+                    GetExMemoryString := ExMemory [Radio, CW, Key]^;
 
         END;  { of case }
     END;
 
 
-PROCEDURE SetCQMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
+PROCEDURE SetCQMemoryStringRadio (Radio: RadioType; Mode: ModeType; Key: CHAR; MemoryString: Str80);
 
     BEGIN
     { All digital CQ strings go to the CW strings }
 
     IF Mode = Digital THEN Mode := CW;
 
-    IF CQMemory [Mode, Key] = Nil THEN New (CQMemory [Mode, Key]);
+    IF CQMemory [Radio, Mode, Key] = Nil THEN New (CQMemory [Radio, Mode, Key]);
     SniffOutControlCharacters (MemoryString); {KK1L: 6.72}
-    CQMemory [Mode, Key]^ := MemoryString;
+    CQMemory [Radio, Mode, Key]^ := MemoryString;
     END;
 
 
-PROCEDURE SetEXMemoryString (Mode: ModeType; Key: CHAR; MemoryString: Str80);
+PROCEDURE SetEXMemoryStringRadio (Radio: RadioType; Mode: ModeType; Key: CHAR; MemoryString: Str80);
 
 { Must use digital mode - not CW instead }
 
     BEGIN
-    IF EXMemory [Mode, Key] = Nil THEN New (EXMemory [Mode, Key]);
+    IF EXMemory [Radio, Mode, Key] = Nil THEN
+        New (EXMemory [Radio, Mode, Key]);
+
     SniffOutControlCharacters (MemoryString);
-    EXMemory [Mode, Key]^ := MemoryString;
+    EXMemory [Radio, Mode, Key]^ := MemoryString;
     END;
 
 
@@ -2075,16 +2648,18 @@ PROCEDURE ToggleCW (DisplayPrompt: BOOLEAN);
 PROCEDURE CWInit;
 
 VAR TempKey: CHAR;
+    Radio: RadioType;
 
     BEGIN
-    FOR TempKey := F1 TO AltF12 DO
-        BEGIN
-        CQMemory [CW, TempKey]      := Nil;
-        EXMemory [CW, TempKey]      := Nil;
-        CQMemory [Phone, TempKey]   := Nil;
-        EXMemory [Phone, TempKey]   := Nil;
-        EXMemory [Digital, TempKey] := Nil;
-        END;
+    FOR Radio := NoRadio TO RadioTwo DO
+        FOR TempKey := F1 TO AltF12 DO
+            BEGIN
+            CQMemory [Radio, CW, TempKey]      := Nil;
+            EXMemory [Radio, CW, TempKey]      := Nil;
+            CQMemory [Radio, Phone, TempKey]   := Nil;
+            EXMemory [Radio, Phone, TempKey]   := Nil;
+            EXMemory [Radio, Digital, TempKey] := Nil;
+            END;
 
     AutoCQMemory := NullCharacter;
     DetectedPaddleActivityR1 := False;

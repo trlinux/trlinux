@@ -1273,7 +1273,7 @@ VAR Key: CHAR;
                     AltP: BEGIN
                           RITEnable := False;
                           shiftchange(0);
-                          MemoryProgram;
+                          MemoryProgram (ActiveRadio, ActiveMode);
                           if (shiftkeyenable = shift) then shiftchange(1);
                           if (shiftkeyenable = altshift) then shiftchange(2);
                           RITEnable := True;
@@ -1477,12 +1477,12 @@ VAR CQMemory, SendChar: CHAR;
                         3: CQMemory := F4;
                         END;
 
-                UNTIL (GetCQMemoryString (ActiveMode, CQMemory) <> '') OR (Count > 1000); {KK1L: 6.73 Added mode}
+                UNTIL (GetCQMemoryString (ActiveRadio, ActiveMode, CQMemory) <> '') OR (Count > 1000); {KK1L: 6.73 Added mode}
                 END;
 
             IF ActiveMode <> Phone THEN
                 BEGIN
-                TempString := GetCQMemoryString (ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
+                TempString := GetCQMemoryString (ActiveRadio, ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
 
                 IF NOT SkipFirstMessage THEN
                     FOR CharacterCount := 1 TO Length (TempString) DO
@@ -1499,7 +1499,7 @@ VAR CQMemory, SendChar: CHAR;
                 END
             ELSE  {KK1L: NOTE Phone mode}
                 BEGIN
-                TempString := GetCQMemoryString (ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
+                TempString := GetCQMemoryString (ActiveRadio, ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
 
                 IF (NOT SkipFirstMessage) AND DVKEnable THEN
                     SendDVKMessage (TempString)
@@ -1948,7 +1948,7 @@ VAR Result: INTEGER;
             DualSendingQSL, SendingDupeMessage:
                 BEGIN
                 SwapRadios;
-                SendCrypticMessage (GetCQMemoryString (ActiveMode, AltF1)); {KK1L: 6.73 Added mode}
+                SendCrypticMessage (GetCQMemoryString (ActiveRadio, ActiveMode, AltF1)); {KK1L: 6.73 Added mode}
                 DualingCQState := DualSendingCQ;
                 InactiveRigCallingCQ := False;
                 QuickDisplay ('Dualing CQ mode active.  Use Control-Dash to cancel');
@@ -1956,10 +1956,10 @@ VAR Result: INTEGER;
 
             DualSendingExchange:
                 BEGIN
-                IF GetCQMemoryString (ActiveMode, AltF2) <> '' THEN {KK1L: 6.73 Added mode}
+                IF GetCQMemoryString (ActiveRadio, ActiveMode, AltF2) <> '' THEN {KK1L: 6.73 Added mode}
                     BEGIN
                      {KK1L: 6.73 Added mode}
-                    SendCrypticMessage (ControlA + ControlB + GetCQMemoryString (ActiveMode, AltF2));
+                    SendCrypticMessage (ControlA + ControlB + GetCQMemoryString (ActiveRadio, ActiveMode, AltF2));
                     QuickDisplay ('Dualing CQ mode active.  Sending dummy CQ on inactive radio');
                     END
                 ELSE
@@ -3242,7 +3242,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
           ControlZ: Exit;
 
-          ControlDash: IF GetCQMemoryString (ActiveMode, AltF1) = '' THEN {KK1L: 6.73 Added mode}
+          ControlDash: IF GetCQMemoryString (ActiveRadio, ActiveMode, AltF1) = '' THEN {KK1L: 6.73 Added mode}
                            QuickDisplay ('No CQ message programmed into CQ MEMORY AltF1.')
                        ELSE
                            BEGIN
@@ -3605,7 +3605,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   AltP: BEGIN
                         RITEnable := False;
                         shiftchange(0);
-                        MemoryProgram;
+                        MemoryProgram (ActiveRadio, ActiveMode);
                         if (shiftkeyenable = shift) then shiftchange(1);
                         if (shiftkeyenable = altshift) then shiftchange(2);
                         RITEnable := True;
@@ -4227,7 +4227,7 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                         END
                     ELSE
                         IF ActiveMode = Digital THEN
-                            SendCrypticDigitalString (GetEXMemoryString (Digital, F1))
+                            SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F1))
                         ELSE
                             SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
 
@@ -4246,23 +4246,43 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                     BEGIN
                     IF NOT AllCWMessagesChainable THEN FlushCWBufferAndClearPTT;
 
-                    IF ExchangeHasBeenSent AND (RepeatSearchAndPounceExchange <> '') THEN
-                        SendCrypticMessage (RepeatSearchAndPounceExchange)
+                    IF ExchangeHasBeenSent AND
+                       (((ActiveRadio = RadioOne) AND (RepeatSearchAndPounceExchangeR1 <> '')) OR
+                        ((ActiveRadio = RadioTwo) AND (RepeatSearchAndPounceExchangeR2 <> ''))) THEN
+                        BEGIN
+                        CASE ActiveRadio OF
+                            RadioOne: SendCrypticMessage (RepeatSearchAndPounceExchangeR1);
+                            RadioTwo: SendCrypticMessage (RepeatSearchAndPounceExchangeR2);
+                            END;
+                        END
                     ELSE
                         BEGIN
                         IF (ActiveWindow = CallWindow) AND
                            (CallWindowString = '') AND (ExchangeWindowString = '') THEN
                                BEGIN
-                               IF RepeatSearchAndPounceExchange <> '' THEN
-                                   SendCrypticMessage (RepeatSearchAndPounceExchange)
+                               IF ((ActiveRadio = RadioOne) AND (RepeatSearchAndPounceExchangeR1 <> '')) OR
+                                  ((ActiveRadio = RadioTwo) AND (RepeatSearchAndPounceExchangeR2 <> '')) THEN
+                                   BEGIN
+                                   CASE ActiveRadio OF
+                                       RadioOne: SendCrypticMessage (RepeatSearchAndPounceExchangeR1);
+                                       RadioTwo: SendCrypticMessage (RepeatSearchAndPounceExchangeR2);
+                                       END;
+                                   END
                                ELSE
-                                   SendCrypticMessage (SearchAndPounceExchange);
+                                   CASE ActiveRadio OF
+                                       RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                       RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                       END;
 
                                KeyStamp (ExtendedKey);
                                Exit;
                                END
                            ELSE
-                               SendCrypticMessage (SearchAndPounceExchange);
+                               CASE ActiveRadio OF
+                                   RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                   RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                   END;
+
                         END;
                     END
                 ELSE
@@ -4912,13 +4932,13 @@ ControlEnterCommand1:
                                    ELSE
                                        IF ActiveMode = Digital THEN
                                            BEGIN
-                                           SendCrypticDigitalString (GetEXMemoryString (Digital, F1));
+                                           SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F1));
                                            END
                                        ELSE
                                            BEGIN
                                            IF DVKEnable AND NOT BeSilent THEN
                                                {KK1L: 6.73 Added mode to GetExMemoryString}
-                                               SendDVKMessage (GetEXMemoryString (ActiveMode, F1));
+                                               SendDVKMessage (GetEXMemoryString (ActiveRadio, ActiveMode, F1));
                                            END;
 
                                    DisplayGridSquareStatus (CallWindowString);
@@ -4983,9 +5003,17 @@ ControlEnterCommand1:
                             IF MessageEnable AND (NOT ExchangeHasBeenSent) AND (NOT BeSilent) AND MessageEnable THEN
                                 BEGIN
                                 CASE ActiveMode OF
-                                    CW:      SendCrypticMessage (SearchAndPounceExchange);
-                                    Phone:   SendCrypticMessage (SearchAndPouncePhoneExchange);
-                                    Digital: SendCrypticDigitalString (GetEXMemoryString (Digital, F2));
+                                    CW:      CASE ActiveRadio OF
+                                                 RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                                 RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                                 END;
+
+                                    Phone:   CASE ActiveRadio OF
+                                                 RadioOne: SendCrypticMessage (SearchAndPouncePhoneExchangeR1);
+                                                 RadioTwo: SendCrypticMessage (SearchAndPouncePhoneExchangeR1);
+                                                 END;
+
+                                    Digital: SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F2));
                                     END;
 
                                 ExchangeHasBeenSent := True;
@@ -5235,9 +5263,17 @@ ControlEnterCommand2:
                             BEGIN
                             IF MessageEnable AND NOT BeSilent THEN
                                 CASE ActiveMode OF
-                                    CW:      SendCrypticMessage (SearchAndPounceExchange);
-                                    Phone:   SendCrypticMessage (SearchAndPouncePhoneExchange);
-                                    Digital: SendCrypticDigitalString (GetEXMemoryString (Digital, F2));
+                                    CW:      CASE ActiveRadio OF
+                                                 RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                                 RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                                 END;
+
+                                    Phone:   CASE ActiveRadio OF
+                                                 RadioOne: SendCrypticMessage (SearchAndPouncePhoneExchangeR1);
+                                                 RadioTwo: SendCrypticMessage (SearchAndPouncePhoneExchangeR2);
+                                                 END;
+
+                                    Digital: SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F2));
                                     END;
 
                             ExchangeHasBeenSent := True;
@@ -5825,7 +5861,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                             END
                         ELSE
                             IF ActiveMode = Digital THEN
-                                SendCrypticDigitalString (GetEXMemoryString (Digital, F1))
+                                SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F1))
                             ELSE
                                 SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
                         END;
@@ -6742,26 +6778,41 @@ VAR MTotals: MultTotalArrayType;
                             END
                         ELSE
                             IF MessageEnable AND NOT BeSilent THEN
-                                SendCrypticMessage (QSOBeforeMessage);
+                                CASE ActiveRadio OF
+                                    RadioOne: SendCrypticMessage (QSOBeforeMessageR1);
+                                    RadioTwo: SendCrypticMessage (QSOBeforeMessageR2);
+                                    END;
                         END
                     ELSE
                         IF MessageEnable AND NOT BeSilent THEN
-                            SendCrypticMessage (QSOBeforeMessage);
+                            CASE ActiveRadio OF
+                                RadioOne: SendCrypticMessage (QSOBeforeMessageR1);
+                                RadioTwo: SendCrypticMessage (QSOBeforeMessageR2);
+                                END;
                     END
                 ELSE
                     IF MessageEnable AND NOT BeSilent THEN
-                        SendCrypticMessage (QSOBeforeMessage);
+                        CASE ActiveRadio OF
+                            RadioOne: SendCrypticMessage (QSOBeforeMessageR1);
+                            RadioTwo: SendCrypticMessage (QSOBeforeMessageR2);
+                            END;
 
                 IF DualingCQState <> NoDualingCQs THEN
                     DualingCQState := SendingDupeMessage;
                 END;
 
             IF ActiveMode = Digital THEN
-                FinishRTTYTransmission (QSOBeforeMessage);
+                CASE ActiveRadio OF
+                    RadioOne: FinishRTTYTransmission (QSOBeforeMessageR1);
+                    RadioTwo: FinishRTTYTransmission (QSOBeforeMessageR2);
+                    END;
 
             IF ActiveMode = Phone THEN
                 BEGIN
-                SendCrypticMessage (QSOBeforePhoneMessage);
+                CASE ActiveRadio OF
+                    RadioOne: SendCrypticMessage (QSOBeforePhoneMessageR1);
+                    RadioTwo: SendCrypticMessage (QSOBeforePhoneMessageR2);
+                    END;
 
                 Write (' DUPE!!');
                 EscapeDeletedCallEntry := CallWindowString;
@@ -6857,7 +6908,11 @@ VAR MTotals: MultTotalArrayType;
                     BEGIN
                     TailEndCallString := '';
                     SendCorrectCallIfNeeded;
-                    IF MessageEnable THEN AddStringToBuffer (TailEndMessage + ' ', CWTone);
+                    IF MessageEnable THEN
+                        CASE ActiveRadio OF
+                            RadioOne: AddStringToBuffer (TailEndMessageR1 + ' ', CWTone);
+                            RadioTwo: AddStringToBuffer (TailEndMessageR2 + ' ', CWTone);
+                            END;
 
                     REPEAT
                         REPEAT millisleep UNTIL NewKeyPressed;
@@ -6893,9 +6948,17 @@ VAR MTotals: MultTotalArrayType;
                                 IF QuickQSL <> NoQuickQSLKey THEN
                                     BEGIN
                                     IF QuickQSL = QuickKey1 THEN
-                                        SendCrypticMessage (QuickQSLMessage1)
+                                        BEGIN
+                                        CASE ActiveRadio OF
+                                            RadioOne: SendCrypticMessage (QuickQSLMessage1R1);
+                                            RadioTwo: SendCrypticMessage (QuickQSLMessage1R2);
+                                            END;
+                                        END
                                     ELSE
-                                        SendCrypticMessage (QuickQSLMessage2);
+                                        CASE ActiveRadio OF
+                                            RadioOne: SendCrypticMessage (QuickQSLMessage2R1);
+                                            RadioTwo: SendCrypticMessage (QuickQSLMessage2R2);
+                                            END;
                                     END
                                 ELSE
                                     IF ExchangeInformation.Age THEN
@@ -6916,7 +6979,12 @@ VAR MTotals: MultTotalArrayType;
                         IF MessageEnable AND NOT BeSilent THEN
                             BEGIN
                             IF QuickQSL <> NoQuickQSLKey THEN
-                                SendCrypticMessage (QuickQSLPhoneMessage)
+                                BEGIN
+                                CASE ActiveRadio OF
+                                    RadioOne: SendCrypticMessage (QuickQSLPhoneMessageR1);
+                                    RadioTwo: SendCrypticMessage (QuickQSLPhoneMessageR2);
+                                    END;
+                                END
                             ELSE
                                 Send73Message;
                             END;

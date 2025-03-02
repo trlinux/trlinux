@@ -362,8 +362,7 @@ PROCEDURE TBSIQ_ExchangeRadios;
 
 { Swaps the band/mode/frequency between the two radios }
 
-VAR TimeOut: INTEGER;
-    ModeOne, ModeTwo: ModeType;
+VAR ModeOne, ModeTwo: ModeType;
     BandOne, BandTwo: BandType;
     FreqOne, FreqTwo: LONGINT;
 
@@ -1459,7 +1458,6 @@ VAR TempString, MultiString, MessageString: STRING;
     ReturnedQSONumber, ReservedQSONumber, QSONumberFromNetwork, Points: INTEGER;
     Freq, QSX: LONGINT;
     ControlByte: BYTE;
-    RXData: ContestExchange;
     Year, Month, Day, Hour, Minute, Second: WORD;
     MessageOriginator: BYTE;
     Dupe, Mult, FirstCommand, NewMult: BOOLEAN;
@@ -2801,14 +2799,22 @@ VAR Key, ExtendedKey: CHAR;
                     BEGIN
                     IF (NOT AutoDupeEnableCQ) OR (NOT WindowDupeCheck) THEN
                         BEGIN
-                        ExpandedString := ExpandCrypticString (CQExchange);
+                        CASE Radio OF
+                            RadioOne: ExpandedString := ExpandCrypticString (CQExchangeR1);
+                            RadioTwo: ExpandedString := ExpandCrypticString (CQExchangeR2);
+                            END;
+
                         AppendCWMessageDisplay (ExpandedString);
                         TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                         QSOState := QST_CQExchangeBeingSent;
                         END
                     ELSE
                         BEGIN  { Is a dupe }
-                        ExpandedString := ExpandCrypticString (QSOBeforeMessage);
+                        CASE Radio OF
+                            RadioOne: ExpandedString := ExpandCrypticString (QSOBeforeMessageR1);
+                            RadioTwo: ExpandedString := ExpandCrypticString (QSOBeforeMessageR2);
+                            END;
+
                         TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                         ShowCWMessage (ExpandedString);
                         QSOState := QST_Idle;
@@ -2837,14 +2843,18 @@ VAR Key, ExtendedKey: CHAR;
                                 BEGIN
                                 IF Mode = CW THEN
                                     BEGIN
-                                    ExpandedString := ExpandCrypticString (CQExchange);
+                                    CASE Radio OF
+                                        RadioOne: ExpandedString := ExpandCrypticString (CQExchangeR1);
+                                        RadioTwo: ExpandedString := ExpandCrypticString (CQExchangeR1);
+                                        END;
+
                                     AppendCWMessageDisplay (ExpandedString);
                                     TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                                     END;
 
                                 IF Mode = Digital THEN
                                     BEGIN
-                                    ExpandedString := ExpandCrypticString (GetExMemoryString (Digital, F2));
+                                    ExpandedString := ExpandCrypticString (GetExMemoryString (Radio, Digital, F2));
                                     AppendCWMessageDisplay (ExpandedString);
                                     ActiveRadio := Radio;
                                     ActiveMode := Mode;
@@ -2860,12 +2870,21 @@ VAR Key, ExtendedKey: CHAR;
                               send commands to the radio to start a voice memory }
 
                             Phone:
-                                IF CQPhoneExchange <> '' THEN
-                                    BEGIN
-                                    ExpandedString := ExpandCrypticString (CQPhoneExchange);
-                                    TransmitCountdown := InitialTransmitCountdown;
-                                    END;
+                                CASE Radio OF
+                                    RadioOne:
+                                        IF CQPhoneExchangeR1 <> '' THEN
+                                            BEGIN
+                                            ExpandedString := ExpandCrypticString (CQPhoneExchangeR1);
+                                            TransmitCountdown := InitialTransmitCountdown;
+                                            END;
 
+                                    RadioTwo:
+                                        IF CQPhoneExchangeR2 <> '' THEN
+                                            BEGIN
+                                            ExpandedString := ExpandCrypticString (CQPhoneExchangeR2);
+                                            TransmitCountdown := InitialTransmitCountdown;
+                                            END;
+                                    END;
                             END;
 
                         QSOState := QST_CQExchangeBeingSent;
@@ -2875,14 +2894,18 @@ VAR Key, ExtendedKey: CHAR;
                         BEGIN  { Call is a dupe }
                         IF Mode = CW THEN
                             BEGIN
-                            ExpandedString := ExpandCrypticString (QSOBeforeMessage);
+                            CASE Radio OF
+                                RadioOne: ExpandedString := ExpandCrypticString (QSOBeforeMessageR1);
+                                RadioTwo: ExpandedString := ExpandCrypticString (QSOBeforeMessageR2);
+                                END;
+
                             TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                             ShowCWMessage (ExpandedString);
                             END;
 
                         IF Mode = Digital THEN
                             BEGIN
-                            ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
+                            ExpandedString := ExpandCrypticString (GetEXMemoryString (Radio, Digital, F2));
                             ActiveRadio := Radio;
                             ActiveMode := Mode;
                             TransmitCountdown := InitialTransmitCountdown;
@@ -3008,14 +3031,18 @@ VAR Key, ExtendedKey: CHAR;
                 CASE Mode OF
                     CW:
                         BEGIN
-                        ExpandedString := ExpandCrypticString (CQExchange);
+                        CASE Radio OF
+                            RadioOne: ExpandedString := ExpandCrypticString (CQExchangeR1);
+                            RadioTwo: ExpandedString := ExpandCrypticString (CQExchangeR2);
+                            END;
+
                         TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                         AppendCWMessageDisplay (ExpandedString);
                         END;
 
                     Digital:
                         BEGIN
-                        ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
+                        ExpandedString := ExpandCrypticString (GetEXMemoryString (Radio, Digital, F2));
 
                         ActiveMode := Mode;
                         ActiveRadio := Radio;
@@ -3028,10 +3055,19 @@ VAR Key, ExtendedKey: CHAR;
                         END;
 
                     Phone:
-                        IF CQPhoneExchange <> '' THEN
-                            BEGIN
-                            ExpandedString := ExpandCrypticString (CQPhoneExchange);
-                            TransmitCountdown := InitialTransmitCountdown;
+                        CASE Radio OF
+                            RadioOne:
+                                IF CQPhoneExchangeR1 <> '' THEN
+                                    BEGIN
+                                    ExpandedString := ExpandCrypticString (CQPhoneExchangeR1);
+                                    TransmitCountdown := InitialTransmitCountdown;
+                                    END;
+                            RadioTwo:
+                                IF CQPhoneExchangeR2 <> '' THEN
+                                    BEGIN
+                                    ExpandedString := ExpandCrypticString (CQPhoneExchangeR2);
+                                    TransmitCountdown := InitialTransmitCountdown;
+                                    END;
                             END;
 
                     END;
@@ -3046,14 +3082,22 @@ VAR Key, ExtendedKey: CHAR;
                 CASE Mode OF
                     CW:
                         BEGIN
-                        ExpandedString := ExpandCrypticString (QSOBeforeMessage);
+                        CASE Radio OF
+                            RadioOne: ExpandedString := ExpandCrypticString (QSOBeforeMessageR1);
+                            RadioTwo: ExpandedString := ExpandCrypticString (QSOBeforeMessageR2);
+                            END;
+
                         TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                         ShowCWMessage (ExpandedString);
                         END;
 
                     Digital:
                         BEGIN
-                        ExpandedString := ExpandCrypticString (QSOBeforeMessage);
+                        CASE Radio OF
+                            RadioOne: ExpandedString := ExpandCrypticString (QSOBeforeMessageR1);
+                            RadioTwo: ExpandedString := ExpandCrypticString (QSOBeforeMessageR2);
+                            END;
+
                         ActiveMode := Mode;
                         ActiveRadio := Radio;
 
@@ -3065,10 +3109,19 @@ VAR Key, ExtendedKey: CHAR;
                         END;
 
                     Phone:
-                        IF QSOBeforeMessage <> '' THEN
-                            BEGIN
-                            ExpandedString := ExpandCrypticString (QSOBeforeMessage);
-                            TransmitCountdown := InitialTransmitCountdown;
+                        CASE Radio OF
+                            RadioOne:
+                                IF QSOBeforeMessageR1 <> '' THEN
+                                    BEGIN
+                                    ExpandedString := ExpandCrypticString (QSOBeforeMessageR1);
+                                    TransmitCountdown := InitialTransmitCountdown;
+                                    END;
+                            RadioTwo:
+                                IF QSOBeforeMessageR2 <> '' THEN
+                                    BEGIN
+                                    ExpandedString := ExpandCrypticString (QSOBeforeMessageR2);
+                                    TransmitCountdown := InitialTransmitCountdown;
+                                    END;
                             END;
 
                     END; { of CASE Mode }
@@ -3245,16 +3298,34 @@ VAR Key, ExtendedKey: CHAR;
                                 IF Mode = Phone THEN
                                     BEGIN
                                     CASE Key OF
-                                        CarriageReturn: TempString := TempString + QSLPhoneMessage;
+                                        CarriageReturn:
+                                            CASE Radio OF
+                                                RadioOne: TempString := TempString + QSLPhoneMessageR1;
+                                                RadioTwo: TempString := TempString + QSLPhoneMessageR2;
+                                                END;
                                         END;
                                     END
 
                                 ELSE
                                     CASE Key OF
-                                        CarriageReturn: TempString := TempString + QSLMessage;
-                                        '\':            TempString := TempString + QuickQSLMessage1;
-                                        ']':            TempString := TempString + QuickQSLMessage2;
-                                        END;
+                                        CarriageReturn:
+                                            CASE Radio OF
+                                                RadioOne: TempString := TempString + QSLMessageR1;
+                                                RadioTwo: TempString := TempString + QSLMessageR2;
+                                                END;
+
+                                        '\':
+                                            CASE Radio OF
+                                                RadioOne: TempString := TempString + QuickQSLMessage1R1;
+                                                RadioTwo: TempString := TempString + QuickQSLMessage1R2;
+                                                END;
+
+                                        ']':
+                                            CASE Radio OF
+                                                RadioOne: TempString := TempString + QuickQSLMessage2R1;
+                                                RadioTwo: TempString := TempString + QuickQSLMessage2R2;
+                                                END;
+                                        END;  { of CASE Key }
 
                                 CASE Mode OF
                                     CW:
@@ -3669,26 +3740,39 @@ VAR Key, ExtendedKey: CHAR;
                                         BEGIN
                                         ActiveRadio := Radio;
                                         ActiveMode := Mode;
-                                        ExpandedString := ExpandCrypticString (GetEXMemoryString (Digital, F2));
+                                        ExpandedString := ExpandCrypticString (GetEXMemoryString (Radio, Digital, F2));
                                         ShowCWMessage (ExpandedString);
                                         TransmitCountdown := InitialTransmitCountdown;
                                         FinishRTTYTransmission (ExpandedString);
                                         END;
 
                                     CW: BEGIN
-                                        ExpandedString := ExpandCrypticString (SearchAndPounceExchange);
+                                        CASE Radio OF
+                                            RadioOne: ExpandedString := ExpandCrypticString (SearchAndPounceExchangeR1);
+                                            RadioTwo: ExpandedString := ExpandCrypticString (SearchAndPounceExchangeR2);
+                                            END;
+
                                         TBSIQ_CW_Engine.CueCWMessage (ExpandedString, Radio, CWP_High, False);
                                         ShowCWMessage (ExpandedString);
                                         END;
 
                                     Phone:
-                                        IF SearchAndPouncePhoneExchange <> '' THEN
-                                            BEGIN
-                                            TransmitCountdown := InitialTransmitCountdown;
-                                            ExpandedString := ExpandCrypticString (SearchAndPouncePhoneExchange);
-                                            ShowCWMessage ('Sent S&P PhoneExchange');
-                                            END;
-
+                                        CASE Radio OF
+                                            RadioOne:
+                                                IF SearchAndPouncePhoneExchangeR1 <> '' THEN
+                                                    BEGIN
+                                                    TransmitCountdown := InitialTransmitCountdown;
+                                                    ExpandedString := ExpandCrypticString (SearchAndPouncePhoneExchangeR1);
+                                                    ShowCWMessage ('Sent S&P PhoneExchange');
+                                                    END;
+                                            RadioTWo:
+                                                IF SearchAndPouncePhoneExchangeR2 <> '' THEN
+                                                    BEGIN
+                                                    TransmitCountdown := InitialTransmitCountdown;
+                                                    ExpandedString := ExpandCrypticString (SearchAndPouncePhoneExchangeR2);
+                                                    ShowCWMessage ('Sent S&P PhoneExchange');
+                                                    END;
+                                            END;  { of CASE Radio }
                                     END;  { of CASE Mode }
 
                                 SearchAndPounceExchangeSent := True;
@@ -5413,7 +5497,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
 
         ControlDash:
-            IF GetCQMemoryString (Mode, AltF1) <> '' THEN
+            IF GetCQMemoryString (Radio, Mode, AltF1) <> '' THEN
                 BEGIN
                 IF DualingCQState = NoDualingCQs THEN
                     BEGIN
@@ -5970,7 +6054,7 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                       BEGIN
                       RITEnable := False;
                       ActiveMode := Mode;
-                      MemoryProgram;
+                      MemoryProgram (Radio, Mode);
                       RITEnable := True;
                       VisibleLog.SetUpEditableLog;
                       ClearKeyCache := True;
@@ -7677,7 +7761,7 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
        (QSOState = QST_AutoCQListening) OR
        (QSOState = QST_CQCalled) OR (QSOState = QST_AutoStartSending) OR
        (QSOState = QST_CQSending73Message) THEN
-           Message := GetCQMemoryString (Mode, Key)
+           Message := GetCQMemoryString (Radio, Mode, Key)
        ELSE
            CASE Key OF
                F1: BEGIN
@@ -7687,30 +7771,38 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                        SearchAndPounceStationCalled := True;
                        ENd
                    ELSE
-                       Message := GetExMemoryString (Mode, Key);
+                       Message := GetExMemoryString (Radio, Mode, Key);
                    END;
 
                F2: CASE Mode OF
                        CW:      BEGIN
-                                Message := SearchAndPounceExchange;
+                                CASE Radio OF
+                                    RadioOne: Message := SearchAndPounceExchangeR1;
+                                    RadioTwo: Message := SearchAndPounceExchangeR2;
+                                    END;
+
                                 SearchAndPounceExchangeSent := True;
                                 END;
 
                        Phone:   BEGIN
-                                Message := SearchAndPouncePhoneExchange;
+                                CASE Radio OF
+                                    RadioOne: Message := SearchAndPouncePhoneExchangeR1;
+                                    RadioTwo: Message := SearchAndPouncePhoneExchangeR2;
+                                    END;
+
                                 IF Message = '' THEN
-                                    Message := GetExMemoryString (Phone, Key);
+                                    Message := GetExMemoryString (Radio, Phone, Key);
                                 END;
 
                        Digital: BEGIN
-                                Message := GetExMemoryString (Digital, Key);
+                                Message := GetExMemoryString (Radio, Digital, Key);
                                 SearchAndPounceExchangeSent := True;
                                 END;
 
                        END;  { of CASE Mode }
 
                ELSE
-                   Message := GetEXMemoryString (Mode, Key);
+                   Message := GetEXMemoryString (Radio, Mode, Key);
 
                END;  { of CASE Key }
 

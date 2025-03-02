@@ -103,13 +103,19 @@ PROCEDURE SetConfigurationDefaultValues;
     ConfirmEditChanges      := True;
     ContestTitle            := '';
     ContinentString         := '';
-    CorrectedCallMessage    := '} OK %';
+
+    CorrectedCallMessageR1  := '} OK %';
+    CorrectedCallMessageR2  := '} OK %';
 
     CountDomesticCountries    := False;
     CountryInformationFile    := '';
     CountryString   := '';
-    CQExchange          := '';
-    CQExchangeNameKnown := '';
+
+    CQExchangeR1          := '';
+    CQExchangeR2          := '';
+    CQExchangeNameKnownR1 := '';
+    CQExchangeNameKnownR2 := '';
+
     CQMenu := 'F1/2-CQ F3-Ex F4-73 F5-Call F6-DECall F7-WkdB4 F8-Agn F9-? F10-Keyboard CW';
     CustomInitialExchangeString := '';
     CustomUserString            := '';
@@ -306,8 +312,12 @@ PROCEDURE SetConfigurationDefaultValues;
     Winkey.SetPTTEnable(True);
     YcccKey.SetPTTEnable(True);
 
-    QSLMessage             := '73 \ TEST';
-    QSOBeforeMessage       := ' SRI QSO B4 73 \ TEST';
+    QSLMessageR1           := '73 \ TEST';
+    QSLMessageR2           := '73 \ TEST';
+
+    QSOBeforeMessageR1     := ' SRI QSO B4 73 \ TEST';
+    QSOBeforeMessageR2     := ' SRI QSO B4 73 \ TEST';
+
     QTCMinutes             := False;
     QTCsEnabled            := False;
 
@@ -322,8 +332,11 @@ PROCEDURE SetConfigurationDefaultValues;
     QTCQRS                 := True;
     QuickQSLKey1           := '\';
     QuickQSLKey2           := '=';
-    QuickQSLMessage1       := 'TU';
-    QuickQSLMessage2       := 'EE';
+
+    QuickQSLMessage1R1     := 'TU';
+    QuickQSLMessage1R2     := 'TU';
+    QuickQSLMessage2R1     := 'EE';
+    QuickQSLMessage2R2     := 'EE';
 
     Radio1BaudRate := 4800;
     Radio2BaudRate := 4800;
@@ -352,7 +365,9 @@ PROCEDURE SetConfigurationDefaultValues;
     RelayControlPort := nil;
     RemainingMultDisplayMode := HiLight;
     RememberDDXCallsign := '';
-    RepeatSearchAndPounceExchange := '';
+
+    RepeatSearchAndPounceExchangeR1 := '';
+    RepeatSearchAndPounceExchangeR2 := '';
 
     RTTYReceiveString := ControlR;
     RTTYSendString    := ControlT;
@@ -364,7 +379,9 @@ PROCEDURE SetConfigurationDefaultValues;
     SCPDupeColor      := Red;
     SCPMinimumLetters := 0;
 
-    SearchAndPounceExchange      := '';
+    SearchAndPounceExchangeR1    := '';
+    SearchAndPounceExchangeR2    := '';
+
     SendAltDSpotsToPacket        := False;
     SendCompleteFourLetterCall   := False;
     SendQSOImmediately           := True;
@@ -434,7 +451,10 @@ PROCEDURE SetConfigurationDefaultValues;
 
     TabMode         := NormalTabMode;
     TailEndKey      := ']';
-    TailEndMessage  := 'R';
+
+    TailEndMessageR1  := 'R';
+    TailEndMessageR2  := 'R';
+
     TenMinuteRule   := NoTenMinuteRule;
     CPUKeyer.SetTuneWithDits(False);
     Winkey.SetTuneWithDits(False);

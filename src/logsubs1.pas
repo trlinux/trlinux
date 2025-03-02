@@ -875,13 +875,13 @@ VAR QSONumberString: Str20;
 
            IF OpMode = CQOpMode THEN
                BEGIN
-               Message := GetCQMemoryString (ActiveMode, MessageKey); {KK1L: 6.73 Added mode}
+               Message := GetCQMemoryString (ActiveRadio, ActiveMode, MessageKey); {KK1L: 6.73 Added mode}
 
                IF (Key = F1) OR (Key = F2) THEN   { Likely CQ called - new in Jan 2024 }
                    CallAlreadySent := False;  { Re-arm AutoStartSend }
                END
            ELSE
-               Message := GetEXMemoryString (ActiveMode, MessageKey); {KK1L: 6.73 Added mode}
+               Message := GetEXMemoryString (ActiveRadio, ActiveMode, MessageKey); {KK1L: 6.73 Added mode}
 
            FoundCommand (Message);
 
@@ -914,19 +914,19 @@ VAR QSONumberString: Str20;
            IF (ActiveMode = Phone) AND DVKEnable AND (Key >= ControlF1) AND (Key <= ControlF10) AND DVKControlKeyRecord THEN
                BEGIN
                {KK1L: 6.73 Added mode}
-               IF StringHas (UpperCase (GetCQMemoryString (ActiveMode, Chr (Ord (Key) - 35))), 'DVK') THEN
+               IF StringHas (UpperCase (GetCQMemoryString (ActiveRadio, ActiveMode, Chr (Ord (Key) - 35))), 'DVK') THEN
                    BEGIN
                    IF OpMode = CQOpMode THEN
                        BEGIN
                        QuickDisplay ('Recording DVK.  Press ESCAPE or RETURN to stop.');
                        {KK1L: 6.73 Added mode}
-                       DVKRecordMessage (GetCQMemoryString (ActiveMode, Chr (Ord (Key) - 35)));
+                       DVKRecordMessage (GetCQMemoryString (ActiveRadio, ActiveMode, Chr (Ord (Key) - 35)));
                        END
                    ELSE
                        BEGIN
                        QuickDisplay ('Recording DVK.  Press ESCAPE or RETURN to stop.');
                        {KK1L: 6.73 Added mode to GetEXMemoryString}
-                       DVKRecordMessage (GetEXMemoryString (ActiveMode, Chr (Ord (Key) - 35)));
+                       DVKRecordMessage (GetEXMemoryString (ActiveRadio, ActiveMode, Chr (Ord (Key) - 35)));
                        END;
                    END;
                Exit;
@@ -997,17 +997,30 @@ VAR Name: Str20;
     CASE ActiveMode OF
         Phone:
             BEGIN
-            IF (CQPhoneExchangeNameKnown <> '') AND SayHiEnable THEN
+            IF SayHiEnable AND
+               (((ActiveRadio = RadioOne) AND (CQPhoneExchangeNameKnownR1 <> '')) OR
+                ((ActiveRadio = RadioTwo) AND (CQPhoneExchangeNameKnownR2 <> ''))) THEN
                 BEGIN
                 Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
 
                 IF (Name = '') OR (Name = 'CLUB') THEN
-                    SendCrypticMessage (CQPhoneExchangeNameKnown)
+                    BEGIN
+                    CASE ActiveRadio OF
+                        RadioOne: SendCrypticMessage (CQPhoneExchangeNameKnownR1);
+                        RadioTwo: SendCrypticMessage (CQPhoneExchangeNameKnownR2);
+                        END;
+                    END
                 ELSE
-                    SendCrypticMessage (CQPhoneExchange);
+                    CASE ActiveRadio OF
+                        RadioOne: SendCrypticMessage (CQPhoneExchangeR1);
+                        RadioTwo: SendCrypticMessage (CQPhoneExchangeR2);
+                        END;
                 END
             ELSE
-                SendCrypticMessage (CQPhoneExchange);
+                CASE ActiveRadio OF
+                    RadioOne: SendCrypticMessage (CQPhoneExchangeR1);
+                    RadioTwo: SendCrypticMessage (CQPhoneExchangeR1);
+                    END;
             END;
 
         CW:
@@ -1024,18 +1037,31 @@ VAR Name: Str20;
                     END;
                 END;
 
-            IF (CQExchangeNameKnown <> '') AND SayHiEnable THEN
+            IF SayHiEnable AND
+               (((ActiveRadio = RadioOne) AND (CQExchangeNameKnownR1 <> '')) OR
+                ((ActiveRadio = RadioTwo) AND (CQExchangeNameKnownR2 <> ''))) THEN
                 BEGIN
                 Name := UpperCase (CD.GetName (RootCall (CallsignICameBackTo)));
 
                 IF (Name = '') OR (Name = 'CLUB') THEN
-                    SendCrypticMessage (CQExchange)
+                    BEGIN
+                    CASE ActiveRadio OF
+                        RadioOne: SendCrypticMessage (CQExchangeR1);
+                        RadioTwo: SendCrypticMessage (CQExchangeR2);
+                        END;
+                    END
                 ELSE
-                    SendCrypticMessage (CQExchangeNameKnown);
+                    CASE ActiveRadio OF
+                        RadioOne: SendCrypticMessage (CQExchangeNameKnownR1);
+                        RadioTwo: SendCrypticMessage (CQExchangeNameKnownR2);
+                        END;
                 END
             ELSE
                 BEGIN
-                SendCrypticMessage (CQExchange);
+                CASE ActiveRadio OF
+                    RadioOne: SendCrypticMessage (CQExchangeR1);
+                    RadioTwo: SendCrypticMessage (CQExchangeR2);
+                    END;
                 END;
 
             { ClearPTTForceOn;   Taking this out in Nov 22 }
@@ -1077,7 +1103,7 @@ VAR Name: Str20;
               callsign automaticall.  It is up to the user to put the callsign
               in the EX DIGITAL MEMORY F2 }
 
-            SendCrypticMessage (GetEXMemoryString (Digital, F2));
+            SendCrypticMessage (GetEXMemoryString (ActiveRadio, Digital, F2));
 
         END; { of CASE }
 
@@ -1093,7 +1119,12 @@ PROCEDURE Send73Message;
     IF BeSilent THEN Exit;
 
     IF ActiveMode = Phone THEN
-        SendCrypticMessage (QSLPhoneMessage)
+        BEGIN
+        CASE ActiveRadio OF
+            RadioOne: SendCrypticMessage (QSLPhoneMessageR1);
+            RadioTwo: SendCrypticMessage (QSLPhoneMessageR2);
+            END;
+        END
     ELSE
         BEGIN
         IF AutoQSLCount > 0 THEN
@@ -1101,15 +1132,24 @@ PROCEDURE Send73Message;
             Dec (AutoQSLCount);
             IF AutoQSLCount = 0 THEN
                 BEGIN
-                SendCrypticMessage (QSLMessage);
+                CASE ActiveRadio OF
+                    RadioOne: SendCrypticMessage (QSLMessageR1);
+                    RadioTwo: SendCrypticMessage (QSLMessageR2);
+                    END;
                 AutoQSLCount := AutoQSLInterval;
                 END
             ELSE
-                SendCrypticMessage (QuickQSLMessage1);
+                CASE ActiveRadio OF
+                    RadioOne: SendCrypticMessage (QuickQSLMessage1R1);
+                    RadioTwo: SendCrypticMessage (QuickQSLMessage1R2);
+                    END;
 
             END
         ELSE
-            SendCrypticMessage (QSLMessage);
+            CASE ActiveRadio OF
+                RadioOne: SendCrypticMessage (QSLMessageR1);
+                RadioTwo: SendCrypticMessage (QSLMessageR2);
+                END;
         END;
 
     SeventyThreeMessageSent := True;
@@ -1123,7 +1163,10 @@ PROCEDURE SendCorrectCallIfNeeded;
     IF (ReceivedData.Callsign <> CallsignICameBackTo) AND NOT BeSilent THEN
         BEGIN
         IF MessageEnable THEN
-            SendCrypticMessage (CorrectedCallMessage);
+            CASE ActiveRadio OF
+                RadioOne: SendCrypticMessage (CorrectedCallMessageR1);
+                RadioTwo: SendCrypticMessage (CorrectedCallMessageR2);
+                END;
 
         CallsignICameBackTo := ReceivedData.Callsign;
         END;
@@ -1134,7 +1177,10 @@ PROCEDURE SendCorrectCallIfNeeded;
         BEGIN
         TailEndCallString := PostcedingString (CallWindowString, ',');
         TailEnding := True;
-        AddStringToBuffer (TailEndMessage + ' ' + TailEndCallString, CWTone);
+        CASE ActiveRadio OF
+            RadioOne: AddStringToBuffer (TailEndMessageR1 + ' ' + TailEndCallString, CWTone);
+            RadioTwo: AddStringToBuffer (TailEndMessageR2 + ' ' + TailEndCallString, CWTone);
+            END;
         END;
     END;
 
@@ -1417,7 +1463,7 @@ VAR Key: CHAR;
                         ELSE
                             IF DVKEnable THEN
                                 {KK1L: 6.73 Added mode to GetEXMemoryString}
-                                SendCrypticMessage (GetExMemoryString (ActiveMode, F1));
+                                SendCrypticMessage (GetExMemoryString (ActiveRadio, ActiveMode, F1));
 //                              SendDVKMessage (GetExMemoryString (ActiveMode, F1));
 
                     TwoRadioState := StationCalled;
@@ -1443,7 +1489,7 @@ VAR Key: CHAR;
 
                                     {SendCrypticMessage (GetCQMemoryString (F1));}
                                     {KK1L: 6.73}
-                                    IF CalledFromCQMode THEN SendCrypticMessage (GetCQMemoryString (ActiveMode, F1));
+                                    IF CalledFromCQMode THEN SendCrypticMessage (GetCQMemoryString (ActiveRadio, ActiveMode, F1));
 
                                     { We have a problem... the callsign is
                                       still up and we are in S&P mode }
@@ -1481,10 +1527,10 @@ VAR Key: CHAR;
 
                         {KK1L: 6.73 Added CalledFromCQMode}
                         {KK1L: 6.73 Added mode to GetCQMemoryString}
-                        IF (GetCQMemoryString (ModeMemory[InactiveRadio], AltF3) <> '') AND (CalledFromCQMode) THEN
+                        IF (GetCQMemoryString (InactiveRadio, ModeMemory[InactiveRadio], AltF3) <> '') AND (CalledFromCQMode) THEN
                             BEGIN
                             {KK1L: 6.73 Added mode to GetCQMemoryString}
-                            SendCrypticMessage (ControlA + GetCQMemoryString (ModeMemory[InactiveRadio], AltF3));
+                            SendCrypticMessage (ControlA + GetCQMemoryString (InactiveRadio, ModeMemory[InactiveRadio], AltF3));
                             END;
 
                         END;
@@ -1518,7 +1564,7 @@ VAR Key: CHAR;
                         IF DVKEnable THEN
                             {SendDVKMessage (GetEXMemoryString (F2));} {KK1L: 6.71 removed}
                             {KK1L: 6.73 Added mode to GetEXMemoryString}
-                            SendDVKMessage (GetEXMemoryString (ActiveMode, F1)); {KK1L: 6.71 added to be consistent!}
+                            SendDVKMessage (GetEXMemoryString (ActiveRadio, ActiveMode, F1)); {KK1L: 6.71 added to be consistent!}
 
                         END;
 
@@ -1536,7 +1582,7 @@ VAR Key: CHAR;
                                     {SendCrypticMessage (GetCQMemoryString (F1));}
                                     {KK1L: 6.73 Added mode to GetCQMemoryString}
                                     {KK1L: 6.73}
-                                    IF CalledFromCQMode THEN SendCrypticMessage (GetCQMemoryString (ActiveMode, F1));
+                                    IF CalledFromCQMode THEN SendCrypticMessage (GetCQMemoryString (ActiveRadio, ActiveMode, F1));
                                     TwoRadioState := CallReady;
                                     Exit;
                                     END
@@ -1565,13 +1611,8 @@ VAR Key: CHAR;
                         UNTIL (((ActiveMode = CW)    AND NOT CWStillBeingSent) OR
                                ((ActiveMode = Phone) AND NOT (DVKMessagePlaying)));
 
-                        {KK1L: 6.73 Added CalledFromCQMode}
-                        {KK1L: 6.73 Added mode to GetCQMemoryString}
-                        IF (GetCQMemoryString (ModeMemory[InactiveRadio], AltF3) <> '') AND (CalledFromCQMode) THEN
-                            BEGIN
-                            {KK1L: 6.73 Added mode to GetCQMemoryString}
-                            SendCrypticMessage (ControlA + GetCQMemoryString (ModeMemory[InactiveRadio], AltF3));
-                            END;
+                        IF (GetCQMemoryString (InactiveRadio, ModeMemory[InactiveRadio], AltF3) <> '') AND (CalledFromCQMode) THEN
+                            SendCrypticMessage (ControlA + GetCQMemoryString (InactiveRadio, ModeMemory [InactiveRadio], AltF3));
                         END;
 
                     Exit;
@@ -1580,15 +1621,37 @@ VAR Key: CHAR;
                 F2Pressed:
                     BEGIN
                     IF ActiveMode = CW THEN
-                        IF ExchangeHasBeenSent AND (RepeatSearchAndPounceExchange <> '') THEN
-                            SendCrypticMessage (RepeatSearchAndPounceExchange)
+                        BEGIN
+                        IF ExchangeHasBeenSent AND
+                           (((ActiveRadio = RadioOne) AND (RepeatSearchAndPounceExchangeR1 <> '')) OR
+                            ((ActiveRadio = RadioTwo) AND (RepeatSearchAndPounceExchangeR2 <> ''))) THEN
+                            BEGIN
+                            CASE ActiveRadio OF
+                                RadioOne: SendCrypticMessage (RepeatSearchAndPounceExchangeR1);
+                                RadioTwo: SendCrypticMessage (RepeatSearchAndPounceExchangeR2);
+                                END;
+                            END
                         ELSE
-                            SendCrypticMessage (SearchAndPounceExchange)
+                            CASE ActiveRadio OF
+                                RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                END;
+                        END
                     ELSE
-                        IF ExchangeHasBeenSent AND (RepeatSearchAndPouncePhoneExchange <> '') THEN
-                            SendCrypticMessage (RepeatSearchAndPouncePhoneExchange)
+                        IF ExchangeHasBeenSent AND
+                           (((ActiveRadio = RadioOne) AND (RepeatSearchAndPouncePhoneExchangeR1 <> '')) OR
+                            ((ActiveRadio = RadioTwo) AND (RepeatSearchAndPouncePhoneExchangeR2 <> ''))) THEN
+                            BEGIN
+                            CASE ActiveRadio OF
+                                RadioOne: SendCrypticMessage (RepeatSearchAndPouncePhoneExchangeR1);
+                                RadioTwo: SendCrypticMessage (RepeatSearchAndPouncePhoneExchangeR2);
+                                END;
+                            END
                         ELSE
-                            SendCrypticMessage (SearchAndPouncePhoneExchange);
+                            CASE ActiveRadio OF
+                                RadioOne: SendCrypticMessage (SearchAndPouncePhoneExchangeR1);
+                                RadioTwo: SendCrypticMessage (SearchAndPouncePhoneExchangeR2);
+                                END;
 
                     ExchangeHasBeenSent := True;
                     TwoRadioState := SendingExchange;
@@ -1600,10 +1663,18 @@ VAR Key: CHAR;
                         BEGIN
                         SetUpToSendOnInactiveRadio;
 
-                        IF ActiveMode = CW THEN
-                            SendCrypticMessage (SearchAndPounceExchange)
+                        IF ActiveMode <> Phone THEN  { Used to be = CW }
+                            BEGIN
+                            CASE ActiveRadio OF
+                                RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                END;
+                            END
                         ELSE
-                            SendCrypticMessage (SearchAndPouncePhoneExchange);
+                            CASE ActiveRadio OF
+                                RadioOne: SendCrypticMessage (SearchAndPouncePhoneExchangeR1);
+                                RadioTwo: SendCrypticMessage (SearchAndPouncePhoneExchangeR2);
+                                END;
                         END;
 
                     ExchangeHasBeenSent := True;
@@ -1674,7 +1745,7 @@ VAR Key: CHAR;
                                     SwapRadios;  { Goes back to original display }
                                     {SendCrypticMessage (GetCQMemoryString (F1));}
                                     {KK1L: 6.73 Added mode to GetCQMemoryString}
-                                    IF CalledFromCQMode THEN SendCrypticMessage (GetCQMemoryString (ActiveMode, F1));
+                                    IF CalledFromCQMode THEN SendCrypticMessage (GetCQMemoryString (ActiveRadio, ActiveMode, F1));
                                     TwoRadioState := Idle;
                                     Exit;
                                     END;
@@ -1719,7 +1790,7 @@ VAR Key: CHAR;
                 {KK1L: 6.73 Added CalledFromCQMode}
                 IF (ControlBMemory = '') AND (OnDeckCall = '') AND (CalledFromCQMode) THEN
                     {KK1L: 6.73 Added mode to GetCQMemoryString}
-                    SendCrypticMessage (GetCQMemoryString (ActiveMode, F1));  { Launch a real CQ }
+                    SendCrypticMessage (GetCQMemoryString (ActiveRadio, ActiveMode, F1));  { Launch a real CQ }
 
                 TwoRadioState := Idle;
                 END;
@@ -2003,7 +2074,8 @@ PROCEDURE DualingCQs;
     IF SingleRadioMode THEN Exit;
 
     {KK1L: 6.73 Added mode to GetCQMemoryString}
-    IF GetCQMemoryString (ActiveMode, AltF1) = '' THEN
+
+    IF GetCQMemoryString (ActiveRadio, ActiveMode, AltF1) = '' THEN
         BEGIN
         QuickDisplay ('No CQ message programmed into CQ MEMORY AltF1.');
         Exit;
