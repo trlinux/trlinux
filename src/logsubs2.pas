@@ -2494,7 +2494,7 @@ PROCEDURE DoAltZ (VAR WindowString: Str80; VAR KeyChar: CHAR);
         ELSE
             ExchangeWindowString := InitialExchangeEntry (CallWindowString);
 
-        {TR6.74 - because InitialExchangeEntry no longer does this }
+        { TR6.74 - because InitialExchangeEntry no longer does this }
 
         IF InitialExchangeOverwrite THEN
             InitialExchangePutUp := ExchangeWindowString <> '';
