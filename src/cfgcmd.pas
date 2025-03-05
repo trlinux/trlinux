@@ -2857,6 +2857,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'KY CW ENABLE' THEN
+        BEGIN
+        KYCWEnable := Upcase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'LEADING ZEROS' THEN
         BEGIN
         CMD := UpperCase (CMD);

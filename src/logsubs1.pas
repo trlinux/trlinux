@@ -59,7 +59,9 @@ PROCEDURE PossibleCallCursorLeft;
 
 PROCEDURE SendCrypticDigitalStringToK3 (SendString: Str160);
 
-{ Doesn't send the characters one by one.  }
+{ Doesn't send the characters one by one.  Note - I think this can be used
+  for sending CW as well when KYCWEnable = True.  Hopefully that only gets
+  set to True when a radio that supports the KY commands is hooked up.  }
 
 VAR StringPointer, QSONumber: INTEGER;
     Result, Offset: INTEGER;
@@ -844,7 +846,12 @@ PROCEDURE SendCrypticMessage (Message: Str160);
 
     CASE ActiveMode OF
         Phone: IF DVKEnable THEN SendDVKMessage (Message);
-        CW: SendCrypticCWString (Message);
+
+        CW: IF KYCWEnable THEN
+                SendCrypticDigitalStringToK3 (Message)  { Uses KY command }
+            ELSE
+                SendCrypticCWString (Message);
+
         Digital: SendCrypticDigitalString (Message);
         END;
     END;
@@ -1025,6 +1032,19 @@ VAR Name: Str20;
 
         CW:
             BEGIN
+            IF KYCWEnable THEN  { We are using KY serial to send CW }
+                BEGIN
+                { We actually haven't sent the callsign either }
+
+                CASE ActiveRadio OF
+                    RadioOne: SendCrypticMessage (CallsignICameBackTo + CQExchangeR1);
+                    RadioTwo: SendCrypticMessage (CallsignICameBackTo + CQExchangeR2);
+                    END;
+
+                ExchangeHasBeenSent := True;
+                Exit;
+                END;
+
             IF CWSpeedFromDataBase THEN
                 BEGIN
                 StationSpeed := CD.GetCodeSpeed (RootCall (CallsignICameBackTo));
@@ -1100,7 +1120,7 @@ VAR Name: Str20;
 
         Digital:
             { Digital does not use CQ EXCHANGE.  It also does not send the
-              callsign automaticall.  It is up to the user to put the callsign
+              callsign automatically.  It is up to the user to put the callsign
               in the EX DIGITAL MEMORY F2 }
 
             SendCrypticMessage (GetEXMemoryString (ActiveRadio, Digital, F2));
@@ -1115,6 +1135,25 @@ VAR Name: Str20;
 PROCEDURE Send73Message;
 
     BEGIN
+    IF KYCWEnable THEN  { Special case }
+        BEGIN
+        IF CallWindowString <> CallsignICameBackTO THEN
+            BEGIN
+            CASE ActiveRadio OF
+                RadioOne: SendCrypticMessage ('OK ' + CallWindowString + ' ' + QSLMessageR1);
+                RadioTwo: SendCrypticMessage ('OK ' + CallWindowString + ' ' + QSLMessageR2);
+                END;
+            END
+        ELSE
+            CASE ActiveRadio OF
+                RadioOne: SendCrypticMessage (QSLMessageR1);
+                RadioTwo: SendCrypticMessage (QSLMessageR2);
+                END;
+
+        SeventyThreeMessageSent := True;
+        Exit;
+        END;
+
     IF SeventyThreeMessageSent OR NOT MessageEnable THEN Exit;
     IF BeSilent THEN Exit;
 
@@ -1160,6 +1199,12 @@ PROCEDURE Send73Message;
 PROCEDURE SendCorrectCallIfNeeded;
 
     BEGIN
+    { This won't work well with the KYCWEnable feature.  We will have to
+      take care of this case at a higher level and send both the
+      corrected call and QSL message at the same time }
+
+    IF KYCWEnable THEN Exit;
+
     IF (ReceivedData.Callsign <> CallsignICameBackTo) AND NOT BeSilent THEN
         BEGIN
         IF MessageEnable THEN

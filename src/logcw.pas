@@ -77,8 +77,9 @@ VAR
 
     EXMemory:  FunctionKeyMemoryArray;
 
-    KeyersSwapped:        BOOLEAN;
-    KeyPressedMemory:     CHAR;
+    KeyersSwapped:    BOOLEAN;
+    KeyPressedMemory: CHAR;
+    KYCWEnable:       BOOLEAN;
 
     LastRSTSent: STRING [3];
     LeadingZeros: INTEGER;
@@ -426,7 +427,7 @@ VAR CharPointer: INTEGER;
     BEGIN
     { This is legacy stuff - I have no idea if anyone uses it }
 
-    IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) THEN
+    IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) AND (NOT KYCWEnable) THEN
         BEGIN
         RTTYTransmissionStarted := True;
         RTTYReceiveCharBuffer.AddEntry (Ord (CarriageReturn));
@@ -447,7 +448,7 @@ VAR CharPointer: INTEGER;
 
     { New stuff for K3/K4 }
 
-    IF ActiveMode = Digital THEN
+    IF (ActiveMode = Digital) OR KYCWEnable THEN
         BEGIN
         IF ActiveRadio = RadioOne THEN
             IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
@@ -476,7 +477,7 @@ PROCEDURE ContinueRTTYTransmission (MSG: Str160);
 VAR CharPointer: INTEGER;
 
     BEGIN
-    IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) THEN
+    IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) AND (NOT KYCWenable) THEN
         BEGIN
         WHILE NOT RTTYSendCharBuffer.FreeSpace >= Length (MSG) DO;
 
@@ -487,7 +488,7 @@ VAR CharPointer: INTEGER;
         Exit;  { Added so K3/K4 code does not get executed }
         END;
 
-    IF ActiveMode = Digital THEN
+    IF (ActiveMode = Digital) OR KYCWEnable THEN
         BEGIN
         IF ActiveRadio = RadioOne THEN
             IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
@@ -507,7 +508,7 @@ VAR CharPointer: INTEGER;
     BEGIN
     { Legacy stuff }
 
-    IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) THEN
+    IF (ActiveMode = Digital) AND (ActiveRTTYPort <> nil) AND (NOT KYCWEnable) THEN
         BEGIN
         WHILE NOT RTTYSendCharBuffer.FreeSpace >= Length (MSG) + 1 DO;
 
@@ -524,9 +525,10 @@ VAR CharPointer: INTEGER;
 
     { K3/K4 stuff }
 
-    IF ActiveMode = Digital THEN
+    IF (ActiveMode = Digital) OR KYCWENable THEN
         BEGIN
         IF ActiveRadio = RadioOne THEN
+            BEGIN
             IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
                 BEGIN
                 WHILE Pos ('_', MSG) > 0 DO
@@ -534,7 +536,7 @@ VAR CharPointer: INTEGER;
 
                 rig1.directcommand ('KY ' + MSG + '|;');
                 END;
-
+            END;
 
         IF ActiveRadio = RadioTwo THEN
             IF (Radio2Type = K2) OR (Radio2Type = K3) OR (Radio2Type = K4) THEN

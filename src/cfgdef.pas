@@ -226,6 +226,7 @@ PROCEDURE SetConfigurationDefaultValues;
     IntercomFileEnable       := False;
 
     KeyPadCWMemories        := False;
+    KYCWEnable              := False;
 
     LeaveCursorInCallWindow := False;
     LeadingZeros            := 0;

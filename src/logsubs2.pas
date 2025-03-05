@@ -5443,7 +5443,8 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 BEGIN
                 IF MessageEnable THEN
                     BEGIN
-                    AddStringToBuffer (CallWindowString, CWTone);
+                    IF NOT KYCWEnable THEN
+                        AddStringToBuffer (CallWindowString, CWTone);
 
                     { PTTForceOn;  Removed 4-May-2022 }
 
@@ -5453,7 +5454,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                       I was trying to fix by removing it - but I will try
                       to put it back in and see what happens.  03-Dec-2023 }
 
-                    IF CWEnabled THEN PTTForceOn;
+                    IF CWEnabled AND NOT KYCWEnable THEN PTTForceOn;
 
                     { Okay - so if I put this back in - I still have the
                       glitch - and then after sending the CQ exchange, I am
@@ -6728,13 +6729,14 @@ VAR MTotals: MultTotalArrayType;
         { If we are on CW and need to send the call - then do it }
 
         IF (ActiveMode = CW) AND (NOT TailEnding) AND (NOT CallAlreadySent) THEN
-            BEGIN
-            IF MessageEnable AND NOT BeSilent THEN
-                IF NOT (Debug AND (CWTone = 0)) THEN
-                    AddStringToBuffer (CallsignICameBackTo, CWTone);
+            IF NOT KYCWEnable THEN
+                BEGIN
+                IF MessageEnable AND NOT BeSilent THEN
+                    IF NOT (Debug AND (CWTone = 0)) THEN
+                        AddStringToBuffer (CallsignICameBackTo, CWTone);
 
-            CallAlreadySent := True;
-            END;
+                CallAlreadySent := True;
+                END;
 
         { We used to start a RTTY tranmission here - but now we use the function key
           memory and send it during AddOnCQExchange }
@@ -6907,6 +6909,7 @@ VAR MTotals: MultTotalArrayType;
                 IF TailEnding THEN
                     BEGIN
                     TailEndCallString := '';
+
                     SendCorrectCallIfNeeded;
                     IF MessageEnable THEN
                         CASE ActiveRadio OF
@@ -6940,7 +6943,7 @@ VAR MTotals: MultTotalArrayType;
                         BEGIN
                         RememberInactiveCQ := InactiveRigCallingCQ;
 
-                        SendCorrectCallIfNeeded;
+                        SendCorrectCallIfNeeded;  { Won't happen if KYCWEnable = TRUE }
 
                         IF NOT (Debug AND (CWTone = 0)) THEN
                             BEGIN

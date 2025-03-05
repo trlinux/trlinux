@@ -57,6 +57,12 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+5-March-2025
+ - Added KY CW ENABLE which will use the serial port and KY commands to
+   send CW to Kenwood or Elecraft radios.  Note this probably only really
+   is useful in the one radio case without AUTO START SEND and don't get
+   too tricky with tail ending or stuff like that.  No Keyboard CW yet.
+
 1-March-2025
  - Function Key Memories are now stored by radio.  When using Alt-P, you
    will be shown the memories for the ActiveRadio (or in TBSIQ - for the
