@@ -534,6 +534,7 @@ VAR CharPointer: INTEGER;
                 WHILE Pos ('_', MSG) > 0 DO
                     MSG [Pos ('_', MSG)] := ' ';
 
+                QuickDisplay2 ('TX: ' + MSG);
                 rig1.directcommand ('KY ' + MSG + '|;');
                 END;
             END;
@@ -544,11 +545,11 @@ VAR CharPointer: INTEGER;
                 WHILE Pos ('_', MSG) > 0 DO
                     MSG [Pos ('_', MSG)] := ' ';
 
+                QuickDisplay2 ('TX: ' + MSG);
                 rig2.directcommand ('KY ' + MSG + '|;');
                 END;
 
         END;
-
 
     RTTYTransmissionStarted := False;
     END;
@@ -689,6 +690,7 @@ VAR BufferAddress: INTEGER;
 PROCEDURE SendKeysToRTTY;
 
 VAR Key: CHAR;
+    RTTYString: STRING;
 
     BEGIN
     IF (ActiveRTTYPort <> nil) THEN   { Legacy stuff }
@@ -719,15 +721,20 @@ VAR Key: CHAR;
 
     { See if we are using an Elecraft radio }
 
-    IF ActiveMode = Digital THEN
+    IF (ActiveMode = Digital) OR ((ActiveMode = CW) AND KYCWEnable) THEN
         BEGIN
-        IF ActiveRadio = RadioOne THEN
-            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
-                rig1.directcommand ('KY ' + ControlD + ';');
+        RTTYString := QuickEditResponse ('Enter message : ', 40);
 
-        IF ActiveRadio = RadioTwo THEN
-            IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
-                rig2.directcommand ('KY ' + ControlD + ';');
+        IF RTTYString <> '' THEN
+            BEGIN
+            IF ActiveRadio = RadioOne THEN
+                IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                    rig1.directcommand ('KY ' + RTTYString + ';')
+            ELSE
+               IF ActiveRadio = RadioTwo THEN
+                   IF (Radio1Type = K2) OR (Radio1Type = K3) OR (Radio1Type = K4) THEN
+                       rig2.directcommand ('KY ' + RTTYString + ';');
+            END;
         END;
 
     END;

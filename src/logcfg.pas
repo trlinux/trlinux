@@ -493,6 +493,9 @@ VAR FileWrite: TEXT;
     IF FootSwitchMode = TBSIQSSB THEN
         ArdKeyer.FootSwitch2BSIQSSB;
 
+    IF ActiveKeyer.GetPaddleBug THEN
+        ActiveKeyer.SetPaddleBug (True);
+
     DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
 
     {RadioOneSpeed := CodeSpeed;}

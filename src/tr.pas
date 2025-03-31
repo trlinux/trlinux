@@ -57,13 +57,29 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+31-March-2025
+ - Improved the POST U P routine to deal with the extra spaces N1MM puts before
+   the frequency.  NOTE - ADIF from N1MM doesn't work so well with this procedure.
+   The lines are too long.
+
+25-March-2025
+ - This is a change to the Arduino code - but PADDLE BUG ENABLE now works
+   with the SO2R mini.  Also - when enabled, a different set of characters
+   is used to emulate bug sending when sending messages.
+
+6-March-2025
+ - Made F10 (the : key) do something useful in the classic UI when either
+   in RTTY of using the new KY CW ENABLE feature.  You will get a window
+   where you can enter a quick message and it will be sent after you hit
+   ENTER.
+
 5-March-2025
  - Added KY CW ENABLE which will use the serial port and KY commands to
    send CW to Kenwood or Elecraft radios.  Note this probably only really
    is useful in the one radio case without AUTO START SEND and don't get
    too tricky with tail ending or stuff like that.  No Keyboard CW yet.
 
-1-March-2025
+1-March-2025 (updated 23 March 2025)
  - Function Key Memories are now stored by radio.  When using Alt-P, you
    will be shown the memories for the ActiveRadio (or in TBSIQ - for the
    radio that corresponds to the keyboard being used).  Changes made with
@@ -81,10 +97,12 @@ TODO List after 2023 WPX CW:
 
    and the radio specific ones look like this:
 
+   (Fixed March-23-2025 - had the RADIO before MEMORY)
+
    EX MEMORY RADIO1 AltF1 = xxxx
-   EX CW RADIO1 MEMORY F1 = xxxxx
-   EX SSB RADIO1 MEMORY F1 = xxxxx
-   EX DIGITAL RADIO1 MEMORY F1 = xxxxx
+   EX CW MEMORY RADIO1 F1 = xxxxx
+   EX SSB MEMORY RADIO1 F1 = xxxxx
+   EX DIGITAL MEMORY RADIO2 F1 = xxxxx
 
    The same applies to the various message in the (O)ther memories such
    as QSL MESSAGE.

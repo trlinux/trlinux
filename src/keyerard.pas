@@ -1139,7 +1139,6 @@ PROCEDURE ArduinoKeyer.FootSwitch2BSIQSSB;
 { Puts the Arduino into the 2BSIQ SSB MODE }
 
     BEGIN
-    Write ('.');
     IF KeyerInitialized THEN
         BEGIN
         ArduinoKeyerPort.PutChar (Char ($19));  { Footswitch mode command }

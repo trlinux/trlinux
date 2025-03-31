@@ -294,6 +294,9 @@ VAR ADIFString: STRING;
         MakeADIFFreq    (ADIFString, 'FREQ', Frequency / 1000000.0);  { Convert from Hz to MHz }
         AddStringToUDPBuffer (ADIFString);
 
+        MakeADIFField   (ADIFString, 'operator', ContestOp);
+        AddStringToUDPBuffer (ADIFString);
+
         CASE Mode OF
             CW:      MakeADIFField (ADIFString, 'MODE', 'CW');
             Phone:   MakeADIFField (ADIFString, 'MODE', 'SSB');
@@ -479,7 +482,6 @@ VAR SocketAddr: TINetSockAddr;
 
     BEGIN
     ContestID := '';
-    ContestOp := '';
     N1MM_Output_Open := False;
 
     NumberCharsinUDPBuffer := 0;

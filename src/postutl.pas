@@ -2873,14 +2873,28 @@ PROCEDURE AddFrequencyDataFromLongLogDataToCabrilloString (VAR CabrilloString: S
   exact frequency is available - and if so - substitue it into the QSO entry }
 
 VAR CabrilloFrequencyString: STRING;
-    CabrilloDate, CabrilloTime, CabrilloCall: Str20;
+    FirstEntry, SecondEntry, CabrilloDate, CabrilloTime, CabrilloCall: Str20;
     CabrilloFrequency, FrequencyValue, Address: INTEGER;
 
     BEGIN
     IF NumberLongLogFileEntries = 0 THEN Exit;
 
-    CabrilloFrequencyString := Copy (CabrilloString, 6, 5);
-    GetRidOfPrecedingSpaces (CabrilloFrequencyString);
+    { We need to get the Cabrillo frequency - N1MM put more spaces between the QSO:
+      entry and the frequency than TR does.  So - have to accomodate for that.  We
+      reconstruct the Cabrillo entry to not have these extra spaces }
+
+    FirstEntry := RemoveFirstString (CabrilloString);  { Likely QSO: }
+    SecondEntry := RemoveFirstString (CabrilloString); { Likely Frequency }
+
+    { Make 160, 80 and 40meter freq five characters }
+
+    IF Length (SecondEntry) = 4 THEN SecondEntry := ' ' + SecondEntry;
+
+    CabrilloString := FirstEntry + ' ' + SecondEntry + ' ' + CabrilloString;
+
+    CabrilloFrequencyString := CabrilloString;
+    RemoveFirstString (CabrilloFrequencyString);  { Remove QSO: }
+    CabrilloFrequencyString := RemoveFirstString (CabrilloFrequencyString);  { Frequency }
 
     { Check to see if the frequency data is already updated }
 
@@ -3102,7 +3116,7 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
     FirstEntry, TimeString, DateString, MonthString: Str20;
     ADIFFileString, OriginalCabrilloString, CabrilloFileString, LongLogFileString: STRING;
     OriginalADIFString: STRING;
-    ADIFFileRead, CabrilloFileRead, LongLogFileRead, OutputFile: TEXT;
+    DebugFileWrite, ADIFFileRead, CabrilloFileRead, LongLogFileRead, OutputFile: TEXT;
     NumberUnmatchedQSOs: INTEGER;
 
     BEGIN
@@ -3250,8 +3264,6 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
 
         Close (LongLogFileRead);
 
-        WriteLn ('There were ', NumberLongLogFileEntries, ' entries found in the file ', LongLogFileName);
-
         IF NumberLongLogFileEntries = 0 THEN
             BEGIN
             WriteLn ('No entries found in the long file - aborting...');
@@ -3261,6 +3273,9 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
             WaitForKeyPressed;
             Exit;
             END;
+
+        WriteLn ('There were ', NumberLongLogFileEntries, ' entries found in the file ', LongLogFileName);
+        WaitForKeyPressed;
 
         { Now - start reading in the Cabrillo File and copy all of the header stuff  to the ouput file }
 
@@ -3388,7 +3403,6 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
 
         IF LongLogFileString = '' THEN Continue;
 
-
         WITH LongLogFileArray^ [NumberLongLogFileEntries] DO
             BEGIN
             BandMode := GetFirstString (LongLogFileString);     { 20CW }
@@ -3481,6 +3495,8 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
     WHILE NOT Eof (ADIFFileRead) DO
         BEGIN
         ReadLn (ADIFFileRead, ADIFFileString);
+        WriteLn (Copy (ADIFFileString, 1, 70));
+
         OriginalADIFString := ADIFFileString;
 
         IF Length (ADIFFileString) > 20 THEN
