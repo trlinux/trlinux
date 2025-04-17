@@ -32,7 +32,7 @@ UNIT N1MM;
 INTERFACE
 
 USES LogStuff, LogUDP, LogWind, LogDupe, LogEdit, SlowTree, datetimec, Tree, KeyCode,
-     Country9, Sockets, UnixType, BaseUnix, portname;
+     LogQSONr, Country9, Sockets, UnixType, BaseUnix, portname;
 
 CONST UDPBufferSize = 4096;
 
@@ -69,9 +69,10 @@ TYPE
         PROCEDURE GetCallFromUDPMessage (VAR RXData: ContestExchange);
         PROCEDURE GetExchangeDataFromUDPMessage (VAR RXData: ContestExchange);
         PROCEDURE GetFrequencyFromUDPMessage (VAR RXData: ContestExchange);
+        PROCEDURE GetNumberSentFromUDPMessage (VAR RXData: ContestExchange);
         PROCEDURE GetTimeAndDateFromUDPMessage (VAR RXData: ContestExchange);
         FUNCTION  GetXMLData (XMLField: STRING): STRING;
-        PROCEDURE Heartbeat;
+        FUNCTION  Heartbeat: BOOLEAN;  { Returns TRUE if a QSO was logged }
         PROCEDURE Init;
         PROCEDURE LogContact;
         PROCEDURE LogN1MMContact (RXData: ContestExchange);  { Logs the QSO }
@@ -83,6 +84,8 @@ TYPE
         END;
 
 VAR  N1MM_QSO_Portal: N1MM_Object;
+
+PROCEDURE CheckN1MMPort;
 
 IMPLEMENTATION
 
@@ -559,13 +562,19 @@ VAR Address, BytesRead: INTEGER;
 
 
 
-PROCEDURE N1MM_Object.Heartbeat;
+FUNCTION N1MM_Object.Heartbeat: BOOLEAN;
 
 { This should be called as often as possible.  It will check to see if a UDP
   message has arrived and log it if so. }
 
     BEGIN
-    IF Check_UDP_Port THEN LogContact;
+    IF Check_UDP_Port THEN
+        BEGIN
+        LogContact;
+        Heartbeat := True;
+        END
+    ELSE
+        Heartbeat := False;
     END;
 
 
@@ -677,6 +686,14 @@ PROCEDURE N1MM_Object.LogN1MMContact (RXData: ContestExchange);
   One possible trouble area here has to do with QSO numbers - but I can't worry too
   much about this at the moment.
 
+  UPDATE: It is time to worry about QSO numbers.  The problem seen during the
+  2025 WPX SSB contest was that the QSO number to be sent on a band was
+  determined by looking at the log file when the program was started.  If QSOs
+  were being made by an N1MM user with incremental QSO numbers above that - it
+  was not being saved in the QSO number matrix.  Note that this assumes that
+  QSO Number By Band is true.  The case of not using QSONumberByBand is broken
+  in the conceptual context and isn't something trying to be addressed here.
+
   Another issue found after I enabled sending QSOs to N1MM is that the QSO I sent
   would be reflected back.  I added a check to see if the new entry is basically
   the same as the existing "bottom" QSO in the Editable Log Window - and if so, I
@@ -761,6 +778,13 @@ VAR LogString: Str80;
     DisplayTotalScore (TotalScore);
     VisibleLog.ShowRemainingMultipliers;
 
+    { We don't know if we are in QSONumberByBand or not - but since we only
+      look at the specific bands if we are - we can update those cells without
+      worrying.  The non QSONumberByBand case will use "All" for the band when
+      looking at the QSO number matrix }
+
+    QNumber.SetCurrentQSONumber (RXData.Band, RXData.NumberSent + 1);
+
     IF BandMapEnable THEN
         BEGIN
         UpdateBandMapMultiplierStatus;
@@ -836,6 +860,19 @@ VAR TempString: STRING;
     END;
 
 
+
+PROCEDURE N1MM_Object.GetNumberSentFromUDPMessage (VAR RXData: ContestExchange);
+
+{ <sntnr>10</sntnr>  }
+
+VAR SentNrString: Str20;
+
+    BEGIN
+    SentNRString := GetXMLData ('sntnr');
+
+    IF StringIsAllNumbers (SentNRString) THEN
+        Val (SentNRString, RXData.NumberSent);
+    END;
 
 PROCEDURE N1MM_Object.GetBandAndModeFromUDPMessage (VAR RXData: ContestExchange);
 
@@ -1019,6 +1056,7 @@ FUNCTION N1MM_Object.CreateRXDataFromUDPMessage (VAR RXData: ContestExchange): B
     GetTimeAndDateFromUDPMessage  (RXData);
     GetCallFromUDPMessage         (RXData);
     GetExchangeDataFromUDPMessage (RXData);
+    GetNumberSentFromUDPMessage   (RXData);
 
     { Make sure we don't send it out if we are sending QSO UDP packets }
 
@@ -1039,6 +1077,21 @@ VAR RXData: ContestExchange;
     BEGIN
     CreateRXDataFromUDPMessage (RXData);
     LogN1MMContact (RXData);
+    END;
+
+PROCEDURE CheckN1MMPort;
+
+{ This procedure will check to see if a new QSO coming from N1MM was just
+  logged - and if so - it will update the QSO number displayed if appropriate }
+
+    BEGIN
+    IF N1MM_UDP_Port > 0 THEN
+        IF N1MM_QSO_Portal.Heartbeat THEN
+            IF ActiveBand = N1MM_QSO_Portal.N1MM_Input_LastBand THEN
+                BEGIN
+                QSONumberForThisQSO := QNumber.GetCurrentQSONumber (ActiveBand);
+                DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                END;
     END;
 
 

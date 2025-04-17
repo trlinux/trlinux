@@ -707,7 +707,7 @@ VAR Frequency: LONGINT;
             UpdateTimeAndRateDisplays (True, True);
             CWStillBEingSent;
             Packet.CheckPacket;
-            IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+            CheckN1MMPort;
             millisleep;
         UNTIL ElaspedSec100 (RememberTime) >= 50;
 
@@ -1020,7 +1020,7 @@ VAR Key: CHAR;
         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
 
         UpdateTimeAndRateDisplays (True, True);
-        IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+        CheckN1MMPort;
         CWStillBeingSent;
 
         IF NewKeyPressed THEN
@@ -1558,7 +1558,7 @@ VAR CQMemory, SendChar: CHAR;
                 {KK1L: 6.72 NOTE Timing delays can occur if there are radio communcations problems due to    }
                 {                various timeouts, etc in the polling called from UpdateTimeAndRateDisplays. }
                 UpdateTimeAndRateDisplays (True, True);
-                IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+                CheckN1MMPort;
                 CWStillBeingSent;
 
                 IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
@@ -1870,7 +1870,7 @@ VAR Result: INTEGER;
             IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
-            IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+            CheckN1MMPort;
             CWSTillBeingSent;
         UNTIL (NOT CWStillBeingSent) OR NewKeyPressed;
 
@@ -2166,7 +2166,7 @@ VAR Result: INTEGER;
     { Done with bandmap stuff }
 
     UpdateTimeAndRateDisplays (True, True);
-    IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+    CheckN1MMPort;
     CWStillBeingSent;
     END;
 
@@ -6829,7 +6829,7 @@ VAR MTotals: MultTotalArrayType;
                     REPEAT
                         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
                         UpdateTimeAndRateDisplays (True, True);
-                        IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+                        CheckN1MMPort;
                         Packet.CheckPacket;
                         CWStillBeingSent;
                     UNTIL ElaspedSec100 (RememberTime) >= 30;

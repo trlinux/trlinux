@@ -771,6 +771,8 @@ IMPLEMENTATION
 
 USES TBSIQ_Subs;
 
+
+
 PROCEDURE Initialize2BSIQOperatorInterface;
 
     BEGIN
@@ -781,7 +783,9 @@ PROCEDURE Initialize2BSIQOperatorInterface;
 
     { We need to trick the QSONumber generator into giving us the last QSO
       Number given out again.  NextQSONumberToGiveOut should be at least
-      equal to 2, but we check just in case }
+      equal to 2, but we check just in case.  NOTE - this global appears
+      to never be used anywhere else in the code - even though it appears
+      in the ControlJ menu.  We should get rid of it as some point. }
 
     IF NextQSONumberToGiveOut > 1 THEN
         Dec (NextQSONumberToGiveOut);

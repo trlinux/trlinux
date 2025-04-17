@@ -1749,7 +1749,40 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     { And also the N1MM QSO portal }
 
-    IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+    IF N1MM_UDP_Port > 0 THEN
+        BEGIN
+        IF N1MM_QSO_Portal.Heartbeat THEN
+            BEGIN
+
+            { We have a possible QSO Number problem if N1MM logged a QSO and we are
+              doing QSO numbers.  First off - the case of NOT QSOByBand is not considered
+              valid in this configuration - so we won't deal with that case.
+
+              If the band that N1MM QSO was made on - the N1MM log procedure will take
+              care of updating the QSONumberMatrix with N+1 for the next QSO number on
+              that band.  The one case were are worried about is if the band for that
+              N1MM QSO is displayed on either radio in the TBSIQ case.  Hopefully, it
+              is the "inactive" band - not making QSOs.  Assuming that is the case,
+              we need to update the QSO number for that "radio" to the new number.  I
+              will only do this if the QSO number is not being used however. }
+
+            WITH Radio1QSOMachine DO
+                IF Band = N1MM_QSO_Portal.N1MM_Input_LastBand THEN
+                    IF QSONumberUnused THEN
+                        BEGIN
+                        QSONumberForThisQSO := QNumber.GetCurrentQSONumber (Band);
+                        DisplayQSONumber;
+                        END;
+
+            WITH Radio2QSOMachine DO
+                IF Band = N1MM_QSO_Portal.N1MM_Input_LastBand THEN
+                    IF QSONumberUnused THEN
+                        BEGIN
+                        QSONumberForThisQSO := QNumber.GetCurrentQSONumber (Band);
+                        DisplayQSONumber;
+                        END;
+            END;
+        END;
 
     { See if the clock has ticked a second }
 

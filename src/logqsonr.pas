@@ -36,7 +36,6 @@ TYPE
         FUNCTION  InitializeQSONumbersFromLogFile (FileName: STRING): BOOLEAN;
         FUNCTION  ReserveNewQSONumber (Band: BandType): INTEGER;
         FUNCTION  ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
-
         PROCEDURE SetCurrentQSONumber (Band: BandType; QSONumber: INTEGER);
         END;
 

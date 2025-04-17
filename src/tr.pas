@@ -57,6 +57,20 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+16-April-2025
+ - If a QSO comes in the N1MM port - we will update the QSONumberMatrix to
+   one more than that QSO number for that band.  This only impacts operation
+   when QSO NUMBER BY BAND = TRUE.  If you are in 2BSIQ and that QSO number
+   was displayed and not used - it will update in real time.
+
+   For the classic UI - we will also update the QSO number if the Active Band
+   is the one as the N1MM logged QSO.  Note there is no protection from that
+   QSO number being used like there is in 2BSIQ.
+
+   This will all need some testing in the WPX CW to make sure it works as
+   intended.
+
+
 31-March-2025
  - Improved the POST U P routine to deal with the extra spaces N1MM puts before
    the frequency.  NOTE - ADIF from N1MM doesn't work so well with this procedure.
