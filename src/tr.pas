@@ -57,6 +57,13 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+10-May-2025
+ - Added SO2V to the Contol-J menu.  It is another way to get to the
+   TWO VFO MODE parameter because I couldn't find TWO VFO MODE during
+   the 7QP and SO2V would have been found.  This is not a legal command
+   during the start up process - just an easier way to find TWO VFO MODE
+   in the Control-J menu.
+
 16-April-2025
  - If a QSO comes in the N1MM port - we will update the QSONumberMatrix to
    one more than that QSO number for that band.  This only impacts operation

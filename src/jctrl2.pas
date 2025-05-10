@@ -981,10 +981,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            ELSE
                TwoRadioState := TwoRadiosDisabled;
 
-      TVM: IF TwoVFOState = TwoVFOsDisabled THEN
-               TwoVFOState := TwoVFOIdle
-           ELSE
-               TwoVFOState := TwoVFOsDisabled;
+      SO2V, TVM: IF TwoVFOState = TwoVFOsDisabled THEN
+                     TwoVFOState := TwoVFOIdle
+                 ELSE
+                     TwoVFOState := TwoVFOsDisabled;
 
       URF: UpdateRestartFileEnable := NOT UpdateRestartFileEnable;
 
@@ -1391,10 +1391,10 @@ VAR FileWrite: TEXT;
            ELSE
                WriteLn (FileWrite, 'FALSE');
 
-      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
-               WriteLn (FileWrite, 'TRUE')
-           ELSE
-               WriteLn (FileWrite, 'FALSE');
+      SO2V, TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
+                     WriteLn (FileWrite, 'TRUE')
+                 ELSE
+                     WriteLn (FileWrite, 'FALSE');
 
       URF: WriteLn (FileWrite, UpdateRestartFileEnable);
 
@@ -1765,7 +1765,7 @@ VAR TempString: Str40;
 
       TRM: IF TwoRadioState <> TwoRadiosDisabled THEN TempString := 'TRUE';
 
-      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN TempString := 'TRUE';
+      SO2V, TVM: IF TwoVFOState <> TwoVFOsDisabled THEN TempString := 'TRUE';
 
       URF: IF UpdateRestartFileEnable THEN TempString := 'TRUE';
 

@@ -218,6 +218,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       SO2RMR,
                       SO2RM1,
                       SO2RM2,
+                      SO2V,
 
                       SBD,  { Space Bar Dupe Enable }
                       SQR,
@@ -457,6 +458,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       SO2RMR: Description := 'SO2R MICROPHONE RELAY ENABLE';
       SO2RM1: Description := 'SO2R RIG1 MAP';
       SO2RM2: Description := 'SO2R RIG2 MAP';
+
       SHE: Description := 'SAY HI ENABLE';
       SHC: Description := 'SAY HI RATE CUTOFF';
       SCE: Description := 'SCORE REPORT ENABLE';
@@ -472,6 +474,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       SRM: Description := 'SINGLE RADIO MODE';
       SAB: Description := 'SKIP ACTIVE BAND';
       SMC: Description := 'SLASH MARK CHAR';
+      SO2V: Description := 'SO2V MODE (AKA TWO VFO MODE)';
       SBD: Description := 'SPACE BAR DUPE CHECK ENABLE';
       SQR: Description := 'SPRINT QSY RULE';
       SPS: Description := 'STEREO PIN HIGH'; {KK1L: 6.71}
@@ -887,10 +890,10 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('FALSE');
 
-      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
-               Write ('TRUE')
-           ELSE
-               Write ('FALSE');
+      SO2V, TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
+                     Write ('TRUE')
+                 ELSE
+                     Write ('FALSE');
 
       URF: Write (UpdateRestartFileEnable);
 
@@ -1829,10 +1832,10 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Special two radio mode is disabled');
 
-      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
-               Write ('Special two VFO mode is enabled')
-           ELSE
-               Write ('Special two VFO mode is disabled');
+      SO2V, TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
+                     Write ('Special two VFO mode is enabled')
+                 ELSE
+                     Write ('Special two VFO mode is disabled');
 
       URF: IF UpdateRestartFileEnable THEN
                Write ('RESTART.BIN updated after each QSO')
