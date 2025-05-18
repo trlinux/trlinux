@@ -57,6 +57,33 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+15-May-2025
+ - Some effort to better understand the interaction between using two computers
+   in the TR Network using UDP ports - and also integrating operation with N1MM.
+
+   Currently - it appears that any QSOs coming from N1MM are always pushed into
+   the bottom of the editable call window.  The state of SendQSOImmediately does
+   not appear to enter into the equation.
+
+   Furthermore - I think the default for the TR Network is to send the QSO
+   Immediately.  So QSOs behave differently depending on if they are coming
+   from N1MM or a TRLog source.  This probably sucks.
+
+   Also - I think it means that a QSO that comes in from N1MM to one computer
+   will not show up on the other TRLog networked computer.  I am about to set
+   this all up and see if that is indeed the problem.  I might have worked
+   around this by having N1MM send the QSO to two different places before - but
+   I don't think that is a good way to solve the problem.
+
+   So - sleeping on this... I think we should not put N1MM+ generated QSOs
+   into the editable window.  They should behave just like the program does
+   when SEND QSO IMMEDIATELY is TRUE.  One fine detail might be to flash the
+   QSO in an info window so you can see it (currently that is implemented by
+   the originating computer in the TRLog network using the chat function).
+
+   So - step one - make it so N1MM+ QSOs just get logged without affecting
+   the editable log window.
+
 10-May-2025
  - Added SO2V to the Contol-J menu.  It is another way to get to the
    TWO VFO MODE parameter because I couldn't find TWO VFO MODE during

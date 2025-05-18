@@ -457,6 +457,7 @@ PROCEDURE QSOMachineObject.SetUpNextQSONumber;
 
                     Radio2QSOMachine.QSONumberForThisQSO := Radio2QSOMachine.ReserveNewQSONumberForThisRadio;
                     Radio2QSOMachine.DisplayQSONumber;
+                    Radio2QSOMachine.QSONumberUnused := True;  { already was }
                     DisplayQSONumber;  { On current radio }
                     Exit;
                     END;
@@ -471,6 +472,7 @@ PROCEDURE QSOMachineObject.SetUpNextQSONumber;
 
                     Radio1QSOMachine.QSONumberForThisQSO := Radio1QSOMachine.ReserveNewQSONumberForThisRadio;
                     Radio1QSOMachine.DisplayQSONumber;
+                    Radio1QSOMachine.QSONumberUnused := True;  { already was }
                     DisplayQSONumber;
                     Exit;
                     END;
@@ -1751,16 +1753,15 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     IF N1MM_UDP_Port > 0 THEN
         BEGIN
-        IF N1MM_QSO_Portal.Heartbeat THEN
+        IF N1MM_QSO_Portal.Heartbeat THEN  { Returns TRUE if a QSO was logged }
             BEGIN
-
             { We have a possible QSO Number problem if N1MM logged a QSO and we are
               doing QSO numbers.  First off - the case of NOT QSOByBand is not considered
               valid in this configuration - so we won't deal with that case.
 
               If the band that N1MM QSO was made on - the N1MM log procedure will take
-              care of updating the QSONumberMatrix with N+1 for the next QSO number on
-              that band.  The one case were are worried about is if the band for that
+              care of updating the QSONumberMatrix with the new total of QSOs on the
+              band.  The one case were are worried about is if the band for that
               N1MM QSO is displayed on either radio in the TBSIQ case.  Hopefully, it
               is the "inactive" band - not making QSOs.  Assuming that is the case,
               we need to update the QSO number for that "radio" to the new number.  I
@@ -1768,17 +1769,21 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
             WITH Radio1QSOMachine DO
                 IF Band = N1MM_QSO_Portal.N1MM_Input_LastBand THEN
+                    BEGIN
                     IF QSONumberUnused THEN
                         BEGIN
-                        QSONumberForThisQSO := QNumber.GetCurrentQSONumber (Band);
+                        QSONumberForThisQSO := QNumber.ReserveNewQSONumber (Band);
+                        QSONumberUnused := True;  { already was }
                         DisplayQSONumber;
                         END;
+                    END;
 
             WITH Radio2QSOMachine DO
                 IF Band = N1MM_QSO_Portal.N1MM_Input_LastBand THEN
                     IF QSONumberUnused THEN
                         BEGIN
-                        QSONumberForThisQSO := QNumber.GetCurrentQSONumber (Band);
+                        QSONumberForThisQSO := QNumber.ReserveNewQSONumber (Band);
+                        QSONumberUnused := True;  { already was }
                         DisplayQSONumber;
                         END;
             END;
@@ -1957,6 +1962,7 @@ VAR TimeString, FullTimeString, HourString: Str20;
         END;
 
     RestorePreviousWindow;
+
     END;
 
 
@@ -2223,6 +2229,7 @@ PROCEDURE QSOMachineObject.DisplayQSONumber;
     TextBackground (SelectedColors.WholeScreenBackground);
     ClrScr;
     RestorePreviousWindow;
+    QSONumberUnused := True;  { Seems this should be okay }
     END;
 
 

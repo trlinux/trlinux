@@ -567,7 +567,7 @@ VAR
     PROCEDURE ZoneReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE ZoneReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE WriteLogEntry (Entry: Str80);
+    PROCEDURE WriteLogEntry (Entry: STRING);
 
 IMPLEMENTATION
 uses keycode,beep;
@@ -5390,7 +5390,7 @@ VAR NumberContacts: LONGINT;
 
 
 
-PROCEDURE WriteLogEntry (Entry: Str80);
+PROCEDURE WriteLogEntry (Entry: STRING);
 
 VAR FileWrite: TEXT;
 

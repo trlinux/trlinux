@@ -769,7 +769,7 @@ PROCEDURE TwoBandSIQ;
 
 IMPLEMENTATION
 
-USES TBSIQ_Subs;
+USES Logqsonr, TBSIQ_Subs;
 
 
 

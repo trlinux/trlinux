@@ -32,7 +32,7 @@ UNIT N1MM;
 INTERFACE
 
 USES LogStuff, LogUDP, LogWind, LogDupe, LogEdit, SlowTree, datetimec, Tree, KeyCode,
-     LogQSONr, Country9, Sockets, UnixType, BaseUnix, portname;
+     LogK1EA, LogQSONr, Country9, Sockets, UnixType, BaseUnix, portname;
 
 CONST UDPBufferSize = 4096;
 
@@ -62,7 +62,7 @@ TYPE
         UDPBuffer: ARRAY [0..UDPBufferSize -1] OF CHAR;
         NumberCharsInUDPBuffer: INTEGER;
 
-        PROCEDURE AddStringToUDPBuffer (AddString: STRING);
+        PROCEDURE AddStringToUDPBuffer (AddString: AnsiSTRING);
         FUNCTION  Check_UDP_Port: BOOLEAN;
         FUNCTION  CreateRXDataFromUDPMessage (VAR RXData: ContestExchange): BOOLEAN;
         PROCEDURE GetBandAndModeFromUDPMessage (VAR RXData: ContestExchange);
@@ -77,8 +77,7 @@ TYPE
         PROCEDURE LogContact;
         PROCEDURE LogN1MMContact (RXData: ContestExchange);  { Logs the QSO }
         FUNCTION  NextBytesMatchString (Address: INTEGER; Pattern: STRING): BOOLEAN;
-        PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
-        PROCEDURE PutContactIntoLogFile (LogString: Str80);
+        PROCEDURE PutN1MMContactIntoLogFile (LogString: Str80);
         PROCEDURE SqueezeStringInUDPBufferStart (AddString: STRING);
         PROCEDURE SendQSOToN1MM (RXData: ContestExchange);
         END;
@@ -95,7 +94,7 @@ CONST N1MM_DebugFileName = 'N1MM_debug.txt';
 
 
 
-PROCEDURE N1MM_Object.AddStringToUDPBuffer (AddString: STRING);
+PROCEDURE N1MM_Object.AddStringToUDPBuffer (AddString: AnsiSTRING);
 
 VAR Count, StringIndex: INTEGER;
 
@@ -138,7 +137,7 @@ VAR BaseAddress, Offset: INTEGER;
 
 
 
-PROCEDURE MakeADIFFreq (VAR ADIFString: STRING; ID: STRING; FreqMHz: REAL);
+PROCEDURE MakeADIFFreq (VAR ADIFString: AnsiSTRING; ID: STRING; FreqMHz: REAL);
 
 VAR FreqStr, LenStr: STRING;
 
@@ -150,7 +149,7 @@ VAR FreqStr, LenStr: STRING;
 
 
 
-PROCEDURE MakeADIFBand (VAR ADIFString: STRING; ID: STRING; Band: BandType);
+PROCEDURE MakeADIFBand (VAR ADIFString: AnsiSTRING; ID: STRING; Band: BandType);
 
 VAR DataLength: INTEGER;
     BandString, DataLengthString: Str20;
@@ -179,7 +178,7 @@ VAR DataLength: INTEGER;
 
 
 
-PROCEDURE MakeADIFDate (VAR ADIFString: STRING; ID: STRING; RXDataDateString: STRING);
+PROCEDURE MakeADIFDate (VAR ADIFString: AnsiSTRING; ID: STRING; RXDataDateString: STRING);
 
 { Turns dd-mmm-yy into yyyymmdd }
 
@@ -204,7 +203,7 @@ VAR DataLength: INTEGER;
 
 
 
-PROCEDURE MakeADIFTime (VAR ADIFString: STRING; ID: STRING; Time: LONGINT);
+PROCEDURE MakeADIFTime (VAR ADIFString: AnsiSTRING; ID: STRING; Time: LONGINT);
 
 { Takes integer minutes and makes it an ADIF string }
 
@@ -227,7 +226,7 @@ VAR DataLength: INTEGER;
 
 
 
-PROCEDURE MakeADIFInteger (VAR ADIFString: STRING; ID: STRING; Data: INTEGER);
+PROCEDURE MakeADIFInteger (VAR ADIFString: AnsiSTRING; ID: STRING; Data: INTEGER);
 
 VAR DataLength: INTEGER;
     NumberString, DataLengthString: Str20;
@@ -242,7 +241,7 @@ VAR DataLength: INTEGER;
     END;
 
 
-PROCEDURE MakeADIFField (VAR ADIFString: STRING; ID: STRING; Data: STRING);
+PROCEDURE MakeADIFField (VAR ADIFString: AnsiSTRING; ID: STRING; Data: STRING);
 
 VAR DataLength: INTEGER;
     DataLengthString: Str20;
@@ -267,8 +266,10 @@ PROCEDURE N1MM_Object.SendQSOToN1MM (RXData: ContestExchange);
   that you have enabled QSO imports on port 2237.  The format for the packet is
   essentially ADIF with a field added at the start with "Log". }
 
-VAR ADIFString: STRING;
+VAR ADIFString: AnsiSTRING;
     ADIFLengthString: Str20;
+    Address: INTEGER;
+    FileWrite: TEXT;
 
     BEGIN
     NumberCharsInUDPBuffer := 0;
@@ -353,7 +354,7 @@ VAR ADIFString: STRING;
           Prefecture:     INTEGER;
           PrefixMult:     BOOLEAN;
           Prefix:         PrefixMultiplierString;
-          QSOPoints:      INTEGER;
+          QSOPoints:      INTEGER;  There is no way to send QSO points to N1MM via ADIF
           QTH:            QTHRecord;
           QTHString:      STRING [30];
           RandomCharsSent:     STRING [10];
@@ -373,8 +374,20 @@ VAR ADIFString: STRING;
         N1MM_Output_Open := OpenUDPPortForOutput (Output_IPAddress, 2237, Output_Socket);
 
     IF N1MM_Output_Open THEN
+        BEGIN
         FPSend (Output_Socket, @UDPBuffer, NumberCharsInUDPBuffer, 0);
 
+        OpenFileForAppend (FileWrite, N1MM_DebugFileName);
+        WriteLn (FileWrite, GetTimeString, ' BytesSent= ', NumberCharsInUDPBuffer);
+
+        IF NumberCharsInUDPBuffer > 0 THEN
+            BEGIN
+            FOR Address := 0 TO NumberCharsInUDPBuffer - 1 DO
+                Write (FileWrite, UDPBuffer [Address]);
+            WriteLn (FileWrite);
+            Close (FileWrite);
+            END;
+        END;
     END;
 
 
@@ -579,112 +592,61 @@ FUNCTION N1MM_Object.Heartbeat: BOOLEAN;
 
 
 
-PROCEDURE N1MM_Object.PutContactIntoLogFile (LogString: Str80);
+PROCEDURE N1MM_Object.PutN1MMContactIntoLogFile (LogString: Str80);
 
 VAR Time, QSONumber: INTEGER;
     Call, Exchange, LoggedCallsign: Str20;
     FileWrite: TEXT;
 
     BEGIN
-    IF Copy (LogString, 1, 1) = ';' THEN  { Its a note - just copy it and be done }
+    WriteLogEntry                   (LogString);
+
+    IF UnknownCountryFileEnable THEN
         BEGIN
-        WriteLogEntry (LogString);
-        Exit;
+        LoggedCallsign := GetLogEntryCall (LogString);
+        IF CountryTable.GetCountry (LoggedCallsign, True) = -1 THEN
+            IF OpenFileForAppend (FileWrite, UnknownCountryFileName) THEN
+                BEGIN
+                WriteLn (FileWrite, LogString);
+                Close (FileWrite);
+                END;
         END;
 
-    GetRidOfPostcedingSpaces (LogString);
+    { We only add QSOs to the pending list if we got QSO points for it }
 
-    IF LogString <> '' THEN
-        BEGIN
-        IF LogString [LogEntryNameSentAddress] = '*' THEN
-            Inc (TotalNamesSent);
+    IF QTCsEnabled AND (MyContinent <> Europe) AND
+       (GetLogEntryQSOPoints (LogString) > 0) THEN
+           BEGIN
+           Time := GetLogEntryIntegerTime (LogString);
+           Call := GetLogEntryCall (LogString);
+           Exchange := GetLogEntryExchangeString (LogString);
+           GetRidOfPrecedingSpaces (Exchange);
+           Exchange := PostcedingString (Exchange, ' ');
+           GetRidOfPrecedingSpaces (Exchange);
+           Exchange := PostcedingString (Exchange, ' ');
+           GetRidOfPrecedingSpaces  (Exchange);
+           GetRidOfPostcedingSpaces (Exchange);
+           Val (Exchange, QSONumber);
+           AddQSOToPendingQTCList (Time, Call, QSONumber);
+           END;
 
-        IF QSOTotals [All, Both] MOD ContactsPerPage = 0 THEN
-            BEGIN
-            IF QSOTotals [All, Both] > 0 THEN
-                NextPage;
-            PrintLogHeader;
-            END;
-
-        IF QSOTotals [All, Both] MOD ContactsPerPage > 9 THEN
-            IF QSOTotals [All, Both] MOD 10 = 0 THEN
-                WriteLogEntry ('');
-
-        VisibleLog.PutLogEntryIntoSheet (LogString);
-        WriteLogEntry                   (LogString);
-
-        IF UnknownCountryFileEnable THEN
-            BEGIN
-            LoggedCallsign := GetLogEntryCall (LogString);
-            IF CountryTable.GetCountry (LoggedCallsign, True) = -1 THEN
-                IF OpenFileForAppend (FileWrite, UnknownCountryFileName) THEN
-                    BEGIN
-                    WriteLn (FileWrite, LogString);
-                    Close (FileWrite);
-                    END;
-            END;
-
-        { We only add QSOs to the pending list if we got QSO points for it }
-
-        IF QTCsEnabled AND (MyContinent <> Europe) AND
-           (GetLogEntryQSOPoints (LogString) > 0) THEN
-               BEGIN
-               Time := GetLogEntryIntegerTime (LogString);
-               Call := GetLogEntryCall (LogString);
-               Exchange := GetLogEntryExchangeString (LogString);
-               GetRidOfPrecedingSpaces (Exchange);
-               Exchange := PostcedingString (Exchange, ' ');
-               GetRidOfPrecedingSpaces (Exchange);
-               Exchange := PostcedingString (Exchange, ' ');
-               GetRidOfPrecedingSpaces  (Exchange);
-               GetRidOfPostcedingSpaces (Exchange);
-               Val (Exchange, QSONumber);
-               AddQSOToPendingQTCList (Time, Call, QSONumber);
-               END;
-
-        IF SingleBand <> All THEN
-            BEGIN
-            IF GetLogEntryBand (LogString) = SingleBand THEN
-                TotalQSOPoints := TotalQSOPoints + GetLogEntryQSOPoints (LogString);
-            END
-        ELSE
-            TotalQSOPoints := TotalQSOPoints + GetLogEntryQSOPoints (LogString);
-        END;
-    END;
-
-
-
-PROCEDURE N1MM_Object.PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
-
-{ This is pretty much a copy of what is in tbsiq_subs.pas }
-
-    BEGIN
-    LogString := VisibleLog.PushLogEntry (LogString);
-
-    { LogString is now what popped off the top of the editable window }
-
-    GetRidOfPostcedingSpaces (LogString);
-
-    IF LogString <> '' THEN
-        PutContactIntoLogFile (LogString);  { AddQSOToSheets will process partial calls and exchange memory }
-
+    IF (SingleBand = All) OR (GetLogEntryBand (LogString) = SingleBand) THEN
+        TotalQSOPoints := TotalQSOPoints + GetLogEntryQSOPoints (LogString);
     END;
 
 
 
 PROCEDURE N1MM_Object.LogN1MMContact (RXData: ContestExchange);
 
-{ This procedure will log the contact just completed.  It will be
-  pushed onto the editable log and the log entry popped off the editable
-  log will be examined and written to the LOG.DAT file.
+{ This procedure will log the contact just received via the UDP port. It will
+  not be put in the editable log window - but will be shown in the QuickDisplay
+  window just like QSOs coming in from the TRLog network if SEND QSO IMMEDIATELY
+  is FALSE.  (This is new behavior since May 2025).
 
   This is just a minor scale down of the version found in tbsiq_subs.pas which is a
   scaled down version of the one found in logsubs2.pas.  It is left as an exercise to
-  the student to see if the one in TBSIQ can just leverage this rountine.  Not much
+  the student to see if the one in TBSIQ can just leverage this routine.  Not much
   was removed from it.
-
-  One possible trouble area here has to do with QSO numbers - but I can't worry too
-  much about this at the moment.
 
   UPDATE: It is time to worry about QSO numbers.  The problem seen during the
   2025 WPX SSB contest was that the QSO number to be sent on a band was
@@ -692,14 +654,21 @@ PROCEDURE N1MM_Object.LogN1MMContact (RXData: ContestExchange);
   were being made by an N1MM user with incremental QSO numbers above that - it
   was not being saved in the QSO number matrix.  Note that this assumes that
   QSO Number By Band is true.  The case of not using QSONumberByBand is broken
-  in the conceptual context and isn't something trying to be addressed here.
+  in the conceptual context (multi-multi) and isn't something trying to be
+  addressed here.
 
   Another issue found after I enabled sending QSOs to N1MM is that the QSO I sent
   would be reflected back.  I added a check to see if the new entry is basically
   the same as the existing "bottom" QSO in the Editable Log Window - and if so, I
-  ignore logging it. }
+  ignore logging it.
 
-VAR LogString: Str80;
+  SCORING: It seems that I would need to recalculate the multiplier status based
+  upon my local copy of multipliers.  To do this - I will need to clear out the
+  multiplier field and then recalculate the multiplier status.
+
+  }
+
+VAR LogString: STRING;
 
     BEGIN
     { Squelch out any echo coming back from N1MM for a QSO we sent them }
@@ -722,42 +691,31 @@ VAR LogString: Str80;
         N1MM_Input_LastMode := Mode;
         END;
 
-    IF RXData.QSOPoints = -1 THEN
-        CalculateQSOPoints (RXData);
+    IF RXData.QSOPoints = -1 THEN CalculateQSOPoints (RXData);
 
-    { This is simplified from LOGSUBS2 }
+    { Log the QSO which is in RXData.  Note - we don't have mult flags yet }
 
-    IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) THEN
-        BEGIN
-        { Check to see if this was the last QSO I received from somewhere }
+    LogString := MakeLogString (RXData);
 
-        IF GetLogEntryCall (VisibleLog.LogEntries [5]) = RXData.Callsign THEN
-            Exit;
+    { PutLogEntryIntoSheet will update the QSOTotals, set the mult flags,
+      and add the QSO to the sheets (dupe and mults) }
 
-        RXData.QSOPoints := 0;
-        END
-    ELSE
-        VisibleLog.ProcessMultipliers (RXData);  { This is in LOGEDIT.PAS }
+    VisibleLog.PutLogEntryIntoSheet (LogString);  { Will set mult flags }
 
-    LogString := MakeLogString (RXData);  { This is in LOGSTUFF.PAS }
+    PutN1MMContactIntoLogFile (LogString);
+    QuickDisplay (Copy (LogString, 1, 73));  { Show it to the operator }
 
-    { The next stuff until the Push Log were moved down so they don't get executed if
-      was a reflection from N1MM }
+    UpdateTotals;
+    DisplayTotalScore (TotalScore);
+    VisibleLog.ShowRemainingMultipliers;
 
-    VisibleDupeSheetChanged := True;
-
-    IF LastDeletedLogEntry <> '' THEN
-        LastDeletedLogEntry := '';
-
-    LastQSOLogged := RXData;
+    LastQSOLogged := RXData;   { Don't worry about this - nobody using it }
 
     IF TenMinuteRule <> NoTenMinuteRule THEN
         UpdateTenMinuteDate (RXData.Band, RXData.Mode);
 
     IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
         Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
-
-    PushLogStringIntoEditableLogAndLogPopedQSO (LogString, True);
 
     IF DoingDomesticMults AND
        (MultByBand OR MultByMode) AND
@@ -772,23 +730,29 @@ VAR LogString: Str80;
             IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
                 SaveLogFileToFloppy;
 
-    IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
-
-    UpdateTotals;
-    DisplayTotalScore (TotalScore);
-    VisibleLog.ShowRemainingMultipliers;
 
     { We don't know if we are in QSONumberByBand or not - but since we only
       look at the specific bands if we are - we can update those cells without
       worrying.  The non QSONumberByBand case will use "All" for the band when
       looking at the QSO number matrix }
 
-    QNumber.SetCurrentQSONumber (RXData.Band, RXData.NumberSent + 1);
+    QNumber.SetCurrentQSONumber (RXData.Band, RXData.NumberSent);
 
     IF BandMapEnable THEN
         BEGIN
         UpdateBandMapMultiplierStatus;
         UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
+        END;
+
+    { If we are in a TRLinux network - we will need to send this QSO to the
+      next computer in the loop }
+
+    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
+        BEGIN
+        GetRidOfPrecedingSpaces (LogString);
+
+        IF LogString <> '' THEN
+            SendMultiCommand (MultiBandAddressArray [RXData.Band], $FF, MultiQSOData, LogString);
         END;
     END;
 
@@ -1068,9 +1032,8 @@ FUNCTION N1MM_Object.CreateRXDataFromUDPMessage (VAR RXData: ContestExchange): B
 PROCEDURE N1MM_Object.LogContact;
 
 { This is the meat of the N1MM interface.  Any UDP messages will be in the QTC Buffer
-  wull be parsed into a TR Log RXData record and then the normal TR Log loggin routines
-  will take that record - parse it into a Log String and push it into the editable
-  log window. }
+  wull be parsed into a TR Log RXData record and then logged without going through
+  the editable log window.  We will flash the QSO up in the QuickDisplay window. }
 
 VAR RXData: ContestExchange;
 
@@ -1087,11 +1050,15 @@ PROCEDURE CheckN1MMPort;
     BEGIN
     IF N1MM_UDP_Port > 0 THEN
         IF N1MM_QSO_Portal.Heartbeat THEN
-            IF ActiveBand = N1MM_QSO_Portal.N1MM_Input_LastBand THEN
-                BEGIN
-                QSONumberForThisQSO := QNumber.GetCurrentQSONumber (ActiveBand);
-                DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
-                END;
+            IF NOT Doing2BSIQ THEN
+                IF ActiveBand = N1MM_QSO_Portal.N1MM_Input_LastBand THEN
+
+                    { Do we care if it has been used? }
+
+                    BEGIN
+                    QSONumberForThisQSO := QNumber.ReserveNewQSONumber (ActiveBand);
+                    DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
+                    END;
     END;
 
 
