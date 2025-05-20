@@ -297,13 +297,12 @@ PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80;
                                  $FF, MultiQSOData, LogString);
             END;
 
-        { We do this so people can see what we worked without it being in the editable window }
+        { We do this always so people can see what we worked }
 
-        IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
-            SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                              $FF,
-                              MultiInstantQSOMessage,
-                              Copy (LogString, 1, 68));
+        SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                          $FF,
+                          MultiInstantQSOMessage,
+                          Copy (LogString, 1, 68));
         END;
 
     LogString := VisibleLog.PushLogEntry (LogString);
@@ -316,22 +315,14 @@ PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80;
         BEGIN
         PutContactIntoLogFile (LogString);  { This will set mult flags and log the QSO }
 
-        { We are going to send this to the network - if we are not sending
-          QSOs immediately }
+        { If we didn't send this QSO Immediately - we should send it now }
 
-        { I am a little fuzzy here if we should be sending all QSOs that
-          pop off the top of the editable window - or only ones that were
-          made in this instance of the program.  Currently - it looks like
-          the QSO has to scroll off the top of all of the previous machines
-          editable log window before it gets here - and thusly - I must
-          send it on to the next machine }
-
-        IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
-               SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                 $FF, MultiQSOData, LogString);
+        IF NOT SendQSOImmediately THEN
+            IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
+                SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                  $FF, MultiQSOData, LogString);
 
         END;
-
     END;
 
 
@@ -467,7 +458,7 @@ VAR TimeString, MultiString, MessageString: STRING;
         MultiPacketReceivedMessage:
             Packet.ProcessPacketMessageFromNetWork (MessageString);
 
-        MultiInstantQSOMessage:
+        MultiInstantQSOMessage:  { Used to show a QSO in the QuickDisplayWindow }
             BEGIN
             MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
             QuickDisplay (MessageString);
@@ -494,11 +485,11 @@ VAR TimeString, MultiString, MessageString: STRING;
 
             NewMult := GetLogEntryMultString (MessageString) <> '';
 
-            IF SendQSOImmediately THEN
-                PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
-            ELSE
-                PutContactIntoLogFile (MessageString);
+            { New in May 2025 - any QSO coming in over the TRLog network
+              will be logged without going through the editable log window
+              regardless of the setting of SendQSOImmediately }
 
+            PutContactIntoLogFile (MessageString);  { Will set mult flags }
             Inc (NumberContactsThisMinute);
             NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
 

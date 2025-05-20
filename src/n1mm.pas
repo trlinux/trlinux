@@ -664,7 +664,8 @@ PROCEDURE N1MM_Object.LogN1MMContact (RXData: ContestExchange);
 
   SCORING: It seems that I would need to recalculate the multiplier status based
   upon my local copy of multipliers.  To do this - I will need to clear out the
-  multiplier field and then recalculate the multiplier status.
+  multiplier field and then recalculate the multiplier status.  Scoring seems to
+  work right for the first time on May 18, 2025.
 
   }
 
@@ -745,14 +746,20 @@ VAR LogString: STRING;
         END;
 
     { If we are in a TRLinux network - we will need to send this QSO to the
-      next computer in the loop }
+      next computer in the loop so everyone gets it }
 
     IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
         BEGIN
         GetRidOfPrecedingSpaces (LogString);
 
         IF LogString <> '' THEN
+            BEGIN
             SendMultiCommand (MultiBandAddressArray [RXData.Band], $FF, MultiQSOData, LogString);
+
+            { Assuming it won't be shown otherwise }
+
+            SendMultiCommand (MultiBandAddressArray [RXData.Band], $FF, MultiInstantQSOMessage, LogString);
+            END;
         END;
     END;
 

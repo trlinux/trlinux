@@ -57,6 +57,19 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+20-May-2025
+ - Cleaned up some N1MM+ and TRLog QSO and scoring issues.
+
+ - Changed behavior of SEND QSO IMMEDIATELY so that it only affects when a
+   QSO is sent to the network (either when first logged - or when it scrolls
+   off the top of the editable log window).  It no longer affects what is done
+   with a QSO coming in on the network.  Old behavior would put it into the
+   bottom of the editable log window when received (TRUE) versus logging it
+   instantly without being put into the editable log window (FALSE).  QSOs
+   coming in from the network will now always be instantly logged without
+   going through the editable log window.  They will be displayed in the
+   QuickDisplay window for visability however.
+
 15-May-2025
  - Some effort to better understand the interaction between using two computers
    in the TR Network using UDP ports - and also integrating operation with N1MM.

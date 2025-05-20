@@ -1732,9 +1732,9 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Stereo Control Pin low');
 
       SQI: IF SendQSOImmediately THEN
-               Write ('QSO sent to Multi port when logged')
+               Write ('QSO sent to network when logged')
            ELSE
-               Write ('QSO sent when scrolled off edit window');
+               Write ('QSO sent after pop off edit window');
 
       SKE: IF ShiftKeyEnable = Shift THEN
                Write ('Shift keys enabled for RIT and S&P QSY')

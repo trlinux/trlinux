@@ -1572,11 +1572,10 @@ VAR TempString, MultiString, MessageString: STRING;
 
             NewMult := GetLogEntryMultString (MessageString) <> '';
 
-            IF SendQSOImmediately THEN
-                TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
-            ELSE
-                TBSIQ_PutContactIntoLogFile (MessageString);
+            { New in May 2025 - any QSO coming in over the network will be logged
+              without going through the editable log window }
 
+            TBSIQ_PutContactIntoLogFile (MessageString);
 
             Inc (NumberContactsThisMinute);
             NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
@@ -8232,16 +8231,13 @@ PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; My
         BEGIN
         TBSIQ_PutContactIntoLogFile (LogString);
 
-        { I am a little fuzzy here if we should be sending all QSOs that
-          pop off the top of the editable window - or only ones that were
-          made in this instance of the program.  Currently - it looks like
-          the QSO has to scroll off the top of all of the previous machines
-          editable log window before it gets here - and thusly - I must
-          send it on to the next machine }
+        { If we didn't send the QSO to the network when it was made,
+          do it now }
 
-        IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
-            SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                              $FF, MultiQSOData, LogString);
+        IF NOT SendQSOImmediately THEN
+            IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
+                SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                  $FF, MultiQSOData, LogString);
         END;
     END;
 
@@ -8284,7 +8280,7 @@ VAR CharacterPosition, Time, QSONumber: INTEGER;
         FOR CharacterPosition := LogEntryMultAddress TO LogEntryPointsAddress - 1 DO
             LogString [CharacterPosition] := ' ';
 
-        VisibleLog.PutLogEntryIntoSheet (LogString);
+        VisibleLog.PutLogEntryIntoSheet (LogString);  { Sets mult flags }
         WriteLogEntry                   (LogString);
 
         IF UnknownCountryFileEnable THEN
