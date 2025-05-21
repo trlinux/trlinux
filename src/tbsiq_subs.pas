@@ -8164,15 +8164,15 @@ VAR LogString: Str80;
             SendQSOToUDPPort (RXData);
             END;
 
-        { New for Mar 2024 - send to N1MM using WSJT port - and new in May 2025,
-          only send it if we are sending QSOs immediately }
+        { New for Mar 2024 - send to N1MM using WSJT port.  We always
+          send the QSO immediately because this is when we have all
+          of the information including frequency data available }
 
-        IF SendQSOImmediately THEN
-            IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
-                BEGIN
-                RXData.Date := GetFullDateString;
-                N1MM_QSO_Portal.SendQSOToN1MM (RXData);
-                END;
+        IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+            BEGIN
+            RXData.Date := GetFullDateString;
+            N1MM_QSO_Portal.SendQSOToN1MM (RXData);
+            END;
 
         { See if we are done }
 
@@ -8245,11 +8245,6 @@ VAR TempRXData: ContestExchange;
                 SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                   $FF, MultiQSOData, LogString);
 
-            IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
-                BEGIN
-                TempRXData.Date := GetFullDateString;
-                N1MM_QSO_Portal.SendQSOToN1MM (TempRXData);
-                END;
             END;
         END;
     END;
