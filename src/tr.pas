@@ -61,11 +61,10 @@ TODO List after 2023 WPX CW:
  - Cleaned up some N1MM+ and TRLog QSO and scoring issues.
 
  - Changed behavior of SEND QSO IMMEDIATELY so that it only affects when a
-   QSO is sent to the network (either when first logged - or when it scrolls
-   off the top of the editable log window).  Same for sending it to N1MM.
+   QSO is sent to the TRLog network (either when first logged - or when it
+   off the top of the editable log window).
 
-   It no longer affects what is done with a QSO coming in on the network (either
-   TRLog or N1MM).
+   It no longer affects what is done with a QSO coming in on the network.
 
    Old behavior would put it into the bottom of the editable log window when
    received (SEND QSO IMMEDIATELY = TRUE) versus logging it instantly without being
@@ -74,6 +73,11 @@ TODO List after 2023 WPX CW:
    QSOs coming in from either network will now always be instantly logged without
    going through the editable log window.  They will be displayed in the
    QuickDisplay window for visibility however.
+
+   Note that QSOs need to be sent to N1MM instantly since that is when
+   we have the frequency info readily available.  You will need to set each
+   of your computers in the TRLog Network to send their QSOs directly to the
+   N1MM computer because of this.
 
 15-May-2025
  - Some effort to better understand the interaction between using two computers
