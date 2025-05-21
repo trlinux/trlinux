@@ -670,6 +670,7 @@ PROCEDURE N1MM_Object.LogN1MMContact (RXData: ContestExchange);
   }
 
 VAR LogString: STRING;
+    TempRXData: ContestExchange;
 
     BEGIN
     { Squelch out any echo coming back from N1MM for a QSO we sent them }
@@ -699,9 +700,9 @@ VAR LogString: STRING;
     LogString := MakeLogString (RXData);
 
     { PutLogEntryIntoSheet will update the QSOTotals, set the mult flags,
-      and add the QSO to the sheets (dupe and mults) }
+      and add the QSO to the sheets (dupe and mults). }
 
-    VisibleLog.PutLogEntryIntoSheet (LogString);  { Will set mult flags }
+    VisibleLog.PutLogEntryIntoSheet (LogString, TempRXData);  { Will set mult flags }
 
     PutN1MMContactIntoLogFile (LogString);
     QuickDisplay (Copy (LogString, 1, 73));  { Show it to the operator }

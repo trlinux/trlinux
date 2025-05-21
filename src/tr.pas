@@ -62,13 +62,18 @@ TODO List after 2023 WPX CW:
 
  - Changed behavior of SEND QSO IMMEDIATELY so that it only affects when a
    QSO is sent to the network (either when first logged - or when it scrolls
-   off the top of the editable log window).  It no longer affects what is done
-   with a QSO coming in on the network.  Old behavior would put it into the
-   bottom of the editable log window when received (TRUE) versus logging it
-   instantly without being put into the editable log window (FALSE).  QSOs
-   coming in from the network will now always be instantly logged without
+   off the top of the editable log window).  Same for sending it to N1MM.
+
+   It no longer affects what is done with a QSO coming in on the network (either
+   TRLog or N1MM).
+
+   Old behavior would put it into the bottom of the editable log window when
+   received (SEND QSO IMMEDIATELY = TRUE) versus logging it instantly without being
+   put into the editable log window (SEND QSO IMMEDIATELY = FALSE).
+
+   QSOs coming in from either network will now always be instantly logged without
    going through the editable log window.  They will be displayed in the
-   QuickDisplay window for visability however.
+   QuickDisplay window for visibility however.
 
 15-May-2025
  - Some effort to better understand the interaction between using two computers

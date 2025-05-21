@@ -316,7 +316,7 @@ FUNCTION  TBSIQ_ParametersOkay (Call: CallString; QSONumberSent: INTEGER; Exchan
                                 VAR RData: ContestExchange): BOOLEAN;
 
 PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
-PROCEDURE TBSIQ_PutContactIntoLogFile (LogString: Str80);
+PROCEDURE TBSIQ_PutContactIntoLogFile (VAR LogString: Str80; VAR TempRXData: ContestExchange);
 FUNCTION  TBSIQ_ReadKey (Radio: RadioType): CHAR;
 PROCEDURE TBSIQ_UpdateTimeAndRateDisplays;  { Not radio specific }
 
@@ -1464,6 +1464,7 @@ VAR TempString, MultiString, MessageString: STRING;
     MessageOriginator: BYTE;
     Dupe, Mult, FirstCommand, NewMult: BOOLEAN;
     FileWrite: TEXT;
+    TempRXData: ContestExchange;
 
     BEGIN
     CheckForLostMultiMessages;
@@ -1575,7 +1576,7 @@ VAR TempString, MultiString, MessageString: STRING;
             { New in May 2025 - any QSO coming in over the network will be logged
               without going through the editable log window }
 
-            TBSIQ_PutContactIntoLogFile (MessageString);
+            TBSIQ_PutContactIntoLogFile (MessageString, TempRXData);
 
             Inc (NumberContactsThisMinute);
             NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
@@ -8163,13 +8164,15 @@ VAR LogString: Str80;
             SendQSOToUDPPort (RXData);
             END;
 
-        { New for Mar 2024 - send to N1MM using WSJT port }
+        { New for Mar 2024 - send to N1MM using WSJT port - and new in May 2025,
+          only send it if we are sending QSOs immediately }
 
-        IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
-            BEGIN
-            RXData.Date := GetFullDateString;
-            N1MM_QSO_Portal.SendQSOToN1MM (RXData);
-            END;
+        IF SendQSOImmediately THEN
+            IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+                BEGIN
+                RXData.Date := GetFullDateString;
+                N1MM_QSO_Portal.SendQSOToN1MM (RXData);
+                END;
 
         { See if we are done }
 
@@ -8198,6 +8201,8 @@ VAR LogString: Str80;
 
 
 PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; MyQSO: BOOLEAN);
+
+VAR TempRXData: ContestExchange;
 
     BEGIN
     { Leveraged from LOGSUBS2.PAS }
@@ -8229,21 +8234,29 @@ PROCEDURE TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80; My
 
     IF LogString <> '' THEN
         BEGIN
-        TBSIQ_PutContactIntoLogFile (LogString);
+        TBSIQ_PutContactIntoLogFile (LogString, TempRXData);
 
         { If we didn't send the QSO to the network when it was made,
           do it now }
 
         IF NOT SendQSOImmediately THEN
+            BEGIN
             IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
                 SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                   $FF, MultiQSOData, LogString);
+
+            IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+                BEGIN
+                TempRXData.Date := GetFullDateString;
+                N1MM_QSO_Portal.SendQSOToN1MM (TempRXData);
+                END;
+            END;
         END;
     END;
 
 
 
-PROCEDURE TBSIQ_PutContactIntoLogFile (LogString: Str80);
+PROCEDURE TBSIQ_PutContactIntoLogFile (VAR LogString: Str80; VAR TempRXData: ContestExchange);
 
 VAR CharacterPosition, Time, QSONumber: INTEGER;
     Call, Exchange, LoggedCallsign: Str20;
@@ -8263,24 +8276,13 @@ VAR CharacterPosition, Time, QSONumber: INTEGER;
         IF LogString [LogEntryNameSentAddress] = '*' THEN
             Inc (TotalNamesSent);
 
-        IF QSOTotals [All, Both] MOD ContactsPerPage = 0 THEN
-            BEGIN
-            IF QSOTotals [All, Both] > 0 THEN
-                NextPage;
-            PrintLogHeader;
-            END;
-
-        IF QSOTotals [All, Both] MOD ContactsPerPage > 9 THEN
-            IF QSOTotals [All, Both] MOD 10 = 0 THEN
-                WriteLogEntry ('');
-
         { We are going to recalculate what multipliers are there.  Let's clear
           out the part of the log string that has multiplier info - Aug 2024 }
 
         FOR CharacterPosition := LogEntryMultAddress TO LogEntryPointsAddress - 1 DO
             LogString [CharacterPosition] := ' ';
 
-        VisibleLog.PutLogEntryIntoSheet (LogString);  { Sets mult flags }
+        VisibleLog.PutLogEntryIntoSheet (LogString, TempRXData);  { Sets mult flags }
         WriteLogEntry                   (LogString);
 
         IF UnknownCountryFileEnable THEN

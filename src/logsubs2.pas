@@ -203,7 +203,8 @@ VAR SpeedString, MultString: Str20;
     END;
 
 
-PROCEDURE PutContactIntoLogFile (LogString: STRING);
+PROCEDURE PutContactIntoLogFile (VAR LogString: STRING;
+                                 VAR TempRXData: ContestExchange);
 
 { Takes a logstring that popped off the top of the editable log window and gets it
   into the log file and dupe/mult sheets. }
@@ -235,7 +236,7 @@ VAR CharacterPosition, Time, QSONumber: INTEGER;
         FOR CharacterPosition := LogEntryMultAddress TO LogEntryPointsAddress - 1 DO
             LogString [CharacterPosition] := ' ';
 
-        VisibleLog.PutLogEntryIntoSheet (LogString);  { Takes care of setting mults }
+        VisibleLog.PutLogEntryIntoSheet (LogString, TempRXData);  { Sets mults too }
         WriteLogEntry                   (LogString);
 
         IF UnknownCountryFileEnable THEN
@@ -279,14 +280,15 @@ VAR CharacterPosition, Time, QSONumber: INTEGER;
 
 
 
-PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80;
-                                                      MyQSO: BOOLEAN);
+PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80);
+
+VAR TempRXData: ContestExchange;
 
     BEGIN
     { If this is a QSO made on this instance of the program - send it off to the network
       if and only if we are sending QSOs immediately }
 
-    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND MyQSO THEN
+    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
         BEGIN
         IF SendQSOImmediately THEN
             BEGIN
@@ -313,15 +315,22 @@ PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80;
 
     IF LogString <> '' THEN
         BEGIN
-        PutContactIntoLogFile (LogString);  { This will set mult flags and log the QSO }
+        PutContactIntoLogFile (LogString, TempRXData);  { This will set mult flags and log the QSO }
 
         { If we didn't send this QSO Immediately - we should send it now }
 
         IF NOT SendQSOImmediately THEN
+            BEGIN
             IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
                 SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                   $FF, MultiQSOData, LogString);
 
+            IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+                BEGIN
+                TempRXData.Date := GetFullDateString;
+                N1MM_QSO_Portal.SendQSOToN1MM (TempRXData);
+                END;
+            END;
         END;
     END;
 
@@ -350,7 +359,7 @@ VAR QSOCount: INTEGER;
     FOR QSOCount := 1 TO NumberEditableLines DO
         BEGIN
         TempString := '';
-        PushLogStringIntoEditableLogAndLogPopedQSO (TempString, True);
+        PushLogStringIntoEditableLogAndLogPopedQSO (TempString);
         END;
 
     DeleteFile (LogTempFileName);
@@ -372,6 +381,7 @@ VAR TimeString, MultiString, MessageString: STRING;
     Year, Month, Day, Hour, Minute, Second: WORD;
     Dupe, Mult, FirstCommand, NewMult: BOOLEAN;
     FileWrite: TEXT;
+    TempRXData: ContestExchange;
 
     BEGIN
     { K1EA network support removed in May 2024 }
@@ -489,7 +499,7 @@ VAR TimeString, MultiString, MessageString: STRING;
               will be logged without going through the editable log window
               regardless of the setting of SendQSOImmediately }
 
-            PutContactIntoLogFile (MessageString);  { Will set mult flags }
+            PutContactIntoLogFile (MessageString, TempRXData);  { Will set mult flags }
             Inc (NumberContactsThisMinute);
             NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
 
@@ -1381,7 +1391,7 @@ VAR Key: CHAR;
                     WHILE Length (AddedNoteString) > 79 DO
                         Delete (AddedNoteString, Length (AddedNoteString), 1);
 
-                    PushLogStringIntoEditableLogAndLogPopedQSO (AddedNoteString, True);
+                    PushLogStringIntoEditableLogAndLogPopedQSO (AddedNoteString);
                     END;
 
                 RITEnable := True;
@@ -3073,7 +3083,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   WHILE Length (AddedNoteString) > 79 DO
                       Delete (AddedNoteString, Length (AddedNoteString), 1);
 
-                  PushLogStringIntoEditableLogAndLogPopedQSO (AddedNoteString, True);
+                  PushLogStringIntoEditableLogAndLogPopedQSO (AddedNoteString);
                   END;
 
               RITEnable := True;
@@ -3114,7 +3124,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   IF QTCNote <> '' THEN
                       BEGIN
-                      PushLogStringIntoEditableLogAndLogPopedQSO ('; ' + QTCNote, True);
+                      PushLogStringIntoEditableLogAndLogPopedQSO ('; ' + QTCNote);
                       QTCNote := '';
                       END;
                   END;
@@ -4410,9 +4420,12 @@ VAR LogString: Str80;
         IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
             Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
 
-        PushLogStringIntoEditableLogAndLogPopedQSO (LogString, True);
+        PushLogStringIntoEditableLogAndLogPopedQSO (LogString);
 
         IF Trace THEN Write ('&');
+
+        { RXData has the data from the QSO we just worked - not the one that
+          popped off the top of the editable window }
 
         IF NOT TailEnding THEN ShowStationInformation (RXData.Callsign);
 
@@ -4472,13 +4485,15 @@ VAR LogString: Str80;
             SendQSOToUDPPort (RXData);
             END;
 
-        { New for Mar 2024 - send to N1MM using WSJT port }
+        { New for Mar 2024 - send to N1MM using WSJT port.  New in May 2025, we
+          only send it here if we are using SendQSOImmediately.  }
 
-        IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
-            BEGIN
-            RXData.Date := GetFullDateString;
-            N1MM_QSO_Portal.SendQSOToN1MM (RXData);
-            END;
+        IF SendQSOImmediately THEN
+            IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+                BEGIN
+                RXData.Date := GetFullDateString;
+                N1MM_QSO_Portal.SendQSOToN1MM (RXData);
+                END;
 
         { See if we are done }
 

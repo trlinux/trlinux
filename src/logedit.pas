@@ -95,7 +95,9 @@ TYPE
 
         FUNCTION  PushLogEntry (NewEntry: STRING): STRING;
         PROCEDURE ProcessMultipliers (VAR RXData: ContestExchange);
-        PROCEDURE PutLogEntryIntoSheet (VAR LogEntry: STRING);
+
+        PROCEDURE PutLogEntryIntoSheet (VAR LogEntry: STRING;
+                                        VAR TempRXData: ContestExchange);
 
         PROCEDURE SearchLog (InitialString: Str20);
         PROCEDURE SetUpEditableLog;
@@ -1511,7 +1513,8 @@ VAR NewMultString: Str80;
     END;
 
 
-PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: STRING);
+PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: STRING;
+                                            VAR TempRXData: ContestExchange);
 
 { This procedure will look at the log entry string passed to it and
   see if any multiplier flags need to be set.  It will not erase any
@@ -1520,9 +1523,10 @@ PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: STRING);
   correct string is returned.  This procedure should only be used for
   entries that have been popped off the editable log stack as it does
   not look for any mults in the editable log.  Use the ProcessMultipliers
-  procedure for new entries into the editable log.                        }
+  procedure for new entries into the editable log.
 
-VAR TempRXData: ContestExchange;
+  New for May 2025, I pass a copy of the TempRXData structure back so it
+  can be sent to N1MM if appropriate. }
 
     BEGIN
     ParseLogEntryIntoContestExchange (LogEntry, TempRXData);

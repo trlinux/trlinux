@@ -5031,7 +5031,7 @@ PROCEDURE RememberSentMessage (MultMessage: STRING);
       up to the high level program to notice that QSONumberForthisQSO is equal
       to zero sometime after the request and do a retry.  }
 
-  IF ThisIsAQSONumberRequest (MultMessage) THEN Exit;
+    IF ThisIsAQSONumberRequest (MultMessage) THEN Exit;
 
     { We are going to put this entry in the remember buffer at the address of
       the "Head" of the buffer }
