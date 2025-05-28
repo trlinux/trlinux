@@ -1559,6 +1559,23 @@ VAR TempString, MultiString, MessageString: STRING;
         MultiPacketReceivedMessage:
             Packet.ProcessPacketMessageFromNetWork (MessageString);
 
+        MultiInstantQSOMessage:  { Used to show a QSO in the QuickDisplayWindow }
+            BEGIN
+            LastMultiInstantQSOMessageCallsign := GetLogEntryCall (MessageString);
+            LastMultiInstantQSOMessageBand := GetLogEntryBand (MessageString);
+            LastMultiInstantQSOMessageMode := GetLogEntryMode (MessageString);
+
+            MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
+            QuickDisplay (MessageString);
+            ReminderPostedCount := 60;
+
+            PushMultiMessageBuffer (MessageString);
+
+            IF IntercomFileOpen THEN
+                WriteLn (IntercomFileWrite, GetTimeString, ' ', MessageString);
+            END;
+
+
         MultiPacketMessageToSend:
             IF ActivePacketPort <> nil THEN SendPacketMessage (MessageString);
 

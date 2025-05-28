@@ -57,6 +57,19 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+28-May-2025
+ - Much work done to improve N1MM+ operation.  Fixed a couple of bugs found during
+   WPX CW - including not sending QSOs to a TRLinux networked computer that came in
+   from N1MM properly (removed spaces at the start which broke having the networked
+   computer properly count the QSO).  Also, TBSIQ was not showing the QSOs made on
+   the other computers (both TRLinux or N1MM+).  This could have been the cause of
+   some dupes getting logged during TBSIQ operation.
+
+ - Created POST U K procedure to basically find any QSOs that were edited in the
+   editable window.  It does this by comparing the QSOs in the .DAT file to the
+   LONGLOG file.  Any unmatched QSOs are saved in small text files (one for the
+   log file and one for the LONGLOG file).
+
 20-May-2025
  - Cleaned up some N1MM+ and TRLog QSO and scoring issues.
 

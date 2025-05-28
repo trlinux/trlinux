@@ -106,6 +106,11 @@ TYPE
 
     NAQPStationDatabasePointer = ^NAQPStationDatabaseType;
 
+    EntryRecord = RECORD
+         QSOString: Str80;
+         Matched: BOOLEAN;
+         END;
+
 VAR Buffer: FileBufferPointer;
     CheckCallBuffer: CallBufferPointer;
     CabrilloEntryHead: CabrilloRecPtr;
@@ -116,6 +121,10 @@ VAR Buffer: FileBufferPointer;
     NumberCabrilloEntriesModified: INTEGER;
 
     NumberLongLogFileEntries: INTEGER;
+
+    LogEntry: ARRAY [0..10000] OF EntryRecord;
+    LongLogEntry: ARRAY [0..100000] OF EntryRecord;
+
 
 { UTILITY Programs }
 
@@ -2007,7 +2016,9 @@ VAR OutputFileName, InputFileName: Str40;
     WriteLn ('This procedure will convert a TR Log file to an ADIF file.  The band, mode,');
     WriteLn ('date, time and callsign will be converted.  If RSTs are found in the log,');
     WriteLn ('they will be converted as well.');
-
+    WriteLn;
+    WriteLn ('You can use the LONGLOG file if you want to make sure frequency information');
+    WriteLn ('is included');
     WriteLn;
 
     InputFileName := GetResponse ('Enter Input log filename (none to exit) : ');
@@ -3116,7 +3127,7 @@ VAR LongLogFileName, OutputFileName, CabrilloFileName, ADIFFileName: Str80;
     FirstEntry, TimeString, DateString, MonthString: Str20;
     ADIFFileString, OriginalCabrilloString, CabrilloFileString, LongLogFileString: STRING;
     OriginalADIFString: STRING;
-    DebugFileWrite, ADIFFileRead, CabrilloFileRead, LongLogFileRead, OutputFile: TEXT;
+    ADIFFileRead, CabrilloFileRead, LongLogFileRead, OutputFile: TEXT;
     NumberUnmatchedQSOs: INTEGER;
 
     BEGIN
@@ -4111,10 +4122,9 @@ PROCEDURE CallAndZoneChecker;
 
 VAR Call, Exchange, FileString, InputFileName: STRING;
     FileRead: TEXT;
-    CheckZones: BOOLEAN;
     Band: BandType;
     Mode: ModeType;
-    ReceivedZone, Zone, Country: INTEGER;
+    ReceivedZone, Zone: INTEGER;
 
     BEGIN
     ClearScreenAndTitle ('CHECK COUNTRIES OF CALLS AND OPTIONALLY DEFAULT ZONES');
@@ -4216,6 +4226,153 @@ VAR Call, Exchange, FileString, InputFileName: STRING;
 
 
 
+PROCEDURE CheckIfLongLogAndLogAreInSync;
+
+VAR LogFileName, LongLogFileName: Str80;
+    LogFileRead, LongLogFileRead: TEXT;
+    LogAddress, LongLogAddress, NumberLogEntries, NumberLongLogEntries: INTEGER;
+    NumberMatchedQSOsFound: INTEGER;
+    OutputFile: TEXT;
+    FileString: STRING;
+
+
+    BEGIN
+    ClearScreenAndTitle ('CHECK IF LONG LOG AND LOG FILES ARE IN SYNC');
+    WriteLn ('A QSO entry in the long file does not reflect any changes that were made to');
+    WriteLn ('the QSO in the editable log window.  This procedure will alert you to which');
+    WriteLn ('QSOs were edited.');
+    WriteLn;
+
+    LogFileName := GetResponse ('Enter .DAT filename (none to abort) : ');
+    IF LogFileName = '' THEN Exit;
+
+    IF NOT FileExists (LogFileName) THEN
+        BEGIN
+        WriteLn (LogFilename, ' not found!!');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    LongLogFileName := GetResponse ('Enter LONG log filename (none to abort) : ');
+    IF LongLogFileName = '' THEN Exit;
+
+    IF NOT FileExists (LongLogFileName) THEN
+        BEGIN
+        WriteLn (LongLogFilename, ' not found!!');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    NumberLogEntries := 0;
+    NumberLongLogEntries := 0;
+
+    IF NOT OpenFileForRead (LogFileRead, LogFileName) THEN
+        BEGIN
+        WriteLn ('Unexpected error - unable to open ', LogFileName);
+        Exit;
+        END;
+
+    WriteLn ('Reading in QSOs from ', LogFileName);
+
+    WHILE NOT Eof (LogFileRead) DO
+        BEGIN
+        ReadLn (LogFileRead, FileString);
+
+        IF (GetLogEntryBand (FileString) <> NoBand) AND (GetLogEntryMode (FileString) <> NoMode) THEN
+            BEGIN
+            FileString := Copy (FileString, 1, 68);  { Mask off QSO points and mult info }
+            LogEntry [NumberLogEntries].QSOString := UpperCase (FileString);
+            LogEntry [NumberLogEntries].Matched := False;
+            Inc (NumberLogEntries);
+            END;
+        END;
+
+    Close (LogFileRead);
+
+    WriteLn ('There were ', NumberLogEntries, ' entries found in ', LogFileName);
+
+    IF NumberLogEntries = 0 THEN
+        BEGIN
+        WriteLn ('No Log entries found!!  Aborting');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    IF NOT OpenFileForRead (LongLogFileRead, LongLogFileName) THEN
+        BEGIN
+        WriteLn ('Unexpected error - unable to open ', LongLogFileName);
+        Exit;
+        END;
+
+    WriteLn ('Reading in QSOs from ', LongLogFileName);
+
+    WHILE NOT Eof (LongLogFileRead) DO
+        BEGIN
+        ReadLn (LongLogFileRead, FileString);
+
+        IF (GetLogEntryBand (FileString) <> NoBand) AND (GetLogEntryMode (FileString) <> NoMode) THEN
+            BEGIN
+            FileString := Copy (FileString, 1, 68);  { Mask off QSO points and mult info }
+            LongLogEntry [NumberLongLogEntries].QSOString := UpperCase (FileString);
+            LongLogEntry [NumberLongLogEntries].Matched := False;
+            Inc (NumberLongLogEntries);
+            END;
+        END;
+
+    Close (LongLogFileRead);
+
+    WriteLn ('There were ', NumberLongLogEntries, ' entries found in ', LongLogFileName);
+
+    IF NumberLongLogEntries = 0 THEN
+        BEGIN
+        WriteLn ('No LongLog entries found!!  Aborting');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    WriteLn ('Working on matching up entries...');
+
+    NumberMatchedQSOsFound := 0;
+
+    FOR LogAddress := 0 TO NumberLogEntries - 1 DO
+        FOR LongLogAddress := 0 TO NumberLongLogEntries - 1 DO
+            IF NOT LongLogEntry [LongLogAddress].Matched THEN
+                IF LogEntry [LogAddress].QSOString = LongLogEntry [LongLogAddress].QSOString THEN
+                    BEGIN
+                    LogEntry [LogAddress].Matched := True;
+                    LongLogEntry [LongLogAddress].Matched := True;
+                    Inc (NumberMatchedQSOsFound);
+                    Break;
+                    END;
+
+    WriteLn ('There were ', NumberMatchedQSOsFound, ' QSOs matched up.');
+
+    OpenFileForWrite (OutputFile, 'LogNoMatch.txt');
+
+    WriteLn (OutputFile, 'The following QSOs in ', LogFileName, ' were not matched: ');
+
+    FOR LogAddress := 0 TO NumberLogEntries - 1 DO
+        IF NOT LogEntry [LogAddress].Matched THEN
+            WriteLn (OutputFile, LogEntry [LogAddress].QSOString);
+
+    Close (OutputFile);
+
+    OpenFileForWrite (OutputFile, 'LongLogNoMatch.txt');
+
+    WriteLn (OutputFile, 'The following QSOs in ', LongLogFileName, ' were not matched: ');
+
+    FOR LongLogAddress := 0 TO NumberLongLogEntries - 1 DO
+        IF NOT LongLogEntry [LongLogAddress].Matched THEN
+            WriteLn (OutputFile, LongLogEntry [LongLogAddress].QSOString);
+
+    Close (OutputFile);
+
+    WriteLn ('Unmatched QSOs written to LogNoMatch.txt and LongLogNoMatch.txt');
+    WaitForKeyPressed;
+    END;
+
+
+
 FUNCTION UtilityMenu: BOOLEAN;
 
 VAR Key: CHAR;
@@ -4236,6 +4393,7 @@ VAR Key: CHAR;
     WriteLn ('  G - Global log search (list of calls not in a log.');
     WriteLn ('  H - Get beam headings and distance between grids.');
     WriteLn ('  J - Assign TXID to run radio in Cabrillo file.');
+    WriteLn ('  K - Check if log and longlog files are in sync.');
     WriteLn ('  L - Convert Cabrillo Log to TR Log.');
     WriteLn ('  M - Merge Cabrillo files into single file.');
     WriteLn ('  N - NameEdit (old NAMES.CMQ database editor).');
@@ -4268,6 +4426,7 @@ VAR Key: CHAR;
             'G': BEGIN GlobalLogSearch;      Exit; END;
             'H': BEGIN GetBeamHeadings;      Exit; END;
             'J': BEGIN AssignTXID;           Exit; END;
+            'K': BEGIN CheckIfLongLogAndLogAreInSync; Exit; END;
             'L': BEGIN ConvertCabrilloToTR;  Exit; END;
             'M': BEGIN MergeCabrilloLogs;    Exit; END;
             'N': BEGIN NameEditor;           Exit; END;

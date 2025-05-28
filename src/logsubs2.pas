@@ -463,6 +463,10 @@ VAR TimeString, MultiString, MessageString: STRING;
 
         MultiInstantQSOMessage:  { Used to show a QSO in the QuickDisplayWindow }
             BEGIN
+            LastMultiInstantQSOMessageCallsign := GetLogEntryCall (MessageString);
+            LastMultiInstantQSOMessageBand := GetLogEntryBand (MessageString);
+            LastMultiInstantQSOMessageMode := GetLogEntryMode (MessageString);
+
             MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
             QuickDisplay (MessageString);
             Tone.DoABeep (BeepCongrats);

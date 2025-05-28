@@ -84,6 +84,10 @@ TYPE
 
 VAR  N1MM_QSO_Portal: N1MM_Object;
 
+     LastMultiInstantQSOMessageCallsign: CallString;
+     LastMultiInstantQSOMessageBand: BandType;
+     LastMultiInstantQSOMessageMode: ModeType;
+
 PROCEDURE CheckN1MMPort;
 
 IMPLEMENTATION
@@ -294,6 +298,16 @@ VAR ADIFString: AnsiSTRING;
 
         MakeADIFBand    (ADIFString, 'BAND', Band);
         AddStringToUDPBuffer (ADIFString);
+
+        IF Frequency = 0 THEN  { No interfaced radio }
+            CASE Band OF
+                Band160: Frequency := 1800000;
+                Band80:  Frequency := 3500000;
+                Band40:  Frequency := 7000000;
+                Band20:  Frequency := 14000000;
+                Band15:  Frequency := 21000000;
+                Band10:  Frequency := 28000000;
+                END;
 
         MakeADIFFreq    (ADIFString, 'FREQ', Frequency / 1000000.0);  { Convert from Hz to MHz }
         AddStringToUDPBuffer (ADIFString);
@@ -680,6 +694,15 @@ VAR LogString: STRING;
            (N1MM_Output_LastBand = Band) AND
            (N1MM_Output_LastMode = Mode) THEN Exit;
 
+    { We also need to squelch out any QSOs that might have been sent to N1MM
+      from another computer in the TRLog network.  These will be sent to this
+      computer using the MultiInstantQSOMessage command? }
+
+    WITH RXData DO
+        IF (LastMultiInstantQSOMessageCallsign = Callsign) AND
+           (LastMultiInstantQSOMessageBand = Band) AND
+           (LastMultiInstantQSOMessageMode = Mode) THEN Exit;
+
     { It also seems that sometimes we get two QSOs from N1MM that are the same }
 
     WITH RXData DO
@@ -732,7 +755,6 @@ VAR LogString: STRING;
             IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
                 SaveLogFileToFloppy;
 
-
     { We don't know if we are in QSONumberByBand or not - but since we only
       look at the specific bands if we are - we can update those cells without
       worrying.  The non QSONumberByBand case will use "All" for the band when
@@ -751,16 +773,11 @@ VAR LogString: STRING;
 
     IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
         BEGIN
-        GetRidOfPrecedingSpaces (LogString);
+        SendMultiCommand (MultiBandAddressArray [RXData.Band], $FF, MultiQSOData, LogString);
 
-        IF LogString <> '' THEN
-            BEGIN
-            SendMultiCommand (MultiBandAddressArray [RXData.Band], $FF, MultiQSOData, LogString);
+        { Assuming it won't be shown otherwise }
 
-            { Assuming it won't be shown otherwise }
-
-            SendMultiCommand (MultiBandAddressArray [RXData.Band], $FF, MultiInstantQSOMessage, LogString);
-            END;
+        SendMultiCommand (MultiBandAddressArray [RXData.Band], $FF, MultiInstantQSOMessage, Copy (LogString, 1, 68));
         END;
     END;
 
@@ -1073,6 +1090,10 @@ PROCEDURE CheckN1MMPort;
 
     BEGIN
     N1MM_UDP_Port := 0;    { Declared in logwind.pas }
+
+    LastMultiInstantQSOMessageCallsign := '';
+    LastMultiInstantQSOMessageBand := NoBand;
+    LastMultiInstantQSOMessageMode := NoMode;
 
     { Some things to initlialize for outputing stuff to N1MM }
 
