@@ -1760,7 +1760,7 @@ VAR TempString: STRING;
 
     GetRidOfPostcedingSpaces (LogString);
 
-    UsingLongLogFile := Length (LogString) > 80;
+    UsingLongLogFile := Length (LogString) > 100;
     FreqMhz := 0.0;
 
     IF LogString <> '' THEN
@@ -1773,6 +1773,7 @@ VAR TempString: STRING;
 
         IF UsingLongLogFile THEN
             BEGIN
+            WriteLn ('Using LONGLOG file format');
             PossibleFreqString := BracketedString (LogString, 'Frequency=', ' ');
 
             IF PossibleFreqString <> '' THEN
@@ -2049,6 +2050,7 @@ VAR OutputFileName, InputFileName: Str40;
     WHILE NOT Eof (InputFile) DO
         BEGIN
         ReadLn (InputFile, LogString);
+
         ConvertLogStringToADIF (LogString, ADIFString);
 
         IF ADIFString <> '' THEN
