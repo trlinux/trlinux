@@ -59,6 +59,10 @@ TODO List after 2023 WPX CW:
 
  - POST not working with U F with just old .DAT files.
 
+14-Jun-2025
+ - Fixed issue with grid sqaure mults not being counted after scrolling
+   off top of editable log window.
+
 28-May-2025
  - Much work done to improve N1MM+ operation.  Fixed a couple of bugs found during
    WPX CW - including not sending QSOs to a TRLinux networked computer that came in

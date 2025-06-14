@@ -2013,7 +2013,7 @@ VAR NumberMults: INTEGER;
           domestic mults, that it always executed the code }
 
         IF DomesticCountryCall (RXData.Callsign) OR
-           (DoingDomesticMults AND NOT DoingDXMults) THEN
+          (DoingDomesticMults AND NOT DoingDXMults) THEN
                BEGIN
                IF RXData.DomesticQTH = '' THEN
                    RXData.DomesticQTH := RXData.QTHString;
