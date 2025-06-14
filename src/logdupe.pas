@@ -2006,14 +2006,21 @@ VAR NumberMults: INTEGER;
     IF (ContestName = 'CWT') OR (ContestName = 'CWO') OR (ContestName = 'MST') THEN
         RXData.DomMultQTH := Copy (RXData.Callsign, 1, 6)
     ELSE
-        IF DomesticCountryCall (RXData.Callsign) THEN  { Aug 2024 }
-            BEGIN
-            IF RXData.DomesticQTH = '' THEN
-                RXData.DomesticQTH := RXData.QTHString;
+        { In Aug 2024 - we only did this if it was a
+          DomesticCountryCall.  This broke mults in the VHF
+          contest where we don't have any domestic countries
+          enabled.  Changed it in June 2025 so if I am only doing
+          domestic mults, that it always executed the code }
 
-            IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
-                RXData.DomMultQTH := RXData.DomesticQTH;
-            END;
+        IF DomesticCountryCall (RXData.Callsign) OR
+           (DoingDomesticMults AND NOT DoingDXMults) THEN
+               BEGIN
+               IF RXData.DomesticQTH = '' THEN
+                   RXData.DomesticQTH := RXData.QTHString;
+
+               IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
+                   RXData.DomMultQTH := RXData.DomesticQTH;
+               END;
 
     { We do not count countries in WRTC if we have a domestic mult }
 

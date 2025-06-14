@@ -57,6 +57,8 @@ TODO List after 2023 WPX CW:
  - When changing band - and have a QSO number in the call window - we
    need to check that back in and get a new number if QSO BY BAND.
 
+ - POST not working with U F with just old .DAT files.
+
 28-May-2025
  - Much work done to improve N1MM+ operation.  Fixed a couple of bugs found during
    WPX CW - including not sending QSOs to a TRLinux networked computer that came in
