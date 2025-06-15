@@ -5307,7 +5307,7 @@ PROCEDURE QSOMachineObject.WindowEditor (VAR WindowString: Str80;
   Something new - this needs to deal with the OkayToPutUpBandMapCall by
   turning it off if any key is pressed }
 
-VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
+VAR Distance, Heading, QSOCount, CursorPosition, CharPointer, Count: INTEGER;
     Key, PreviousCursorChar: CHAR;
     Message, TempString: STRING;
     TempExchange: ContestExchange;
@@ -6263,7 +6263,26 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                         GoToXY (CursorPosition, WhereY);
                         END;
 
-{                   ShowPartialCallMults (WindowString); }
+                    IF (MyGrid <> '') AND LooksLikeAGrid (WindowString) THEN
+                        BEGIN
+                        SaveSetAndClearActiveWindow (BeamHeadingWindow);
+                        Heading := Round (GetBeamHeading (MyGrid, WindowString));
+                        Write (WindowString, ' ', Heading, DegreeSymbol);
+
+                        IF DistanceMode <> NoDistanceDisplay THEN
+                            BEGIN
+                            Distance := GetDistanceBetweenGrids (MyGrid, WindowString);
+
+                            IF DistanceMode = DistanceMiles THEN
+                                BEGIN
+                                Distance := round (Distance / 1.6);
+                                Write (' ', Distance, 'm');
+                                END
+                            ELSE
+                                Write (' ', Distance, 'km');
+                            END;
+                        RestorePreviousWindow;
+                        END;
 
                     END;
 
@@ -6428,12 +6447,45 @@ VAR QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                 { To show domestic multiplier status as it is entered in }
 
-                IF (TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow) AND DoingDomesticMults THEN
+                IF DoingDomesticMults THEN
                     BEGIN
-                    TempExchange.QTHString := GetLastString (WindowString);
+                    IF TBSIQ_ActiveWindow = TBSIQ_CallWindow THEN
+                        BEGIN
+                        TempExchange.QTHString := WindowString;
 
-                    IF DoingDomesticMults AND FoundDomesticQTH (TempExchange) THEN
-                        VisibleLog.ShowDomesticMultiplierStatus (TempExchange.DomesticQTH);
+                        IF FoundDomesticQTH (TempExchange) THEN
+                            VisibleLog.ShowDomesticMultiplierStatus (TempExchange.DomesticQTH);
+                        END;
+
+                    IF TBSIQ_ActiveWindow = TBSIQ_ExchangeWindow THEN
+                        BEGIN
+                        TempExchange.QTHString := GetLastString (WindowString);
+
+                        IF FoundDomesticQTH (TempExchange) THEN
+                            VisibleLog.ShowDomesticMultiplierStatus (TempExchange.DomesticQTH);
+                        END;
+
+                    IF (MyGrid <> '') AND LooksLikeAGrid (WindowString) THEN
+                        BEGIN
+                        SaveSetAndClearActiveWindow (BeamHeadingWindow);
+                        Heading := Round (GetBeamHeading (MyGrid, WindowString));
+                        Write (WindowString, ' ', Heading, DegreeSymbol);
+
+                        IF DistanceMode <> NoDistanceDisplay THEN
+                            BEGIN
+                            Distance := GetDistanceBetweenGrids (MyGrid, WindowString);
+
+                            IF DistanceMode = DistanceMiles THEN
+                                BEGIN
+                                Distance := round (Distance / 1.6);
+                                Write (' ', Distance, 'm');
+                                END
+                            ELSE
+                                Write (' ', Distance, 'km');
+                            END;
+                        RestorePreviousWindow;
+                        END;
+
                     END;
 
                 { Need to be aware that if a character is added during QST_AutoStartSending that we

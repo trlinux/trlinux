@@ -2041,8 +2041,6 @@ VAR NumberMults: INTEGER;
             ELSE
                 DomQTH := RXData.DomMultQTH;
 
-            WriteLn ('Checking ', DomQTH, ' to see if it is a new mult');
-
             CompressFormat (UpperCase (DomQTH), CompressedMult);
 
             IF NOT BytDupe (Addr (CompressedMult), NumberMults, MultSheet.DomesticList [MultBand, MultMode]) THEN
