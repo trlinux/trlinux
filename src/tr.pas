@@ -66,6 +66,9 @@ TODO List after 2023 WPX CW:
  - Fixed issue with grid sqaure mults not being counted after scrolling
    off top of editable log window.
 
+ - Fixed issue with QSOs with sent RST and only an RS received not having
+   mults counted right after scrolling off the editable window.
+
 28-May-2025
  - Much work done to improve N1MM+ operation.  Fixed a couple of bugs found during
    WPX CW - including not sending QSOs to a TRLinux networked computer that came in
