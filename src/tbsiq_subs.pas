@@ -7932,11 +7932,12 @@ FUNCTION TBSIQ_ParametersOkay (Call: CallString;
   the multiplier is switched on.                                        }
 
 VAR I: INTEGER;
-    TempString: Str80;
+    CorrectedCall, CorrectedSentRST: Str20;
     Hours, Minutes, Seconds, Hundreths: Word;
 
     BEGIN
     TBSIQ_ParametersOkay := False;  { Default in case of early escape }
+
 
     ExchangeErrorMessage := '';
     LogBadQSOString := '';
@@ -7961,22 +7962,25 @@ VAR I: INTEGER;
 
     { Start building up the RData data structure with the data }
 
-    ClearContestExchange (RData);
+    ClearContestExchange (RData);  { I don't do this in classic UI }
+
+    { Fill out what we know now }
 
     RData.Callsign := Call;
-    RData.Callsign := GetCorrectedCallFromExchangeString (ExchangeString);
 
-    { See if there is a different RST in the exchange window }
+    RData.Band := Band;
+    RData.Mode := Mode;
+    RData.Date := GetDateString;
+    RData.Frequency := Freq;
+    RData.NumberSent := QSONumberSent;
+    RData.Time := Hours * 100 + Minutes;
 
-    TempString := GetSentRSTFromExchangeString (ExchangeString);
-    IF TempString <> '' THEN RData.RSTSent := TempString;
-
-    IF RData.Callsign = '' THEN
-        RData.Callsign := Call
-    ELSE
+    CorrectedCall := GetCorrectedCallFromExchangeString (ExchangeString);
+    IF CorrectedCall <> '' THEN
         BEGIN        { Callsign was updated in the exchange window }
+        RData.Callsign := CorrectedCall;
 
-        { For now - I am not going to bother displaying the callsign
+        { Not going to display it as we don't know which radio we are
 
         CallWindowString := RData.Callsign;
         SaveAndSetActiveWindow (CallWindow);
@@ -7985,25 +7989,31 @@ VAR I: INTEGER;
         RestorePreviousWindow;  }
         END;
 
+    { Deal with the default RST sent and received. ProcessExchange will overwrite
+      anything found in the exchange window for the received data.  We will look
+      for a different sent RST in the exchange window after setting the defaults }
+
+    IF Mode = Phone THEN
+        BEGIN
+        DefaultRST := '59';  { A global variable - being consistent with classic UI }
+        RData.RSTSent := LogRSSent;
+        RData.RSTReceived := '59';
+        END
+
+    ELSE
+        BEGIN
+        DefaultRST := '599';  { A global variable - being consistent with classic UI }
+        RData.RSTSent := LogRSTSent;
+        RData.RSTReceived := '599';
+        END;
+
+    { See if there is a different sent RST in the exchange window - preceded with an S }
+
+    CorrectedSentRST := GetSentRSTFromExchangeString (Mode, ExchangeString);
+    IF CorrectedSentRST <> '' THEN RData.RSTSent := CorrectedSentRST;
+
     IF ParameterOkayMode = QSLAndLog THEN
         BEGIN
-        RData.Time       := Hours * 100 + Minutes;
-        RData.Band       := Band;
-        RData.Mode       := Mode;
-        RData.NumberSent := QSONumberSent;
-        RData.Frequency  := Freq;
-
-        IF RData.Mode = PHONE THEN
-            DefaultRST := '59'
-        ELSE
-            DefaultRST := '599';
-
-        IF RData.RSTSent = '' THEN
-            IF RData.Mode = Phone THEN
-                RData.RSTSent := LogRSSent
-            ELSE
-                RData.RSTSent := LogRSTSent;
-
         LocateCall (RData.Callsign, Rdata.QTH, True);
 
         IF DoingDXMults THEN GetDXQTH (RData);
@@ -8037,25 +8047,7 @@ VAR I: INTEGER;
         Exit;
         END;
 
-    IF NOT GoodCallSyntax (RData.Callsign) THEN
-        Exit;
-
-    RData.Time       := Hours * 100 + Minutes;
-    RData.Band       := Band;
-    RData.Mode       := Mode;
-    RData.NumberSent := QSONumberSent;
-    RData.Frequency  := Freq;
-
-    IF RData.RSTSent = '' THEN
-        IF RData.Mode = Phone THEN
-            RData.RSTSent := LogRSSent
-        ELSE
-            RData.RSTSent := LogRSTSent;
-
-    IF ActiveMode = PHONE THEN
-        DefaultRST := '59'
-    ELSE
-        DefaultRST := '599';
+    IF NOT GoodCallSyntax (RData.Callsign) THEN Exit;
 
     LocateCall (RData.Callsign, RData.QTH, True);
 
@@ -8083,7 +8075,6 @@ VAR I: INTEGER;
 
     GetRidOfPrecedingSpaces  (ExchangeString);
     GetRidOfPostcedingSpaces (ExchangeString);
-
     TBSIQ_ParametersOkay := ProcessExchange (ExchangeString, RData);
     CalculateQSOPoints (RData);
     END;

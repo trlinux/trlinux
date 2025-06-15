@@ -4416,7 +4416,7 @@ FUNCTION ParametersOkay (Call: CallString;
   the multiplier is switched on.                                        }
 
 VAR I: INTEGER;
-    TempString: Str80;
+    CorrectedCall, SentRST: Str80;
     Hours, Minutes, Seconds, Hundreths: Word;
 
     BEGIN
@@ -4454,19 +4454,16 @@ VAR I: INTEGER;
     { Need this in case we exit soon }
 
     RData.Callsign := Call;
-
     IF (ExchangeString = '') AND NOT (ActiveExchange = RSTNameAndQTHExchange) THEN Exit;
 
-    RData.Callsign := GetCorrectedCallFromExchangeString (ExchangeString);
+    SentRST := GetSentRSTFromExchangeString (Mode, ExchangeString);
+    IF SentRST <> '' THEN RData.RSTSent := TempString;
 
-    TempString := GetSentRSTFromExchangeString (ExchangeString);
+    CorrectedCall := GetCorrectedCallFromExchangeString (ExchangeString);
 
-    IF TempString <> '' THEN RData.RSTSent := TempString;
-
-    IF RData.Callsign = '' THEN
-        RData.Callsign := Call
-    ELSE
+    IF CorrectedCall <> '' THEN
         BEGIN
+        RData.Callsign := CorrectedCall;
         CallWindowString := RData.Callsign;
         SaveAndSetActiveWindow (CallWindow);
         ClrScr;

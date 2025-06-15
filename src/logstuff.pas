@@ -459,7 +459,7 @@ VAR
 
     FUNCTION  GetCorrectedCallFromExchangeString (VAR ExchangeString: Str80): Str80;
     FUNCTION  GetMultiPortCommand: STRING;
-    FUNCTION  GetSentRSTFromExchangeString (VAR ExchangeString: Str40): Str20;
+    FUNCTION  GetSentRSTFromExchangeString (Mode: ModeType; VAR ExchangeString: Str40): Str20;
 
     PROCEDURE IncrementQTCCount (Call: CallString);
 
@@ -4583,6 +4583,8 @@ PROCEDURE RestoreRadioFrequency (Radio: RadioType);
 
 FUNCTION GetCorrectedCallFromExchangeString (VAR ExchangeString: Str80): Str80;
 
+{ Returns with nothing if no callsign found }
+
 VAR PotentialCall, TempString: Str40;
 
     BEGIN
@@ -6868,7 +6870,7 @@ VAR TempString, NumberString: Str80;
     END;
 
 
-FUNCTION GetSentRSTFromExchangeString (VAR ExchangeString: Str40): Str20;
+FUNCTION GetSentRSTFromExchangeString (Mode: ModeType; VAR ExchangeString: Str40): Str20;
 
 VAR PotentialRSTSent, TempString: Str40;
     RSTString: Str20;
@@ -6884,12 +6886,14 @@ VAR PotentialRSTSent, TempString: Str40;
         BEGIN
         PotentialRSTSent := RemoveLastString (TempString);
 
+        { A sent RST in the exchange window is preceded with an S }
+
         IF Copy (PotentialRSTSent, 1, 1) = 'S' THEN
             BEGIN
             Delete (PotentialRSTSent, 1, 1);
 
             IF StringIsAllNumbers (PotentialRSTSent) THEN
-                IF LooksLikeRST (PotentialRSTSent, RSTString, ActiveMode) THEN
+                IF LooksLikeRST (PotentialRSTSent, RSTString, Mode) THEN
                     BEGIN
                     GetSentRSTFromExchangeString := RSTString;
 

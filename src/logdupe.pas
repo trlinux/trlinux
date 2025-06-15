@@ -1991,12 +1991,8 @@ VAR NumberMults: INTEGER;
     CompressedMult: FourBytes;
     DomQTH: Str20;
     FoundDomesticQTH: boolean;
-    FileWrite: TEXT;
-
 
     BEGIN
-    OpenFileForAppend (FileWrite, 'MULT.TXT');
-
     RXData.DomesticMult := False;
     RXData.DXMult       := False;
     RXData.PrefixMult   := False;
@@ -2024,8 +2020,6 @@ VAR NumberMults: INTEGER;
 
                IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
                    RXData.DomMultQTH := RXData.DomesticQTH;
-
-               WriteLn (FileWrite, 'a ', RXData.QTHString, ' ', RXData.DomesticQTH, ' ', RXData.DomMultQTH);
                END;
 
     { We do not count countries in WRTC if we have a domestic mult }
@@ -2039,7 +2033,6 @@ VAR NumberMults: INTEGER;
         IF NumberMults = 0 THEN
             BEGIN
             RXData.DomesticMult := True;
-            WriteLn (FileWrite, 'First mult');
             END
         ELSE
             BEGIN
@@ -2053,12 +2046,7 @@ VAR NumberMults: INTEGER;
             CompressFormat (UpperCase (DomQTH), CompressedMult);
 
             IF NOT BytDupe (Addr (CompressedMult), NumberMults, MultSheet.DomesticList [MultBand, MultMode]) THEN
-                BEGIN
                 RXData.DomesticMult := True;
-                WriteLn (FileWrite, 'New mult');
-                END
-            ELSE
-                WriteLn (FileWRite, 'Not a mult');
             END;
         END;
 
@@ -2111,7 +2099,6 @@ VAR NumberMults: INTEGER;
             END;
         END;
 
-    Close (FileWrite);
     END;
 
 
