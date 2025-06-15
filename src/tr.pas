@@ -59,6 +59,9 @@ TODO List after 2023 WPX CW:
 
  - POST not working with U F with just old .DAT files.
 
+ - If you are in 2BSIQ and only one radio is turned on - you can't use the
+   RETURN key or lots of keys.
+
 14-Jun-2025
  - Fixed issue with grid sqaure mults not being counted after scrolling
    off top of editable log window.

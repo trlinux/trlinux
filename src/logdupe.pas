@@ -34,7 +34,7 @@ USES LogDom, trCrt, Dos, SlowTree, Tree, Country9, ZoneCont, LogWind,
 
 
 CONST
-    DomesticMultArraySize          =  400;
+    DomesticMultArraySize          =  1000;
     DXMultArraySize                =  500;
     MaxAllCalls                    = 7000;
     MaxGridSquaresInList           =   40;
@@ -1991,8 +1991,12 @@ VAR NumberMults: INTEGER;
     CompressedMult: FourBytes;
     DomQTH: Str20;
     FoundDomesticQTH: boolean;
+    FileWrite: TEXT;
+
 
     BEGIN
+    OpenFileForAppend (FileWrite, 'MULT.TXT');
+
     RXData.DomesticMult := False;
     RXData.DXMult       := False;
     RXData.PrefixMult   := False;
@@ -2020,6 +2024,8 @@ VAR NumberMults: INTEGER;
 
                IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
                    RXData.DomMultQTH := RXData.DomesticQTH;
+
+               WriteLn (FileWrite, 'a ', RXData.QTHString, ' ', RXData.DomesticQTH, ' ', RXData.DomMultQTH);
                END;
 
     { We do not count countries in WRTC if we have a domestic mult }
@@ -2031,7 +2037,10 @@ VAR NumberMults: INTEGER;
         NumberMults := MultSheet.Totals [MultBand, MultMode].NumberDomesticMults;
 
         IF NumberMults = 0 THEN
-            RXData.DomesticMult := True
+            BEGIN
+            RXData.DomesticMult := True;
+            WriteLn (FileWrite, 'First mult');
+            END
         ELSE
             BEGIN
             IF StringHas (RXData.DomMultQTH, '/') THEN
@@ -2039,10 +2048,17 @@ VAR NumberMults: INTEGER;
             ELSE
                 DomQTH := RXData.DomMultQTH;
 
+            WriteLn ('Checking ', DomQTH, ' to see if it is a new mult');
+
             CompressFormat (UpperCase (DomQTH), CompressedMult);
 
             IF NOT BytDupe (Addr (CompressedMult), NumberMults, MultSheet.DomesticList [MultBand, MultMode]) THEN
+                BEGIN
                 RXData.DomesticMult := True;
+                WriteLn (FileWrite, 'New mult');
+                END
+            ELSE
+                WriteLn (FileWRite, 'Not a mult');
             END;
         END;
 
@@ -2094,6 +2110,8 @@ VAR NumberMults: INTEGER;
                 RXData.ZoneMult := True;
             END;
         END;
+
+    Close (FileWrite);
     END;
 
 
@@ -2873,7 +2891,7 @@ VAR ExchangeString: STRING;
         RSTTestString := GetFirstString (ExchangeString);
 
         IF StringIsAllNumbers (RSTTestString) THEN
-            IF Length (RSTTestString) = Length (RXData.RSTSent) THEN
+            IF (Length (RSTTestString) = 2) OR (Length (RSTTestString) = 3) THEN
                 RXData.RSTReceived := RemoveFirstString (ExchangeString);
         END;
 
