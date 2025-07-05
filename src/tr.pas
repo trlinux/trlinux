@@ -62,6 +62,9 @@ TODO List after 2023 WPX CW:
  - If you are in 2BSIQ and only one radio is turned on - you can't use the
    RETURN key or lots of keys.
 
+05-Jul-2025
+ - Fixed CQ VHF QSO point method (was adding one).
+
 15-Jun-2025
  - Fixed beam headings not showing up as expected for grids in 2BSIQ
 
