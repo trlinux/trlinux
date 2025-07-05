@@ -5852,9 +5852,6 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                 Band6:             RXData.QSOPoints := 1; {KK1L: 6.73 new rules for 2002}
                 ELSE               RXData.QSOPoints := 0;
                 END;
-
-            IF (RXData.Mode = CW) AND (RXData.QSOPoints > 0) THEN
-                Inc (RXData.QSOPoints);
             END;
 
         CQWPXQSOPointMethod:
