@@ -6196,10 +6196,10 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     RXData.QSOPoints := 5;
                 END
             ELSE
-                BEGIN
                 IF (RXCtyID = 'JA') OR (RXCtyID = 'JD1') THEN
-                    RXData.QSOPoints := 1
-                END;
+                    RXData.QSOPoints := 2
+                ELSE
+                    RXData.QSOPoints := 1; { New in 2025 }
 
         MMCQSOPointMethod:
            IF RXData.QTH.Continent <> MyContinent THEN
@@ -6712,6 +6712,12 @@ FUNCTION ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BO
                 ProcessExchange := ProcessRSTAndDomesticQTHExchange (ExchangeString, RData)
             ELSE
                 ProcessExchange := ProcessRSTAndQSONumberExchange (ExchangeString, RData);
+
+        RSTDomesticQTHOrZoneExchange:
+            IF DomesticCountryCall (RData.Callsign) THEN
+                ProcessExchange := ProcessRSTAndDomesticQTHExchange (ExchangeString, RData)
+            ELSE
+                ProcessExchange := ProcessRSTAndZoneExchange (ExchangeString, RData);
 
         RSTNameAndQTHExchange:
             ProcessExchange := ProcessRSTNameAndQTHExchange (ExchangeString, RData);

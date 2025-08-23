@@ -2734,6 +2734,13 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
             ExchangeInformation.QTH := True;
             END;
 
+        RSTDomesticQTHOrZoneExchange:
+            BEGIN
+            ExchangeInformation.RST := True;
+            ExchangeInformation.QTH := True;
+            ExchangeInformation.Zone := True;
+            END;
+
         RSTDomesticQTHOrQSONumberExchange:
             BEGIN
             ExchangeInformation.RST := True;

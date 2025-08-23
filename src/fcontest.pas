@@ -1251,9 +1251,10 @@ VAR TempQTH: QTHRecord;
         ELSE
             DomesticQTHDataFileName := 'JAPREF.DOM';
 
-        ActiveExchange := RSTDomesticQTHExchange;
+        ActiveExchange := RSTDomesticQTHOrZoneExchange;
         ActiveMode := CW;
         ActiveQSOPointMethod := KCJQSOPointMethod;
+        AddDomesticCountry ('JA');
         ContestName := 'KCJ Single Op Contest';
         MultByBand := True;
         MultByMode := False;
@@ -1618,12 +1619,12 @@ VAR TempQTH: QTHRecord;
         IF UpperCase (Copy (MyState, 1, 2)) = 'OH' THEN
             BEGIN
             DomesticQTHDataFileName := 'OHIOOHIO.DOM';
-            ActiveExchange := RSTQSONumberAndPossibleDomesticQTHExchange;
+            ActiveExchange := RSTDomesticOrDXQTHExchange;
             END
         ELSE
             BEGIN
             DomesticQTHDataFileName := 'OHIOCTY.DOM';
-            ActiveExchange := RSTQSONumberAndDomesticQTHExchange;
+            ActiveExchange := RSTDomesticQTHExchange;
             END;
 
         AddDomesticCountry ('K');

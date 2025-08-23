@@ -62,6 +62,13 @@ TODO List after 2023 WPX CW:
  - If you are in 2BSIQ and only one radio is turned on - you can't use the
    RETURN key or lots of keys.
 
+22-Aug-2025
+ - Cleaned up Ohio QSO Party.
+
+17-Aug-2025
+ - Updated KCJ contest mult list and QSO point methods.  Also fixed up
+   the Cabrillo output.
+
 05-Jul-2025
  - Fixed CQ VHF QSO point method (was adding one).
 

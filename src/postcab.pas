@@ -1086,6 +1086,11 @@ VAR Key:             CHAR;
             SentInformation := '$ ' + Age;
             END;
 
+        KCJ:
+            BEGIN
+            SentInformation := '$ ' + GetResponse ('Enter sent information (zone or pref): ');
+            RSTIsPartOfTheExchange := True;
+            END;
 
         NAQSO:       { Doesn't comply with field length for name }
             BEGIN
@@ -1261,6 +1266,7 @@ VAR Key:             CHAR;
             IARU:        WriteLn (FileWrite, 'CONTEST: IARU-HF',Chr(13));
             IntSprint:   WriteLn (FileWrite, 'CONTEST: INTERNET-SPRINT',Chr(13));
             JARTS:       WriteLn (FileWrite, 'CONTEST: JARTS-WW-RTTY', Chr (13));
+            KCJ:         WriteLn (FileWrite, 'CONTEST: KCJ', Chr (13));
             NAQSO:       WriteLn (FileWrite, 'CONTEST: NAQP-', ModeString,Chr(13));
             NEQSO:       WriteLn (FileWrite, 'CONTEST: New England QSO Party',Chr(13));
             OceaniaVKZL: WriteLn (FileWrite, 'CONTEST: OCEANIA',Chr(13));

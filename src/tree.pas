@@ -325,9 +325,6 @@ VAR CodeSpeed:  BYTE;
     PROCEDURE IncrementASCIIInteger (VAR ASCIIString: Str80);
     PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
 
-    FUNCTION  WordValueFromCharacter (Character: CHAR): WORD;
-
-
     FUNCTION  KeyId (Key: CHAR): Str80;
 
     FUNCTION  LastLetter (InputString: Str160): CHAR;
@@ -401,7 +398,6 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  StringHasLetters (InputString: Str160): BOOLEAN;
 
     FUNCTION  StringWithFirstWordDeleted (InputString:Str160): Str160;
-    FUNCTION  WordAfter(LongString: Str160; SearchString: Str80): Str160;
 
     FUNCTION  Tan(X: REAL): REAL;
 
@@ -413,7 +409,8 @@ VAR CodeSpeed:  BYTE;
     PROCEDURE WaitForKeyPressed;
 
     FUNCTION  WhiteSpaceCharacter (InputChar: CHAR): BOOLEAN;
-
+    FUNCTION  WordAfter(LongString: Str160; SearchString: Str80): Str160;
+    FUNCTION  WordValueFromCharacter (Character: CHAR): WORD;
     PROCEDURE WriteColor (Prompt: Str80; FColor: INTEGER; BColor: INTEGER);
 
 //    PROCEDURE setupkeyboard;cdecl;

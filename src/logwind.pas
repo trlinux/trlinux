@@ -455,6 +455,7 @@ TYPE
                     RSTDomesticOrDXQTHExchange,
                     RSTDomesticQTHExchange,
                     RSTDomesticQTHOrQSONumberExchange,
+                    RSTDomesticQTHOrZoneExchange,
                     RSTNameAndQTHExchange,
                     RSTPossibleDomesticQTHAndPower,
                     RSTPowerExchange,
