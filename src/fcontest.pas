@@ -1839,6 +1839,17 @@ VAR TempQTH: QTHRecord;
         FoundContest := True;
         END;
 
+    IF (CMD = 'SCRY') OR (CMD = 'SCRYRTTY') THEN
+        BEGIN
+        { Just enough here to make QSOs }
+
+        ActiveExchange := RSTAndYearExchange;
+        ContestName := 'SCRY RTTY WW DX';
+        ActiveQSOPointMethod := OnePointPerQSO;
+        FoundContest := True;
+        END;
+
+
     IF (CMD = 'SCANDINAVIAN') OR (CMD = 'SAC') THEN
         BEGIN
         scorerpt.setcontest ('SAC-$');  { $ will be mode }

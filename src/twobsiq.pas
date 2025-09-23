@@ -411,8 +411,6 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
   - MAde it harder to spot garbage - like something that does not look like a
     call or a double callsign
 
-
-
 22-Oct-2022
 
  - In S&P - made new band map entry when calling station.

@@ -439,13 +439,11 @@ VAR
 
 
     PROCEDURE AgeReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE AgeReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
 
     PROCEDURE BandChange (VAR ActiveBand: BandType; Direction: DirectionType);
 
     PROCEDURE CalculateQSOPoints (VAR RXData: ContestExchange);
     PROCEDURE ChapterReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE ChapterReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
 
     PROCEDURE CheckForLostMultiMessages;
     PROCEDURE CreateAndSendCQMultiInfoMessage;
@@ -490,9 +488,6 @@ VAR
 
     FUNCTION  NumberQTCsThisStation (Call: CallString): INTEGER;
     PROCEDURE NameReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE NameReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    PROCEDURE PrintLogHeader;
 
     FUNCTION  ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BOOLEAN;
     PROCEDURE ProcessN4OGWCommand (N4OGW_Command: STRING);
@@ -522,49 +517,34 @@ VAR
 
     PROCEDURE StuffInit;
 
-    { Header and Stamp routines - used when generating a log string }
+    { Stamp routines - used when generating a log string }
 
     PROCEDURE BandModeDateTimeNumberCallNameSentStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE BandModeDateTimeNumberCallNameSentHeader (VAR LogString: Str80; VAR Underline: Str80);
-    PROCEDURE CheckReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE CheckReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE ClassReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE ClassReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE KidsReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE KidsReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE MultiplierHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE MultiplierStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE PowerReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE PowerReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE PrecedenceReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE PrecedenceReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE QSONumberReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE QSONumberReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE QSOPointHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE QSOPointStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE QTHReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE QTHReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE PostalCodeReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE PostalCodeReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE RandomCharsSentAndReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE RandomCharsSentAndReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
     FUNCTION  ReserveNewQSONumber (Band: BandType): INTEGER;
     FUNCTION  ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
 
-    PROCEDURE RSTReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE RSTReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE RSTSentHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE RSTSentStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE TenTenNumReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE TenTenNumReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
+    PROCEDURE YearReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE ZoneReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE ZoneReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
     PROCEDURE WriteLogEntry (Entry: STRING);
@@ -889,20 +869,6 @@ VAR TimeString, QSONumberString: Str20;
         LogString := LogString + ' ';
     END;
 
-
-PROCEDURE BandModeDateTimeNumberCallNameSentHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := ' Band    Date    Time  QSO#  Call worked';
-    Underline := ' ----    ----    ----  ----  -----------';
-
-    WHILE Length (LogString) < LogEntryExchangeAddress - 1 DO
-        BEGIN
-        LogString := LogString + ' ';
-        Underline := Underline + ' ';
-        END;
-    END;
-
 
 
 PROCEDURE ClassReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -917,26 +883,10 @@ VAR ClassString: Str20;
     LogString := LogString + '  ' + ClassString;
     END;
 
-
-PROCEDURE ClassReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Class  ';
-    UnderLine := Underline + '-----  ';
-    END;
-
 PROCEDURE KidsReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
     BEGIN
     LogString := LogString + Exchange.Kids;
-    END;
-
-
-PROCEDURE KidsReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Exchange';
-    UnderLine := Underline + '--------  ';
     END;
 
 PROCEDURE QSONumberReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -965,14 +915,6 @@ VAR QSONumberString: Str80;
     LogString := LogString + QSONumberString;
     END;
 
-
-PROCEDURE QSONumberReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Rcvd  ';
-    UnderLine := Underline + '----  ';
-    END;
-
 PROCEDURE RSTSentStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR RSTString: Str80;
@@ -987,14 +929,6 @@ VAR RSTString: Str80;
     LogString := LogString + RSTString;
     END;
 
-
-PROCEDURE RSTSentHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Sent ';
-    UnderLine := Underline + '---- ';
-    END;
-
 
 
 PROCEDURE RSTReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -1006,14 +940,6 @@ VAR RSTString: Str80;
     RSTString [0] := Chr (5);
     LogString := LogString + RSTString;
     END;
-
-PROCEDURE RandomCharsSentAndReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Sent   Rcvd   ';
-    UnderLine := Underline + '----   ----   ';
-    END;
-
 
 PROCEDURE RandomCharsSentAndReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
@@ -1035,16 +961,6 @@ VAR CharsString: Str20;
     LogString := LogString + CharsString;
     END;
 
-
-
-PROCEDURE PostalCodeReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Post Code ';
-    UnderLine := Underline + '--------- ';
-    END;
-
-
 PROCEDURE PostalCodeReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR CharsString: Str20;
@@ -1058,15 +974,6 @@ VAR CharsString: Str20;
     LogString := LogString + CharsString;
     END;
 
-
-PROCEDURE RSTReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Rcvd ';
-    UnderLine := Underline + '---- ';
-    END;
-
-
 PROCEDURE CheckReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR CheckString: Str80;
@@ -1077,12 +984,13 @@ VAR CheckString: Str80;
     LogString := LogString + CheckString;
     END;
 
-PROCEDURE CheckReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
+PROCEDURE YearReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
     BEGIN
-    LogString := LogString + 'Ck ';
-    UnderLine := Underline + '-- ';
+    LogString := LogString + Exchange.Year + ' ';
     END;
+
+
 
 PROCEDURE PrecedenceReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
@@ -1093,15 +1001,6 @@ VAR PrecedenceString: Str80;
     PrecedenceString [0] := Chr (2);
     LogString := LogString + PrecedenceString;
     END;
-
-
-PROCEDURE PrecedenceReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'P ';
-    UnderLine := Underline + '- ';
-    END;
-
 
 
 
@@ -1223,37 +1122,6 @@ VAR QTHString, PrefectureString: Str80;
 
     END;
 
-
-PROCEDURE QTHReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    IF ActiveExchange = RSTQTHExchange THEN
-        BEGIN
-        LogString := LogString + 'Qth Received          ';
-        UnderLine := UnderLine + '------------          ';
-        Exit;
-        END;
-
-    IF (ActiveExchange = RSTAllJAPrefectureAndPrecedenceExchange) OR
-       (ActiveExchange = RSTPrefectureExchange) THEN
-        BEGIN
-        LogString := LogString + 'Pref ';
-        UnderLine := Underline + '---- ';
-        Exit;
-        END;
-
-    IF ActiveExchange = RSTNameAndQTHExchange THEN
-        BEGIN
-        LogString := LogString + 'Qth       ';
-        UnderLine := Underline + '---       ';
-        END
-    ELSE
-        BEGIN
-        LogString := LogString + ' Qth  ';
-        Underline := Underline + '----- ';
-        END;
-    END;
-
 
 
 PROCEDURE MultiplierStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -1314,26 +1182,6 @@ VAR MultString, ZoneString: Str80;
 
 
 
-PROCEDURE MultiplierHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    IF (ActiveDomesticMult = NoDomesticMults) AND (ActiveDXMult = NoDXMults) AND
-       (ActivePrefixMult = NoPrefixMults) AND (ActiveZoneMult = NoZoneMults) THEN
-           Exit;
-
-    IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN Exit;
-
-    WHILE Length (LogString) < LogEntryMultAddress - 1 DO
-        LogString := LogString + ' ';
-
-    WHILE Length (Underline) < LogEntryMultAddress - 1 DO
-        Underline := Underline + ' ';
-
-    LogString := LogString + 'Mults   ';
-    Underline := Underline + '-----   ';
-    END;
-
-
 PROCEDURE PowerReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR TempString: Str80;
@@ -1356,14 +1204,6 @@ VAR TempString: Str80;
     LogString := LogString + TempString + '  ';
     END;
 
-
-PROCEDURE PowerReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Power ';
-    Underline := Underline + '----- ';
-    END;
-
 PROCEDURE ZoneReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR TempString: Str80;
@@ -1381,13 +1221,6 @@ VAR TempString: Str80;
         END
     ELSE
         LogString := LogString + '     ';
-    END;
-
-PROCEDURE TenTenNumReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + ' 1010# ';
-    Underline := Underline + ' ----- ';
     END;
 
 PROCEDURE TenTenNumReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -1410,15 +1243,6 @@ VAR TenTenNumberString: Str20;
 
 
 
-PROCEDURE ZoneReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Zone ';
-    Underline := Underline + '---- ';
-    END;
-
-
-
 PROCEDURE AgeReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR TempString: Str80;
@@ -1432,13 +1256,6 @@ VAR TempString: Str80;
     TempString := ' ' + TempString + ' ';
 
     LogString := LogString + TempString;
-    END;
-
-PROCEDURE AgeReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Age ';
-    Underline := Underline + '--- ';
     END;
 
 PROCEDURE NameReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -1458,22 +1275,6 @@ VAR TempString: Str80;
 
     LogString := LogString + TempString;
     END;
-
-PROCEDURE NameReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Name        ';
-    Underline := Underline + '----        ';
-    END;
-
-
-PROCEDURE ChapterReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Chp ';
-    Underline := Underline + '--- ';
-    END;
-
 
 PROCEDURE ChapterReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
@@ -1510,21 +1311,6 @@ VAR QSOPointString: Str80;
         IF Exchange.SearchAndPounce THEN
             LogString := LogString + '$';
 
-    END;
-
-
-
-PROCEDURE QSOPointHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    WHILE Length (LogString) < LogEntryPointsAddress - 2 DO
-        LogString := LogString + ' ';
-
-    WHILE Length (Underline) < LogEntryPointsAddress - 3 DO
-        Underline := Underline + ' ';
-
-    LogString := LogString + 'Pts';
-    Underline := Underline + '---';
     END;
 
 
@@ -4519,6 +4305,44 @@ VAR FirstString, SecondString, ThirdString: Str20;
         END;
     END;
 
+FUNCTION ProcessRSTAndYearExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
+
+{ Each entry of the exchange must be separated by spaces. Entries are all
+  numbers - three digits for RST and four digits for year.  If no RST is
+  entered, then 599 will be used.  Not expecting to use this on phone. }
+
+VAR FirstString, SecondString, ThirdString: Str20;
+
+    BEGIN
+    ProcessRSTAndYearExchange := False;
+    IF NOT StringIsAllNumbersOrSpaces (Exchange) THEN Exit;
+
+    IF RXData.Mode = PHONE THEN Exit;  { Not expecting to be here for SSB }
+    RXData.RSTReceived := '599';       { Default }
+
+    ParseExchange (Exchange, FirstString, SecondString, ThirdString);
+
+    IF Length (ThirdString) = 3 THEN
+        RXData.RSTReceived := ThirdString
+    ELSE
+        IF Length (SecondString) = 3 THEN
+            RXData.RSTReceived := SecondString
+        ELSE
+            IF Length (FirstString) = 3 THEN
+                RXData.RSTReceived := FirstString;
+
+    IF Length (ThirdString) = 4 THEN
+        RXData.Year := ThirdString
+    ELSE
+        IF Length (SecondString) = 4 THEN
+            RXData.Year := SecondString
+        ELSE
+            IF Length (FirstString) = 4 THEN
+                RXData.Year := FirstString;
+
+    ProcessRSTAndYearExchange := Length (RXData.Year) = 4;
+    END;
+
 
 
 PROCEDURE SaveLogFileToFloppy;
@@ -5435,67 +5259,6 @@ VAR FileWrite: TEXT;
 
 
 
-PROCEDURE PrintLogHeader;
-
-VAR LogString, UnderLine: Str80;
-//    PageNumber: INTEGER;
-    BEGIN
-//    PageNumber := (QSOTotals [All, Both] DIV 50) + 1;
-
-    WriteLogEntry (ContestTitle);
-    WriteLogEntry (LogSubTitle);
-    WriteLogEntry ('');
-
-    BandModeDateTimeNumberCallNameSentHeader (LogString, Underline);
-
-    { These are hacks when the very nice way just isn't efficient enough }
-
-    { Note that the RSTQTHNameAndFistsNumberOrPowerExchange has the
-      multiplier header and stamp functions wired to do nothing }
-
-    {KK1L: 6.70 Changed spacing slightly to line up with output}
-    IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN
-        BEGIN
-        LogString := LogString + ' TXR  RXR QTH NAME      NUM/PWR';
-        UnderLine := Underline + ' ---  --- --- ----      -------';
-        END
-    ELSE
-        BEGIN
-        { Very nice generic way of doing things }
-
-        WITH ExchangeInformation DO
-            BEGIN
-            IF RST THEN
-                BEGIN
-                RSTSentHeader     (LogString, Underline);
-                RSTReceivedHeader (LogString, Underline);
-                END;
-
-
-            IF Classs       THEN ClassReceivedHeader      (LogString, UnderLine);
-            IF QSONumber   THEN QSONumberReceivedHeader  (LogString, UnderLine);
-            IF PostalCode  THEN PostalCodeReceivedHeader (LogString, UnderLine);
-            IF RandomChars THEN RandomCharsSentAndReceivedHeader (LogString, Underline);
-            IF Power       THEN PowerReceivedHeader      (LogString, Underline);
-            IF Name        THEN NameReceivedHeader       (LogString, Underline);
-            IF Chapter     THEN ChapterReceivedHeader    (LogString, Underline);
-            IF Age         THEN AgeReceivedHeader        (LogString, Underline);
-            IF Precedence  THEN PrecedenceReceivedHeader (LogString, UnderLine);
-            IF Check       THEN CheckReceivedHeader      (LogString, UnderLine);
-            IF Zone        THEN ZoneReceivedHeader       (LogString, UnderLine);
-            IF TenTenNum   THEN TenTenNumReceivedHeader  (LogString, UnderLine);
-            IF QTH         THEN QTHReceivedHeader        (LogString, UnderLine);
-            END;
-        END;
-
-    MultiplierHeader (LogString, UnderLine);
-    QSOPointHeader (LogString, UnderLine);
-    WriteLogEntry (LogString);
-    WriteLogEntry (Underline);
-    END;
-
-
-
 FUNCTION MakeLogString (RXData: ContestExchange): Str80;
 
 { This function will take the information in the contest exchange record
@@ -5557,6 +5320,7 @@ VAR TempString, LogString: STRING;
                 IF Zone        THEN ZoneReceivedStamp       (RXData, LogString);
                 IF TenTenNum   THEN TenTenNumReceivedStamp  (RXData, LogString);
                 IF QTH         THEN QTHReceivedStamp        (RXData, LogString);
+                IF Year        THEN YearReceivedStamp       (RXData, LogString);
                 END;
 
             END; { of case ActiveExchange }
@@ -6691,6 +6455,9 @@ FUNCTION ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BO
 
         RSTAndQSONumberOrDomesticQTHExchange:
             ProcessExchange := ProcessRSTAndQSONumberOrDomesticQTHExchange (ExchangeString, RData);
+
+        RSTAndYearExchange:
+            ProcessExchange := ProcessRSTAndYearExchange (ExchangeString, RData);
 
         RSTDomesticQTHExchange:
             ProcessExchange := ProcessRSTAndDomesticQTHExchange (ExchangeString, RData);

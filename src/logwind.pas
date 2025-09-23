@@ -452,6 +452,7 @@ TYPE
                     RSTAndOrGridExchange,
                     RSTAndQSONumberOrDomesticQTHExchange,
                     RSTAndPostalCodeExchange,
+                    RSTAndYearExchange,
                     RSTDomesticOrDXQTHExchange,
                     RSTDomesticQTHExchange,
                     RSTDomesticQTHOrQSONumberExchange,

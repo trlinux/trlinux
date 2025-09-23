@@ -7939,6 +7939,8 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
     Message := ExpandCrypticString (Message);
 
+    ShowCWMessage ('1: ' + Message);
+
     IF Mode = Phone THEN
         ShowCWMessage (Message);
 

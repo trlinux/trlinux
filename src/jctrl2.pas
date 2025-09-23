@@ -82,7 +82,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
     Changed [ActiveLine] := True;
 
     CASE ActiveLine OF
-      DMF, DVK, MCL, MCN, MCU, MZN, VER:
+      DMF, MCL, MCN, MCU, MZN, VER:
            BEGIN
            Tone.DoABeep (Single);
            QuickDisplay ('You can only change this in your config file.');
@@ -351,8 +351,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
 
       DSE: Sheet.DupeSheetEnable := NOT Sheet.DupeSheetEnable;
-
-      DVC: DVKControlKeyRecord := NOT DVKControlKeyRecord;
 
       EES: EscapeExitsSearchAndPounce := NOT EscapeExitsSearchAndPounce;
 
@@ -1137,8 +1135,6 @@ VAR FileWrite: TEXT;
 
       DSE: WriteLn (FileWrite, Sheet.DupeSheetEnable);
 
-      DVC: WriteLn (FileWrite, DVKControlKeyRecord);
-
       EES: WriteLn (FileWrite, EscapeExitsSearchAndPounce);
       EME: WriteLn (FileWrite, ExchangeMemoryEnable);
       FWE: WriteLn (FileWrite, ActiveKeyer.GetFarnsworthEnable);
@@ -1530,7 +1526,6 @@ VAR TempString: Str40;
 
       DSE: IF Sheet.DupeSheetEnable THEN TempString := 'TRUE';
 
-      DVC: IF DVKControlKeyRecord THEN TempString := 'TRUE';
       EES: IF EscapeExitsSearchAndPounce THEN TempString := 'TRUE';
       EME: IF ExchangeMemoryEnable THEN TempString := 'TRUE';
       FWE: IF ActiveKeyer.GetFarnsworthEnable THEN TempString := 'TRUE';

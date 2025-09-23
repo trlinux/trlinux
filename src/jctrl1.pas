@@ -91,9 +91,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       DMF,
                       DCS,
                       DSE,
-                      DVC,
-                      DVK,
-                      DVE,
                       EES,
                       EME,
                       FWE,
@@ -334,8 +331,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       DMF: Description := 'DOMESTIC FILENAME';
       DCS: Description := 'DUPE CHECK SOUND';
       DSE: Description := 'DUPE SHEET ENABLE';
-      DVK: Description := 'DVK PORT';
-      DVC: Description := 'DVK CONTROL KEY RECORD';
 
       EES: Description := 'ESCAPE EXITS SEARCH AND POUNCE';
       EME: Description := 'EXCHANGE MEMORY ENABLE';
@@ -615,21 +610,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
                END;
 
       DSE: Write (Sheet.DupeSheetEnable);
-      DVC: begin
-         if DVKControlKeyRecord then
-            write('ENABLED')
-         else
-            write('DISABLED');
-      end;
-      DVK: begin
-         if ActiveDVKPort = nil then
-            if DVKRadioEnable then
-               write ('Radio DVK')
-            else
-               write('No Port')
-         else
-            write(ActiveDVKPort.devname);
-      end;
 
       EES: Write (EscapeExitsSearchAndPounce);
       EME: Write (ExchangeMemoryEnable);
@@ -1189,19 +1169,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Calls will be added to dupesheet')
            ELSE
                Write ('Calls will not be added to dupesheet');
-
-      DVC: IF DVKControlKeyRecord THEN
-               Write ('Control keys trigger recording on DVK')
-           ELSE
-               Write ('Control keys act normally');
-
-      DVK: IF ActiveDVKPort = nil THEN
-               IF DVKRadioEnable then
-                  Write('Radio DVK Enabled')
-               else
-                  Write ('No DVK port selected')
-           ELSE
-               Write ('DVK enabled on the port shown');
 
       EES: IF EscapeExitsSearchAndPounce THEN
                Write ('ESCAPE key will exit S&P mode')

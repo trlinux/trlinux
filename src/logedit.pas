@@ -813,6 +813,8 @@ FUNCTION EditableLog.CallIsADupe (Call: CallString; Band: BandType; Mode: ModeTy
     BEGIN
     CallIsADupe := False;
 
+    IF NOT Sheet.DupesheetEnable THEN Exit;
+
     IF (ActiveDomesticMult = GridSquares) AND RoverCall (Call) THEN
         Exit;
 

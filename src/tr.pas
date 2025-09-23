@@ -62,6 +62,18 @@ TODO List after 2023 WPX CW:
  - If you are in 2BSIQ and only one radio is turned on - you can't use the
    RETURN key or lots of keys.
 
+29-Aug-2025
+ - Added SCRY contest and RSTAndYearExchange (RST AND YEAR) exchange type.  It
+   doesn't do mults or QSO points right - but allows you to log four digit years.
+   Still need to do Cabrillo output.
+
+23-Aug-2025
+ - When working something like the Ohio QSO party - when you work a station
+   that has moved counties - when you log them - it shows zero QSO points
+   AND does not process the multiplier.  There should be a way to fix this.
+   After thinking about this a few minutes - I changed the DupesheetEnable
+   boolean to also make sure IsADupe always returns false.
+
 22-Aug-2025
  - Cleaned up Ohio QSO Party.
 
@@ -74,7 +86,6 @@ TODO List after 2023 WPX CW:
 
 15-Jun-2025
  - Fixed beam headings not showing up as expected for grids in 2BSIQ
-
  - Fixed wrong default RSTs when using 2BSIQ and mixed mode.
 
 14-Jun-2025
@@ -542,7 +553,11 @@ Release 0.60 - June 20, 2024 > 16-Jul-2024
     first computer.
 
 08-Jan-2024
- - Some minor fixes to using RTTY in 2BSIQ mode.
+ - Some minor fixes to using RTTY in 2BSIQ mode.  Note that you will need to program
+   your S&P F1 message and F2 manually (not usint Alt-P O).  Also - same for the CQ
+   EXCHANGE which will end up being the same as your S&P exchange.  For 2BSIQ, you
+   will need to program each radio (EX DIGITAL MEMORY RADIO1).
+
  - Added MST contest.
 
 24-Dec-2023

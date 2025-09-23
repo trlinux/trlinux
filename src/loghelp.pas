@@ -25,7 +25,7 @@ UNIT LogHelp;
 
 INTERFACE
 
-USES Country9, LogSCP, LogK1EA, DOS, trCrt, SlowTree, Tree, LogGrid, LogWind;
+USES ctypes, Country9, LogSCP, LogK1EA, DOS, trCrt, SlowTree, Tree, LogGrid, LogWind;
 
 CONST
     QTCFileName = 'QTC.DAT';
@@ -36,9 +36,41 @@ TYPE
 
     TabModeType = (NormalTabMode, ControlFTabMode);
 
+    KeyboardFileRecord = RECORD
+        FileID: CINT;
+        FileName: STRING;
+        END;
+
+    KeyStatusRecord = RECORD
+        KeyPressedCode: LONGINT;   { Remembered KB_Code }
+        KeyChar: CHAR;             { Character for ReadKey }
+        ExtendedKey: BOOLEAN;      { Indicates that the character is from an extended key }
+        KeyPressed: BOOLEAN;       { Indicates that we have a key ready to share }
+
+        ExtendedKeyNullSent: BOOLEAN;  { Indicates if the null return for an extended key has been sent }
+
+        { These remember which keys have been pressed and not yet released }
+
+        LeftShiftKeyPressed:    BOOLEAN;
+        RightShiftKeyPressed:   BOOLEAN;
+        LeftAltKeyPressed:      BOOLEAN;
+        RightAltKeyPressed:     BOOLEAN;
+        LeftControlKeyPressed:  BOOLEAN;
+        RightControlKeyPressed: BOOLEAN;
+        END;
+
+    FileRecord = RECORD  { This is the data record that we read off of the keyboard "files"  }
+        Sec:  QWORD;
+        USec: QWORD;
+        KB_Type: WORD;
+        KB_Code: WORD;
+        KB_Value: LONGINT;
+        END;
 
 VAR
     ConfirmEditChanges: BOOLEAN;
+    R1KeyboardID: CINT;
+    R2KeyboardID: CINT;
     TabMode:            TabModeType;
     UserNameString:     Str40;
     VideoGameLength:    INTEGER;
@@ -59,7 +91,7 @@ VAR
     PROCEDURE HexDump;
     PROCEDURE HexConvert;
     PROCEDURE Inductance;
-
+    PROCEDURE KeyBoardTest;
     PROCEDURE LoadQTCDataFile;
     PROCEDURE LoopBackTest;
     PROCEDURE PacketMess;
@@ -3331,7 +3363,7 @@ PROCEDURE StartUpHelp;
     WriteLn ('Legal commands include the following (see manual for details) : ');
     WriteLn;
     WriteLn ('B64Decode BandMap Coax Debug Distance FindFile FootSwitchDebug');
-    WriteLn ('Grid Help HexConvert HexDump IOPort HP KeyerDebug LC LoopBack NAFILEPRINT');
+    WriteLn ('Grid Help HexConvert HexDump IOPort HP KeyboardTest, LC LoopBack');
     WriteLn ('NetDebug New NoStdCfg Packet PacketFile PacketInputFile PacketSimulate');
     WriteLn ('PassThrough Port RadioDebug Read Sun TalkDebug Trace UDPSend UDPRx');
     WriteLn ('UnixTime UUDecode ViewRadioDebug');
@@ -3574,6 +3606,803 @@ VAR Port: LONGINT;
         IF KeyPressed THEN
             IF ReadKey = EscapeKey THEN Halt;
     UNTIL False;
+    END;
+
+
+
+{ This is a copy of what is in 2BSIQSUBS }
+
+FUNCTION ControlAltOrShiftKeyAction (KeyboardRecord: FileRecord; VAR KeyStatus: KeyStatusRecord): BOOLEAN;
+
+{ Will look to see if the keyboard record indicates if a control, alt or shift key has been pressed
+  or unpressed and update the flags in the KeyStatus record.  Returns TRUE if a key was processed }
+
+    BEGIN
+    ControlAltOrShiftKeyAction := True;  { Default if we exit }
+
+    { KB_Value = 2 seems to be if the key is repeating when held down for a long time }
+
+    WITH KeyboardRecord DO
+      CASE KB_Code OF
+        29: BEGIN   { LeftControlKey }
+            KeyStatus.LeftControlKeyPressed := (KB_Value = 1) OR (KB_Value = 2);
+            Exit;
+            END;
+
+        42: BEGIN  { LeftShiftKey }
+            KeyStatus.LeftShiftKeyPressed := (KB_Value = 1) OR (KB_Value = 2);
+            Exit;
+            END;
+
+        54: BEGIN  { RightShiftKey }
+            KeyStatus.RightShiftKeyPressed := (KB_Value = 1) OR (KB_Value = 2);
+            Exit;
+            END;
+
+        56: BEGIN  { LeftAltKey }
+            KeyStatus.LeftAltKeyPressed := (KB_Value = 1) OR (KB_Value = 2);
+            Exit;
+            END;
+
+        97: BEGIN  { RightControlKey }
+            KeyStatus.RightControlKeyPressed := (KB_Value = 1) OR (KB_Value = 2);
+            Exit;
+            END;
+
+       100: BEGIN  { RightAltKey }
+            KeyStatus.RightAltKeyPressed := (KB_Value = 1) OR (KB_Value = 2);
+            Exit;
+            END;
+
+        END;  { of case }
+
+    ControlAltOrShiftKeyAction := False;
+    END;
+
+
+
+PROCEDURE ProcessKeyboardRecord (KeyboardRecord: FileRecord; VAR KeyStatus: KeyStatusRecord);
+
+{ Looks at the data in KB_Type, KB_Code and KB_Value and updates the values in the KeyStatus
+  record as appropriate.  If we have something to report back with ReadKey - it will set the
+  KeyPressed value to TRUE.  If is assumed KeyPressed is FALSE or we wouldn't be here }
+
+VAR ControlKey, AltKey, ShiftKey: BOOLEAN;
+
+    BEGIN
+    { We only look at the record if the KB_Type = 1 }
+
+    IF KeyboardRecord.KB_Type <> 1 THEN Exit;
+
+    { See if this record is indicating the change of state of an Alt/Shift/Control key }
+
+    IF ControlAltOrShiftKeyAction (KeyboardRecord, KeyStatus) THEN Exit; { Nothing to report }
+
+    { If this is indicating that a key has been released - we really don't care }
+
+    IF KeyboardRecord.KB_Value = 0 THEN Exit;
+
+    { Nice to clear these out so they don't accumulate }
+
+    WHILE KeyPressed DO ReadKey;
+
+    { Most likely values that we will be returnning with }
+
+    KeyStatus.KeyPressedCode := KeyboardRecord.KB_Code;
+    KeyStatus.KeyChar := Chr (0);
+    KeyStatus.ExtendedKey := False;
+    KeyStatus.KeyPressed := True;
+
+    ControlKey := KeyStatus.LeftControlKeyPressed OR KeyStatus.RightControlKeyPressed;
+    AltKey     := KeyStatus.LeftAltKeyPressed OR KeyStatus.RightAltKeyPressed;
+    ShiftKey   := KeyStatus.LeftShiftKeyPressed OR KeyStatus.RightShiftKeyPressed;
+
+    CASE KeyboardRecord.KB_Code OF
+         1: KeyStatus.KeyChar := EscapeKey;     { Escape key }
+
+         2: BEGIN
+            KeyStatus.KeyChar := '1';
+            IF ShiftKey THEN KeyStatus.KeyChar := '!';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt1; KeyStatus.ExtendedKey := True; END;
+            END;
+
+         3: BEGIN
+            KeyStatus.KeyChar := '2';
+            IF ShiftKey THEN KeyStatus.KeyChar := '@';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt2; KeyStatus.ExtendedKey := True; END;
+            END;
+
+         4: BEGIN
+            KeyStatus.KeyChar := '3';
+            IF ShiftKey THEN KeyStatus.KeyChar := '#';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt3; KeyStatus.ExtendedKey := True; END;
+            END;
+
+         5: BEGIN
+            KeyStatus.KeyChar := '4';
+            IF ShiftKey THEN KeyStatus.KeyChar := '$';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt4; KeyStatus.ExtendedKey := True; END;
+            END;
+
+         6: BEGIN
+            KeyStatus.KeyChar := '5';
+            IF ShiftKey THEN KeyStatus.KeyChar := '%';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt5; KeyStatus.ExtendedKey := True; END;
+            END;
+
+         7: BEGIN
+            KeyStatus.KeyChar := '6';
+            IF ShiftKey THEN KeyStatus.KeyChar := '^';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt6; KeyStatus.ExtendedKey := True; END;
+            END;
+
+         8: BEGIN
+            KeyStatus.KeyChar := '7';
+            IF ShiftKey THEN KeyStatus.KeyChar := '&';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt7; KeyStatus.ExtendedKey := True; END;
+            END;
+
+         9: BEGIN
+            KeyStatus.KeyChar := '8';
+            IF ShiftKey THEN KeyStatus.KeyChar := '*';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt8; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        10: BEGIN
+            KeyStatus.KeyChar := '9';
+            IF ShiftKey THEN KeyStatus.KeyChar := '(';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt9; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        11: BEGIN
+            KeyStatus.KeyChar := '0';
+            IF ShiftKey THEN KeyStatus.KeyChar := ')';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := Alt0; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        12: BEGIN
+            KeyStatus.KeyChar := '-';
+            IF ShiftKey THEN KeyStatus.KeyChar := '_';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlDash;  { Not extended }
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltDash; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        13: BEGIN
+            KeyStatus.KeyChar := '=';
+            IF ShiftKey THEN KeyStatus.KeyChar := '+';
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltEqual; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        14: KeyStatus.KeyChar := Backspace;     { Backspace }
+
+        15: IF ShiftKey THEN                    { Tab }
+                KeyStatus.KeyChar := ShiftTab
+            ELSE
+                KeyStatus.KeyChar := TabKey;
+
+        16: BEGIN
+            KeyStatus.KeyChar := 'q';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'Q';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlQ;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltQ; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        17: BEGIN
+            KeyStatus.KeyChar := 'w';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'W';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlW;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltW; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        18: BEGIN
+            KeyStatus.KeyChar := 'e';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'E';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlE;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltE; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        19: BEGIN
+            KeyStatus.KeyChar := 'r';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'R';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlR;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltR; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        20: BEGIN
+            KeyStatus.KeyChar := 't';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'T';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlT;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltT; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        21: BEGIN
+            KeyStatus.KeyChar := 'y';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'Y';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlY;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltY; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        22: BEGIN
+            KeyStatus.KeyChar := 'u';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'U';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlU;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltU; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        23: BEGIN
+            KeyStatus.KeyChar := 'i';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'I';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlI;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltI; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        24: BEGIN
+            KeyStatus.KeyChar := 'o';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'O';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlO;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltO; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        25: BEGIN
+            KeyStatus.KeyChar := 'p';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'P';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlP;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltP; KeyStatus.ExtendedKey := True; END;
+            END;
+
+
+        26: BEGIN
+            KeyStatus.KeyChar := '[';
+            IF ShiftKey THEN KeyStatus.KeyChar := '{';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlLeftBracket;
+            END;
+
+        27: BEGIN
+            KeyStatus.KeyChar := ']';
+            IF ShiftKey THEN KeyStatus.KeyChar := '}';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlRightBracket;
+            END;
+
+        28: BEGIN                               { Carriage Return }
+            KeyStatus.KeyChar := CarriageReturn;
+            IF ControlKey THEN KeyStatus.ExtendedKey := True;  { Control-Enter }
+
+            { AltEnter does weird stuff with the window - likely I never see it }
+
+            IF AltKey THEN KeyStatus.ExtendedKey := True;   { Treat the same as control-enter }
+            END;
+
+        { 29: We don't need the left control key - it does not generate a response }
+
+        30: BEGIN
+            KeyStatus.KeyChar := 'a';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'A';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlA;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltA; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        31: BEGIN
+            KeyStatus.KeyChar := 's';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'S';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlS;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltS; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        32: BEGIN
+            KeyStatus.KeyChar := 'd';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'D';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlD;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltD; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        33: BEGIN
+            KeyStatus.KeyChar := 'f';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'F';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltF; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        34: BEGIN
+            KeyStatus.KeyChar := 'g';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'G';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlG;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltG; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        35: BEGIN
+            KeyStatus.KeyChar := 'h';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'H';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlH;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltH; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        36: BEGIN
+            KeyStatus.KeyChar := 'j';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'J';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlJ;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltJ; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        37: BEGIN
+            KeyStatus.KeyChar := 'k';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'K';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlK;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltK; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        38: BEGIN
+            KeyStatus.KeyChar := 'l';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'L';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlL;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltL; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        39: IF ShiftKey THEN                    { ; key }
+                KeyStatus.KeyChar := ':'
+            ELSE
+                KeyStatus.KeyChar := ';';
+
+        40: IF ShiftKey THEN                    { ' key }
+                KeyStatus.KeyChar := '"'
+            ELSE
+                KeyStatus.KeyChar := '''';
+
+        41: IF ShiftKey THEN                    { ` key }
+                KeyStatus.KeyChar := '~'
+            ELSE
+                KeyStatus.KeyChar := '`';
+
+        43: BEGIN
+            KeyStatus.KeyChar := '\';
+            IF ShiftKey THEN KeyStatus.KeyChar := '|';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlBackSlash;
+            END;
+
+        44: BEGIN
+            KeyStatus.KeyChar := 'z';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'Z';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlZ;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltZ; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        45: BEGIN
+            KeyStatus.KeyChar := 'x';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'X';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlX;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltX; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        46: BEGIN
+            KeyStatus.KeyChar := 'c';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'C';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlC;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltC; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        47: BEGIN
+            KeyStatus.KeyChar := 'v';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'V';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlV;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltV; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        48: BEGIN
+            KeyStatus.KeyChar := 'b';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'B';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlB;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltB; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        49: BEGIN
+            KeyStatus.KeyChar := 'n';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'N';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlN;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltN; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        50: BEGIN
+            KeyStatus.KeyChar := 'm';
+            IF ShiftKey THEN KeyStatus.KeyChar := 'M';
+            IF ControlKey THEN KeyStatus.KeyChar := ControlM;
+            IF AltKey THEN BEGIN KeyStatus.KeyChar := AltM; KeyStatus.ExtendedKey := True; END;
+            END;
+
+        51: BEGIN
+            KeyStatus.KeyChar := ',';
+            IF ShiftKey THEN KeyStatus.KeyChar := '<';
+            END;
+
+        52: BEGIN
+            KeyStatus.KeyChar := '.';
+            IF ShiftKey THEN KeyStatus.KeyChar := '>';
+            END;
+
+        53: BEGIN                               { F1 }
+            KeyStatus.KeyChar := '/';
+            IF ShiftKey THEN KeyStatus.KeyChar := '?';
+            END;
+
+        { 54: TBSIQ_ReadKey := TBSIQ_RightShiftKey; }
+        { 55: TBSIQ_ReadKey := TBSIQ_NumPadStar; }
+        { 56: TBSIQ_ReadKey := TBSIQ_LeftAltKey; }
+
+        57: BEGIN
+            KeyStatus.KeyChar := ' ';
+            END;
+
+        59: BEGIN                               { F1 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F1;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF1;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF1;
+            IF AltKey THEN KeyStatus.KeyChar := AltF1;
+            END;
+
+        60: BEGIN                               { F2 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F2;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF2;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF2;
+            IF AltKey THEN KeyStatus.KeyChar := AltF2;
+            END;
+
+        61: BEGIN                               { F3 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F3;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF3;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF3;
+            IF AltKey THEN KeyStatus.KeyChar := AltF3;
+            END;
+
+        62: BEGIN                               { F4 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F4;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF4;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF4;
+            IF AltKey THEN KeyStatus.KeyChar := AltF4;
+            END;
+
+        63: BEGIN                               { F5 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F5;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF5;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF5;
+            IF AltKey THEN KeyStatus.KeyChar := AltF5;
+            END;
+
+        64: BEGIN                               { F6 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F6;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF6;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF6;
+            IF AltKey THEN KeyStatus.KeyChar := AltF6;
+            END;
+
+        65: BEGIN                               { F7 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F7;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF7;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF7;
+            IF AltKey THEN KeyStatus.KeyChar := AltF7;
+            END;
+
+        66: BEGIN                               { F8 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F8;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF8;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF8;
+            IF AltKey THEN KeyStatus.KeyChar := AltF8;
+            END;
+
+        67: BEGIN                               { F9 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F9;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF9;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF9;
+            IF AltKey THEN KeyStatus.KeyChar := AltF9;
+            END;
+
+        68: BEGIN                               { F10 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F10;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF10;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF10;
+            IF AltKey THEN KeyStatus.KeyChar := AltF10;
+            END;
+
+        { 69: TBSIQ_ReadKey := TBSIQ_NumLock; }
+        { 71: TBSIQ_ReadKey := TBSIQ_NumPad7; }
+        { 72: TBSIQ_ReadKey := TBSIQ_NumPad8; }
+        { 73: TBSIQ_ReadKey := TBSIQ_NumPad9; }
+        { 74: TBSIQ_ReadKey := TBSIQ_NumPadDash; }
+        { 75: TBSIQ_ReadKey := TBSIQ_NumPad4; }
+        { 76: TBSIQ_ReadKey := TBSIQ_NumPad5; }
+        { 77: TBSIQ_ReadKey := TBSIQ_NumPad6; }
+        { 78: TBSIQ_ReadKey := TBSIQ_NumPadPlus; }
+        { 79: TBSIQ_ReadKey := TBSIQ_NumPad1; }
+
+        { 80: TBSIQ_ReadKey := TBSIQ_NumPad2; }
+        { 81: TBSIQ_ReadKey := TBSIQ_NumPad3; }
+        { 82: TBSIQ_ReadKey := TBSIQ_NumPad0; }
+        { 83: TBSIQ_ReadKey := TBSIQ_NumPadPeriod; }
+
+        87: BEGIN                               { F11 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F11;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF11;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF11;
+            IF AltKey THEN KeyStatus.KeyChar := AltF11;
+            END;
+
+        88: BEGIN                               { F12 }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := F12;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlF12;
+            IF ShiftKey THEN KeyStatus.KeyChar := ShiftF12;
+            IF AltKey THEN KeyStatus.KeyChar := AltF12;
+            END;
+
+        { 96: TBSIQ_ReadKey := TBSIQ_NumPadEnter; }
+        { 97: TBSIQ_ReadKey := TBSIQ_RightControlKey; }
+        { 98: TBSIQ_ReadKey := TBSIQ_NumPadSlash; }
+       { 100: TBSIQ_ReadKey := TBSIQ_RightAltKey; }
+
+       102: BEGIN                              { Home key }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := HomeKey;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlHome;
+            END;
+
+       103: BEGIN                              { Up Arrow }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := UpArrow;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlUpArrow;
+            IF AltKey THEN KeyStatus.KeyChar := AltUpArrow;
+            END;
+
+       73, 104: BEGIN                               { Page Up }
+                KeyStatus.ExtendedKey := True;
+                KeyStatus.KeyChar := PageUpKey;
+                IF ControlKey THEN KeyStatus.KeyChar := ControlPageUp;
+                END;
+
+       105: BEGIN                               { Left arrow }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := LeftArrow;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlLeftArrow;
+            END;
+
+       106: BEGIN                               { Right arrow }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := RightArrow;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlRightArrow;
+            END;
+
+
+       107: BEGIN                               { End key }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := EndKey;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlEnd;
+            END;
+
+       108: BEGIN                               { Down Arrow }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := DownArrow;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlDownArrow;
+            IF AltKey THEN KeyStatus.KeyChar := AltDownArrow;
+            END;
+
+       81, 109: BEGIN                               { Page Down}
+                KeyStatus.ExtendedKey := True;
+                KeyStatus.KeyChar := PageDownKey;
+                IF ControlKey THEN KeyStatus.KeyChar := ControlPageDown;
+                END;
+
+       110: BEGIN                               { Insert }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := InsertKey;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlInsert;
+            IF AltKey THEN KeyStatus.KeyChar := AltInsert;
+            END;
+
+       111: BEGIN                               { Delete }
+            KeyStatus.ExtendedKey := True;
+            KeyStatus.KeyChar := DeleteKey;
+            IF ControlKey THEN KeyStatus.KeyChar := ControlDelete;
+            IF AltKey THEN KeyStatus.KeyChar := AltDelete;
+            END;
+
+        { These are for K5TR's apple keyboard }
+
+        183: BEGIN                               { Apple F13 }
+             KeyStatus.ExtendedKey := True;
+             KeyStatus.KeyChar := ControlF3;
+             END;
+
+        184: BEGIN                               { Apple F14 }
+             KeyStatus.ExtendedKey := True;
+             KeyStatus.KeyChar := ControlF4;
+             END;
+
+        185: BEGIN                               { Apple F15 }
+             KeyStatus.ExtendedKey := True;
+             KeyStatus.KeyChar := ControlF5;
+             END;
+
+        END;  { of case }
+    END;
+
+
+
+PROCEDURE KeyBoardTest;
+
+{ Intended to be used to debug using two keyboards for TBSIQ }
+
+VAR FileInfo: SearchRec;
+    FirstKeyboardAddress, TimeOut, Address, NumberFiles: INTEGER;
+    KBData: ARRAY [0..10] OF KeyboardFileRecord;
+    KeyboardDataRecord: FileRecord;
+    Keyboard1Found, Keyboard2Found: BOOLEAN;
+    KeyStatus: KeyStatusRecord;
+    FDS: Tfdset;
+    Radio1KeyStatus: KeyStatusRecord;
+    Radio2KeyStatus: KeyStatusRecord;
+
+    BEGIN
+    ClearScreenAndTitle ('KEYBOARD TEST');
+    WriteLn ('This procedure will perform the same process to initilize two keyboards that');
+    WritELn ('is used for 2BSIQ operation.  It will hopefully give more information about');
+    WriteLn ('is being done to enable debugging.');
+    WriteLn;
+
+    IF NOT OkayToProceed THEN Exit;
+
+    WriteLn ('Examining the directory /dev/input/by-path/ for keyboard entries.');
+
+    NumberFiles := 0;
+    FirstKeyboardAddress := -1;
+
+    FindFirst ('/dev/input/by-path/*-kbd', Archive, FileInfo);
+
+    WHILE DosError = 0 DO
+        BEGIN
+        WITH KBData [Numberfiles] DO
+            BEGIN
+            FileName := Fileinfo.Name;
+            FileID := 0;
+            Inc (NumberFiles);
+            END;
+
+        FindNext (FileInfo);
+        END;
+
+    WriteLn ('There were ', NumberFiles, ' keyboard entries found.');
+
+    IF NumberFiles < 2 THEN
+        BEGIN
+        WriteLn ('Unable to find at least two keyboards');
+        Exit;
+        END;
+
+    WriteLn ('Attempting to open the keyboard entries');
+
+    FOR Address := 0 TO NumberFiles - 1 DO
+        WITH KBData [Address] DO
+            FileID := FpOpen ('/dev/input/by-path/' + FileName, O_RdOnly);
+
+    Keyboard1Found := False;
+    Keyboard2Found := False;
+
+    WriteLn ('Press a key on the Radio 1 keyboard');
+
+    TimeOut := 0;
+
+    REPEAT
+        FOR Address := 0 TO NumberFiles - 1 DO
+            WITH KBData [Address] DO
+                BEGIN
+                WITH KeyStatus DO
+                    BEGIN
+                    KeyPressedCode := 0;
+                    KeyPressed             := FALSE;
+                    ExtendedKey            := FALSE;
+                    ExtendedKeyNullSent    := FALSE;
+                    LeftShiftKeyPressed    := FALSE;
+                    RightShiftKeyPressed   := FALSE;
+                    LeftAltKeyPressed      := FALSE;
+                    RightAltKeyPressed     := FALSE;
+                    LeftControlKeyPressed  := FALSE;
+                    RightControlKeyPressed := FALSE;
+                    END;
+
+                fpfd_set (FileID, FDS);
+                fpSelect (FileID + 1, @FDS, nil, nil, 0);
+
+                IF fpfd_ISSET (FileID, FDS) > 0 THEN
+                    BEGIN
+                    FPRead (FileID, KeyboardDataRecord, SizeOf (KeyboardDataRecord));
+
+                    ProcessKeyboardRecord (KeyboardDataRecord, Radio1KeyStatus);
+
+                    IF Radio1KeyStatus.KeyPressed THEN
+                        BEGIN
+                        FirstKeyboardAddress := Address;
+                        R1KeyboardID := FileID;
+                        Keyboard1Found := True;
+                        FileID := 0;
+                        Break;
+                        END;
+                    END;
+                END;
+
+        MilliSleep;
+        Inc (TimeOut);
+    UNTIL Keyboard1Found OR (TimeOut > 10000);
+
+    IF TimeOut > 10000 THEN
+        BEGIN
+        WriteLn ('TIMEOUT!!  No keystrokes found after 10 seconds!');
+        Halt;
+        END;
+
+    WriteLn ('First keyboard detected!  Now, press a key on the 2nd keyboard...');
+
+    TimeOut := 0;
+
+    REPEAT
+        FOR Address := 0 TO NumberFiles - 1 DO
+            IF Address <> FirstKeyboardAddress THEN { skip over first keyboard }
+                WITH KBData [Address] DO
+                    IF FileID > 0 THEN
+                        BEGIN
+                        WITH KeyStatus DO
+                            BEGIN
+                            KeyPressedCode := 0;
+                            KeyPressed             := FALSE;
+                            ExtendedKey            := FALSE;
+                            ExtendedKeyNullSent    := FALSE;
+                            LeftShiftKeyPressed    := FALSE;
+                            RightShiftKeyPressed   := FALSE;
+                            LeftAltKeyPressed      := FALSE;
+                            RightAltKeyPressed     := FALSE;
+                            LeftControlKeyPressed  := FALSE;
+                            RightControlKeyPressed := FALSE;
+                            END;
+
+                        fpfd_zero (FDS);
+                        fpfd_set (FileID, FDS);
+                        fpSelect (FileID + 1, @FDS, nil, nil, 0);
+
+                        IF fpfd_ISSET (FileID, FDS) > 0 THEN
+                            BEGIN
+                            FPRead (FileID, KeyboardDataRecord, SizeOf (KeyboardDataRecord));
+
+                            ProcessKeyboardRecord (KeyboardDataRecord, KeyStatus);
+
+                            IF KeyStatus.KeyPressed THEN
+                                BEGIN
+                                R2KeyboardID := FileID;
+                                Keyboard2Found := True;
+                                FileID := 0;
+                                Break;
+                                END;
+                            END;
+                        END;
+
+        MilliSleep;
+        Inc (TimeOut);
+    UNTIL Keyboard2Found OR (TimeOut > 10000);
+
+    IF TimeOut > 10000 THEN
+        BEGIN
+        WriteLn ('TIMEOUT!!  Second keyboard not detected.');
+        Halt;
+        END;
+
+    WriteLn ('Second keyboard successfully detected');
+
+    WHILE KeyPressed DO ReadKey;
+    ReadKey;
     END;
 
 

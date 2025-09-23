@@ -828,6 +828,12 @@ VAR ParameterCount: INTEGER;
             Halt;
             END;
 
+        IF UpperCase (ParamStr (ParameterCount)) = 'KEYBOARDTEST' THEN
+            BEGIN
+            KeyBoardTest;
+            Halt;
+            END;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'LC' THEN
             BEGIN
             Inductance;

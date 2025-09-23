@@ -191,6 +191,7 @@ TYPE
         RandomChars:   BOOLEAN;
         RST:           BOOLEAN;
         TenTenNum:     BOOLEAN;
+        Year:          BOOLEAN;
         Zone:          BOOLEAN;
         ZoneOrSociety: BOOLEAN;
         END;
@@ -247,6 +248,7 @@ TYPE
           TenTenNum:       LONGINT;
           Time:            INTEGER;                   { INTEGER time }
           TimeSeconds:     INTEGER;                   { Use with Time to get more resolution }
+          Year:            Str20;                     { Four digit year in SCRY }
           Zone:            ZoneMultiplierString;
           ZoneMult:        BOOLEAN;
           END;
@@ -854,6 +856,7 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     Exchange.TenTenNum       := -1;
     Exchange.Time            := -1;
     Exchange.TimeSeconds     := -1;
+    Exchange.Year            := '';
     Exchange.Zone            := '';
     Exchange.ZoneMult        := False;
     END;
@@ -2720,6 +2723,12 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
             ExchangeInformation.Zone := True;
             END;
 
+        RSTAndYearExchange:
+            BEGIN
+            ExchangeInformation.RST := True;
+            ExchangeInformation.Year := True;
+            END;
+
         RSTQTHExchange,
         RSTDomesticOrDXQTHExchange:
             BEGIN
@@ -2887,6 +2896,14 @@ VAR ExchangeString: STRING;
                 RXData.RSTReceived := RemoveFirstString (ExchangeString);
         END;
 
+    { For SCRY test }
+
+    IF ActiveExchange = RSTAndYearExchange THEN
+        BEGIN
+        RXData.Year := RemoveFirstString (ExchangeString);
+        Exit;
+        END;
+
     IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN {KK1L: 6.70 for FISTS funny exchange}
         BEGIN
         RXData.QTHString := RemoveFirstString(ExchangeString);
@@ -3040,6 +3057,14 @@ VAR QString, TString, TempString: Str40;
                 TempString := Name + ' ' + QTHString;
 
             GetInitialExchangeStringFromContestExchange := TempString;
+            Exit;
+            END;
+
+        { For SCRY test }
+
+        IF ActiveExchange = RSTAndYearExchange THEN
+            BEGIN
+            GetInitialExchangeStringFromContestExchange := Year;
             Exit;
             END;
 
