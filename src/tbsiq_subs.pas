@@ -7481,7 +7481,9 @@ VAR FileInfo: SearchRec;
             BEGIN
             FileName := Fileinfo.Name;
             FileID := 0;
-            Inc (NumberFiles);
+
+            IF NOT StringHas (FileName, 'usbv2') THEN
+                Inc (NumberFiles);
             END;
 
         FindNext (FileInfo);
