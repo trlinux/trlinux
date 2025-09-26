@@ -4105,7 +4105,9 @@ VAR FirstString, SecondString, ThirdString: Str20;
 
     IF Length (RXData.Zone) = 1 THEN RXData.Zone := '0' + RXData.Zone;
 
-    IF RXData.QTHString <> '' THEN
+    { +++ Maybe require FoundDomesticQTH if a domestic call? }
+
+    IF (RXData.QTHString <> '') OR DomesticCountryCall (RXData.Callsign)  THEN
         ProcessRSTZoneAndPossibleDomesticQTHExchange := FoundDomesticQTH (RXData)
     ELSE
         ProcessRSTZoneAndPossibleDomesticQTHExchange := True;

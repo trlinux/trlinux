@@ -65,6 +65,7 @@ TODO List after 2023 WPX CW:
 26-Sep-2025
  - Eliminated short TX when swapping radios in RTTY
  - Improved two keyboard initialization when using "usbv2" keyboards (USB3)
+ - Required domestic entry to log QSO in CQ WW RTTY for domestic calls
 
 29-Aug-2025
  - Added SCRY contest and RSTAndYearExchange (RST AND YEAR) exchange type.  It
