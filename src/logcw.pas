@@ -2558,18 +2558,29 @@ PROCEDURE UnInitializeKeyer;
 
 PROCEDURE SetUpToSendOnActiveRadio;
 
+VAR Count: INTEGER;
+
     BEGIN
     IF ActiveRadio = RadioOne THEN
         BEGIN
         IF NOT SendingOnRadioOne THEN
             BEGIN
-            FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
+            IF ActiveMode = CW THEN
+                FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
+
+            { Maybe eliminate false trigger of RTTY? }
+
             ActiveKeyer.SetActiveRadio (RadioOne);
             CodeSpeed := SpeedMemory[RadioOne]; {KK1L: 6.73}
             SetSpeed (CodeSpeed);
             SendingOnRadioOne := True;
             SendingOnRadioTwo := False;
-            SetRelayForActiveRadio (ActiveRadio);
+
+            { This is triggering a short TX in RTTY.  I don't think we use this
+              if we are using the Arduino keyer }
+
+            IF ActiveKeyer <> ArdKeyer THEN
+                SetRelayForActiveRadio (ActiveRadio);
             END;
         END
 
@@ -2577,14 +2588,17 @@ PROCEDURE SetUpToSendOnActiveRadio;
 
         IF NOT SendingOnRadioTwo THEN
             BEGIN
-            FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
+            IF ActiveMode = CW THEN
+                FlushCWBufferAndClearPTT;      { Clear CW sent on Inactive Radio}
 
             ActiveKeyer.SetActiveRadio(RadioTwo);
             CodeSpeed := SpeedMemory[RadioTwo]; {KK1L: 6.73}
             SetSpeed (CodeSpeed);
             SendingOnRadioOne := False;
             SendingOnRadioTwo := True;
-            SetRelayForActiveRadio (ActiveRadio);
+
+            IF ActiveKeyer <> ArdKeyer THEN
+                SetRelayForActiveRadio (ActiveRadio);
             END;
 
     KeyersSwapped := False;

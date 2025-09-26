@@ -62,6 +62,10 @@ TODO List after 2023 WPX CW:
  - If you are in 2BSIQ and only one radio is turned on - you can't use the
    RETURN key or lots of keys.
 
+26-Sep-2025
+ - Eliminated short TX when swapping radios in RTTY
+ - Improved two keyboard initialization when using "usbv2" keyboards (USB3)
+
 29-Aug-2025
  - Added SCRY contest and RSTAndYearExchange (RST AND YEAR) exchange type.  It
    doesn't do mults or QSO points right - but allows you to log four digit years.
