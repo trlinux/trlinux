@@ -299,8 +299,11 @@ PROCEDURE ArduinoKeyer.SendRelayStatusToSO2RMini;
 { Uses the SO2R_State flags to set the relays to the proper state }
 
 VAR Cmd: BYTE;
+    TempString: Str20;
 
     BEGIN
+    TempString := '???';
+
     IF KeyerInitialized THEN
         BEGIN
         Cmd := 0;  { default value }
@@ -308,28 +311,45 @@ VAR Cmd: BYTE;
         { Bit zero of the command is relay 1 - OFF = rig 1  ON = rig 2 }
 
         IF (SO2R_State.RX2 = 1) THEN
+            BEGIN
             Cmd := $01;
+            TempString := 'Relay1On (Rig2)';
+            END
+        ELSE
+            BEGIN
+            TempString := 'Relay1Off (Rig1)';
+            END;
 
         { Bit one is for relay 2 - which if relay 1 is also on will do stereo }
 
         IF (SO2R_State.Stereo = 1) THEN
+            BEGIN
             Cmd := $03;
+            TempString := 'Relay1 and Relay2 On (Stereo)';
+            END;
 
         { Microphone relay }
 
         IF (SO2R_Config.Relays = 1) THEN
             IF (SO2R_State.TX2 = 1) THEN
+                BEGIN
                 Cmd := Cmd OR $04;  { Set bit }
+                TempString := TempString + ' Mic Radio2';
+                END
+            ELSE
+                TempString := TempString + 'Mic Radio1';
 
         ArduinoKeyerPort.PutChar (Char ($02));  { SO2R relay command }
         ArduinoKeyerPort.PutChar (Char (Cmd));  { SO2R relay data }
         END;
 
-    AppendDebugFile ('SendRelayStatusToSO2RMini');
+    AppendDebugFile ('SendRelayStatusToSO2RMini = ' + TempString);
     END;
 
 
 PROCEDURE ArduinoKeyer.SetRcvFocus (RcvFocus: rcvfocus_t);
+
+VAR TempString: Str20;
 
 { Here we get to tell the SO2R mini which way to set the headphone relays
   K1 and K2 off  = Radio 1
@@ -337,27 +357,32 @@ PROCEDURE ArduinoKeyer.SetRcvFocus (RcvFocus: rcvfocus_t);
   K1 and K2 on   = STEREO    }
 
     BEGIN
+    TempString := '???';
+
     CASE RcvFocus OF
         RX1:
             BEGIN
             SO2R_State.Stereo := 0;
             SO2R_State.RX2    := 0;
+            TempString := 'RX1';
             END;
 
         RX2:
             BEGIN
             SO2R_State.Stereo := 0;
             SO2R_State.RX2    := 1;
+            TempString := 'RX2';
             END;
 
         Stereo:
             BEGIN
             SO2R_State.Stereo := 1;
+            TempString := 'Stereo';
             END;
 
         END;  { of case }
 
-     AppendDebugFile ('SetRcvFocus');
+     AppendDebugFile ('SetRcvFocus = ' + TempString);
      SendRelayStatusToSO2RMini;
      END;
 

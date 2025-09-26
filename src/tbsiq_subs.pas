@@ -7927,12 +7927,15 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
 
     IF Message <> '' THEN
         BEGIN
-        { This is what used to be here }
+        { This is what used to be here - this does get executed when sending a
+          serial message to the K4 to play a programmed memory }
 
-        IF (ActiveMode = Phone) OR (ActiveMode = Digital) THEN
+        IF (Mode = Phone) OR (Mode = Digital) THEN
             BEGIN
             ActiveRadio := Radio;
-            ActiveMode := Mode;   { We don't need this - mode never changes? }
+            ActiveMode := Mode;
+            SetUpToSendOnActiveRadio;
+            ShowTransmitStatus;
             TransmitCountDown := InitialTransmitCountdown;
             END;
         END;
@@ -7940,8 +7943,6 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     { This sends the message if you are on SSB or digital }
 
     Message := ExpandCrypticString (Message);
-
-    ShowCWMessage ('1: ' + Message);
 
     IF Mode = Phone THEN
         ShowCWMessage (Message);
