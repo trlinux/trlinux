@@ -2447,6 +2447,10 @@ VAR FileName, CommandString: Str40;
             END;
 
         IF CommandString = 'TOGGLECW'        THEN ToggleCW (False);
+
+        IF CommandString = 'TOGGLEHEADPHONESWITCHING' THEN
+            EnableHeadphoneSwitching := NOT EnableHeadphoneSwitching;
+
         IF CommandString = 'TOGGLEMODES'     THEN ToggleModes;
         IF CommandString = 'TOGGLESTEREOPIN' THEN ToggleStereoPin; {KK1L: 6.71}
         END;
@@ -4284,7 +4288,17 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                         END;
                     END
                 ELSE
-                    SendFunctionKeyMessage (F2, SearchAndPounceOpMode);
+                    { New - CQWWRTTY 2025 }
+
+                    IF ActiveMode = Digital THEN
+                        BEGIN
+                        CASE ActiveRadio OF
+                            RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                            RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                            END;
+                        END
+                    ELSE
+                        SendFunctionKeyMessage (F2, SearchAndPounceOpMode);
 
                 ExchangeHasBeenSent := True;
                 END;

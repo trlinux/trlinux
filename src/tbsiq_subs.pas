@@ -1178,6 +1178,10 @@ VAR FileName, CommandString: Str40;
         IF CommandString = 'EXCHANGERADIOS'  THEN TBSIQ_ExchangeRadios;
 
         IF CommandString = 'TOGGLECW'        THEN ToggleCW (False);
+
+        IF CommandString = 'TOGGLEHEADPHONESWITCHING' THEN
+            EnableHeadphoneSwitching := NOT EnableHeadphoneSwitching;
+
         IF CommandString = 'TOGGLEMODES'     THEN ToggleModes;
         IF CommandString = 'TOGGLESTEREOPIN' THEN ToggleStereoPin; {KK1L: 6.71}
         END;
@@ -7880,13 +7884,14 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                        BEGIN
                        Message := '\';
                        SearchAndPounceStationCalled := True;
-                       ENd
+                       END
                    ELSE
                        Message := GetExMemoryString (Radio, Mode, Key);
                    END;
 
                F2: CASE Mode OF
-                       CW:      BEGIN
+                       CW, Digital:
+                               BEGIN
                                 CASE Radio OF
                                     RadioOne: Message := SearchAndPounceExchangeR1;
                                     RadioTwo: Message := SearchAndPounceExchangeR2;
@@ -7905,10 +7910,10 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
                                     Message := GetExMemoryString (Radio, Phone, Key);
                                 END;
 
-                       Digital: BEGIN
+{                      Digital: BEGIN
                                 Message := GetExMemoryString (Radio, Digital, Key);
                                 SearchAndPounceExchangeSent := True;
-                                END;
+                                END; Removed in CQ WW RTTY 2025 }
 
                        END;  { of CASE Mode }
 

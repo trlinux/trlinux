@@ -4107,7 +4107,7 @@ VAR FirstString, SecondString, ThirdString: Str20;
 
     { +++ Maybe require FoundDomesticQTH if a domestic call? }
 
-    IF (RXData.QTHString <> '') OR DomesticCountryCall (RXData.Callsign)  THEN
+    IF DomesticCountryCall (RXData.Callsign)  THEN
         ProcessRSTZoneAndPossibleDomesticQTHExchange := FoundDomesticQTH (RXData)
     ELSE
         ProcessRSTZoneAndPossibleDomesticQTHExchange := True;

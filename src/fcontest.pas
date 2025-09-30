@@ -838,7 +838,7 @@ VAR TempQTH: QTHRecord;
         ActiveZoneMult := CQZones;
         ContestName := 'CQ WW RTTY CONTEST';
         DigitalModeEnable := True;
-        DomesticQTHDataFileName := 'S48P13.DOM';
+        DomesticQTHDataFileName := 'S48P13DC.DOM';
 
         MultByBand := True;
         MultByMode := False;

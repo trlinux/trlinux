@@ -62,6 +62,17 @@ TODO List after 2023 WPX CW:
  - If you are in 2BSIQ and only one radio is turned on - you can't use the
    RETURN key or lots of keys.
 
+TO DO LIST after 2025 CQ WW RTTY:
+
+ - Mults not right in bandmap.
+ - Maybe improve the way messages are defined (CQ exchange versus S&P)
+ - CR and F2 act different in S&P
+ - Mult needs goes away when logged
+
+
+30-Sep-2025
+ - Added function key command TOGGLEHEADPHONESWITCHING.
+
 26-Sep-2025
  - Eliminated short TX when swapping radios in RTTY
  - Improved two keyboard initialization when using "usbv2" keyboards (USB3)
