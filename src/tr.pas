@@ -69,6 +69,10 @@ TO DO LIST after 2025 CQ WW RTTY:
  - CR and F2 act different in S&P
  - Mult needs goes away when logged
 
+13-Oct-2025
+ - Fixed date format for multiple QSOs in different counties.  Will process the
+   mults too and even correct QSO points in TBSIQ.  QSO points for extra QSOs is
+   still zero in classic UI.
 
 30-Sep-2025
  - Added function key command TOGGLEHEADPHONESWITCHING.

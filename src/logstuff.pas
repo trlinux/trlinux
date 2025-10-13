@@ -782,7 +782,7 @@ VAR TimeString, QSONumberString: Str20;
     IF ReadInLog THEN
         LogString := LogString + ReadInLogDateString
     ELSE
-        IF Exchange.Date <> '' THEN
+        IF (Exchange.Date <> '') AND NOT (Pos ('-', Exchange.Date) = 5) THEN
             LogString := LogString + Exchange.Date
         ELSE
             LogString := LogString + GetDateString;
@@ -5282,7 +5282,7 @@ VAR TempString, LogString: STRING;
             RSTReceivedStamp (RXData, LogString);
             END;
 
-        { I don't know why this is here - disabled 1Nov2024
+        { I don't know why this is here - disabled 1-Nov-2024
 
         IF LogBadQSOString <> '' THEN
             BEGIN
@@ -5303,8 +5303,6 @@ VAR TempString, LogString: STRING;
                 IF QSONumber   THEN QSONumberReceivedStamp  (RXData, LogString);
                 IF Power       THEN PowerReceivedStamp      (RXData, LogString);
                 END;
-
-            { N6TR decided to give in for the CWT }
 
             ELSE
                 BEGIN

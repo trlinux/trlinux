@@ -8187,12 +8187,12 @@ VAR LogString: Str80;
 
     REPEAT  { We are going to loop if we have multiple QTHs }
 
-        IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) THEN
-            RXData.QSOPoints := 0
-        ELSE
-            VisibleLog.ProcessMultipliers (RXData);  { Yes! This is in LOGEDIT.PAS }
+        { We used to set the QSO points to zero if this was a dupe - but it
+          will always be a dupe - and we really want to process the mults
+          as well }
 
-        LogString := MakeLogString (RXData);  { Yes!  This is in LOGSTUFF.PAS }
+        VisibleLog.ProcessMultipliers (RXData);  { Yes! This is in LOGEDIT.PAS }
+        LogString := MakeLogString (RXData);     { Yes! This is in LOGSTUFF.PAS }
 
         IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
             Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
@@ -8207,7 +8207,7 @@ VAR LogString: Str80;
         Inc (NumberContactsThisMinute);
         NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + RXData.QSOPoints;
 
-    {   DisplayTotalScore (TotalScore); }
+       {   DisplayTotalScore (TotalScore); }
 
         IF FloppyFileSaveFrequency > 0 THEN
             IF QSOTotals [All, Both] > 0 THEN

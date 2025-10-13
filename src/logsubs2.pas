@@ -4377,13 +4377,17 @@ VAR LogString: Str80;
 
     IF NOT TailEnding THEN RemoveWindow (PossibleCallWindow);
 
-    { At this point, we are going to look at RXData.LeftOverQTH and repeat everything
-      if there is something there }
+
+  { We now go into a loop that will log the QSO - and also take a peek at the
+    LeftOverQTH string to see if more QSOs can be logged }
 
   REPEAT
-        IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) OR
+
+      { Special weirdness to deal with dupes or rovers in new grids }
+
+      IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) OR
            ((ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) AND (NumberGridSquaresInList > 0)) THEN
-            IF NOT (ActiveQSOPointMethod = AlwaysOnePointPerQSO) THEN
+            IF NOT (ActiveQSOPointMethod = AlwaysOnePointPerQSO) THEN  { Used for like internet sprints? }
                 BEGIN
                 IF Trace THEN Write ('#');
 
@@ -4507,12 +4511,14 @@ VAR LogString: Str80;
             N1MM_QSO_Portal.SendQSOToN1MM (RXData);
             END;
 
-        { See if we are done }
+        { See if we are done or if there are more QTHs to process }
 
         IF RXData.LeftOverQTH = '' THEN Exit;
 
         RXData.QTHString := RXData.LeftOverQTH;
         RXData.LeftOverQTH := '';
+
+        { See if we still have multiple QTHs }
 
         IF Pos ('/', RXData.QTHString) > 0 THEN  { Still multiple counties }
             BEGIN
