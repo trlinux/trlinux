@@ -3272,9 +3272,10 @@ VAR
     Address: INTEGER;
     FileString, ExchangeString: STRING;
     FileRead: TEXT;
-    NumberQSOsFound: INTEGER;
+    LastAddress, FirstAddress, NumberQSOsFound: INTEGER;
     QSOCallsign: CallString;
     QSOQTHList: ARRAY [0..100] OF QSOQTHRecordEntry;
+    TempEntry: QSOQTHRecordEntry;
 
     BEGIN
     SaveSetAndClearActiveWindow (BandMapWindow);
@@ -3355,14 +3356,31 @@ VAR
         Close (FileRead);
         END;
 
-    { We now have a list of QSO entries for this call.  Print out
-      the status for the band/mode }
+    { Sort into alphabetical order }
 
-    WriteLn ('NumberQSOsFound = ', NumberQSOsFound);
+    IF NumberQSOsFound > 1 THEN
+        BEGIN
+        FirstAddress := 0;
+        LastAddress := NumberQSOsFound - 2;
+
+        WHILE FirstAddress >= LastAddress DO
+            BEGIN
+            FOR Address := FirstAddress TO LastAddress DO
+                IF QSOQTHList [Address].QTH > QSOQTHList [Address + 1].QTH THEN
+                    BEGIN
+                    TempEntry := QSOQTHList [Address];
+                    QSOQTHList [Address] := QSOQTHList [Address + 1];
+                    QSOQTHList [Address + 1] := TempEntry;
+                    END;
+
+            LastAddress := LastAddress - 1;
+            END;
+        END;
 
     IF NumberQSOsFound > 0 THEN
         BEGIN
         SaveSetAndClearActiveWindow (RemainingMultsWindow);
+        WriteLn ('Number QSOs found = ', NumberQSOsFound);
         WriteLn ('QSO information for ', Callsign, ' on ', BandString [Band], ModeString [Mode]);
         WriteLn;
 
