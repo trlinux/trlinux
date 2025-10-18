@@ -325,6 +325,7 @@ VAR TempQTH: QTHRecord;
         ActiveExchange := RSTQTHExchange;
         ActiveQSOPointMethod := TwoPhoneThreeCW;
         ActiveDomesticMult := WYSIWYGDomestic;
+        DisplayDupeQTHs := True;
         MultByBand := False;
         MultByMode := False;
         QSOByBand := True;
@@ -579,7 +580,6 @@ VAR TempQTH: QTHRecord;
         END;
 
 
-
     IF CMD = 'ARRL VHF QSO' THEN
         BEGIN
         scorerpt.setcontest ('ARRL-VHF');
@@ -589,6 +589,7 @@ VAR TempQTH: QTHRecord;
         ActiveExchange := RSTDomesticQTHExchange;
         ActiveQSOPointMethod := ARRLVHFQSOPointMethod;
         ContestName := 'VHF QSO Party';
+        DisplayDupeQTHs := True;
         MultByBand := True;
         MultByMode := False;
         QSOByBand := True;
@@ -605,6 +606,7 @@ VAR TempQTH: QTHRecord;
         ActiveExchange := RSTDomesticQTHExchange;
         ActiveQSOPointMethod := ARRLVHFSSPointMethod;
         ContestName := 'ARRL VHF SWEEPSTAKES';
+        DisplayDupeQTHs := True;
         MultByBand := True;
         MultByMode := False;
         QSOByBand := True;
@@ -662,6 +664,7 @@ VAR TempQTH: QTHRecord;
 
         ActiveQSOPointMethod := TwoPhoneThreeCW;
         ContestName := 'California QSO Party';
+        DisplayDupeQTHs := True;
         MultByBand := False;
         MultByMode := False;
         QSOByBand  := True;
@@ -733,7 +736,7 @@ VAR TempQTH: QTHRecord;
         ActiveQSOPointMethod := CQVHFQSOPointMethod;
 
         ContestName := 'CQ WORLD WIDE VHF Contest';
-
+        DisplayDupeQTHs := True;
         MultByBand := True;
         MultByMode := False;
         QSOByBand := True;
@@ -991,6 +994,7 @@ VAR TempQTH: QTHRecord;
 
         ActiveQSOPointMethod := OnePhoneTwoCW;
         ContestName := 'Florida QSO Party';
+        DisplayDupeQTHs := True;
         MultByBand := False;
         MultByMode := True;
         QSOByBand  := True;
@@ -1355,6 +1359,7 @@ VAR TempQTH: QTHRecord;
 
         ActiveDomesticMult := DomesticFile;
         ActiveQSOPointMethod := OnePhoneTwoCW;
+        DisplayDupeQTHs := True;
         QSOByBand := True;
         QSOByMode := True;
         MultByBand := False;
@@ -1364,13 +1369,11 @@ VAR TempQTH: QTHRecord;
         IF UpperCase (Copy (MyState, 1, 2)) = 'MI' THEN
             BEGIN
             DomesticQTHDataFileName := 'MIQP.DOM';
-            {ActiveExchange := RSTQSONumberAndPossibleDomesticQTHExchange;} {KK1L: 6.73}
             ActiveExchange := QSONumberDomesticQTHExchange; {KK1L: 6.73}
             END
         ELSE
             BEGIN
             DomesticQTHDataFileName := 'MICHCTY.DOM';
-            {ActiveExchange := RSTQSONumberAndDomesticQTHExchange;} {KK1L: 6.73}
             ActiveExchange := QSONumberDomesticQTHExchange; {KK1L: 6.73}
             END;
 
@@ -1418,6 +1421,7 @@ VAR TempQTH: QTHRecord;
 
         ActiveQSOPointMethod := MQPQSOPointMethod;
         ContestName := 'Minnesota QSO Party';
+        DisplayDupeQTHs := True;
         MultByBand := False;
         MultByMode := False;
         QSOByBand  := True;
@@ -1543,6 +1547,7 @@ VAR TempQTH: QTHRecord;
             BigRemainingList := True;
             END;
 
+        DisplayDupeQTHs := True;
         DXMultLimit := 20;
         ActiveQSOPointMethod := OnePhoneTwoCW;
         MultByBand := False;
@@ -1577,6 +1582,7 @@ VAR TempQTH: QTHRecord;
 
         ActiveQSOPointMethod := OnePhoneTwoCWThreeDigital;
         ContestName := 'New York QSO Party';
+        DisplayDupeQTHs := True;
         MultByBand := False;
         MultByMode := False;
         QSOByBand  := True;
@@ -1610,6 +1616,7 @@ VAR TempQTH: QTHRecord;
 
         ActiveDomesticMult := DomesticFile;
         ActiveQSOPointMethod := OnePhoneTwoCW;
+        DisplayDupeQTHs := True;
         QSOByBand := True;
         QSOByMode := True;
         MultByBand := False;
@@ -1824,6 +1831,7 @@ VAR TempQTH: QTHRecord;
         ActiveQSOPointMethod := SalmonRunQSOPointMethod;
         ContestName := 'Washington State Salmon Run';
 
+        DisplayDupeQTHs := True;
         MultByMode := False;
         MultByBand := False;
         QSOByMode := True;
@@ -2161,6 +2169,7 @@ VAR TempQTH: QTHRecord;
 
         ActiveQSOPointMethod := TwoPhoneThreeCW;
         ContestName := 'Texas QSO Party';
+        DisplayDupeQTHs := True;
         MultByBand := False;
         MultByMode := False;
         QSOByBand  := True;
@@ -2316,6 +2325,7 @@ VAR TempQTH: QTHRecord;
 
         ActiveExchange := RSTDomesticQTHExchange;
         ActiveQSOPointMethod := OnePhoneTwoCW;
+        DisplayDupeQTHs := True;
         ContestName := 'Wisconsin QSO Party';
 
         MultByBand := False;

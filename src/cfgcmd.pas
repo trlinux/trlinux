@@ -1307,6 +1307,13 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'DISPLAY DUPE QTHS' THEN
+        BEGIN
+        DisplayDupeQTHs := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
     IF ID = 'DISPLAY MODE' THEN
         BEGIN
         IF UpperCase (CMD) = 'COLOR' THEN

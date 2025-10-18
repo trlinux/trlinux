@@ -69,6 +69,15 @@ TO DO LIST after 2025 CQ WW RTTY:
  - CR and F2 act different in S&P
  - Mult needs goes away when logged
 
+17-Oct-2025
+ - Added DISPLAY DUPE QTHS (control-J) which when enabled will show the QTHs
+   that you have worked a dupe from.  This is most usfeul in state QSO parties
+   when mobiles are changing counties.  If you do a dupe check and you have
+   worked the station before - you will be shown a list of the counties that
+   you have worked them from on the active band/mode in the remaining mults
+   window.  The information there will stay until you log a new QSO.  This is
+   currently only coded in 2BSIQ.
+
 13-Oct-2025
  - Fixed date format for multiple QSOs in different counties.  Will process the
    mults too and even correct QSO points in TBSIQ.  QSO points for extra QSOs is

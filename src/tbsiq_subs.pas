@@ -20,7 +20,7 @@
 
 UNIT TBSIQ_Subs;
 
-{ Subroutines used by the 2BSIQ module and the QSOMachineObject for which tw o instances make up the operator
+{ Subroutines used by the 2BSIQ module and the QSOMachineObject for which two instances make up the operator
   interface }
 
 {$O+}
@@ -834,8 +834,8 @@ VAR MultString: Str40;
         ShowStationInformation (CallWindowString);
         DoPossibleCalls (CallWindowString);
 
-        { Add the callsign and frequency to the bandmap if we are in
-          Search And Pounce }
+        IF DisplayDupeQTHs THEN
+            DisplayDupeStatusForMultipleLocations (CallWindowString, Band, Mode);
 
         IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
             BEGIN

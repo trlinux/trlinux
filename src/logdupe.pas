@@ -401,6 +401,7 @@ VAR
     Category:               CategoryRecord;    { Set in ControlJ or LOGCFG }
     CountDomesticCountries: BOOLEAN;
 
+    DisplayDupeQTHs:         BOOLEAN;
     DoingDomesticMults:      BOOLEAN;
     DoingDXMults:            BOOLEAN;
     DoingPrefixMults:        BOOLEAN;
@@ -467,7 +468,7 @@ VAR
     PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     PROCEDURE ConvertBigEntryAddressToFourBytes (EntryPointer: INTEGER; VAR BigEntry: FourBytes);
     PROCEDURE CreateGridSquareList (Call: CallString; Band: BandType);
-
+    FUNCTION  DisplayDupeStatusForMultipleLocations (Callsign: CallString; Band: BandType; Mode: ModeType): BOOLEAN;
     PROCEDURE DupeInit;
     FUNCTION  FindProperAllCallListAddress (Call: CallString): INTEGER;
     FUNCTION  FoundDomesticQTH (VAR RXData: ContestExchange): BOOLEAN;
@@ -3242,6 +3243,138 @@ PROCEDURE TransferCategoryInformationIntoScoreReporterData;
            END;
 
        END;  { of case }
+    END;
+
+
+
+FUNCTION DisplayDupeStatusForMultipleLocations (Callsign: CallString; Band: BandType; Mode: ModeType): BOOLEAN;
+
+{ Intended to be called when you are working a contest where you have people
+  driving around to different locations and you want to see if they are in
+  a new one or not.  It will display the results in the bandmap window.  It
+  should be the responsibility of the caller to repaint the bandmap window
+  when it is time.  We will assume QSOByBand and QSOByMode are setup correctly.
+
+  It is also assumed you called this when you really want some data displayed.
+  Like when you do a dupe check and the call appears to be a dupe without looking
+  at the QTH.
+
+  Returns TRUE if it displayed something }
+
+TYPE
+    QSOQTHRecordEntry = RECORD
+        Band: BandType;
+        Mode: ModeType;
+        QTH: STRING [6];
+        END;
+
+VAR
+    Address: INTEGER;
+    FileString, ExchangeString: STRING;
+    FileRead: TEXT;
+    NumberQSOsFound: INTEGER;
+    QSOCallsign: CallString;
+    QSOQTHList: ARRAY [0..100] OF QSOQTHRecordEntry;
+
+    BEGIN
+    SaveSetAndClearActiveWindow (BandMapWindow);
+    WriteLn ('QSO information for ', Callsign, ' on ', BandString [Band], ModeString [Mode]);
+    WriteLn;
+
+    NumberQSOsFound := 0;
+
+    Callsign := RootCall (Callsign);
+
+    { Look in the .DAT file for QSOs }
+
+    IF OpenFileForRead (FileRead, LogFileName) THEN
+        BEGIN
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+
+            QSOQTHList [NumberQSOsFound].Band := GetLogEntryBand (FileString);
+            QSOQTHList [NumberQSOsFound].Mode := GetLogEntryMode (FileString);
+            QSOCallsign := RootCall (GetLogEntryCall (FileString));
+
+            IF QSOCallsign = Callsign THEN
+              IF (QSOQTHList [NumberQSOsFound].Band <> NoBand) AND (QSOQTHList [NumberQSOsFound].Mode <> NoMode) THEN
+                BEGIN
+                ExchangeString := GetLogEntryExchangeString (FileString);
+
+                { We have to remove the sent RST if we aren't using
+                  QSO numbers }
+
+                IF (ActiveExchange = RSTDomesticQTHExchange) OR
+                   (ActiveExchange = RSTDomesticOrDXQTHExchange) THEN
+                       RemoveFirstString (ExchangeString);
+
+                RemoveFirstString (ExchangeString);
+
+                QSOQTHList [NumberQSOsFound].QTH := RemoveFirstString (ExchangeString);
+                Inc (NumberQSOsFound);
+                END;
+
+            END;
+
+        Close (FileRead);
+        END;
+
+    { Get anything in the .TMP File }
+
+    IF OpenFileForRead (FileRead, LogTempFileName) THEN
+        BEGIN
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+
+            QSOQTHList [NumberQSOsFound].Band := GetLogEntryBand (FileString);
+            QSOQTHList [NumberQSOsFound].Mode := GetLogEntryMode (FileString);
+            QSOCallsign := RootCall (GetLogEntryCall (FileString));
+
+            IF QSOCallsign = Callsign THEN
+              IF (QSOQTHList [NumberQSOsFound].Band <> NoBand) AND (QSOQTHList [NumberQSOsFound].Mode <> NoMode) THEN
+                BEGIN
+                ExchangeString := GetLogEntryExchangeString (FileString);
+
+                { We have to remove the sent RST if we aren't using
+                  QSO numbers }
+
+                IF (ActiveExchange = RSTDomesticQTHExchange) OR
+                   (ActiveExchange = RSTDomesticOrDXQTHExchange) THEN
+                       RemoveFirstString (ExchangeString);
+
+                RemoveFirstString (ExchangeString);
+
+                QSOQTHList [NumberQSOsFound].QTH := RemoveFirstString (ExchangeString);
+                Inc (NumberQSOsFound);
+                END;
+
+            END;
+
+        Close (FileRead);
+        END;
+
+    { We now have a list of QSO entries for this call.  Print out
+      the status for the band/mode }
+
+    WriteLn ('NumberQSOsFound = ', NumberQSOsFound);
+
+    IF NumberQSOsFound > 0 THEN
+        BEGIN
+        SaveSetAndClearActiveWindow (RemainingMultsWindow);
+        WriteLn ('QSO information for ', Callsign, ' on ', BandString [Band], ModeString [Mode]);
+        WriteLn;
+
+        FOR Address := 0 TO NumberQSOsFound - 1 DO
+            IF (QSOQTHList [Address].Band = Band) AND (QSOQTHList [Address].Mode = Mode) THEN
+                Write (QSOQTHList [Address].QTH, ' ');
+
+        RestorePreviousWindow;
+        DisplayDupeStatusForMultipleLocations := True;
+        END
+    ELSE
+        DisplayDupeStatusForMultipleLocations := False;
     END;
 
 

@@ -337,6 +337,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       DEE: DEEnable          := NOT DEEnable;
       DIG: DigitalModeEnable := NOT DigitalModeEnable;
+      DDQ: DisplayDupeQTHs   := NOT DisplayDupeQTHs;
 
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: DistanceMode := DistanceMiles;
@@ -1120,6 +1121,7 @@ VAR FileWrite: TEXT;
       DEE: WriteLn (FileWrite, DEEnable);
 
       DIG: WriteLn (FileWrite, DigitalModeEnable);
+      DDQ: WriteLn (FileWrite, DisplayDupeQTHs);
 
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: WriteLn (Filewrite, 'NONE');
@@ -1509,6 +1511,7 @@ VAR TempString: Str40;
 
       DEE: IF DEEnable THEN TempString := 'TRUE';
       DIG: IF DigitalModeEnable THEN TempString := 'TRUE';
+      DDQ: IF DisplayDupeQTHs THEN TempString := 'TRUE';
 
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: TempString := 'NONE';

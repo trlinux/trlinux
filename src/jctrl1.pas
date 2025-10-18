@@ -87,6 +87,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       CWT,
                       DEE,
                       DIG,
+                      DDQ,
                       DIS,
                       DMF,
                       DCS,
@@ -327,6 +328,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
 
       DEE: Description := 'DE ENABLE';
       DIG: Description := 'DIGITAL MODE ENABLE';
+      DDQ: Description := 'DISPLAY DUPE QTHS';
       DIS: Description := 'DISTANCE MODE';
       DMF: Description := 'DOMESTIC FILENAME';
       DCS: Description := 'DUPE CHECK SOUND';
@@ -594,6 +596,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       DEE: Write (DEEnable);
       DIG: Write (DigitalModeEnable);
+      DDQ: Write (DisplayDupeQTHs);
 
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: Write ('NONE');
@@ -1150,6 +1153,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('CW, DIG and SSB modes enabled')
            ELSE
                Write ('CW and SSB modes enabled');
+
+      DDQ: IF DisplayDupeQTHs THEN
+               Write ('If station is a dupe - show the QTHs')
+           ELSE
+               Write ('Do not show QTHs of dupes');
 
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: Write ('No display of distance');

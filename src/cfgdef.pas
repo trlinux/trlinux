@@ -129,6 +129,7 @@ PROCEDURE SetConfigurationDefaultValues;
     DDXState                := Off;
     DEEnable                := True;
     DigitalModeEnable       := False;
+    DisplayDupeQTHs         := False;
     DistanceMode            := NoDistanceDisplay;
     DoingColors             := False;
     DomesticQTHDataFileName := '';
