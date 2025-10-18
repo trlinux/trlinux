@@ -3278,10 +3278,6 @@ VAR
     TempEntry: QSOQTHRecordEntry;
 
     BEGIN
-    SaveSetAndClearActiveWindow (BandMapWindow);
-    WriteLn ('QSO information for ', Callsign, ' on ', BandString [Band], ModeString [Mode]);
-    WriteLn;
-
     NumberQSOsFound := 0;
 
     Callsign := RootCall (Callsign);
@@ -3315,7 +3311,6 @@ VAR
                 QSOQTHList [NumberQSOsFound].QTH := RemoveFirstString (ExchangeString);
                 Inc (NumberQSOsFound);
                 END;
-
             END;
 
         Close (FileRead);
@@ -3350,7 +3345,6 @@ VAR
                 QSOQTHList [NumberQSOsFound].QTH := RemoveFirstString (ExchangeString);
                 Inc (NumberQSOsFound);
                 END;
-
             END;
 
         Close (FileRead);

@@ -284,7 +284,6 @@ TYPE
         END;
 
 VAR
-    EraseDupeQTHCount: INTEGER;
 
     R1KeyboardID: CINT;
     R2KeyboardID: CINT;
@@ -835,9 +834,8 @@ VAR MultString: Str40;
         ShowStationInformation (CallWindowString);
         DoPossibleCalls (CallWindowString);
 
-        IF DisplayDupeQTHs THEN
-            IF DisplayDupeStatusForMultipleLocations (CallWindowString, Band, Mode) THEN
-                EraseDupeQTHCount := 10;   { Number of seconds to show the data }
+        { Add the callsign and frequency to the bandmap if we are in
+          Search And Pounce }
 
         IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
             BEGIN
@@ -1821,18 +1819,6 @@ VAR TimeString, FullTimeString, HourString: Str20;
 
     { Code following this will be exectued once for each new calendar second }
     { The time gets displayed in the upper left corner of the Total Window }
-
-    IF DisplayDupeQTHs THEN
-        IF EraseDupeQTHCount > 0 THEN
-            BEGIN
-            Dec (EraseDupeQTHCount);
-
-            IF EraseDupeQTHCount = 0 THEN
-                BEGIN
-                VisibleLog.ShowRemainingMultipliers;
-                VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
-                END;
-            END;
 
     WITH Radio1QSOMachine DO
         IF RadioQuickDisplayTimeout > 0 THEN
@@ -8433,7 +8419,6 @@ PROCEDURE PaintVerticalLine;
 
 
     BEGIN
-    EraseDupeQTHCount := 0;
     TBSIQ_BandMapFocus := NoRadio;
 
     ResetKeyStatus (RadioOne);
