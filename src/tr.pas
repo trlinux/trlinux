@@ -69,6 +69,12 @@ TO DO LIST after 2025 CQ WW RTTY:
  - CR and F2 act different in S&P
  - Mult needs goes away when logged
 
+30-Oct-2025
+ - Introduced a bug in 2BSIQ where dupes are not set to zero points.  This was
+   partially due to wanting to count multiple QTHs for a QSO party correctly.
+   I fixed it so that whenever DisplayDupeQTHs is false - dupes will be flagged
+   as they normally are.
+
 17-Oct-2025
  - Added DISPLAY DUPE QTHS (control-J) which when enabled will show the QTHs
    that you have worked a dupe from.  This is most usfeul in state QSO parties

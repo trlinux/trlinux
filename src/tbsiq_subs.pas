@@ -8164,12 +8164,11 @@ PROCEDURE TBSIQ_LogContact (VAR RXData: ContestExchange);
   pushed onto the editable log and the log entry popped off the editable
   log will be examined and written to the LOG.DAT file.
 
-  It is highly leveraged from the LogContact procedure in logsubs2.pas.
-  And in October 2024, we added multi-county parsing using / in the
-  exchange string. }
+  New for October 2024 is the ability to have two (or more) domestic
+  QTHs separated with /'s and generate multiple QSO entries.  }
 
 VAR LogString: Str80;
-    FirstSlashPosition: INTEGER;
+    FirstSlashPosition, Address: INTEGER;
 
     BEGIN
     IF Pos ('/', RXData.QTHString) > 0 THEN  { Someone is sending multiple counties }
@@ -8181,9 +8180,23 @@ VAR LogString: Str80;
         RXData.QTHString := Copy (RXData.QTHString, 1, FirstSlashPosition - 1);
         END;
 
-    RXData.TimeSeconds := GetTimeSeconds;
+    RXData.NumberSent := QSONumberForThisQSO;
+    QSONumberForThisQSO := -1;
+
+    RXData.TimeSeconds := GetTimeSeconds;    { Add seconds for better resolution for those who want it }
+    RXData.Radio := ActiveRadio;
 
     VisibleDupeSheetChanged := True;
+
+    IF ActivePacketPort <> nil THEN
+        Packet.DeletePacketEntry (RXData.Callsign, RXData.Band, RXData.Mode);
+
+    IF AutoTimeIncrementQSOs > 0 THEN
+        BEGIN
+        Inc (AutoTimeQSOCount);
+        IF AutoTimeQSOCount >= AutoTimeIncrementQSOs THEN
+            IncrementTime (1);
+        END;
 
     IF LastDeletedLogEntry <> '' THEN
         BEGIN
@@ -8191,54 +8204,116 @@ VAR LogString: Str80;
         RemoveWindow (QuickCommandWindow);
         END;
 
+    WindowDupeCheckCall := RXData.Callsign;
+
     LastQSOLogged := RXData;
 
-    IF TenMinuteRule <> NoTenMinuteRule THEN
-        UpdateTenMinuteDate (RXData.Band, RXData.Mode);
+    IF TenMinuteRule <> NoTenMinuteRule THEN UpdateTenMinuteDate (RXData.Band, RXData.Mode);
 
-    { IF NOT TailEnding THEN RemoveWindow (PossibleCallWindow); }
+    IF NOT TailEnding THEN RemoveWindow (PossibleCallWindow);
 
-    { This is simplified from LOGSUBS2 }
+  { We now go into a loop that will log the QSO - and also take a peek at the
+    LeftOverQTH string to see if more QSOs can be logged }
 
-    REPEAT  { We are going to loop if we have multiple QTHs }
+  REPEAT
 
-        { We used to set the QSO points to zero if this was a dupe - but it
-          will always be a dupe - and we really want to process the mults
-          as well }
+      { Special weirdness to deal with dupes or rovers in new grids }
 
-        VisibleLog.ProcessMultipliers (RXData);  { Yes! This is in LOGEDIT.PAS }
-        LogString := MakeLogString (RXData);     { Yes! This is in LOGSTUFF.PAS }
+      IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) OR
+           ((ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) AND (NumberGridSquaresInList > 0)) THEN
+            IF NOT (ActiveQSOPointMethod = AlwaysOnePointPerQSO) THEN  { Used for like internet sprints? }
+                BEGIN
+                IF Trace THEN Write ('#');
+
+                IF (ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) THEN
+                    BEGIN
+                    IF NumberGridSquaresInList > 0 THEN
+                        FOR Address := 0 TO NumberGridSquaresInList - 1 DO
+                            IF RXData.DomesticQTH = GridSquareList [Address] THEN
+                                BEGIN
+                                RXData.QSOPoints := 0;
+
+                                IF ReminderPostedCount = 0 THEN
+                                    BEGIN
+                                    QuickDisplay ('You already worked ' + RXData.Callsign + ' in ' + RXData.DomesticQTH + '!!');
+                                    ReminderPostedCount := 60;
+                                    END;
+                                Break;
+                                END;
+                    END
+                ELSE
+                    BEGIN
+                    IF ReminderPostedCount = 0 THEN
+                        QuickDisplay (RXData.Callsign + ' is a dupe and will be logged with zero QSO points.');
+
+                    RXData.QSOPoints := 0;
+                    END;
+                END;
+
+        IF Trace THEN Write ('+');
+
+        VisibleLog.ProcessMultipliers (RXData);
+
+        IF Trace THEN Write ('%');
+
+        LogString := MakeLogString (RXData);
+
+        CheckBand (RXData.Band);
 
         IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
             Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
 
         TBSIQ_PushLogStringIntoEditableLogAndLogPopedQSO (LogString, True);
 
+        IF Trace THEN Write ('&');
+
+        { RXData has the data from the QSO we just worked - not the one that
+          popped off the top of the editable window }
+
+        IF NOT TailEnding THEN ShowStationInformation (RXData.Callsign);
+
+        IF Trace THEN Write ('\');
+
         IF DoingDomesticMults AND
            (MultByBand OR MultByMode) AND
            (RXData.DomesticQTH <> '') THEN
                VisibleLog.ShowDomesticMultiplierStatus (RXData.DomMultQTH);
 
+        IF Trace THEN Write ('*');
+
         Inc (NumberContactsThisMinute);
         NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + RXData.QSOPoints;
 
-       {   DisplayTotalScore (TotalScore); }
+        DisplayTotalScore (TotalScore);
+
+        IF Trace THEN Write ('(');
 
         IF FloppyFileSaveFrequency > 0 THEN
             IF QSOTotals [All, Both] > 0 THEN
                 IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
                     SaveLogFileToFloppy;
 
+        IF Trace THEN Write (')');
+
         IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
 
-        UpdateTotals;
-        DisplayTotalScore (TotalScore);
-        VisibleLog.ShowRemainingMultipliers;
+        BeSilent := False;
+        NameCallsignPutUp := '';
+
+        IF Trace THEN Write ('-');
+
+        IF CWSpeedFromDataBase AND (RememberCWSpeed <> 0) THEN
+            BEGIN
+            SetSpeed (RememberCWSpeed);
+            RememberCWSpeed := 0;
+            DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
+            END;
 
         IF BandMapEnable THEN
             BEGIN
             UpdateBandMapMultiplierStatus;
-            UpdateBandMapDupeStatus (RXData.Callsign, RXData.Band, RXData.Mode, True);
+            {KK1L: 6.64 Need to change dupe status for this contact as well - does the new display }
+            UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
             END;
 
         { New for Jan 2023 - send QSO data to UDP port }
@@ -8249,9 +8324,10 @@ VAR LogString: Str80;
             SendQSOToUDPPort (RXData);
             END;
 
-        { New for Mar 2024 - send to N1MM using WSJT port.  We always
-          send the QSO immediately because this is when we have all
-          of the information including frequency data available }
+        { New for Mar 2024 - send to N1MM using WSJT port.  Note that
+          we always send N1MM QSOs immediately because it's the only
+          time we really have all of the information we need including
+          the exact frequency }
 
         IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
             BEGIN
@@ -8259,12 +8335,14 @@ VAR LogString: Str80;
             N1MM_QSO_Portal.SendQSOToN1MM (RXData);
             END;
 
-        { See if we are done }
+        { See if we are done or if there are more QTHs to process }
 
         IF RXData.LeftOverQTH = '' THEN Exit;
 
         RXData.QTHString := RXData.LeftOverQTH;
         RXData.LeftOverQTH := '';
+
+        { See if we still have multiple QTHs }
 
         IF Pos ('/', RXData.QTHString) > 0 THEN  { Still multiple counties }
             BEGIN
@@ -8280,7 +8358,8 @@ VAR LogString: Str80;
         IF NOT FoundDomesticQTH (RXData) THEN Exit;
 
     UNTIL False;
-    DisplayBandMap;
+
+    DisplayBandMap;  { Update the bandmap with new dupe and mult data }
     END;
 
 
