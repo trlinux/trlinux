@@ -3084,6 +3084,19 @@ VAR Key, ExtendedKey: CHAR;
 
             IF ElaspedSec100 (AutoCQFinishTime) >= AutoCQDelayTime THEN
                 BEGIN
+                { Okay...  we had a bug in the 2025 SS CW where I would occasionally
+                  end up sending messages on the wrong radio - especially after I
+                  did an Alt-R and sent some CW by hand.  I initially put some code
+                  here to make damn sure that the active radio was assigned to this
+                  radio instance.  However, that totally ignores the fact that the
+                  CWSendingObject is what is controlling the CW and it will determine
+                  when - and if to send the next message.  This normally seems to
+                  be working as I have seen AutoCQs buffered while the other radio
+                  is done sending a message...  so I don't think I fully understand
+                  the root cause of the failure yet.
+
+                  }
+
                 SendFunctionKeyMessage (AutoCQMemory, Message);
                 ShowCWMessage ('AutoCQ: ' + Message);
                 QSOState := QST_AutoCQCalling;
@@ -6166,10 +6179,39 @@ VAR Distance, Heading, QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                   AltR:
                       BEGIN
+                      { This is probably being pressed if I need to manually transmit
+                        on the inactive radio.  It should basically preform the same
+                        function as pressing the escape key - in that any messages
+                        that are playing or qued up are deleted and then the radio
+                        is swapped so you can transmit either with the paddle or
+                        microphone.  This is trying to clear up a bug I had in the
+                        2025 SS CW where messages from the wrong radio started playing
+                        after using AltR to manually send a message }
+
+                      TBSIQ_CW_Engine.ClearMessages (RadioOne, True);
+                      TBSIQ_CW_Engine.ClearMessages (RadioTwo, True);
+                      ShowTransmitStatus;
+
+                      { Also - if we were doing an AutoCQ of some kind - we should
+                        just turn that off - for both radios }
+
+                      WITH Radio1QSOMachine DO
+                          IF (QSOState = QST_AutoCQCalling) OR (QSOState = QST_AutoCQListening) THEN
+                              QSOState := QST_Idle;
+
+                      WITH Radio2QSOMachine DO
+                          IF (QSOState = QST_AutoCQCalling) OR (QSOState = QST_AutoCQListening) THEN
+                              QSOState := QST_Idle;
+
+                      { Manually swap the radios }
+
                       IF ActiveRadio = RadioOne THEN
                           ActiveRadio := RadioTwo
                       ELSE
                           ActiveRadio := RadioOne;
+
+                      { This is why we need to make sure things are totally stopped as
+                        we are going to switch radios }
 
                       SetUpToSendOnActiveRadio;
                       TBSIQ_CW_Engine.ShowActiveRadio;
@@ -7865,18 +7907,23 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     BEGIN
     IF NOT ValidFunctionKey (Key) THEN Exit;
 
-    IF ElaspedSec100 (LastFunctionKeyTime) < 10 THEN Exit;
+    { It appears that I decided a second press of a function key should be
+      ignored if it happens too quickly after the last one }
 
+    IF ElaspedSec100 (LastFunctionKeyTime) < 10 THEN Exit;
     MarkTime (LastFunctionKeyTime);
 
     { When doing ExpandCrypticString, a function key is likely to start some
       kind of transmission.  This is okay if both rigs are on CW - or if the
-      other radio is not busy transmitting. }
+      other radio is not busy transmitting. The DisableTransmitting function
+      will look at all of the factors and if this key should be ignored, we
+      will go away }
 
     IF DisableTransmitting THEN Exit;
 
     { If we are dealing with mixed modes - we need to make sure we set
-      things up for the right mode }
+      things up for the right mode.  Note - this bypasses some of the
+      logic in the CWSendingEngine }
 
     IF TBSIQDualMode THEN   { New for TBSIQ }
         BEGIN

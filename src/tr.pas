@@ -69,6 +69,17 @@ TO DO LIST after 2025 CQ WW RTTY:
  - CR and F2 act different in S&P
  - Mult needs goes away when logged
 
+4-Nov-2025
+ - After QRMing N5KO in the SS CW with an Auto-CQ that was sent on the
+   wrong radio - I made darn sure the right radio was setup before
+   launching an AutoCQ.  I was unable to verify this fixed the issue as I
+   was unable to reproduce it after the contest.  If this happens again -
+   probably remove this:
+
+       IF ActiveRadio <> Radio THEN
+
+   in TBSIQ_SUBS.PAS.
+
 30-Oct-2025
  - Introduced a bug in 2BSIQ where dupes are not set to zero points.  This was
    partially due to wanting to count multiple QTHs for a QSO party correctly.
