@@ -71,14 +71,12 @@ TO DO LIST after 2025 CQ WW RTTY:
 
 4-Nov-2025
  - After QRMing N5KO in the SS CW with an Auto-CQ that was sent on the
-   wrong radio - I made darn sure the right radio was setup before
-   launching an AutoCQ.  I was unable to verify this fixed the issue as I
-   was unable to reproduce it after the contest.  If this happens again -
-   probably remove this:
-
-       IF ActiveRadio <> Radio THEN
-
-   in TBSIQ_SUBS.PAS.
+   wrong radio - I made some changes to essentially made Alt-R execute
+   the functionality of the ESCAPE key - in that any message being sent
+   is stopped - CW cache is cleared for both radios AND if either radio
+   is in AutoCQ mode - that is stopped.  (This was attempted first on
+   4-Nov with a bad fix - updated on 6-November-2025 which will hopefully
+   not feel like a bad fix on 8-Nov).
 
 30-Oct-2025
  - Introduced a bug in 2BSIQ where dupes are not set to zero points.  This was
