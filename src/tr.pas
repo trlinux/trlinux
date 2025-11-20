@@ -69,6 +69,13 @@ TO DO LIST after 2025 CQ WW RTTY:
  - CR and F2 act different in S&P
  - Mult needs goes away when logged
 
+20-Nov-2025
+ - Created config command STOP TRANSMISSION PULSE LENGTH to set up the
+   lenth of the PTT pulse to stop a tranmission on the "other" radio
+   when pressing the footswitch in 2BSIQ footswitch mode.  This parameter
+   should be setup before the FOOTSWITCH MODE command - or before entering
+   2BSIQ mode for the footswitch in the ControlJ menu.
+
 4-Nov-2025
  - After QRMing N5KO in the SS CW with an Auto-CQ that was sent on the
    wrong radio - I made some changes to essentially made Alt-R execute

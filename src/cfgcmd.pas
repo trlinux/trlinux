@@ -29,7 +29,7 @@ INTERFACE
 USES SlowTree, Tree, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, Country9, LogEdit, LogDDX,
      LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt,
-     Radio,logqsonr, N1MM, communication, linuxsound, N4OGW, LogUDP,scorereporter;
+     KeyerArd, Radio,logqsonr, N1MM, communication, linuxsound, N4OGW, LogUDP,scorereporter;
 
 
     FUNCTION  ProcessConfigInstruction (FileString: STRING; VAR FirstCommand: BOOLEAN): BOOLEAN;
@@ -5112,6 +5112,13 @@ VAR xResult: INTEGER;
         ELSE
             StartSendingNowKey := CMD [1];
         ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'STOP TRANSMISSION PULSE LENGTH' THEN
+        BEGIN
+        Val (CMD, StopTransmissionPulseLength, xResult);
+        ProcessConfigInstructions3 := (xResult = 0) AND (StopTransmissionPulseLength >= 0) AND (StopTransmissionPulseLength <= 63);
         Exit;
         END;
 

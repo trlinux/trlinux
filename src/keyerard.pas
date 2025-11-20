@@ -68,7 +68,7 @@ TYPE
         PROCEDURE SendRelayStatusToSO2RMini;
 
     public
-
+                                     //published by the Free Software Foundation, either version 2 of the
         Version: STRING;
 
         CONSTRUCTOR Create;
@@ -175,6 +175,7 @@ TYPE
         END;
 
 VAR ArduinoDebug: BOOLEAN;
+    StopTransmissionPulseLength: INTEGER;  { Times 4 ms }
 
 IMPLEMENTATION
 
@@ -544,9 +545,9 @@ VAR DelayLoops: INTEGER;
 
             IF Length (Version) = 7 THEN  { We have enough characters }
                 BEGIN
-                IF Copy (Version, 1, 7) <> 'TRCW V5' THEN
+                IF Copy (Version, 1, 7) <> 'TRCW V6' THEN
                     BEGIN
-                    WriteLn ('Expected TRCW V5 response from SO2R Mini.  Received ', Version);
+                    WriteLn ('Expected TRCW V6 response from SO2R Mini.  Received ', Version);
                     WaitForKeyPressed;
                     Halt;
                     END;
@@ -1159,15 +1160,25 @@ PROCEDURE ArduinoKeyer.SetFootSwitch (F: FootSwitchX);
     Footsw := F;
     END;
 
+
+
 PROCEDURE ArduinoKeyer.FootSwitch2BSIQSSB;
 
-{ Puts the Arduino into the 2BSIQ SSB MODE }
+{ Puts the Arduino into the 2BSIQ SSB MODE.  If you wanted to control the
+  pulse that gets sent to the "other" radio to stop transmitting a message,
+  you should set the StopTransmissionPulseLength to the value you want
+  before executing this command.  }
 
     BEGIN
     IF KeyerInitialized THEN
         BEGIN
         ArduinoKeyerPort.PutChar (Char ($19));  { Footswitch mode command }
-        ArduinoKeyerPort.PutChar (Char ($02))   { 2BSIQ SSB Mode }
+
+        { New in November 2025 - in addition to setting the 2BSIQ mode with
+          the value of $02 - we need to or in the StopTransmissionPulseLength
+          value to the Arduino in the upper six bits of the data byte }
+
+        ArduinoKeyerPort.PutChar (Chr ((StopTransmissionPulseLength * 4) OR $02));
         END;
 
     AppendDebugFile ('Set2BSIQSSBFootswitchMode');
@@ -1389,4 +1400,5 @@ PROCEDURE ArduinoKeyer.FlushCWBuffer;
 
     BEGIN
     ArduinoDebug := True;  { Set to true to get some debug data }
+    StopTransmissionPulseLength := 0;  { default }
     END.
