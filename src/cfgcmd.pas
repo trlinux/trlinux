@@ -3349,10 +3349,24 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'PACKET RECEIVE SPOTS' THEN
+        BEGIN
+        Packet.ReceiveSpots := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'PACKET RETURN PER MINUTE' THEN
         BEGIN
         Val (CMD, PacketReturnPerMinute, xResult);
         ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'PACKET SPOT COMMENT' THEN
+        BEGIN
+        PacketSpotComment := CMD;
+        ProcessConfigInstructions2 := True;
         Exit;
         END;
 
@@ -4941,6 +4955,13 @@ VAR xResult: INTEGER;
             SCPMinimumLetters := 0;
             ProcessConfigInstructions3 := True;
             END;
+
+    IF ID = 'SELF SPOT ENABLE' THEN
+        BEGIN
+        SelfSpotEnable := UpCase (CMD [1]) = 'T';
+        ProcessConfiginstructions3 := True;
+        Exit;
+        END;
 
     IF ID = 'SEND ALT-D SPOTS TO PACKET' THEN
         BEGIN

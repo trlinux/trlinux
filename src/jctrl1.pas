@@ -154,6 +154,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       PDS,
                       PF8,
                       PLF,
+                      PRS,
                       PRM,
                       PSC, {KK1L: 6.71 Coded for PacketSpotComment started in 6.68}
                       PKD,
@@ -197,6 +198,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       SCE,   { Score report enable }
                       SCS,   { SCP Country String }
                       SML,   { SCP Minimum Letters }
+                      SSE,   { Self Spot Enable }
                       SAD,
                       SCF,
                       SQI,
@@ -406,6 +408,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       PDS: Description := 'PACKET DISPLAY SPOTS';
       PF8: Description := 'PACKET FT8 SPOTS';
       PLF: Description := 'PACKET LOG FILENAME';
+      PRS: Description := 'PACKET RECEIVE SPOTS';
       PRM: Description := 'PACKET RETURN PER MINUTE';
       PSC: Description := 'PACKET SPOT COMMENT'; {KK1L: 6.71 Implimented what I started in 6.68}
       PKD: Description := 'PACKET SPOT DISABLE';
@@ -476,6 +479,7 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       SQR: Description := 'SPRINT QSY RULE';
       SPS: Description := 'STEREO PIN HIGH'; {KK1L: 6.71}
       SRP: Description := 'SWAP PACKET SPOT RADIOS';
+      SSE: Description := 'SELF SPOT ENABLE';
       SWP: Description := 'SWAP PADDLES';
       SWR: Description := 'SWAP RADIO RELAY SENSE';
 
@@ -733,6 +737,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       PDS: Write (Packet.DisplaySpots);
       PF8: Write (Packet.FT8SpotEnable);
       PLF: Write (Packet.PacketLogFileName);
+      PRS: Write (Packet.ReceiveSpots);
 
       PRM: Write (PacketReturnPerMinute);
       PSC: Write (PacketSpotComment); {KK1L: 6.71 Implimented what I started in 6.68}
@@ -844,6 +849,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       SBD: Write (SpaceBarDupeCheckEnable);
       SQR: Write (SprintQSYRule);
       SRP: Write (SwapPacketSpotRadios);
+      SSE: Write (SelfSpotEnable);
       SWP: Write (ActiveKeyer.GetSwapPaddles);
       SWR: Write (SwapRadioRelaySense);
 
@@ -1449,6 +1455,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Packet log file enabled to file shown');
 
+      PRS: IF Packet.ReceiveSpots THEN
+               Write ('Spots will be processed')
+           ELSE
+               Write ('Spots are ignored');
+
       PRM: IF PacketReturnPerMinute = 0 THEN
                Write ('Normal packet operation')
            ELSE
@@ -1759,6 +1770,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Radio 1 is left of radio 2')
            ELSE
                Write ('Radio 1 is right of radio 2');
+
+      SSE: IF SelfSpotEnable THEN
+                Write ('Send self spot every 5 minutes')
+            ELSE
+                Write ('Self spotting disabled');
 
       SWP: IF ActiveKeyer.GetSwapPaddles THEN
                Write ('Swap dit and dah paddle connections')

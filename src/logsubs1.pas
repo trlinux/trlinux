@@ -21,7 +21,8 @@
 { Some stuff called from here but contained in LOGSUBS2 }
 
 PROCEDURE CheckMultiState; FORWARD;
-
+PROCEDURE CreateAndSendPacketSpot (PacketSpotCall: CallString;
+                                   PacketSpotFreq: LONGINT);   FORWARD;
 
 PROCEDURE PutUpCQMenu;
 
@@ -961,6 +962,14 @@ VAR QSONumberString: Str20;
                                                  LastDisplayedFreq [RadioOne], 0, ActiveMode,
                                                  False, False, BandMapDecayTime, True);
 
+                                IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
+                                    IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
+                                        BEGIN
+                                        MarkTime (LastAutoSpotTime);
+                                        CreateAndSendPacketSpot (MyCall, LastDisplayedFreq [RadioOne]);
+                                        END;
+
+
                                 LastCQFrequency := LastDisplayedFreq [RadioOne]; {KK1L: 6.68 Saves LastCQFreq}
                                 LastCQMode      := ActiveMode;         {KK1L: 6.68 and mode}
                                 END;
@@ -976,6 +985,15 @@ VAR QSONumberString: Str20;
                                 NewBandMapEntry ('CQ/' + QSONumberString,
                                                  LastDisplayedFreq [RadioTwo], 0, ActiveMode,
                                                  False, False, BandMapDecayTime, True);
+
+                                IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
+                                    IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
+                                        BEGIN
+                                        MarkTime (LastAutoSpotTime);
+                                        CreateAndSendPacketSpot (MyCall, LastDisplayedFreq [RadioTwo]);
+                                        END;
+
+
                                 LastCQFrequency := LastDisplayedFreq [RadioTwo]; {KK1L: 6.68 Saves LastCQFreq}
                                 LastCQMode      := ActiveMode;         {KK1L: 6.68 and mode}
                                 END;

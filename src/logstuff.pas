@@ -37,7 +37,7 @@ UNIT LogStuff;
   The ParametersOkay function will look in the ExchangeString to see if a
   corrected callsign appears there.
 
-  We seemm to have a global variable called ParameterOkayMode which has the
+  We seem to have a global variable called ParameterOkayMode which has the
   following settings: Standard, QSLButDoNotLog and QSLAndLog.  This shows
   up as the config command QSL MODE which you can find in the Control-J menu.
 
@@ -302,6 +302,7 @@ VAR
     KeyHistory:                KeyHistoryRecord;
     KeyPadCWMemories:          BOOLEAN;
 
+    LastAutoSpotTime:          TimeRecord;
     LastDeletedLogEntry:       Str160;
     LastDisplayedBreakTime:    INTEGER;
     LastHelloRecord:           HelloRecPtr;
@@ -4971,6 +4972,8 @@ PROCEDURE StuffInit;
 
     LogBadQSOString            := '';
     LookingForCQExchange       := False;
+
+    MarkTime (LastAutoSpotTime);
 
     MultiMessageHead     := 0;
     MultiMessageTail    := 0;

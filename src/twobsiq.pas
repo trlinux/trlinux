@@ -833,6 +833,9 @@ PROCEDURE Initialize2BSIQOperatorInterface;
     SetUpToSendOnActiveRadio;
     TBSIQ_CW_Engine.ShowActiveRadio;
     TBSIQ_BandMapFocus := RadioOne;
+
+    MarkTime (Radio1QSOMachine.LastAutoSpotTime);
+    MarkTime (Radio2QSOMachine.LastAutoSpotTime);
     END;
 
 

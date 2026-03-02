@@ -19,6 +19,7 @@
 //
 
 {$V-}
+
 PROCEDURE CreateAndSendPacketSpot (PacketSpotCall: CallString;
                                    PacketSpotFreq: LONGINT);
 
@@ -1452,6 +1453,13 @@ VAR CQMemory, SendChar: CHAR;
         CQMemory := AutoCQMemory;
 
         REPEAT
+            IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
+                IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
+                    BEGIN
+                    MarkTime (LastAutoSpotTime);
+                    CreateAndSendPacketSpot (MyCall, LastDisplayedFreq [RadioOne]);
+                    END;
+
             {KK1L: 6.68 Set LastCQ stuff when calling CQ using auto CQ}
             IF FrequencyDisplayed THEN
                 BEGIN

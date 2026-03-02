@@ -69,6 +69,17 @@ TO DO LIST after 2025 CQ WW RTTY:
  - CR and F2 act different in S&P
  - Mult needs goes away when logged
 
+21-Feb-2025
+ - Attempted to fix SelfSpotEnable in classic UI
+
+12-Dec-2025
+ - Added SELF SPOT ENABLE (.  When TRUE, the program will send self spots every
+   five minutes assuming you are connected to the cluster.
+
+ - Added PACKET RECEIVE SPOTS (default = TRUE).  When FALSE, packet spots are
+   not processed (shown or added to band map).  Useful if you are connected to
+   the cluster to do self spotting but otherwise are unassisted.
+
 20-Nov-2025
  - Created config command STOP TRANSMISSION PULSE LENGTH to set up the
    lenth of the PTT pulse to stop a tranmission on the "other" radio

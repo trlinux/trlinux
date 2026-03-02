@@ -136,6 +136,7 @@ TYPE
         K3RXPollActive: BOOLEAN;
         KeyboardCWMessage: STRING;
 
+        LastAutoSpotTime: TimeRecord;
         LastDisplayedQSONumber: LONGINT;
         LastDisplayedQSONumberBand: BandType;
         LastFrequency: LONGINT;
@@ -359,6 +360,62 @@ VAR DualingCQState: DualingCQStates;
 
 
 
+PROCEDURE TBSIQ_CreateAndSendPacketSpot (PacketSpotCall: CallString;
+                                         PacketSpotFreq: LONGINT);
+
+{ Very similar to the LOGSUBS2.PAS version }
+
+VAR TempStr1, TempStr2, TempString: Str80;
+
+    BEGIN
+    TempStr1 := PrecedingString  (PacketSpotCall, '/');
+    TempStr2 := PostcedingString (PacketSpotCall, '/');
+
+    IF (TempStr1 = 'CQ') AND StringIsAllNumbers (TempStr2) THEN
+        EXIT;
+
+    IF PacketSpotPrefixOnly THEN
+        PacketSpotCall := GetPrefix (PacketSpotCall)
+    ELSE
+        IF NOT GoodCallSyntax (PacketSpotCall) THEN
+            Exit;
+
+    IF PacketSpotFreq = 0 THEN Exit;
+
+    Str (PacketSpotFreq, TempString);
+
+    Delete (TempString, Length (TempString) - 1, 2);
+    Insert ('.', TempString, Length (TempString));
+
+    TempString := 'DX ' + TempString + ' ' + PacketSpotCall + ' ' + PacketSpotComment;
+
+    IF PacketSpotEditEnable THEN
+        BEGIN
+        TempString := TempString + ' ';
+        SaveSetAndClearActiveWindow (QuickCommandWindow);
+        TempString := LineInput ('Spot = ', TempString, False, False);
+        RestorePreviousWindow;
+        END;
+
+    IF (TempString <> '') AND (TempString <> EscapeKey) THEN
+        BEGIN
+        IF ActivePacketPort <> nil THEN
+            BEGIN
+            SendPacketMessage (TempString + CarriageReturn);
+            QuickDisplay ('Sent to packet : ' + TempString);
+            END
+        ELSE
+            BEGIN
+            SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                              $FF, MultiPacketMessageToSend, TempString + CarriageReturn);
+
+            QuickDisplay ('Sent to packet via network : ' + TempString);
+            END;
+        END;
+    END;
+
+
+
 PROCEDURE TBSIQ_ExchangeRadios;
 
 { Swaps the band/mode/frequency between the two radios }
@@ -514,6 +571,14 @@ VAR Message: STRING;
             ListenToOtherRadio;
             Str (QSONumberForThisQSO, QSONumberString);
             NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
+
+            IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
+                IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
+                    BEGIN
+                    MarkTime (LastAutoSpotTime);
+                    TBSIQ_CreateAndSendPacketSpot (MyCall, Frequency);
+                    END;
+
             LastCQFrequency := Frequency;
             LastCQMode:= Mode;
             END;
@@ -534,6 +599,14 @@ VAR Message: STRING;
             ListenToOtherRadio;
             Str (QSONumberForThisQSO, QSONumberString);
             NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
+
+            IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
+                IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
+                    BEGIN
+                    MarkTime (LastAutoSpotTime);
+                    TBSIQ_CreateAndSendPacketSpot (MyCall, Frequency);
+                    END;
+
             LastCQFrequency := Frequency;
             LastCQMode := Mode;
             END;
@@ -754,42 +827,6 @@ VAR List: CallListRecord;
 
 
 
-PROCEDURE CreateAndSendPacketSpot (PacketSpotCall: CallString;
-                                   PacketSpotFreq: LONGINT);
-
-VAR TempString: Str80;
-
-    BEGIN
-    { Make sure this isn't a CQ Entry in the bandmap }
-
-    IF NOT LooksLikeACallsign (PacketSpotCall) THEN Exit;
-
-    IF PrecedingString  (PacketSpotCall, '/') = 'CQ' THEN
-        Exit;
-
-    IF Length (PacketSpotCall) = 8 THEN
-        IF Copy (PacketSpotCall, 1, 4) = Copy (PacketSpotCall, 5, 4) THEN
-            Exit;
-
-    IF Length (PacketSpotCall) = 10 THEN
-        IF Copy (PacketSpotCall, 1, 5) = Copy (PacketSpotCall, 6, 5) THEN
-            Exit;
-
-    IF Length (PacketSpotCall) = 12 THEN
-        IF Copy (PacketSpotCall, 1, 6) = Copy (PacketSpotCall, 7, 5) THEN
-            Exit;
-
-    Str (PacketSpotFreq, TempString);
-
-    Delete (TempString, Length (TempString) - 1, 2);
-    Insert ('.', TempString, Length (TempString));
-
-    TempString := 'DX ' + TempString + ' ' + PacketSpotCall;
-    SendPacketMessage (TempString + CarriageReturn);
-    END;
-
-
-
 FUNCTION QSOMachineObject.WindowDupeCheck: BOOLEAN;
 
 { Taken from LOGSUBS2.  Returns TRUE if the CallWindow is a dupe.
@@ -811,7 +848,7 @@ VAR MultString: Str40;
         IF Packet.AutoSpotEnable THEN
             IF ActivePacketPort <> nil THEN
                 IF NOT PacketSpotDisable THEN
-                    CreateAndSendPacketSpot (CallWindowString, Frequency);
+                    TBSIQ_CreateAndSendPacketSpot (CallWindowString, Frequency);
 
     IF VisibleLog.CallIsADupe (CallWindowString, Band, Mode) THEN
         BEGIN
@@ -2656,6 +2693,16 @@ VAR Key, ExtendedKey: CHAR;
                                 QSOState := QST_CallingCQ;
                                 Str (QSONumberForThisQSO, QSONumberString);
                                 NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
+
+                                IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
+                                    BEGIN
+                                    IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
+                                        BEGIN
+                                        MarkTime (LastAutoSpotTime);
+                                        TBSIQ_CreateAndSendPacketSpot (MyCall, Frequency);
+                                        END;
+                                    END;
+
                                 LastCQFrequency := Frequency;
                                 LastCQMode := Mode;
                                 END;
@@ -2711,6 +2758,14 @@ VAR Key, ExtendedKey: CHAR;
                                 QSOState := QST_CallingCQ;
                                 Str (QSONumberForThisQSO, QSONumberString);
                                 NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
+
+                               IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
+                                   IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
+                                       BEGIN
+                                       MarkTime (LastAutoSpotTime);
+                                       TBSIQ_CreateAndSendPacketSpot (MyCall, Frequency);
+                                       END;
+
                                 LastCQFrequency := Frequency;
                                 LastCQMode := Mode;
                                 END
@@ -4363,7 +4418,7 @@ VAR FrequencyChange, TempFreq: LONGINT;
             END;
 
     IF LoggedSandPCall <> '' THEN
-        IF ElaspedSec100 (LoggedSAndPCallTime) > 500 THEN
+        IF ElaspedSec100 (LoggedSAndPCallTime) > 30000 THEN
             LoggedSAndPCall := '';
 
     { Get a new reading from the clock }
@@ -5480,7 +5535,7 @@ VAR Distance, Heading, QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                     PacketSpotCall := CallWindowString;
 
                 IF PacketSpotCall <> '' THEN
-                    CreateAndSendPacketSpot (PacketSpotCall, Frequency);
+                    TBSIQ_CreateAndSendPacketSpot (PacketSpotCall, Frequency);
                 END;
 
         ActionRequired := False;

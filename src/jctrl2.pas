@@ -639,6 +639,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       PLF: Packet.PacketLogFileName := QuickEditResponse ('Enter packet log file name (none to disable) : ', 20);
 
+      PRS: Packet.ReceiveSpots := NOT Packet.ReceiveSpots;
+
       PRM: BEGIN
            Inc (PacketReturnPerMinute);
            IF PacketReturnPerMinute > 10 THEN
@@ -932,6 +934,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       SQR: SprintQSYRule        := NOT SprintQSYRule;
       SRP: SwapPacketSpotRadios := NOT SwapPacketSpotRadios;
+      SSE: SelfSpotEnable       := NOT SelfSpotEnable;
+
       SWP: ActiveKeyer.SetSwapPaddles(NOT ActiveKeyer.GetSwapPaddles);
       SWR: SwapRadioRelaySense  := NOT SwapRadioRelaySense;
 
@@ -1252,6 +1256,7 @@ VAR FileWrite: TEXT;
       PDS: WriteLn (FileWrite, Packet.DisplaySpots);
       PF8: WriteLn (FileWrite, Packet.FT8SpotEnable);
       PLF: WriteLn (FileWrite, Packet.PacketLogFileName);
+      PRS: WriteLn (FileWrite, Packet.ReceiveSpots);
 
       PRM: WriteLn (FileWrite, PacketReturnPerMinute);
       PSC: WriteLn (FileWrite, PacketSpotComment); {KK1L: 6.71 Implimented what I started in 6.68}
@@ -1364,6 +1369,7 @@ VAR FileWrite: TEXT;
       SBD: WriteLn (FileWrite, SpaceBarDupeCheckEnable);
       SQR: WriteLn (FileWrite, SprintQSYRule);
       SRP: WriteLn (FileWrite, SwapPacketSpotRadios);
+      SSE: WriteLn (FileWrite, SelfSpotEnable);
       SWP: WriteLn (FileWrite, ActiveKeyer.GetSwapPaddles);
       SWR: WriteLn (FileWrite, SwapRadioRelaySense);
 
@@ -1641,7 +1647,7 @@ VAR TempString: Str40;
       PBP: IF Packet.PacketBeep THEN TempString := 'TRUE';
       PDS: IF Packet.DisplaySpots THEN TempString := 'TRUE';
       PF8: IF Packet.FT8SpotEnable THEN TempString := 'TRUE';
-
+      PRS: IF Packet.ReceiveSpots THEN TempString := 'TRUE';
       PRM: Str (PacketReturnPerMinute, TempString);
       PSC: TempString := PacketSpotComment; {KK1L: 6.71 Implimented what I started in 6.68}
       PKD: IF PacketSpotDisable    THEN TempString := 'TRUE';
@@ -1739,6 +1745,7 @@ VAR TempString: Str40;
 
       SQR: IF SprintQSYRule THEN TempString := 'TRUE';
       SRP: IF SwapPacketSpotRadios THEN TempString := 'TRUE';
+      SSE: IF SelfSpotEnable THEN TempString := 'TRUE';
       SWP: IF ActiveKeyer.GetSwapPaddles THEN TempString := 'TRUE';
       SWR: IF SwapRadioRelaySense THEN TempString := 'TRUE';
 

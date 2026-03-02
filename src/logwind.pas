@@ -749,7 +749,7 @@ VAR
     PacketMessMode:         BOOLEAN;
     PacketReturnCount:      INTEGER;
     PacketReturnPerMinute:  INTEGER;
-    PacketSpotComment:      Str20;   {KK1L: 6.68 Need to change when added to LOGCFG.DAT read.}
+    PacketSpotComment:      Str40;   {KK1L: 6.68 Need to change when added to LOGCFG.DAT read.}
     PendingQTCArray:        PendingQTCArrayPtr;
     PrefixInfoFileName:     Str40;
     PreviousRadioOneFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}

@@ -91,6 +91,7 @@ PROCEDURE SetConfigurationDefaultValues;
 
     Packet.BroadcastAllPacketData  := True;
     Packet.DisplaySpots            := True;
+    Packet.ReceiveSpots            := True;
 
     CallsignUpdateEnable    := False;
     CallWindowPosition      := NormalCallWindowPosition;
@@ -384,6 +385,7 @@ PROCEDURE SetConfigurationDefaultValues;
     SearchAndPounceExchangeR1    := '';
     SearchAndPounceExchangeR2    := '';
 
+    SelfSpotEnable               := False;
     SendAltDSpotsToPacket        := False;
     SendCompleteFourLetterCall   := False;
     SendQSOImmediately           := True;

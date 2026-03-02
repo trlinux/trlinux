@@ -801,6 +801,7 @@ procedure scorereport.setup;
     ELSE IF contest = 'NAQP-$' THEN
         BEGIN
         setdomesticmult ('state');
+        setdxmult ('country');
         END
 
     ELSE IF contest = 'NEWE-QSO-PARTY' THEN
