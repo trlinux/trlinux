@@ -136,7 +136,6 @@ TYPE
         K3RXPollActive: BOOLEAN;
         KeyboardCWMessage: STRING;
 
-        LastAutoSpotTime: TimeRecord;
         LastDisplayedQSONumber: LONGINT;
         LastDisplayedQSONumberBand: BandType;
         LastFrequency: LONGINT;
@@ -285,7 +284,6 @@ TYPE
         END;
 
 VAR
-    EraseDupeQTHCount: INTEGER;
 
     R1KeyboardID: CINT;
     R2KeyboardID: CINT;
@@ -357,62 +355,6 @@ VAR DualingCQState: DualingCQStates;
     LoopCount: INTEGER;
     TestLoopDelayCount: INTEGER;
     TestLoopState:      TestLoopStates;
-
-
-
-PROCEDURE TBSIQ_CreateAndSendPacketSpot (PacketSpotCall: CallString;
-                                         PacketSpotFreq: LONGINT);
-
-{ Very similar to the LOGSUBS2.PAS version }
-
-VAR TempStr1, TempStr2, TempString: Str80;
-
-    BEGIN
-    TempStr1 := PrecedingString  (PacketSpotCall, '/');
-    TempStr2 := PostcedingString (PacketSpotCall, '/');
-
-    IF (TempStr1 = 'CQ') AND StringIsAllNumbers (TempStr2) THEN
-        EXIT;
-
-    IF PacketSpotPrefixOnly THEN
-        PacketSpotCall := GetPrefix (PacketSpotCall)
-    ELSE
-        IF NOT GoodCallSyntax (PacketSpotCall) THEN
-            Exit;
-
-    IF PacketSpotFreq = 0 THEN Exit;
-
-    Str (PacketSpotFreq, TempString);
-
-    Delete (TempString, Length (TempString) - 1, 2);
-    Insert ('.', TempString, Length (TempString));
-
-    TempString := 'DX ' + TempString + ' ' + PacketSpotCall + ' ' + PacketSpotComment;
-
-    IF PacketSpotEditEnable THEN
-        BEGIN
-        TempString := TempString + ' ';
-        SaveSetAndClearActiveWindow (QuickCommandWindow);
-        TempString := LineInput ('Spot = ', TempString, False, False);
-        RestorePreviousWindow;
-        END;
-
-    IF (TempString <> '') AND (TempString <> EscapeKey) THEN
-        BEGIN
-        IF ActivePacketPort <> nil THEN
-            BEGIN
-            SendPacketMessage (TempString + CarriageReturn);
-            QuickDisplay ('Sent to packet : ' + TempString);
-            END
-        ELSE
-            BEGIN
-            SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                              $FF, MultiPacketMessageToSend, TempString + CarriageReturn);
-
-            QuickDisplay ('Sent to packet via network : ' + TempString);
-            END;
-        END;
-    END;
 
 
 
@@ -571,14 +513,6 @@ VAR Message: STRING;
             ListenToOtherRadio;
             Str (QSONumberForThisQSO, QSONumberString);
             NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
-
-            IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
-                IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
-                    BEGIN
-                    MarkTime (LastAutoSpotTime);
-                    TBSIQ_CreateAndSendPacketSpot (MyCall, Frequency);
-                    END;
-
             LastCQFrequency := Frequency;
             LastCQMode:= Mode;
             END;
@@ -599,14 +533,6 @@ VAR Message: STRING;
             ListenToOtherRadio;
             Str (QSONumberForThisQSO, QSONumberString);
             NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
-
-            IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
-                IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
-                    BEGIN
-                    MarkTime (LastAutoSpotTime);
-                    TBSIQ_CreateAndSendPacketSpot (MyCall, Frequency);
-                    END;
-
             LastCQFrequency := Frequency;
             LastCQMode := Mode;
             END;
@@ -827,6 +753,42 @@ VAR List: CallListRecord;
 
 
 
+PROCEDURE CreateAndSendPacketSpot (PacketSpotCall: CallString;
+                                   PacketSpotFreq: LONGINT);
+
+VAR TempString: Str80;
+
+    BEGIN
+    { Make sure this isn't a CQ Entry in the bandmap }
+
+    IF NOT LooksLikeACallsign (PacketSpotCall) THEN Exit;
+
+    IF PrecedingString  (PacketSpotCall, '/') = 'CQ' THEN
+        Exit;
+
+    IF Length (PacketSpotCall) = 8 THEN
+        IF Copy (PacketSpotCall, 1, 4) = Copy (PacketSpotCall, 5, 4) THEN
+            Exit;
+
+    IF Length (PacketSpotCall) = 10 THEN
+        IF Copy (PacketSpotCall, 1, 5) = Copy (PacketSpotCall, 6, 5) THEN
+            Exit;
+
+    IF Length (PacketSpotCall) = 12 THEN
+        IF Copy (PacketSpotCall, 1, 6) = Copy (PacketSpotCall, 7, 5) THEN
+            Exit;
+
+    Str (PacketSpotFreq, TempString);
+
+    Delete (TempString, Length (TempString) - 1, 2);
+    Insert ('.', TempString, Length (TempString));
+
+    TempString := 'DX ' + TempString + ' ' + PacketSpotCall;
+    SendPacketMessage (TempString + CarriageReturn);
+    END;
+
+
+
 FUNCTION QSOMachineObject.WindowDupeCheck: BOOLEAN;
 
 { Taken from LOGSUBS2.  Returns TRUE if the CallWindow is a dupe.
@@ -848,7 +810,7 @@ VAR MultString: Str40;
         IF Packet.AutoSpotEnable THEN
             IF ActivePacketPort <> nil THEN
                 IF NOT PacketSpotDisable THEN
-                    TBSIQ_CreateAndSendPacketSpot (CallWindowString, Frequency);
+                    CreateAndSendPacketSpot (CallWindowString, Frequency);
 
     IF VisibleLog.CallIsADupe (CallWindowString, Band, Mode) THEN
         BEGIN
@@ -872,9 +834,8 @@ VAR MultString: Str40;
         ShowStationInformation (CallWindowString);
         DoPossibleCalls (CallWindowString);
 
-        IF DisplayDupeQTHs THEN
-            IF DisplayDupeStatusForMultipleLocations (CallWindowString, Band, Mode) THEN
-                EraseDupeQTHCount := 10;   { Number of seconds to show the data }
+        { Add the callsign and frequency to the bandmap if we are in
+          Search And Pounce }
 
         IF BandMapEnable AND (QSOState = QST_SearchAndPounce) THEN
             BEGIN
@@ -1859,18 +1820,6 @@ VAR TimeString, FullTimeString, HourString: Str20;
     { Code following this will be exectued once for each new calendar second }
     { The time gets displayed in the upper left corner of the Total Window }
 
-    IF DisplayDupeQTHs THEN
-        IF EraseDupeQTHCount > 0 THEN
-            BEGIN
-            Dec (EraseDupeQTHCount);
-
-            IF EraseDupeQTHCount = 0 THEN
-                BEGIN
-                VisibleLog.ShowRemainingMultipliers;
-                VisibleLog.DisplayGridMap (ActiveBand, ActiveMode);
-                END;
-            END;
-
     WITH Radio1QSOMachine DO
         IF RadioQuickDisplayTimeout > 0 THEN
             BEGIN
@@ -2693,16 +2642,6 @@ VAR Key, ExtendedKey: CHAR;
                                 QSOState := QST_CallingCQ;
                                 Str (QSONumberForThisQSO, QSONumberString);
                                 NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
-
-                                IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
-                                    BEGIN
-                                    IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
-                                        BEGIN
-                                        MarkTime (LastAutoSpotTime);
-                                        TBSIQ_CreateAndSendPacketSpot (MyCall, Frequency);
-                                        END;
-                                    END;
-
                                 LastCQFrequency := Frequency;
                                 LastCQMode := Mode;
                                 END;
@@ -2758,14 +2697,6 @@ VAR Key, ExtendedKey: CHAR;
                                 QSOState := QST_CallingCQ;
                                 Str (QSONumberForThisQSO, QSONumberString);
                                 NewBandMapEntry ('CQ/' + QSONumberString, Frequency, 0, Mode, False, False, BandMapDecayTime, True);
-
-                               IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
-                                   IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
-                                       BEGIN
-                                       MarkTime (LastAutoSpotTime);
-                                       TBSIQ_CreateAndSendPacketSpot (MyCall, Frequency);
-                                       END;
-
                                 LastCQFrequency := Frequency;
                                 LastCQMode := Mode;
                                 END
@@ -3139,19 +3070,6 @@ VAR Key, ExtendedKey: CHAR;
 
             IF ElaspedSec100 (AutoCQFinishTime) >= AutoCQDelayTime THEN
                 BEGIN
-                { Okay...  we had a bug in the 2025 SS CW where I would occasionally
-                  end up sending messages on the wrong radio - especially after I
-                  did an Alt-R and sent some CW by hand.  I initially put some code
-                  here to make damn sure that the active radio was assigned to this
-                  radio instance.  However, that totally ignores the fact that the
-                  CWSendingObject is what is controlling the CW and it will determine
-                  when - and if to send the next message.  This normally seems to
-                  be working as I have seen AutoCQs buffered while the other radio
-                  is done sending a message...  so I don't think I fully understand
-                  the root cause of the failure yet.
-
-                  }
-
                 SendFunctionKeyMessage (AutoCQMemory, Message);
                 ShowCWMessage ('AutoCQ: ' + Message);
                 QSOState := QST_AutoCQCalling;
@@ -4418,7 +4336,7 @@ VAR FrequencyChange, TempFreq: LONGINT;
             END;
 
     IF LoggedSandPCall <> '' THEN
-        IF ElaspedSec100 (LoggedSAndPCallTime) > 30000 THEN
+        IF ElaspedSec100 (LoggedSAndPCallTime) > 500 THEN
             LoggedSAndPCall := '';
 
     { Get a new reading from the clock }
@@ -5535,7 +5453,7 @@ VAR Distance, Heading, QSOCount, CursorPosition, CharPointer, Count: INTEGER;
                     PacketSpotCall := CallWindowString;
 
                 IF PacketSpotCall <> '' THEN
-                    TBSIQ_CreateAndSendPacketSpot (PacketSpotCall, Frequency);
+                    CreateAndSendPacketSpot (PacketSpotCall, Frequency);
                 END;
 
         ActionRequired := False;
@@ -6234,39 +6152,10 @@ VAR Distance, Heading, QSOCount, CursorPosition, CharPointer, Count: INTEGER;
 
                   AltR:
                       BEGIN
-                      { This is probably being pressed if I need to manually transmit
-                        on the inactive radio.  It should basically preform the same
-                        function as pressing the escape key - in that any messages
-                        that are playing or qued up are deleted and then the radio
-                        is swapped so you can transmit either with the paddle or
-                        microphone.  This is trying to clear up a bug I had in the
-                        2025 SS CW where messages from the wrong radio started playing
-                        after using AltR to manually send a message }
-
-                      TBSIQ_CW_Engine.ClearMessages (RadioOne, True);
-                      TBSIQ_CW_Engine.ClearMessages (RadioTwo, True);
-                      ShowTransmitStatus;
-
-                      { Also - if we were doing an AutoCQ of some kind - we should
-                        just turn that off - for both radios }
-
-                      WITH Radio1QSOMachine DO
-                          IF (QSOState = QST_AutoCQCalling) OR (QSOState = QST_AutoCQListening) THEN
-                              QSOState := QST_Idle;
-
-                      WITH Radio2QSOMachine DO
-                          IF (QSOState = QST_AutoCQCalling) OR (QSOState = QST_AutoCQListening) THEN
-                              QSOState := QST_Idle;
-
-                      { Manually swap the radios }
-
                       IF ActiveRadio = RadioOne THEN
                           ActiveRadio := RadioTwo
                       ELSE
                           ActiveRadio := RadioOne;
-
-                      { This is why we need to make sure things are totally stopped as
-                        we are going to switch radios }
 
                       SetUpToSendOnActiveRadio;
                       TBSIQ_CW_Engine.ShowActiveRadio;
@@ -7962,23 +7851,18 @@ PROCEDURE QSOMachineObject.SendFunctionKeyMessage (Key: CHAR; VAR Message: STRIN
     BEGIN
     IF NOT ValidFunctionKey (Key) THEN Exit;
 
-    { It appears that I decided a second press of a function key should be
-      ignored if it happens too quickly after the last one }
-
     IF ElaspedSec100 (LastFunctionKeyTime) < 10 THEN Exit;
+
     MarkTime (LastFunctionKeyTime);
 
     { When doing ExpandCrypticString, a function key is likely to start some
       kind of transmission.  This is okay if both rigs are on CW - or if the
-      other radio is not busy transmitting. The DisableTransmitting function
-      will look at all of the factors and if this key should be ignored, we
-      will go away }
+      other radio is not busy transmitting. }
 
     IF DisableTransmitting THEN Exit;
 
     { If we are dealing with mixed modes - we need to make sure we set
-      things up for the right mode.  Note - this bypasses some of the
-      logic in the CWSendingEngine }
+      things up for the right mode }
 
     IF TBSIQDualMode THEN   { New for TBSIQ }
         BEGIN
@@ -8304,12 +8188,12 @@ VAR LogString: Str80;
 
     REPEAT  { We are going to loop if we have multiple QTHs }
 
-        IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) THEN
-            RXData.QSOPoints := 0
-        ELSE
-            VisibleLog.ProcessMultipliers (RXData);  { Yes! This is in LOGEDIT.PAS }
+        { We used to set the QSO points to zero if this was a dupe - but it
+          will always be a dupe - and we really want to process the mults
+          as well }
 
-        LogString := MakeLogString (RXData);  { Yes!  This is in LOGSTUFF.PAS }
+        VisibleLog.ProcessMultipliers (RXData);  { Yes! This is in LOGEDIT.PAS }
+        LogString := MakeLogString (RXData);     { Yes! This is in LOGSTUFF.PAS }
 
         IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
             Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
@@ -8324,7 +8208,7 @@ VAR LogString: Str80;
         Inc (NumberContactsThisMinute);
         NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + RXData.QSOPoints;
 
-    {   DisplayTotalScore (TotalScore); }
+       {   DisplayTotalScore (TotalScore); }
 
         IF FloppyFileSaveFrequency > 0 THEN
             IF QSOTotals [All, Both] > 0 THEN
@@ -8384,11 +8268,6 @@ VAR LogString: Str80;
     UNTIL False;
     DisplayBandMap;
     END;
-
-
-
-
-
 
 
 
@@ -8540,7 +8419,6 @@ PROCEDURE PaintVerticalLine;
 
 
     BEGIN
-    EraseDupeQTHCount := 0;
     TBSIQ_BandMapFocus := NoRadio;
 
     ResetKeyStatus (RadioOne);

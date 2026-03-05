@@ -62,6 +62,7 @@ TYPE
         AutoSpotEnable:           BOOLEAN;    { If TRUE - any dupecheck in S&P makes spot }
         BroadcastAllPacketData:   BOOLEAN;
 
+        DisplaySpots:             BOOLEAN;
         EightBitPacketPort:       BOOLEAN;
 
         FT8SpotEnable:            BOOLEAN;
@@ -88,7 +89,9 @@ TYPE
         PacketMemoryEnd:          INTEGER;
         PacketMessage:            STRING;
         PacketMessageFromNetwork: Str80;
+        PacketPortCommand:        Str80;
         PacketSpots:              PacketSpotModeType;
+        ReceiveSpots:             BOOLEAN;
 
         PROCEDURE AnalyzePacketString (PacketString: STRING);
 
@@ -176,6 +179,7 @@ TYPE
 VAR Packet: PacketObject;
     PacketSpotKey: CHAR;
     PacketWindowUp: BOOLEAN;
+    SelfSpotEnable: BOOLEAN;
     StartTime: TimeRecord;
     PacketInputFileDelay: INTEGER;
     PacketSpotPrefixOnly: BOOLEAN; {KK1L: 6.72}
@@ -955,6 +959,7 @@ VAR MultString: Str20;
     Mult: BOOLEAN;
 
     BEGIN
+    IF NOT ReceiveSpots THEN Exit;
     IF NOT BandMapEnable THEN Exit;  { New in 2024 - I had it in lots of tests below }
 
     WITH DXSpot DO
@@ -1001,8 +1006,11 @@ PROCEDURE PacketObject.PushPacketSpot (DXSpot: DXSpotType);
             BEGIN
             IF PacketBeep THEN Tone.DoABeep (Single);
 
-            QuickDisplay (SourceCall + ' says ' + Call + ' is on ' + FrequencyString + '  ' + Notes);
-            ReminderPostedCount := 60;
+            IF DisplaySpots THEN
+                BEGIN
+                QuickDisplay (SourceCall + ' says ' + Call + ' is on ' + FrequencyString + '  ' + Notes);
+                ReminderPostedCount := 60;
+                END;
             END;
 
     PushPacketMemory (DXSpot);

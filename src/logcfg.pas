@@ -125,7 +125,7 @@ FUNCTION ConfigurationOkay: BOOLEAN;
 PROCEDURE SetUpGlobalsAndInitialize;
 
 VAR FileWrite: TEXT;
-    Minute: INTEGER;
+    CharPos, Minute: INTEGER;
 
     BEGIN
     WriteLn ('Initializing program..');
@@ -311,6 +311,15 @@ VAR FileWrite: TEXT;
             ActivePacketPort.setparams(Packet.PacketBaudRate,8,NoParity,2)
         ELSE
             ActivePacketPort.setparams(Packet.PacketBaudRate,7,EvenParity,1);
+
+        IF Packet.PacketPortCommand <> '' THEN
+            BEGIN
+            FOR CharPos := 1 TO Length (Packet.PacketPortCommand) DO
+                IF Packet.PacketPortCommand [CharPos] = '|' THEN
+                    SendChar (ActivePacketPort, CarriageReturn)
+                ELSE
+                    SendChar (ActivePacketPort, Packet.PacketPortCommand [CharPos]);
+            END;
         END;
 
     IF ActiveRTTYPort <> nil THEN
@@ -449,12 +458,17 @@ VAR FileWrite: TEXT;
     rig1.setcwreverse(Radio1CwReverse);
     rig2.setcwreverse(Radio2CwReverse);
 
-    if scorerpt.enabled then
-    begin
-       scorerpt.setcall(MyCall);
-       scorerpt.setup;
-       addtimer(@scorerpt.timer);
-    end;
+    { If we have a contest name that score reporter can work with,
+      we will initialize the score reporter even if not currently
+      enabled.  This allows the operator to enable it from the
+      control-J menu and have it all ready to go. }
+
+    IF scorerpt.getcontest <> '' THEN
+        BEGIN
+        scorerpt.setcall(MyCall);
+        scorerpt.setup;
+        addtimer(@scorerpt.timer);
+        END;
 
     ActiveKeyer.debug(keyerdebug);
     InitializeKeyer;
@@ -478,6 +492,9 @@ VAR FileWrite: TEXT;
 
     IF FootSwitchMode = TBSIQSSB THEN
         ArdKeyer.FootSwitch2BSIQSSB;
+
+    IF ActiveKeyer.GetPaddleBug THEN
+        ActiveKeyer.SetPaddleBug (True);
 
     DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
 
@@ -811,6 +828,12 @@ VAR ParameterCount: INTEGER;
             Halt;
             END;
 
+        IF UpperCase (ParamStr (ParameterCount)) = 'KEYBOARDTEST' THEN
+            BEGIN
+            KeyBoardTest;
+            Halt;
+            END;
+
         IF UpperCase (ParamStr (ParameterCount)) = 'LC' THEN
             BEGIN
             Inductance;
@@ -820,6 +843,12 @@ VAR ParameterCount: INTEGER;
         IF UpperCase (ParamStr (ParameterCount)) = 'LOOPBACK' THEN
             BEGIN
             LoopBackTest;
+            Halt;
+            END;
+
+        IF Uppercase (ParamStr (ParameterCount)) = 'NAFILEPRINT' THEN
+            BEGIN
+            K8CCBinFilePrint;
             Halt;
             END;
 

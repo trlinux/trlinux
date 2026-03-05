@@ -54,6 +54,463 @@ TODO List after 2023 WPX CW:
  - Not getting SCP info updated when editing middle of callsign (TBSIQ?)
  - Alt-I seems to work once but not again (TBSIQ?)
 
+ - When changing band - and have a QSO number in the call window - we
+   need to check that back in and get a new number if QSO BY BAND.
+
+ - POST not working with U F with just old .DAT files.
+
+ - If you are in 2BSIQ and only one radio is turned on - you can't use the
+   RETURN key or lots of keys.
+
+TO DO LIST after 2025 CQ WW RTTY:
+
+ - Mults not right in bandmap.
+ - Maybe improve the way messages are defined (CQ exchange versus S&P)
+ - CR and F2 act different in S&P
+ - Mult needs goes away when logged
+
+21-Feb-2025
+ - Attempted to fix SelfSpotEnable in classic UI
+
+12-Dec-2025
+ - Added SELF SPOT ENABLE (.  When TRUE, the program will send self spots every
+   five minutes assuming you are connected to the cluster.
+
+ - Added PACKET RECEIVE SPOTS (default = TRUE).  When FALSE, packet spots are
+   not processed (shown or added to band map).  Useful if you are connected to
+   the cluster to do self spotting but otherwise are unassisted.
+
+20-Nov-2025
+ - Created config command STOP TRANSMISSION PULSE LENGTH to set up the
+   lenth of the PTT pulse to stop a tranmission on the "other" radio
+   when pressing the footswitch in 2BSIQ footswitch mode.  This parameter
+   should be setup before the FOOTSWITCH MODE command - or before entering
+   2BSIQ mode for the footswitch in the ControlJ menu.
+
+4-Nov-2025
+ - After QRMing N5KO in the SS CW with an Auto-CQ that was sent on the
+   wrong radio - I made some changes to essentially made Alt-R execute
+   the functionality of the ESCAPE key - in that any message being sent
+   is stopped - CW cache is cleared for both radios AND if either radio
+   is in AutoCQ mode - that is stopped.  (This was attempted first on
+   4-Nov with a bad fix - updated on 6-November-2025 which will hopefully
+   not feel like a bad fix on 8-Nov).
+
+30-Oct-2025
+ - Introduced a bug in 2BSIQ where dupes are not set to zero points.  This was
+   partially due to wanting to count multiple QTHs for a QSO party correctly.
+   I fixed it so that whenever DisplayDupeQTHs is false - dupes will be flagged
+   as they normally are.
+
+17-Oct-2025
+ - Added DISPLAY DUPE QTHS (control-J) which when enabled will show the QTHs
+   that you have worked a dupe from.  This is most usfeul in state QSO parties
+   when mobiles are changing counties.  If you do a dupe check and you have
+   worked the station before - you will be shown a list of the counties that
+   you have worked them from on the active band/mode in the remaining mults
+   window.  The information there will stay until you log a new QSO.  This is
+   currently only coded in 2BSIQ.
+
+13-Oct-2025
+ - Fixed date format for multiple QSOs in different counties.  Will process the
+   mults too and even correct QSO points in TBSIQ.  QSO points for extra QSOs is
+   still zero in classic UI.
+
+30-Sep-2025
+ - Added function key command TOGGLEHEADPHONESWITCHING.
+
+26-Sep-2025
+ - Eliminated short TX when swapping radios in RTTY
+ - Improved two keyboard initialization when using "usbv2" keyboards (USB3)
+ - Required domestic entry to log QSO in CQ WW RTTY for domestic calls
+
+29-Aug-2025
+ - Added SCRY contest and RSTAndYearExchange (RST AND YEAR) exchange type.  It
+   doesn't do mults or QSO points right - but allows you to log four digit years.
+   Still need to do Cabrillo output.
+
+23-Aug-2025
+ - When working something like the Ohio QSO party - when you work a station
+   that has moved counties - when you log them - it shows zero QSO points
+   AND does not process the multiplier.  There should be a way to fix this.
+   After thinking about this a few minutes - I changed the DupesheetEnable
+   boolean to also make sure IsADupe always returns false.
+
+22-Aug-2025
+ - Cleaned up Ohio QSO Party.
+
+17-Aug-2025
+ - Updated KCJ contest mult list and QSO point methods.  Also fixed up
+   the Cabrillo output.
+
+05-Jul-2025
+ - Fixed CQ VHF QSO point method (was adding one).
+
+15-Jun-2025
+ - Fixed beam headings not showing up as expected for grids in 2BSIQ
+ - Fixed wrong default RSTs when using 2BSIQ and mixed mode.
+
+14-Jun-2025
+ - Fixed issue with grid sqaure mults not being counted after scrolling
+   off top of editable log window.
+
+ - Fixed issue with QSOs with sent RST and only an RS received not having
+   mults counted right after scrolling off the editable window.
+
+28-May-2025
+ - Much work done to improve N1MM+ operation.  Fixed a couple of bugs found during
+   WPX CW - including not sending QSOs to a TRLinux networked computer that came in
+   from N1MM properly (removed spaces at the start which broke having the networked
+   computer properly count the QSO).  Also, TBSIQ was not showing the QSOs made on
+   the other computers (both TRLinux or N1MM+).  This could have been the cause of
+   some dupes getting logged during TBSIQ operation.
+
+ - Created POST U K procedure to basically find any QSOs that were edited in the
+   editable window.  It does this by comparing the QSOs in the .DAT file to the
+   LONGLOG file.  Any unmatched QSOs are saved in small text files (one for the
+   log file and one for the LONGLOG file).
+
+20-May-2025
+ - Cleaned up some N1MM+ and TRLog QSO and scoring issues.
+
+ - Changed behavior of SEND QSO IMMEDIATELY so that it only affects when a
+   QSO is sent to the TRLog network (either when first logged - or when it
+   off the top of the editable log window).
+
+   It no longer affects what is done with a QSO coming in on the network.
+
+   Old behavior would put it into the bottom of the editable log window when
+   received (SEND QSO IMMEDIATELY = TRUE) versus logging it instantly without being
+   put into the editable log window (SEND QSO IMMEDIATELY = FALSE).
+
+   QSOs coming in from either network will now always be instantly logged without
+   going through the editable log window.  They will be displayed in the
+   QuickDisplay window for visibility however.
+
+   Note that QSOs need to be sent to N1MM instantly since that is when
+   we have the frequency info readily available.  You will need to set each
+   of your computers in the TRLog Network to send their QSOs directly to the
+   N1MM computer because of this.
+
+15-May-2025
+ - Some effort to better understand the interaction between using two computers
+   in the TR Network using UDP ports - and also integrating operation with N1MM.
+
+   Currently - it appears that any QSOs coming from N1MM are always pushed into
+   the bottom of the editable call window.  The state of SendQSOImmediately does
+   not appear to enter into the equation.
+
+   Furthermore - I think the default for the TR Network is to send the QSO
+   Immediately.  So QSOs behave differently depending on if they are coming
+   from N1MM or a TRLog source.  This probably sucks.
+
+   Also - I think it means that a QSO that comes in from N1MM to one computer
+   will not show up on the other TRLog networked computer.  I am about to set
+   this all up and see if that is indeed the problem.  I might have worked
+   around this by having N1MM send the QSO to two different places before - but
+   I don't think that is a good way to solve the problem.
+
+   So - sleeping on this... I think we should not put N1MM+ generated QSOs
+   into the editable window.  They should behave just like the program does
+   when SEND QSO IMMEDIATELY is TRUE.  One fine detail might be to flash the
+   QSO in an info window so you can see it (currently that is implemented by
+   the originating computer in the TRLog network using the chat function).
+
+   So - step one - make it so N1MM+ QSOs just get logged without affecting
+   the editable log window.
+
+10-May-2025
+ - Added SO2V to the Contol-J menu.  It is another way to get to the
+   TWO VFO MODE parameter because I couldn't find TWO VFO MODE during
+   the 7QP and SO2V would have been found.  This is not a legal command
+   during the start up process - just an easier way to find TWO VFO MODE
+   in the Control-J menu.
+
+16-April-2025
+ - If a QSO comes in the N1MM port - we will update the QSONumberMatrix to
+   one more than that QSO number for that band.  This only impacts operation
+   when QSO NUMBER BY BAND = TRUE.  If you are in 2BSIQ and that QSO number
+   was displayed and not used - it will update in real time.
+
+   For the classic UI - we will also update the QSO number if the Active Band
+   is the one as the N1MM logged QSO.  Note there is no protection from that
+   QSO number being used like there is in 2BSIQ.
+
+   This will all need some testing in the WPX CW to make sure it works as
+   intended.
+
+
+31-March-2025
+ - Improved the POST U P routine to deal with the extra spaces N1MM puts before
+   the frequency.  NOTE - ADIF from N1MM doesn't work so well with this procedure.
+   The lines are too long.
+
+25-March-2025
+ - This is a change to the Arduino code - but PADDLE BUG ENABLE now works
+   with the SO2R mini.  Also - when enabled, a different set of characters
+   is used to emulate bug sending when sending messages.
+
+6-March-2025
+ - Made F10 (the : key) do something useful in the classic UI when either
+   in RTTY of using the new KY CW ENABLE feature.  You will get a window
+   where you can enter a quick message and it will be sent after you hit
+   ENTER.
+
+5-March-2025
+ - Added KY CW ENABLE which will use the serial port and KY commands to
+   send CW to Kenwood or Elecraft radios.  Note this probably only really
+   is useful in the one radio case without AUTO START SEND and don't get
+   too tricky with tail ending or stuff like that.  No Keyboard CW yet.
+
+1-March-2025 (updated 23 March 2025)
+ - Function Key Memories are now stored by radio.  When using Alt-P, you
+   will be shown the memories for the ActiveRadio (or in TBSIQ - for the
+   radio that corresponds to the keyboard being used).  Changes made with
+   Alt-P will only be made to the specific radio.
+
+   Backwards compatability is maintained for the old LOGCFG commands that do
+   not specify a radio.  They will be loaded in for both radios.
+
+   For the config commands - the old ones look like this:
+
+   EX MEMORY F1 = xxxxx
+   EX CW MEMORY F1 = xxxxx
+   EX SSB MEMORY F1 = xxxxx
+   EX DIGITAL MEMORY F1 = xxxxx
+
+   and the radio specific ones look like this:
+
+   (Fixed March-23-2025 - had the RADIO before MEMORY)
+
+   EX MEMORY RADIO1 AltF1 = xxxx
+   EX CW MEMORY RADIO1 F1 = xxxxx
+   EX SSB MEMORY RADIO1 F1 = xxxxx
+   EX DIGITAL MEMORY RADIO2 F1 = xxxxx
+
+   The same applies to the various message in the (O)ther memories such
+   as QSL MESSAGE.
+
+   QSL MESSAGE = xxxx   <- will program both Radio1 and Radio2
+   QSL MESSAGE RADIO1 = xxxx
+   QSL MESSAGE RADIO2 = yyyy
+
+   As always - you have to be careful with the order of commands in
+   the STDCFG and LOGCFG files.  Doing this will not likely give you
+   what you want:
+
+   TAIL END MESSAGE RADIO1 = xxx
+   TAIL END MESSAGE = yyy           <- This will be for both radios
+
+20-Feb-2025
+ - Deleted some obsolete routines in the Post Log menu.
+
+19-Feb-2025
+ - A few changes to the RST And Power exchange.  Zeros are no longer
+   used to determine if a string looks like an RST (this actually
+   affects any exchange that uses RST).  Also - if you enter something
+   like 100 100 (where the first 100 came from the exchange memory),
+   it will just log it as 100 with the default RST instead of making
+   the RST 100.  I guess that is only an issue now if the power looks
+   like a valid RST like 555 or something like that.
+
+09-Feb-2025
+ - Added support for F10 in 2BSIQ for RTTY.  Currently - no feedback
+   of your message - you just type it and hit RETURN and it will
+   start.  I couldn't figure out how to send individual characters
+   and make it work for some reason.  Note that there is no support
+   in classic UI for this.
+
+08-Feb-2025
+ - Worked on improving behavior of QSONumberByBand with TBSIQ mode.
+   If you change bands - it will return the old QSO Number and get
+   a new correct one for the band.  Previously - it didn't update the
+   number, so you would send the one from the previous band.
+
+07-Feb-2025
+ - Fixed bug in RTTY serial numbers where the number was always
+   sent twice per #.
+
+06-Feb-2025
+ - Added NS LADDER contest.  Basically the NA SPRINT with MultiByBand set to true
+
+18-Jan-2025
+ - Fixed issue with PACKET SPOT key.
+ - At some point, I made Control-End work in TBSIQ mode.
+
+15-Dec-2024
+ - Fixed @ not updating CallsignICameBackTo in classic UI
+
+13-Dec-2024
+ - Rearmed Auto Start Sending if CQ called (F1 or F2) in classic UI.
+
+12-Dec-2024
+ - Added new commands to output band/frequency information to the network
+   using UDP packets.
+
+     BAND OUTPUT UDP IP = 192.168.1.101
+     BAND OUTPUT UDP PORT = xxxx
+     BAND OUTPUT UPDATE SECONDS = xxxx  (default is 5 seconds)
+
+  A packet will be sent that looks like this:
+
+      TRBAND,1,160,1814,2,40,7035
+
+  If a VFO is moved - an update will be sent instantly (well - in classic
+  mode it is instant - in 2BSIQ mode - it might take a second maximum)
+
+23-Nov-2024
+ - Fixed crash when using TBSIQ and a network QSO comes over.
+
+16-Nov-2024
+ - Supported function key command EXCHANGERADIOS in 2BSIQ.
+
+ - Made check coming from TRMASTER have a leading zero if only one
+   character.  Also removed space after check.
+
+ - Added PACKET PORT COMMAND which lets you define a string to start
+   up your cluster connection.  A | character will be handled as a
+   carriage return.  Typical string might be telnet dxc.wc2l.com
+   7373|N6TR.
+
+ - Made bandmap blinking call in call window go away when tuning away
+   when that call was put there with a Control-End execution.
+
+ - When making S&P QSO - Alt-Return would try to send an exchange before
+   logging the QSO.  Removed that.
+
+ - Improved ControlEnter operation in S&P mode.
+
+09-Nov-2024
+ - Improved 2BSIQ behavior when using ESCAPE in the middle of a
+   CQ Mode QSO.  Before - you could end up stuck in the exchange
+   window.
+
+- Fixed PartialCallAcceptKey not working when in call window in
+  2BSIQ.
+
+01-Nov-2024
+ - Removed LogBadQSOString because I just don't see what it is doing - or
+   why it should ever do anything.  See commeted code in LOGSTUFF.PAS in
+   MakeLogString.
+
+ - Changed how the default received RS/RST is determined in the process
+   exchange subroutines.  Instead of relaying on the global variable
+   ActiveMode - which could be wrong in some TBSIQ situations - the mode
+   is now read from the contest exchange data structure - which will always
+   have the correct mode in it.  This hopefully eliminates the bug where
+   occasionally we get SSB QSOs with 599 as the received RST.
+
+ - Added PACKET DISPLAY SPOTS config command (also in Control-J) to turn
+   off the contstant displaying of incoming packet spots.  When using
+   skimmer spots on CW - they are very distracting.
+
+31-Oct-2024
+ - Fixed S/N getting incremented when using SPACE BAR to call station while
+   in CQ mode - going into S&P mode.
+
+25-Oct-2024 (during CQ WW SSB)
+ - Put Band Map Mults Only back into Control-J - it seems to work.
+ - Painted new bandmap when logging a QSO so mults were up to date.  BUT
+   What I really need is a recalculate function!
+
+17-Oct-2024
+ - Implemented Control-End key for 2BSIQ case.
+
+12-Oct-2024
+ - Made Control-End get into the packet window in TBSIQ - however if you
+   select a call and hit RETURN - things are not working yet.
+
+11-Oct-2024
+ - Changed QSONumber and DomesticQTH exchagne to require a QSO number
+   and not default to one if none is entered.
+
+10-Oct-2024
+ - Added ability to enter multiple domestic QTHs in the exchange window
+   using the / character between them.  They currently are logged with
+   no QSO points - but the multiplier flagging works.  This works in
+   both Classic UI and TBSIQ.
+
+02-Oct-2024
+ - Added the score reporter category fields to the control-J menu.  This
+   allows for you to set them up quickly for the contest you are running
+   instead of having to edit your config file.  Also - the score reporter
+   contest name and multiplier configuration is automatically derived
+   from the MY CONTEST statement.  For those contest names that include
+   a mode (like CQ-WW-CW) - the mode will be appended at the time the
+   score report is generated based upon the active mode.
+
+   The legal values are in the score reporter specification here:
+
+   blog.contestonlinescore.com/online-scoring-xml-specification/
+
+   The legal values are:
+
+   CATEGORY ASSISTED     (ASSISTED, NON-ASSISTED)
+   CATEGORY BAND         (ALL, 160M, 80M, 40M, 20M, 15M, 10M)
+   CATEGORY MODE         (CW, DIGI, RTTY, SSB, PSK, FT8, FT4, MIXED)
+   CATEGORY OPERATOR     (SINGLE-OP, MULTI-ONE, MULTI-TWO, MULTI-MULTI)
+   CATEGORY POWER        (HIGH POWER, LOW POWER, QRP)
+   CATEGORY TRANSMITTER  (ONE, TWO, UNLIMITED)
+   CATEGORY OVERLAY      (CLASSIC, ROOKIE, TB-WIRES, WIRE-ONLY)
+
+29-Sep-2024
+ - Made SCORE REPORT ENABLE available on the Control-J menu.
+
+24-Sep-2024
+ - More Salmon run domestic file cleanup - added all of the VE mults.  Also
+   fixed issues with PE and MA.
+
+ - Fixed NORMAL PTT mode not working.
+
+19-Sep-2024
+ - Changed Salmon Run QSO point method to 3 CW and 2 SSB and fixed mult by mode.
+
+13-Sep-2024
+ - Added SST contest.
+
+11-Sep-2024
+ - Fixed QSO points not being present on log entries pushed up out of the
+   editable window - thus you are only getting QSO points in the editable
+   window towards your TotalScore.  This bug was introduced in August 2024.
+
+10-Sep-2024
+ - Lots of work with the bandmap and visible dupesheet focus in TBSIQ.  Seems
+   to work much better now. Also added display to the visible dupesheet showing
+   which band/mode is displayed (in lower right corner).
+
+ - Fixed missing space after initial exchange put in exchange window.  Also
+   fixed showing multiplier status if possible.
+
+09-Sep-2024 (after CW Sprint)
+ - In TBSIQ - any keystroke pressed on the incative radio when AUTO START SENDING
+   was active on the active radio are not processed until the auto start is done.
+   Now - an ESCAPE KEY will get processed right away (to stop sending CW so you
+   can come back to the station ASAP).
+
+25-Aug-2024
+ - Added up NAFILEWRITE startup command which will create an ADIF file out
+   of a NA bin file.  Currently forcing the mode to CW.
+
+13-Aug-2024
+ - Fixed bug with hexdump utility not printing out the 4 MSBs of hex values.
+
+11-Aug-2024
+ - When reading in a log that has frequency data in the QSO number field -
+   the program will just count the QSOs and use that as the QSO totals
+   for generatring QSO numbers instead of the high QSO number sent.
+
+10-Aug-2024
+ - Removed MULTI MULTS ONLY command.
+
+ - Fixed DX mults showing up twice in NAQP log entries
+
+ - Fixed DX mults not showing up after scrolling out of the editable log window.
+
+7-Aug-2024
+ - Changed AUTO SIDETONE ENABLE to AUTO SIDETONE LEVEL where zero will disable the
+   feature and anything above zero will be the monitor level that will be used
+   when sending paddle CW.  Again, this only will work with K3/K4 radios.
+
 Release 0.60 - June 20, 2024 > 16-Jul-2024
 
 16-Jul-2024
@@ -79,7 +536,7 @@ Release 0.60 - June 20, 2024 > 16-Jul-2024
    There are status messages on both sides of the request/response with time stamps
    to provide visability on what is actually happening.
 
- - Added PING command ih the call window.  Enter PING and RETURN and see if there
+ - Added PING command in the call window.  Enter PING and RETURN and see if there
    is someone answering you on the other side of the network.  The delay time only
    has 10 ms resolution - so is typically shown as zero.  This is non blocking, so
    if there is no response - life goes on.
@@ -158,7 +615,11 @@ Release 0.60 - June 20, 2024 > 16-Jul-2024
     first computer.
 
 08-Jan-2024
- - Some minor fixes to using RTTY in 2BSIQ mode.
+ - Some minor fixes to using RTTY in 2BSIQ mode.  Note that you will need to program
+   your S&P F1 message and F2 manually (not usint Alt-P O).  Also - same for the CQ
+   EXCHANGE which will end up being the same as your S&P exchange.  For 2BSIQ, you
+   will need to program each radio (EX DIGITAL MEMORY RADIO1).
+
  - Added MST contest.
 
 24-Dec-2023
@@ -4047,7 +4508,7 @@ FUNCTION ParametersOkay (Call: CallString;
   the multiplier is switched on.                                        }
 
 VAR I: INTEGER;
-    TempString: Str80;
+    CorrectedCall, SentRST: Str80;
     Hours, Minutes, Seconds, Hundreths: Word;
 
     BEGIN
@@ -4085,19 +4546,16 @@ VAR I: INTEGER;
     { Need this in case we exit soon }
 
     RData.Callsign := Call;
-
     IF (ExchangeString = '') AND NOT (ActiveExchange = RSTNameAndQTHExchange) THEN Exit;
 
-    RData.Callsign := GetCorrectedCallFromExchangeString (ExchangeString);
+    SentRST := GetSentRSTFromExchangeString (Mode, ExchangeString);
+    IF SentRST <> '' THEN RData.RSTSent := TempString;
 
-    TempString := GetSentRSTFromExchangeString (ExchangeString);
+    CorrectedCall := GetCorrectedCallFromExchangeString (ExchangeString);
 
-    IF TempString <> '' THEN RData.RSTSent := TempString;
-
-    IF RData.Callsign = '' THEN
-        RData.Callsign := Call
-    ELSE
+    IF CorrectedCall <> '' THEN
         BEGIN
+        RData.Callsign := CorrectedCall;
         CallWindowString := RData.Callsign;
         SaveAndSetActiveWindow (CallWindow);
         ClrScr;
@@ -4149,7 +4607,11 @@ VAR I: INTEGER;
         GetRidOfPostcedingSpaces (ExchangeString);
 
         ParametersOkay := True;
+
+        { Can someone remember what this is doing? }
+
         LogBadQSOString := ExchangeString;
+
         CalculateQSOPoints (RData);
         Exit;
         END;
@@ -4161,10 +4623,10 @@ VAR I: INTEGER;
         Exit;
         END;
 
-    RData.Time       := Hours * 100 + Minutes;
-    RData.Band       := Band;
-    RData.Mode       := Mode;
-    RData.Frequency  := Freq;
+    RData.Time        := Hours * 100 + Minutes;
+    RData.Band        := Band;
+    RData.Mode        := Mode;
+    RData.Frequency   := Freq;
 
     IF RData.RSTSent = '' THEN
         IF ActiveMode = Phone THEN RData.RSTSent := LogRSSent

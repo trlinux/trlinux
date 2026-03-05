@@ -29,12 +29,12 @@ UNIT LogDupe;
 INTERFACE
 
 USES LogDom, trCrt, Dos, SlowTree, Tree, Country9, ZoneCont, LogWind,
-     LogHelp, radio, LogSCP, LogK1EA;
+     LogHelp, radio, LogSCP, LogK1EA, scorereporter;
 
 
 
 CONST
-    DomesticMultArraySize          =  400;
+    DomesticMultArraySize          =  1000;
     DXMultArraySize                =  500;
     MaxAllCalls                    = 7000;
     MaxGridSquaresInList           =   40;
@@ -55,6 +55,127 @@ CONST
     MaxPartialCallBlocks = 100;
 
 TYPE
+
+   { This stuff is all here but is really for the scorereporter.  You can
+     find the spec that it depends on at
+
+   blog.contestonlinescore.com/online-scoring-xml-specification  }
+
+   CategoryAssistedType = (NoCategoryAssistedType,  { means nothing goes out }
+                           AssistedType,
+                           NonAssistedType);
+
+   CategoryBandType     = (NoCategoryBandType,
+                           AllBandType,
+                           SingleBand160Type,
+                           SingleBand80Type,
+                           SingleBand40Type,
+                           SingleBand20Type,
+                           SingleBand15Type,
+                           SingleBand10Type);
+
+    CategoryModeType    = (NoCategoryModeType,   { nothing goes out }
+                           CWModeType,
+                           DigiModeType,
+                           RTTYModeType,
+                           SSBModeType,
+                           PSKModeType,
+                           FT8ModeType,
+                           FT4ModeType,
+                           MixedModeType);
+
+   CategoryOperatorType = (NoCategoryOperatorType,
+                           SingleOperatorType,
+                           MultiOneOperatorType,
+                           MultiTwoOperatorType,
+                           MultiMultiOperatorType);
+
+   CategoryPowerType    = (NoCategoryPowerType,   { nothing goes out }
+                           HighPowerType,
+                           LowPowerType,
+                           QRPPowerType);
+
+    CategoryTransmitterType = (NoCategoryTransmitterType, { nothing goes out }
+                               OneTransmitterType,
+                               TwoTransmitterType,
+                               UnlimitedTransmitterType);
+
+    CategoryOverlayType = (NoCategoryOverlayType,         { nothing goes out }
+                           ClassicOverlayType,
+                           RookieOverlayType,
+                           TBWiresOverlayType,
+                           WireOnlyOverlayType);
+
+CONST
+
+    CategoryAssistedStringList: ARRAY [CategoryAssistedType] OF STRING [20] =
+                                  ('NO CATEGORY ASSISTED',
+                                   'ASSISTED            ',
+                                   'NON-ASSISTED        ');
+
+    CategoryBandStringList: ARRAY [CategoryBandType] OF STRING [16] =
+                              ('NO CATEGORY BAND',
+                               'ALL             ',
+                               '160M            ',
+                               '80M             ',
+                               '40M             ',
+                               '20M             ',
+                               '15M             ',
+                               '10M             ');
+
+    CategoryModeStringList: ARRAY [CategoryModeType] OF STRING [16] =
+                              ('NO CATEGORY MODE',
+                               'CW              ',
+                               'DIGI            ',
+                               'RTTY            ',
+                               'SSB             ',
+                               'PSK             ',
+                               'FT8             ',
+                               'FT4             ',
+                               'MIXED           ');
+
+
+    { The scorereporter spec says that some loggers use MULTI-ONE and
+      MULTI-TWO.  I have gone that route here for now }
+
+    CategoryOperatorStringList: ARRAY [CategoryOperatorType] OF STRING [20] =
+                                  ('NO CATEGORY OPERATOR',
+                                   'SINGLE-OP           ',
+                                   'MULTI-ONE           ',
+                                   'MULTI-TWO           ',
+                                   'MULTI-OP            ');
+
+    CategoryPowerStringList: ARRAY [CategoryPowerType] OF STRING [17] =
+                               ('NO CATEGORY POWER',
+                                'HIGH POWER       ',
+                                'LOW POWER        ',
+                                'QRP              ');
+
+    CategoryTransmitterStringList: ARRAY [CategoryTransmitterType] OF STRING [23] =
+                                     ('NO CATEGORY TRANSMITTER',
+                                      'ONE                    ',
+                                      'TWO                    ',
+                                      'UNLIMITED              ');
+
+    CategoryOverlayStringList: ARRAY [CategoryOverlayType] OF STRING [19] =
+                                 ('NO CATEGORY OVERLAY',
+                                  'CLASSIC            ',
+                                  'ROOKIE             ',
+                                  'TB-WIRES           ',
+                                  'WIRE-ONLY          ');
+
+TYPE
+
+   CategoryRecord = RECORD      { Used for score reporter - almost Cabrillo }
+       CategoryAssisted:    CategoryAssistedType;
+       CategoryBand:        CategoryBandType;
+       CategoryMode:        CategoryModeType;
+       CategoryOperator:    CategoryOperatorType;
+       CategoryPower:       CategoryPowerType;
+       CategoryTransmitter: CategoryTransmitterType;
+       CategoryOverlay:     CategoryOverlayType;
+       END;
+
     ExchangeInformationRecord = RECORD
         Age:           BOOLEAN;
         Chapter:       BOOLEAN;
@@ -70,6 +191,7 @@ TYPE
         RandomChars:   BOOLEAN;
         RST:           BOOLEAN;
         TenTenNum:     BOOLEAN;
+        Year:          BOOLEAN;
         Zone:          BOOLEAN;
         ZoneOrSociety: BOOLEAN;
         END;
@@ -99,6 +221,7 @@ TYPE
           Frequency:      LONGINT;
           InhibitMults:   BOOLEAN;
           Kids:           Str40;                      { Used for whole ex string }
+          LeftOverQTH:    Str40;                      { Gets set if / found in QTH data }
           Mode:           ModeType;
           Name:           Str20;
           NameSent:       BOOLEAN;
@@ -125,6 +248,7 @@ TYPE
           TenTenNum:       LONGINT;
           Time:            INTEGER;                   { INTEGER time }
           TimeSeconds:     INTEGER;                   { Use with Time to get more resolution }
+          Year:            Str20;                     { Four digit year in SCRY }
           Zone:            ZoneMultiplierString;
           ZoneMult:        BOOLEAN;
           END;
@@ -274,8 +398,10 @@ VAR
     AutoDupeEnableSAndP:    BOOLEAN;
 
     CallsignUpdateEnable:   BOOLEAN;
+    Category:               CategoryRecord;    { Set in ControlJ or LOGCFG }
     CountDomesticCountries: BOOLEAN;
 
+    DisplayDupeQTHs:         BOOLEAN;
     DoingDomesticMults:      BOOLEAN;
     DoingDXMults:            BOOLEAN;
     DoingPrefixMults:        BOOLEAN;
@@ -321,6 +447,7 @@ VAR
                           RemainingMultiplierType] OF RemainingMultListPointer;
 
     RestartVersionNumber: Str20;
+
     SingleBand: BandType;
     StartHour, StartMinute, StartSecond, StartSec100: WORD;
 
@@ -341,7 +468,7 @@ VAR
     PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     PROCEDURE ConvertBigEntryAddressToFourBytes (EntryPointer: INTEGER; VAR BigEntry: FourBytes);
     PROCEDURE CreateGridSquareList (Call: CallString; Band: BandType);
-
+    FUNCTION  DisplayDupeStatusForMultipleLocations (Callsign: CallString; Band: BandType; Mode: ModeType): BOOLEAN;
     PROCEDURE DupeInit;
     FUNCTION  FindProperAllCallListAddress (Call: CallString): INTEGER;
     FUNCTION  FoundDomesticQTH (VAR RXData: ContestExchange): BOOLEAN;
@@ -361,6 +488,8 @@ VAR
     PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
                                         VAR ExchangeInformation: ExchangeInformationRecord
                                         );
+
+    PROCEDURE TransferCategoryInformationIntoScoreReporterData;
 
     PROCEDURE WriteAllFile;
 
@@ -451,14 +580,13 @@ FUNCTION FoundDomesticQTH (VAR RXData: ContestExchange): BOOLEAN;
 VAR QTHString: Str40;
 
     BEGIN
-    FoundDomesticQTH := False;
-
-    IF RXData.QTHString = '' THEN Exit;
+    IF RXData.QTHString = '' THEN
+        BEGIN
+        FoundDomesticQTH := False;
+        Exit;
+        END;
 
     QTHString := UpperCase (RXData.QTHString);
-
-    IF StringHas (QTHString, '/') THEN QTHString := PrecedingString (QTHString, '/');
-
     GetRidOfPrecedingSpaces (QTHString);
     GetRidOfPostcedingSpaces (QTHString);
 
@@ -697,6 +825,7 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     Exchange.Frequency        := 0;
     Exchange.InhibitMults     := False;
     Exchange.Mode             := NoMode;
+    Exchange.LeftOverQTH      := '';
     Exchange.Name             := '';
     Exchange.NameSent         := False;
     Exchange.NumberReceived   := -1;
@@ -728,6 +857,7 @@ PROCEDURE ClearContestExchange (VAR Exchange: ContestExchange);
     Exchange.TenTenNum       := -1;
     Exchange.Time            := -1;
     Exchange.TimeSeconds     := -1;
+    Exchange.Year            := '';
     Exchange.Zone            := '';
     Exchange.ZoneMult        := False;
     END;
@@ -1880,13 +2010,21 @@ VAR NumberMults: INTEGER;
     IF (ContestName = 'CWT') OR (ContestName = 'CWO') OR (ContestName = 'MST') THEN
         RXData.DomMultQTH := Copy (RXData.Callsign, 1, 6)
     ELSE
-        BEGIN
-        IF RXData.DomesticQTH = '' THEN
-            RXData.DomesticQTH := RXData.QTHString;
+        { In Aug 2024 - we only did this if it was a
+          DomesticCountryCall.  This broke mults in the VHF
+          contest where we don't have any domestic countries
+          enabled.  Changed it in June 2025 so if I am only doing
+          domestic mults, that it always executed the code }
 
-        IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
-            RXData.DomMultQTH := RXData.DomesticQTH;
-        END;
+        IF DomesticCountryCall (RXData.Callsign) OR
+          (DoingDomesticMults AND NOT DoingDXMults) THEN
+               BEGIN
+               IF RXData.DomesticQTH = '' THEN
+                   RXData.DomesticQTH := RXData.QTHString;
+
+               IF (RXData.DomMultQTH = '') AND (RXData.DomesticQTH <> '') THEN
+                   RXData.DomMultQTH := RXData.DomesticQTH;
+               END;
 
     { We do not count countries in WRTC if we have a domestic mult }
 
@@ -1897,7 +2035,9 @@ VAR NumberMults: INTEGER;
         NumberMults := MultSheet.Totals [MultBand, MultMode].NumberDomesticMults;
 
         IF NumberMults = 0 THEN
-            RXData.DomesticMult := True
+            BEGIN
+            RXData.DomesticMult := True;
+            END
         ELSE
             BEGIN
             IF StringHas (RXData.DomMultQTH, '/') THEN
@@ -1960,6 +2100,7 @@ VAR NumberMults: INTEGER;
                 RXData.ZoneMult := True;
             END;
         END;
+
     END;
 
 
@@ -2365,7 +2506,6 @@ VAR FileRead: TEXT;
 
                 { Here we are getting exchange data from the log entries }
 
-
                 IF SingleBand <> All THEN
                     IF TempRXData.Band <> SingleBand THEN
                         QSOPoints := 0;
@@ -2584,6 +2724,12 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
             ExchangeInformation.Zone := True;
             END;
 
+        RSTAndYearExchange:
+            BEGIN
+            ExchangeInformation.RST := True;
+            ExchangeInformation.Year := True;
+            END;
+
         RSTQTHExchange,
         RSTDomesticOrDXQTHExchange:
             BEGIN
@@ -2596,6 +2742,13 @@ PROCEDURE SetUpExchangeInformation (ActiveExchange: ExchangeType;
             BEGIN
             ExchangeInformation.RST := True;
             ExchangeInformation.QTH := True;
+            END;
+
+        RSTDomesticQTHOrZoneExchange:
+            BEGIN
+            ExchangeInformation.RST := True;
+            ExchangeInformation.QTH := True;
+            ExchangeInformation.Zone := True;
             END;
 
         RSTDomesticQTHOrQSONumberExchange:
@@ -2688,7 +2841,7 @@ FUNCTION ParseLogEntryIntoContestExchange (LogEntry: STRING;
   the ContestExchange record as best it can from the Log Entry with the
   intention of adding it to the sheets (after setting mult flags). }
 
-VAR OriginalString, ExchangeString: Str80;
+VAR ExchangeString: STRING;
     RSTTestString, FirstString, SecondString: Str40;
 
     BEGIN
@@ -2705,6 +2858,7 @@ VAR OriginalString, ExchangeString: Str80;
     RXData.Band      := GetLogEntryBand      (LogEntry);
     RXData.Mode      := GetLogEntryMode      (LogEntry);
     RXData.QSOPoints := GetLogEntryQSOPoints (LogEntry);
+
     RXData.Date      := GetLogEntryDateString  (LogEntry);
     RXData.Time      := GetLogEntryIntegerTime (LogEntry);
 
@@ -2719,14 +2873,14 @@ VAR OriginalString, ExchangeString: Str80;
 
     LocateCall (RXData.Callsign, RXData.QTH, True);
 
-    { This maybe isn't necessary - but just to be sure }
+    { Copy some stuff to where we look for it }
 
     RXData.Prefix := RXData.QTH.Prefix;
+    GetDXQTH (RXData);                   { Fix WAE no country mults Aug2024 }
 
     { Now - we start looking at the exchange data and parse it out }
 
     ExchangeString := GetLogEntryExchangeString (LogEntry);
-    OriginalString := ExchangeString;
 
     IF ExchangeInformation.RST THEN
         BEGIN
@@ -2739,8 +2893,16 @@ VAR OriginalString, ExchangeString: Str80;
         RSTTestString := GetFirstString (ExchangeString);
 
         IF StringIsAllNumbers (RSTTestString) THEN
-            IF Length (RSTTestString) = Length (RXData.RSTSent) THEN
+            IF (Length (RSTTestString) = 2) OR (Length (RSTTestString) = 3) THEN
                 RXData.RSTReceived := RemoveFirstString (ExchangeString);
+        END;
+
+    { For SCRY test }
+
+    IF ActiveExchange = RSTAndYearExchange THEN
+        BEGIN
+        RXData.Year := RemoveFirstString (ExchangeString);
+        Exit;
         END;
 
     IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN {KK1L: 6.70 for FISTS funny exchange}
@@ -2812,6 +2974,8 @@ VAR OriginalString, ExchangeString: Str80;
 
     IF ExchangeInformation.Zone AND StringIsAllNumbers (GetFirstString (ExchangeString)) THEN
         RXData.Zone := RemoveFirstString (ExchangeString);
+
+    { We might get in trouble here if someone entered a DX prefix as a QTH in the NAQP }
 
     IF ExchangeInformation.QTH THEN
         IF ExchangeString <> '' THEN
@@ -2897,6 +3061,14 @@ VAR QString, TString, TempString: Str40;
             Exit;
             END;
 
+        { For SCRY test }
+
+        IF ActiveExchange = RSTAndYearExchange THEN
+            BEGIN
+            GetInitialExchangeStringFromContestExchange := Year;
+            Exit;
+            END;
+
         IF ActiveExchange = RSTAllJAPrefectureAndPrecedenceExchange THEN
             BEGIN
             GetInitialExchangeStringFromContestExchange := Precedence + ' ' + QTHString;
@@ -2956,7 +3128,10 @@ VAR QString, TString, TempString: Str40;
                         IF TempString = '' THEN
                             TempString := QString
                         ELSE
-                            TempString := TempString + ' ' + QString;
+                            IF ActiveExchange <> QSONumberPrecedenceCheckDomesticQTHExchange THEN
+                                TempString := TempString + ' ' + QString
+                            ELSE
+                                TempString := TempString + QString;
             END;
 
         IF ExchangeInformation.Power THEN
@@ -2988,6 +3163,231 @@ VAR Address: INTEGER;
     Close (FileWrite);
     END;
 
+
+
+PROCEDURE TransferCategoryInformationIntoScoreReporterData;
+
+{ This procedure is kind of a band aid to take the CATEGORY fields (which are
+  really Cabrillo-ish) and use that data to set the proper configuration of
+  the score reporter.  This should be called whenever a change is made to any
+  of the CATEGORY fields.  It should be called before generating an XML
+  score report.
+
+  There are some minor differences between the score reporter spec
+  and Cabrillo - primarily in the OVERLAY category.  Since I really don't use
+  the CATEGORY field for Cabrillo, we will make the CATEGORY fields align with
+  the score reporter spec.  }
+
+    BEGIN
+    WITH Category DO
+        BEGIN
+        CASE CategoryAssisted OF
+            NoCategoryAssistedType: scorerpt.setclassassisted ('');
+            AssistedType:           scorerpt.setclassassisted ('ASSISTED');
+            ELSE                    scorerpt.setclassassisted ('NON-ASSISTED');
+            END;  { of CASE CategoryAssisted }
+
+        CASE CategoryBand OF
+            NoCategoryBandType: scorerpt.setclassbands ('');
+            SingleBand160Type:  scorerpt.setclassbands ('160M');
+            SingleBand80Type:   scorerpt.setclassbands ('80M');
+            SingleBand40Type:   scorerpt.setclassbands ('40M');
+            SingleBand20Type:   scorerpt.setclassbands ('20M');
+            SingleBand15Type:   scorerpt.setclassbands ('15M');
+            SingleBand10Type:   scorerpt.setclassbands ('10M');
+            ELSE                scorerpt.setclassbands ('ALL');
+            END;  { of CASE CategoryBand }
+
+       CASE CategoryMode OF
+           NoCategoryModeType: scorerpt.setclassmode ('');
+           CWModeType:         scorerpt.setclassmode ('CW');
+           DigiModeType:       scorerpt.setclassmode ('DIGI');
+           RTTYModeType:       scorerpt.setclassmode ('RTTY');
+           SSBModeType:        scorerpt.setclassmode ('PH');
+           PSKModeType:        scorerpt.setclassmode ('PSK');
+           FT8ModeType:        scorerpt.setclassmode ('FT8');
+           FT4ModeType:        scorerpt.setclassmode ('FT4');
+           ELSE                scorerpt.setclassmode ('MIXED');
+           END;
+
+       { No checklog indicator for Scoreboard - and we can't leave it blank }
+
+       CASE CategoryOperator OF
+           NoCategoryOperatorType: scorerpt.setclassops ('');
+           SingleOperatorType:     scorerpt.setclassops ('SINGLE-OP');
+           MultiOneOperatorType:   scorerpt.setclassops ('MULTI-ONE');
+           MultiTwoOperatorType:   scorerpt.setclassops ('MULTI-TWO');
+           MultiMultiOperatorType: scorerpt.setclassops ('MULTI-MULTI');
+           END;
+
+       CASE CategoryPower OF
+           NoCategoryPowerType: scorerpt.setclasspower ('');
+           HighPowerType:       scorerpt.setclasspower ('HIGH');
+           LowPowerType:        scorerpt.setclasspower ('LOW');
+           QRPPowerType:        scorerpt.setclasspower ('QRP');
+           END;
+
+       CASE CategoryTransmitter OF
+           NoCategoryTransmitterType: scorerpt.setclasstransmitter ('');
+           OneTransmitterType:        scorerpt.setclasstransmitter ('ONE');
+           TwoTransmitterType:        scorerpt.setclasstransmitter ('TWO');
+           UnlimitedTransmitterType:  scorerpt.setclasstransmitter ('UNLIMITED');
+           END;
+
+       CASE CategoryOverlay OF
+           NoCategoryOverlayType: scorerpt.setclassoverlay ('');
+           ClassicOverlayType:    scorerpt.setclassoverlay ('CLASSIC');
+           RookieOverlayType:     scorerpt.setclassoverlay ('ROOKIE');
+           TBWiresOverlayType:    scorerpt.setclassoverlay ('TB-WIRES');
+           WireOnlyOverlayType:   scorerpt.setclassoverlay ('WIRE-ONLY');
+           END;
+
+       END;  { of case }
+    END;
+
+
+
+FUNCTION DisplayDupeStatusForMultipleLocations (Callsign: CallString; Band: BandType; Mode: ModeType): BOOLEAN;
+
+{ Intended to be called when you are working a contest where you have people
+  driving around to different locations and you want to see if they are in
+  a new one or not.  It will display the results in the bandmap window.  It
+  should be the responsibility of the caller to repaint the bandmap window
+  when it is time.  We will assume QSOByBand and QSOByMode are setup correctly.
+
+  It is also assumed you called this when you really want some data displayed.
+  Like when you do a dupe check and the call appears to be a dupe without looking
+  at the QTH.
+
+  Returns TRUE if it displayed something }
+
+TYPE
+    QSOQTHRecordEntry = RECORD
+        Band: BandType;
+        Mode: ModeType;
+        QTH: STRING [6];
+        END;
+
+VAR
+    Address: INTEGER;
+    FileString, ExchangeString: STRING;
+    FileRead: TEXT;
+    LastAddress, FirstAddress, NumberQSOsFound: INTEGER;
+    QSOCallsign: CallString;
+    QSOQTHList: ARRAY [0..100] OF QSOQTHRecordEntry;
+    TempEntry: QSOQTHRecordEntry;
+
+    BEGIN
+    NumberQSOsFound := 0;
+
+    Callsign := RootCall (Callsign);
+
+    { Look in the .DAT file for QSOs }
+
+    IF OpenFileForRead (FileRead, LogFileName) THEN
+        BEGIN
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+
+            QSOQTHList [NumberQSOsFound].Band := GetLogEntryBand (FileString);
+            QSOQTHList [NumberQSOsFound].Mode := GetLogEntryMode (FileString);
+            QSOCallsign := RootCall (GetLogEntryCall (FileString));
+
+            IF QSOCallsign = Callsign THEN
+              IF (QSOQTHList [NumberQSOsFound].Band <> NoBand) AND (QSOQTHList [NumberQSOsFound].Mode <> NoMode) THEN
+                BEGIN
+                ExchangeString := GetLogEntryExchangeString (FileString);
+
+                { We have to remove the sent RST if we aren't using
+                  QSO numbers }
+
+                IF (ActiveExchange = RSTDomesticQTHExchange) OR
+                   (ActiveExchange = RSTDomesticOrDXQTHExchange) THEN
+                       RemoveFirstString (ExchangeString);
+
+                RemoveFirstString (ExchangeString);
+
+                QSOQTHList [NumberQSOsFound].QTH := RemoveFirstString (ExchangeString);
+                Inc (NumberQSOsFound);
+                END;
+            END;
+
+        Close (FileRead);
+        END;
+
+    { Get anything in the .TMP File }
+
+    IF OpenFileForRead (FileRead, LogTempFileName) THEN
+        BEGIN
+        WHILE NOT Eof (FileRead) DO
+            BEGIN
+            ReadLn (FileRead, FileString);
+
+            QSOQTHList [NumberQSOsFound].Band := GetLogEntryBand (FileString);
+            QSOQTHList [NumberQSOsFound].Mode := GetLogEntryMode (FileString);
+            QSOCallsign := RootCall (GetLogEntryCall (FileString));
+
+            IF QSOCallsign = Callsign THEN
+              IF (QSOQTHList [NumberQSOsFound].Band <> NoBand) AND (QSOQTHList [NumberQSOsFound].Mode <> NoMode) THEN
+                BEGIN
+                ExchangeString := GetLogEntryExchangeString (FileString);
+
+                { We have to remove the sent RST if we aren't using
+                  QSO numbers }
+
+                IF (ActiveExchange = RSTDomesticQTHExchange) OR
+                   (ActiveExchange = RSTDomesticOrDXQTHExchange) THEN
+                       RemoveFirstString (ExchangeString);
+
+                RemoveFirstString (ExchangeString);
+
+                QSOQTHList [NumberQSOsFound].QTH := RemoveFirstString (ExchangeString);
+                Inc (NumberQSOsFound);
+                END;
+            END;
+
+        Close (FileRead);
+        END;
+
+    { Sort into alphabetical order }
+
+    IF NumberQSOsFound > 1 THEN
+        BEGIN
+        FirstAddress := 0;
+        LastAddress := NumberQSOsFound - 2;
+
+        WHILE FirstAddress >= LastAddress DO
+            BEGIN
+            FOR Address := FirstAddress TO LastAddress DO
+                IF QSOQTHList [Address].QTH > QSOQTHList [Address + 1].QTH THEN
+                    BEGIN
+                    TempEntry := QSOQTHList [Address];
+                    QSOQTHList [Address] := QSOQTHList [Address + 1];
+                    QSOQTHList [Address + 1] := TempEntry;
+                    END;
+
+            LastAddress := LastAddress - 1;
+            END;
+        END;
+
+    IF NumberQSOsFound > 0 THEN
+        BEGIN
+        SaveSetAndClearActiveWindow (RemainingMultsWindow);
+        WriteLn ('Number QSOs found = ', NumberQSOsFound);
+        WriteLn ('QSO information for ', Callsign, ' on ', BandString [Band], ModeString [Mode]);
+        WriteLn;
+
+        FOR Address := 0 TO NumberQSOsFound - 1 DO
+            IF (QSOQTHList [Address].Band = Band) AND (QSOQTHList [Address].Mode = Mode) THEN
+                Write (QSOQTHList [Address].QTH, ' ');
+
+        RestorePreviousWindow;
+        DisplayDupeStatusForMultipleLocations := True;
+        END
+    ELSE
+        DisplayDupeStatusForMultipleLocations := False;
+    END;
 
 
 

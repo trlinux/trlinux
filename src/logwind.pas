@@ -15,7 +15,7 @@
 //
 //You should have received a copy of the GNU General
 //    Public License along with TR log for linux.  If not, see
-//<http://www.gnu.org/licenses/>.                                                         w
+//<http://www.gnu.org/licenses/>.
 //
 
 UNIT LogWind;
@@ -452,9 +452,11 @@ TYPE
                     RSTAndOrGridExchange,
                     RSTAndQSONumberOrDomesticQTHExchange,
                     RSTAndPostalCodeExchange,
+                    RSTAndYearExchange,
                     RSTDomesticOrDXQTHExchange,
                     RSTDomesticQTHExchange,
                     RSTDomesticQTHOrQSONumberExchange,
+                    RSTDomesticQTHOrZoneExchange,
                     RSTNameAndQTHExchange,
                     RSTPossibleDomesticQTHAndPower,
                     RSTPowerExchange,
@@ -501,6 +503,7 @@ TYPE
                           InternetSixQSOPointMethod,
                           IOTAQSOPointMethod,
                           JapanInternationalDXQSOPointMethod,
+                          K1USNQSOPointMethod,
                           KCJQSOPointMethod,
                           MMCQSOPointMethod,
                           MQPQSOPointMethod,
@@ -593,6 +596,15 @@ VAR
 
     BandChangesThisHour: INTEGER;
     BandMemory: ARRAY [RadioType] OF BandType;
+
+    BandOutputTimer: INTEGER;
+    BandOutputUDPIP: STRING;
+    BandOutputUDPPort: INTEGER;
+    BandOutputUDPOutputPortOpen: BOOLEAN;
+    BandOutputRadioOneFrequency: LONGINT;  { Used to remember last value sent }
+    BandOutputRadioTwoFrequency: LONGINT;  { Used to remember last value sent }
+    BandOutputUpdateSeconds: INTEGER;      { Number of seconds to always send update }
+    BandOutputUDPSocket: LONGINT;
 
     CalledFromCQMode:            BOOLEAN; {KK1L: 6.73}
     CallLastTimeIWasHere:        CallString; {KK1L: 6.73 Used in LOGSUBS2 to trigger band map info update}
@@ -737,7 +749,7 @@ VAR
     PacketMessMode:         BOOLEAN;
     PacketReturnCount:      INTEGER;
     PacketReturnPerMinute:  INTEGER;
-    PacketSpotComment:      Str20;   {KK1L: 6.68 Need to change when added to LOGCFG.DAT read.}
+    PacketSpotComment:      Str40;   {KK1L: 6.68 Need to change when added to LOGCFG.DAT read.}
     PendingQTCArray:        PendingQTCArrayPtr;
     PrefixInfoFileName:     Str40;
     PreviousRadioOneFreq:   LONGINT; {KK1L: 6.71b To fix AutoSAPModeEnable}
@@ -860,7 +872,6 @@ VAR
     WakeUpTimeOut: BYTE;
     WakeUpCount:   BYTE;
     WARCBandsEnabled: BOOLEAN;
-    WideFreqDisplay:  BOOLEAN; {KK1L: 6.73}
     WRTC2018: BOOLEAN;
 
   PROCEDURE ActivateExchangeWindow;
@@ -946,7 +957,7 @@ VAR
   PROCEDURE DisplayTotalScore (Score: LONGINT);
   PROCEDURE DisplayUserInfo (Call: CallString);
 
-  PROCEDURE EditBandMap;
+  PROCEDURE EditBandMap (UseThisRadio: RadioType);
 
   {KK1L: 6.64 Created procedure because I needed to get this info more than once}
   PROCEDURE GetBandMapDisplayInfo (VAR MaxEntriesPerPage: INTEGER; VAR NumberBandMapRows: INTEGER);
@@ -1000,6 +1011,7 @@ VAR
   PROCEDURE SaveAndSetActiveWindow (WindowName: WindowType);
   PROCEDURE SaveSetAndClearActiveWindow (WindowName: WindowType);
   PROCEDURE SendBandMapCallsToN4OGW;
+  PROCEDURE SendBandOutputData (Radio1Freq, Radio2Freq: LONGINT);
   PROCEDURE SetUpBandMapEntry (BandMapData: BandMapEntryPointer; Radio: RadioType); {KK1L: 6.73 Added Radio}
   PROCEDURE SetWindow (WindowName: WindowType);
   PROCEDURE SetActiveWindow   (WindowName: WindowType);   { Does not clear window }
@@ -1020,7 +1032,7 @@ VAR
 
 IMPLEMENTATION
 
-Uses LogStuff,keycode,beep,xkb,timer;
+Uses Sockets,LogStuff,keycode,beep,xkb,timer;
 
 CONST
     TotalScoreWindowLX =  1;
@@ -1133,16 +1145,8 @@ CONST
     FrequencyTwoWindowLY = 21; {KK1L: 6.73}
     FrequencyTwoWindowRY = 21; {KK1L: 6.73}
 
-    {IF WideFreqDisplay THEN                   }
-    {    BEGIN                                 }
-    {    FrequencyTwoWindowLX = 67;} {KK1L: 6.73}
-    {    FrequencyTwoWindowRX = 79;} {KK1L: 6.73}
-    {    END                                   }
-    {ELSE                                      }
-    {    BEGIN                                 }
-        FrequencyTwoWindowLX = 15; {KK1L: 6.73}
-        FrequencyTwoWindowRX = 27; {KK1L: 6.73}
-    {    END;                                  }
+    FrequencyTwoWindowLX = 15; {KK1L: 6.73}
+    FrequencyTwoWindowRX = 27; {KK1L: 6.73}
 
     AltCallWindowLX = 58; {KK1L: 6.73}
     AltCallWindowLY = 21; {KK1L: 6.73}
@@ -1242,12 +1246,8 @@ VAR
     Band: BandType;
     Continent: ContinentType;
 
-    NumberSavedWindows:          INTEGER;
-
-    SavedWindowList:             ARRAY [0..12] OF SavedWindow;
-
-
-
+    NumberSavedWindows:     INTEGER;
+    SavedWindowList:        ARRAY [0..12] OF SavedWindow;
 
 PROCEDURE LookForOnDeckCall (VAR ExchangeString: Str80);
 
@@ -2240,7 +2240,6 @@ PROCEDURE DisplayBandMode (Band: BandType; Mode: ModeType; UpdateRadio: BOOLEAN)
     RestorePreviousWindow;
 
     IF (ActiveRadio = RadioOne) THEN OutputBandInfo (RadioOne, Band);
-
     IF (ActiveRadio = RadioTwo) THEN OutputBandInfo (RadioTwo, Band);
 
     IF NOT UpdateRadio THEN Exit;
@@ -3582,6 +3581,16 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
             END;
         END;  { of IF ShowTime }
 
+    { IF a radio is on the move - and we are doing bandoutput stuff - send
+      an update instantly }
+
+    IF (BandOutputUDPPort <> -1) AND (BandOutputUDPIP <> '') THEN
+        IF RadioOnTheMove [RadioOne] OR (RadioOnTheMove [RadioTwo]) THEN
+            BEGIN
+            SendBandOutputData (CurrentFreq [RadioOne], CurrentFreq [RadioTwo]);
+            BandOutputTimer := BandOutputUpdateSeconds;
+            END;
+
     { We are now going to leave if a new second hasn't ticked up }
 
     IF LastFullTimeString = FullTimeString THEN Exit;
@@ -3589,6 +3598,19 @@ VAR DateString, TimeString, FullTimeString, HourString, DayString: Str20;
     { We are now executing code only once a calendar second }
 
     LastFullTimeString := FullTimeString;
+
+    { Check BandOutputTimer to see if we have hit zero }
+
+    IF (BandOutputUDPPort <> -1) AND (BandOutputUDPIP <> '') THEN
+        BEGIN
+        Dec (BandOutputTimer);
+
+        IF BandOutputTimer <= 0 THEN
+            BEGIN
+            SendBandOutputData (CurrentFreq [RadioOne], CurrentFreq [RadioTwo]);
+            BandOutputTimer := BandOutputUpdateSeconds;
+            END;
+        END;
 
     { This used to be in the DoRadio block above - but moved it here in 2022 }
 
@@ -4494,13 +4516,11 @@ VAR TempMode: ModeType;
 
     BEGIN
     CalculateBandMode (Frequency, Band, TempMode);
-    IF (Mode <> CW) AND (Mode <> Phone) THEN
-        BEGIN
-        IF Frequency > BandMapModeCutoffFrequency [Band] THEN
-            Mode := Phone
-        ELSE
-            Mode := CW;
-        END;
+
+    IF Frequency > BandMapModeCutoffFrequency [Band] THEN
+        Mode := Phone
+    ELSE
+        Mode := CW;
     END;
 
 
@@ -5015,6 +5035,51 @@ PROCEDURE GetBandMapDisplayInfo (VAR MaxEntriesPerPage: INTEGER;
 
 
 
+FUNCTION GetBandStringFromFrequency (Frequency: LONGINT): STRING;
+
+    BEGIN
+    IF Frequency < 3000000 THEN GetBandStringFromFrequency := '160' ELSE
+    IF Frequency < 5000000 THEN GetBandStringFromFrequency := '80' ELSE
+    IF Frequency < 6000000 THEN GetBandStringFromFrequency := '60' ELSE
+    IF Frequency < 10000000 THEN GetBandStringFromFrequency := '40' ELSE
+    IF Frequency < 12000000 THEN GetBandStringFromFrequency := '30' ELSE
+    IF Frequency < 16000000 THEN GetBandStringFromFrequency := '20' ELSE
+    IF Frequency < 19000000 THEN GetBandStringFromFrequency := '17' ELSE
+    IF Frequency < 23000000 THEN GetBandStringFromFrequency := '15' ELSE
+    IF Frequency < 27000000 THEN GetBandStringFromFrequency := '12' ELSE
+    IF Frequency < 30000000 THEN GetBandStringFromFrequency := '10' ELSE
+    IF Frequency < 60000000 THEN GetBandStringFromFrequency := '6' ELSE
+        GetBandStringFromFrequency := 'VHF';
+    END;
+
+
+
+PROCEDURE SendBandOutputData (Radio1Freq, Radio2Freq: LONGINT);
+
+VAR OutputDataString, Radio1FreqString, Radio2FreqString: STRING;
+
+    BEGIN
+    IF (BandOutputUDPIP = '') OR (BandOutputUDPPort = -1) THEN Exit;
+
+    IF NOT BandOutputUDPOutputPortOpen THEN
+        BandOutputUDPOutputPortOpen := OpenUDPPortForOutput (BandOutputUDPIP, BandOutputUDPPort, BandOutputUDPSocket);
+
+    IF BandOutputUDPOutputPortOpen THEN
+        BEGIN
+        Str (Radio1Freq DIV 1000, Radio1FreqString);
+        Str (Radio2Freq DIV 1000, Radio2FreqString);
+
+        OutputDataString := 'TRBAND,1,' +
+                            GetBandStringFromFrequency (Radio1Freq) + ',' + Radio1FreqString
+                            + ',2,' +
+                            GetBandStringFromFrequency (Radio2Freq) + ',' + Radio2FreqString;
+
+        FPSend (BandOutputUDPSocket, @OutputDataString [1], Length (OutputDataString), 0);
+        END;
+    END;
+
+
+
 PROCEDURE SendBandMapCallsToN4OGW;
 
 { Used to send all of your bandmap calls to the N4OGW band map }
@@ -5199,13 +5264,13 @@ VAR StartBand, StopBand: BandType;
         ELSE
             Write ('DUPES OFF');
 
-        {KK1L: 6.xx Ready for mults mode}
-        {GoToXY (51, NumberBandMapRows+1); }
-        {TextColor (White);                }
-        {IF BandMapMultsOnlyDisplay THEN   }
-        {    Write ('MULTS ONLY');         }
-        {ELSE                              }
-        {    Write ('          ');         }
+        GoToXY (51, NumberBandMapRows+1);
+        TextColor (White);
+
+        IF BandMapMultsOnly THEN
+            Write ('MULTS ONLY')
+        ELSE
+            Write ('          ');
 
         {KK1L: 6.64 Show markers to tell if bandmap spills off either or both sides of display}
         IF FirstDisplayableBandMapCursor > 0 THEN
@@ -5242,23 +5307,6 @@ VAR StartBand, StopBand: BandType;
 
                 WHIlE BandMapEntryRecord <> nil DO
                    BEGIN
-                   { If it is a dupe and we don't display dupes - skip it }
-
-                   {KK1L: 6.65 Following IF not needed. I It actually gets in the way of both}
-                   {           the CallWindowShowAllSpots option as well as not letting      }
-                   {           undisplayed (dupe) spots age!                                 }
-                   {IF (NOT BandMapDupeDisplay) AND                               }
-                   {   ((BandMapEntryRecord^.StatusByte AND $40) <> 0) THEN       }
-                   {      BEGIN                                                   }
-                   {      BandMapEntryRecord := BandMapEntryRecord^.NextEntry;    }
-                   {      Continue;                                               }
-                   {      END;                                                    }
-
-                   {KK1L: 6.64 Set FirstDisplayedBandMapFrequency for use on next call to DisplayBandMap}
-                   {KK1L: 6.65 Changed to = NumberBandMapRows from 0 to mimic display movement of EditBM}
-                   {KK1L: 6.65 Changed it back because I like it better}
-                   {KK1L: 6.69 Changed to = NumberBandMapRows from 0 to mimic display movement of EditBM}
-
                    IF NumberEntriesDisplayed = NumberBandMapRows THEN
                      FirstDisplayedBandMapFrequency := BandMapEntryRecord^.Frequency;
 
@@ -5829,10 +5877,13 @@ VAR EntryNumber : INTEGER;
 
 
 
-PROCEDURE EditBandMap;
+PROCEDURE EditBandMap (UseThisRadio: RadioType);
 
 { BandMapCursorData gets left with data from active entry.  Frequency will
-  be = 0 if no entry left.  }
+  be = 0 if no entry left.
+
+  New for Oct 2024 - can specify which radio - intended for 2BSIQ.  Call with
+  NoRadio for previous functionality. }
 
 VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER;
     Button1, Button2: BOOLEAN;
@@ -5906,11 +5957,20 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
                 CarriageReturn:
                     BEGIN
                     IF BandMapCursorData = Nil then exit;
-                    IF (BandMapBand = BandMemory[InactiveRadio]) and
-                      (BandMapBand <> BandMemory[ActiveRadio]) THEN {KK1L: 6.73}
-                        SetUpBandMapEntry (BandMapCursorData, InactiveRadio) {KK1L: 6.73 Added InactiveRadio}
+
+                    { We can be told which radio to use }
+
+                    IF UseThisRadio = NoRadio THEN
+                        BEGIN
+                        IF (BandMapBand = BandMemory[InactiveRadio]) and
+                          (BandMapBand <> BandMemory[ActiveRadio]) THEN {KK1L: 6.73}
+                            SetUpBandMapEntry (BandMapCursorData, InactiveRadio) {KK1L: 6.73 Added InactiveRadio}
+                        ELSE
+                            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: 6.73 Added ActiveRadio}
+                        END
                     ELSE
-                        SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: 6.73 Added ActiveRadio}
+                        SetUpBandMapEntry (BandMapCursorData, UseThisRadio); {KK1L: 6.73 Added InactiveRadio}
+
                     ShowBandMapCursor (CursorEntryNumber, NumberBandMapEntries, True);
                     RemoveWindow (QuickCommandWindow);
                     {KK1L 6.65 no longer needed}
@@ -6022,7 +6082,11 @@ VAR CursorEntryNumber, XPos, YPos, MaxEntriesPerPage, NumberBandMapRows: INTEGER
             BEGIN
             IF Button1 THEN
                 BEGIN
-                SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: 6.73 Adeed ActiveRadio}
+                IF UseThisRadio = NoRadio THEN
+                    SetUpBandMapEntry (BandMapCursorData, ActiveRadio) {KK1L: 6.73 Adeed ActiveRadio}
+                ELSE
+                    SetUpBandMapEntry (BandMapCursorData, UseThisRadio);
+
                 DisplayBandMap;
                 RemoveWindow (QuickCommandWindow);
                 {KK1L 6.65 no longer needed}
@@ -6736,6 +6800,9 @@ VAR Band: BandType;
     BandMapFileVersion     := 'C'; {KK1L: 6.68 Should have changed this at 6.64. Never checked anyway!}
                                    {KK1L: 6.70 Changed to 'C' since now saving BandMapDecayTime}
 
+    BandOutputTimer := 5;  { To start with - will fixed in 5 secs if the config file has a different value }
+    BandOutputUDPOutputPortOpen := False;
+
     FOR Band := Band160 TO Band10 DO
         FOR Continent := NorthAmerica TO UnknownContinent DO
             ContinentQSOCount [Band, Continent] := 0;
@@ -6834,8 +6901,6 @@ VAR Band: BandType;
 
     TenMinuteTime.Band          := NoBand;
     TenMinuteTime.Mode          := NoMode;
-
-    WideFreqDisplay             := FALSE; {KK1L: 6.73 Never changed anywhere...yet.}
 
     FOR Band := Band160 TO Band10 DO
         TimeSpentByBand [Band] := 0;

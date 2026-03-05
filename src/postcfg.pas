@@ -398,6 +398,9 @@ VAR TempValue, xResult: INTEGER;
             IF CMD = 'RST AND POSTAL CODE' THEN
                 ActiveExchange := RSTAndPostalCodeExchange;
 
+            IF CMD = 'RST AND YEAR' THEN
+                ActiveExchange := RSTAndYearExchange;
+
             IF CMD = 'RST DOMESTIC OR DX QTH' THEN
                 ActiveExchange := RSTDomesticOrDXQTHExchange;
 

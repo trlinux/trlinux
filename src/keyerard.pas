@@ -68,7 +68,7 @@ TYPE
         PROCEDURE SendRelayStatusToSO2RMini;
 
     public
-
+                                     //published by the Free Software Foundation, either version 2 of the
         Version: STRING;
 
         CONSTRUCTOR Create;
@@ -175,6 +175,7 @@ TYPE
         END;
 
 VAR ArduinoDebug: BOOLEAN;
+    StopTransmissionPulseLength: INTEGER;  { Times 4 ms }
 
 IMPLEMENTATION
 
@@ -299,8 +300,11 @@ PROCEDURE ArduinoKeyer.SendRelayStatusToSO2RMini;
 { Uses the SO2R_State flags to set the relays to the proper state }
 
 VAR Cmd: BYTE;
+    TempString: Str20;
 
     BEGIN
+    TempString := '???';
+
     IF KeyerInitialized THEN
         BEGIN
         Cmd := 0;  { default value }
@@ -308,28 +312,45 @@ VAR Cmd: BYTE;
         { Bit zero of the command is relay 1 - OFF = rig 1  ON = rig 2 }
 
         IF (SO2R_State.RX2 = 1) THEN
+            BEGIN
             Cmd := $01;
+            TempString := 'Relay1On (Rig2)';
+            END
+        ELSE
+            BEGIN
+            TempString := 'Relay1Off (Rig1)';
+            END;
 
         { Bit one is for relay 2 - which if relay 1 is also on will do stereo }
 
         IF (SO2R_State.Stereo = 1) THEN
+            BEGIN
             Cmd := $03;
+            TempString := 'Relay1 and Relay2 On (Stereo)';
+            END;
 
         { Microphone relay }
 
         IF (SO2R_Config.Relays = 1) THEN
             IF (SO2R_State.TX2 = 1) THEN
+                BEGIN
                 Cmd := Cmd OR $04;  { Set bit }
+                TempString := TempString + ' Mic Radio2';
+                END
+            ELSE
+                TempString := TempString + 'Mic Radio1';
 
         ArduinoKeyerPort.PutChar (Char ($02));  { SO2R relay command }
         ArduinoKeyerPort.PutChar (Char (Cmd));  { SO2R relay data }
         END;
 
-    AppendDebugFile ('SendRelayStatusToSO2RMini');
+    AppendDebugFile ('SendRelayStatusToSO2RMini = ' + TempString);
     END;
 
 
 PROCEDURE ArduinoKeyer.SetRcvFocus (RcvFocus: rcvfocus_t);
+
+VAR TempString: Str20;
 
 { Here we get to tell the SO2R mini which way to set the headphone relays
   K1 and K2 off  = Radio 1
@@ -337,27 +358,32 @@ PROCEDURE ArduinoKeyer.SetRcvFocus (RcvFocus: rcvfocus_t);
   K1 and K2 on   = STEREO    }
 
     BEGIN
+    TempString := '???';
+
     CASE RcvFocus OF
         RX1:
             BEGIN
             SO2R_State.Stereo := 0;
             SO2R_State.RX2    := 0;
+            TempString := 'RX1';
             END;
 
         RX2:
             BEGIN
             SO2R_State.Stereo := 0;
             SO2R_State.RX2    := 1;
+            TempString := 'RX2';
             END;
 
         Stereo:
             BEGIN
             SO2R_State.Stereo := 1;
+            TempString := 'Stereo';
             END;
 
         END;  { of case }
 
-     AppendDebugFile ('SetRcvFocus');
+     AppendDebugFile ('SetRcvFocus = ' + TempString);
      SendRelayStatusToSO2RMini;
      END;
 
@@ -519,9 +545,9 @@ VAR DelayLoops: INTEGER;
 
             IF Length (Version) = 7 THEN  { We have enough characters }
                 BEGIN
-                IF Copy (Version, 1, 7) <> 'TRCW V5' THEN
+                IF Copy (Version, 1, 7) <> 'TRCW V6' THEN
                     BEGIN
-                    WriteLn ('Expected TRCW V5 response from SO2R Mini.  Received ', Version);
+                    WriteLn ('Expected TRCW V6 response from SO2R Mini.  Received ', Version);
                     WaitForKeyPressed;
                     Halt;
                     END;
@@ -1111,12 +1137,16 @@ PROCEDURE ArduinoKeyer.SetCwGrant (On: BOOLEAN);
             ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
 
             IF FootSwitchControlPTT THEN
-                ArduinoKeyerPort.PutChar (Char($01))   { Normal PTT mode }
+                BEGIN
+                ArduinoKeyerPort.PutChar (Char($01));  { Normal PTT mode }
+                AppendDebugFile ('Normal PTT Mode');
+                END
             ELSE
+                BEGIN
                 ArduinoKeyerPort.PutChar (Char($00));  { No PTT mode }
+                AppendDebugFile ('No PTTmode');
+                END;
             END;
-
-        AppendDebugFile ('Clear footswitch lockout mode');
         END;
     END;
 
@@ -1130,16 +1160,25 @@ PROCEDURE ArduinoKeyer.SetFootSwitch (F: FootSwitchX);
     Footsw := F;
     END;
 
+
+
 PROCEDURE ArduinoKeyer.FootSwitch2BSIQSSB;
 
-{ Puts the Arduino into the 2BSIQ SSB MODE }
+{ Puts the Arduino into the 2BSIQ SSB MODE.  If you wanted to control the
+  pulse that gets sent to the "other" radio to stop transmitting a message,
+  you should set the StopTransmissionPulseLength to the value you want
+  before executing this command.  }
 
     BEGIN
-    Write ('.');
     IF KeyerInitialized THEN
         BEGIN
         ArduinoKeyerPort.PutChar (Char ($19));  { Footswitch mode command }
-        ArduinoKeyerPort.PutChar (Char ($02))   { 2BSIQ SSB Mode }
+
+        { New in November 2025 - in addition to setting the 2BSIQ mode with
+          the value of $02 - we need to or in the StopTransmissionPulseLength
+          value to the Arduino in the upper six bits of the data byte }
+
+        ArduinoKeyerPort.PutChar (Chr ((StopTransmissionPulseLength * 4) OR $02));
         END;
 
     AppendDebugFile ('Set2BSIQSSBFootswitchMode');
@@ -1160,6 +1199,7 @@ PROCEDURE ArduinoKeyer.LetFootSwitchControlPTT;
         ArduinoKeyerPort.PutChar (Char($19));   { Footswitch mode command }
         ArduinoKeyerPort.PutChar (Char ($01))  { Footswitch turns on PTT }
         END;
+
     AppendDebugFile ('LetFootswitchControlPTT');
     END;
 
@@ -1360,4 +1400,5 @@ PROCEDURE ArduinoKeyer.FlushCWBuffer;
 
     BEGIN
     ArduinoDebug := True;  { Set to true to get some debug data }
+    StopTransmissionPulseLength := 0;  { default }
     END.

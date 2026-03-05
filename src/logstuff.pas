@@ -37,11 +37,11 @@ UNIT LogStuff;
   The ParametersOkay function will look in the ExchangeString to see if a
   corrected callsign appears there.
 
-  We seemm to have a global variable called ParameterOkayMode which has the
+  We seem to have a global variable called ParameterOkayMode which has the
   following settings: Standard, QSLButDoNotLog and QSLAndLog.  This shows
   up as the config command QSL MODE which you can find in the Control-J menu.
 
-  Standard: Needs correc info to QSL and log
+  Standard: Needs correct info to QSL and log
   QSLButNoLog: Needs correct info to log, not to QSL
   QSLAndLog: No syntax checking of exchange
 
@@ -58,7 +58,7 @@ UNIT LogStuff;
   This is done with CalculateQSOPoints which is here in this unit and uses
   either the ActiveQSOPointMethod or the more generic QSOPoints globals.
 
-  If the ParametersOkay function is happy (returnning TRUE), then the
+  If the ParametersOkay function is happy (returning TRUE), then the
   procedure LogContact in logsubs2 gets called.
 
   LogContact will check to see if this is a dupe, determine if there are
@@ -82,10 +82,6 @@ UNIT LogStuff;
   PushLogStringintoEditableLogAndLogPopedQSO can be found in LOGSUBS2.
 
   It will send the QSO off to the network if you are sending QSOs immediately.
-
-  It will then call the Procedure PutContactIntoLogFile which will look at
-  the log string and take care of formating the page for the people who
-  still like to print out their log pages.
 
   It passes the log entry to PutLogEntryIntoSheet in logedit.pas which will
   see if any multiplier flags need to be set without any regard to what is
@@ -306,6 +302,7 @@ VAR
     KeyHistory:                KeyHistoryRecord;
     KeyPadCWMemories:          BOOLEAN;
 
+    LastAutoSpotTime:          TimeRecord;
     LastDeletedLogEntry:       Str160;
     LastDisplayedBreakTime:    INTEGER;
     LastHelloRecord:           HelloRecPtr;
@@ -313,7 +310,7 @@ VAR
     LastQSOLogged:             ContestExchange;
 
     LeaveCursorInCallWindow:   BOOLEAN;
-    LogBadQSOString:           Str80;
+    LogBadQSOString:           Str80;    { What does this do? }
     LogFileRead:               TEXT;
     LogFrequencyEnable:        BOOLEAN;
     LogRSSent:                 Str10;
@@ -325,7 +322,6 @@ VAR
     MessageEnable:           BOOLEAN;
     ModemPortBaudRate:       LONGINT;
     MultiInfoMessageTimeout: TimeRecord;
-    MultiMultsOnly:          BOOLEAN;
     MultiplierFileEnable:    BOOLEAN;
     MultiMessageBuffer:      ARRAY [1..5] OF Str80;
     MultiMessageHead:       INTEGER;
@@ -444,13 +440,11 @@ VAR
 
 
     PROCEDURE AgeReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE AgeReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
 
     PROCEDURE BandChange (VAR ActiveBand: BandType; Direction: DirectionType);
 
     PROCEDURE CalculateQSOPoints (VAR RXData: ContestExchange);
     PROCEDURE ChapterReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE ChapterReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
 
     PROCEDURE CheckForLostMultiMessages;
     PROCEDURE CreateAndSendCQMultiInfoMessage;
@@ -464,7 +458,7 @@ VAR
 
     FUNCTION  GetCorrectedCallFromExchangeString (VAR ExchangeString: Str80): Str80;
     FUNCTION  GetMultiPortCommand: STRING;
-    FUNCTION  GetSentRSTFromExchangeString (VAR ExchangeString: Str40): Str20;
+    FUNCTION  GetSentRSTFromExchangeString (Mode: ModeType; VAR ExchangeString: Str40): Str20;
 
     PROCEDURE IncrementQTCCount (Call: CallString);
 
@@ -495,9 +489,6 @@ VAR
 
     FUNCTION  NumberQTCsThisStation (Call: CallString): INTEGER;
     PROCEDURE NameReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE NameReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    PROCEDURE PrintLogHeader;
 
     FUNCTION  ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BOOLEAN;
     PROCEDURE ProcessN4OGWCommand (N4OGW_Command: STRING);
@@ -527,52 +518,37 @@ VAR
 
     PROCEDURE StuffInit;
 
-    { Header and Stamp routines - used when generating a log string }
+    { Stamp routines - used when generating a log string }
 
     PROCEDURE BandModeDateTimeNumberCallNameSentStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE BandModeDateTimeNumberCallNameSentHeader (VAR LogString: Str80; VAR Underline: Str80);
-    PROCEDURE CheckReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE CheckReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE ClassReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE ClassReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE KidsReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE KidsReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE MultiplierHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE MultiplierStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE PowerReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE PowerReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE PrecedenceReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE PrecedenceReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE QSONumberReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE QSONumberReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE QSOPointHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE QSOPointStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE QTHReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE QTHReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE PostalCodeReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE PostalCodeReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE RandomCharsSentAndReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE RandomCharsSentAndReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
     FUNCTION  ReserveNewQSONumber (Band: BandType): INTEGER;
     FUNCTION  ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
 
-    PROCEDURE RSTReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE RSTReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
-    PROCEDURE RSTSentHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE RSTSentStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE TenTenNumReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE TenTenNumReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
+    PROCEDURE YearReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE ZoneReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
     PROCEDURE ZoneReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
-    PROCEDURE WriteLogEntry (Entry: Str80);
+    PROCEDURE WriteLogEntry (Entry: STRING);
 
 IMPLEMENTATION
 uses keycode,beep;
@@ -807,7 +783,7 @@ VAR TimeString, QSONumberString: Str20;
     IF ReadInLog THEN
         LogString := LogString + ReadInLogDateString
     ELSE
-        IF Exchange.Date <> '' THEN
+        IF (Exchange.Date <> '') AND NOT (Pos ('-', Exchange.Date) = 5) THEN
             LogString := LogString + Exchange.Date
         ELSE
             LogString := LogString + GetDateString;
@@ -894,20 +870,6 @@ VAR TimeString, QSONumberString: Str20;
         LogString := LogString + ' ';
     END;
 
-
-PROCEDURE BandModeDateTimeNumberCallNameSentHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := ' Band    Date    Time  QSO#  Call worked';
-    Underline := ' ----    ----    ----  ----  -----------';
-
-    WHILE Length (LogString) < LogEntryExchangeAddress - 1 DO
-        BEGIN
-        LogString := LogString + ' ';
-        Underline := Underline + ' ';
-        END;
-    END;
-
 
 
 PROCEDURE ClassReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -922,26 +884,10 @@ VAR ClassString: Str20;
     LogString := LogString + '  ' + ClassString;
     END;
 
-
-PROCEDURE ClassReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Class  ';
-    UnderLine := Underline + '-----  ';
-    END;
-
 PROCEDURE KidsReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
     BEGIN
     LogString := LogString + Exchange.Kids;
-    END;
-
-
-PROCEDURE KidsReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Exchange';
-    UnderLine := Underline + '--------  ';
     END;
 
 PROCEDURE QSONumberReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -970,14 +916,6 @@ VAR QSONumberString: Str80;
     LogString := LogString + QSONumberString;
     END;
 
-
-PROCEDURE QSONumberReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Rcvd  ';
-    UnderLine := Underline + '----  ';
-    END;
-
 PROCEDURE RSTSentStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR RSTString: Str80;
@@ -992,14 +930,6 @@ VAR RSTString: Str80;
     LogString := LogString + RSTString;
     END;
 
-
-PROCEDURE RSTSentHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Sent ';
-    UnderLine := Underline + '---- ';
-    END;
-
 
 
 PROCEDURE RSTReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -1011,14 +941,6 @@ VAR RSTString: Str80;
     RSTString [0] := Chr (5);
     LogString := LogString + RSTString;
     END;
-
-PROCEDURE RandomCharsSentAndReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Sent   Rcvd   ';
-    UnderLine := Underline + '----   ----   ';
-    END;
-
 
 PROCEDURE RandomCharsSentAndReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
@@ -1040,16 +962,6 @@ VAR CharsString: Str20;
     LogString := LogString + CharsString;
     END;
 
-
-
-PROCEDURE PostalCodeReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Post Code ';
-    UnderLine := Underline + '--------- ';
-    END;
-
-
 PROCEDURE PostalCodeReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR CharsString: Str20;
@@ -1063,15 +975,6 @@ VAR CharsString: Str20;
     LogString := LogString + CharsString;
     END;
 
-
-PROCEDURE RSTReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Rcvd ';
-    UnderLine := Underline + '---- ';
-    END;
-
-
 PROCEDURE CheckReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR CheckString: Str80;
@@ -1082,12 +985,13 @@ VAR CheckString: Str80;
     LogString := LogString + CheckString;
     END;
 
-PROCEDURE CheckReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
+PROCEDURE YearReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
     BEGIN
-    LogString := LogString + 'Ck ';
-    UnderLine := Underline + '-- ';
+    LogString := LogString + Exchange.Year + ' ';
     END;
+
+
 
 PROCEDURE PrecedenceReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
@@ -1098,15 +1002,6 @@ VAR PrecedenceString: Str80;
     PrecedenceString [0] := Chr (2);
     LogString := LogString + PrecedenceString;
     END;
-
-
-PROCEDURE PrecedenceReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'P ';
-    UnderLine := Underline + '- ';
-    END;
-
 
 
 
@@ -1228,37 +1123,6 @@ VAR QTHString, PrefectureString: Str80;
 
     END;
 
-
-PROCEDURE QTHReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    IF ActiveExchange = RSTQTHExchange THEN
-        BEGIN
-        LogString := LogString + 'Qth Received          ';
-        UnderLine := UnderLine + '------------          ';
-        Exit;
-        END;
-
-    IF (ActiveExchange = RSTAllJAPrefectureAndPrecedenceExchange) OR
-       (ActiveExchange = RSTPrefectureExchange) THEN
-        BEGIN
-        LogString := LogString + 'Pref ';
-        UnderLine := Underline + '---- ';
-        Exit;
-        END;
-
-    IF ActiveExchange = RSTNameAndQTHExchange THEN
-        BEGIN
-        LogString := LogString + 'Qth       ';
-        UnderLine := Underline + '---       ';
-        END
-    ELSE
-        BEGIN
-        LogString := LogString + ' Qth  ';
-        Underline := Underline + '----- ';
-        END;
-    END;
-
 
 
 PROCEDURE MultiplierStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -1319,26 +1183,6 @@ VAR MultString, ZoneString: Str80;
 
 
 
-PROCEDURE MultiplierHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    IF (ActiveDomesticMult = NoDomesticMults) AND (ActiveDXMult = NoDXMults) AND
-       (ActivePrefixMult = NoPrefixMults) AND (ActiveZoneMult = NoZoneMults) THEN
-           Exit;
-
-    IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN Exit;
-
-    WHILE Length (LogString) < LogEntryMultAddress - 1 DO
-        LogString := LogString + ' ';
-
-    WHILE Length (Underline) < LogEntryMultAddress - 1 DO
-        Underline := Underline + ' ';
-
-    LogString := LogString + 'Mults   ';
-    Underline := Underline + '-----   ';
-    END;
-
-
 PROCEDURE PowerReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR TempString: Str80;
@@ -1361,14 +1205,6 @@ VAR TempString: Str80;
     LogString := LogString + TempString + '  ';
     END;
 
-
-PROCEDURE PowerReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Power ';
-    Underline := Underline + '----- ';
-    END;
-
 PROCEDURE ZoneReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR TempString: Str80;
@@ -1386,13 +1222,6 @@ VAR TempString: Str80;
         END
     ELSE
         LogString := LogString + '     ';
-    END;
-
-PROCEDURE TenTenNumReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + ' 1010# ';
-    Underline := Underline + ' ----- ';
     END;
 
 PROCEDURE TenTenNumReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -1415,15 +1244,6 @@ VAR TenTenNumberString: Str20;
 
 
 
-PROCEDURE ZoneReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Zone ';
-    Underline := Underline + '---- ';
-    END;
-
-
-
 PROCEDURE AgeReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
 VAR TempString: Str80;
@@ -1437,13 +1257,6 @@ VAR TempString: Str80;
     TempString := ' ' + TempString + ' ';
 
     LogString := LogString + TempString;
-    END;
-
-PROCEDURE AgeReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Age ';
-    Underline := Underline + '--- ';
     END;
 
 PROCEDURE NameReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
@@ -1463,22 +1276,6 @@ VAR TempString: Str80;
 
     LogString := LogString + TempString;
     END;
-
-PROCEDURE NameReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Name        ';
-    Underline := Underline + '----        ';
-    END;
-
-
-PROCEDURE ChapterReceivedHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    LogString := LogString + 'Chp ';
-    Underline := Underline + '--- ';
-    END;
-
 
 PROCEDURE ChapterReceivedStamp (Exchange: ContestExchange; VAR LogString: Str80);
 
@@ -1515,21 +1312,6 @@ VAR QSOPointString: Str80;
         IF Exchange.SearchAndPounce THEN
             LogString := LogString + '$';
 
-    END;
-
-
-
-PROCEDURE QSOPointHeader (VAR LogString: Str80; VAR Underline: Str80);
-
-    BEGIN
-    WHILE Length (LogString) < LogEntryPointsAddress - 2 DO
-        LogString := LogString + ' ';
-
-    WHILE Length (Underline) < LogEntryPointsAddress - 3 DO
-        Underline := Underline + ' ';
-
-    LogString := LogString + 'Pts';
-    Underline := Underline + '---';
     END;
 
 
@@ -1994,7 +1776,7 @@ VAR TempString: Str80;
             BEGIN
             IF Length (TempString) = 1 THEN
                 BEGIN
-                CASE ActiveMode OF
+                CASE RXData.Mode OF
                     CW:    RXData.RSTReceived := '5' + TempString + '9';
                     Phone: RXData.RSTReceived := '5' + TempString;
                     END;
@@ -2157,8 +1939,10 @@ VAR ThirdString: Str20;
 FUNCTION ProcessQSONumberAndDomesticQTHExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
 
 { If the the two entries are separated by a space, they may appear in either
-  order.  If only one entry appears, it is assumed to be the Domestic QTH
-  and the QSO number will be one.  }
+  order.
+
+  NEW October 2024 - we now require a QSO number so an entry won't be logged
+  as #1 as a default. }
 
 VAR xResult: INTEGER;
     NumberString, Str1, Str2, Str3, Str4: Str20;
@@ -2196,8 +1980,7 @@ VAR xResult: INTEGER;
                 IF StringIsAllNumbers (Str1) THEN
                     NumberString := Str1
                 ELSE
-                    NumberString := '1';
-
+                    Exit;  { No longer default to one }
 
     { Now the QTH - which isn't so hard either }
 
@@ -2293,7 +2076,7 @@ VAR TestString: Str20;
                 BEGIN
                 IF Length (TestString) = 1 THEN
                     BEGIN
-                    CASE ActiveMode OF
+                    CASE RXData.Mode OF
                         CW:    RXData.RSTReceived := '5' + TestString + '9';
                         Phone: RXData.RSTReceived := '5' + TestString;
                         END;
@@ -2345,7 +2128,7 @@ VAR TestString: Str20;
 
     IF (RXData.DomesticQTH <> '') AND (RXData.RSTReceived = '') THEN
         BEGIN
-        CASE ActiveMode OF
+        CASE RXData.Mode OF
             Phone: RXData.RSTReceived := '59';
             ELSE   RXData.RSTReceived := '599';
             END;
@@ -3084,7 +2867,7 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 1 THEN         { Everything as one entry }
         BEGIN
-        IF ActiveMode = CW THEN
+        IF RXData.Mode = CW THEN
             BEGIN
             CASE Length (Entries [0]) OF
                 2, 3: IF ValidAllJAPrefecture (Entries [0]) THEN
@@ -3166,10 +2949,10 @@ VAR ExchangeString: Str20;
                 CASE Length (Entries [1]) OF
                     1: RXData.RSTReceived [2] := Entries [1] [1];
 
-                    2: IF ActiveMode = Phone THEN
+                    2: IF RXData.Mode = Phone THEN
                            RXData.RSTReceived := Entries [1];
 
-                    3: IF ActiveMode = CW THEN
+                    3: IF RXData.Mode = CW THEN
                            RXData.RSTReceived := Entries [1];
 
                     END;
@@ -3183,10 +2966,10 @@ VAR ExchangeString: Str20;
                 CASE Length (Entries [0]) OF
                     1: RXData.RSTReceived [2] := Entries [0] [1];
 
-                    2: IF ActiveMode = Phone THEN
+                    2: IF RXData.Mode = Phone THEN
                            RXData.RSTReceived := Entries [0];
 
-                    3: IF ActiveMode = CW THEN
+                    3: IF RXData.Mode = CW THEN
                            RXData.RSTReceived := Entries [0];
 
                     END;
@@ -3197,8 +2980,8 @@ VAR ExchangeString: Str20;
                 BEGIN
                 CASE Length (Entries [0]) OF
                     1: RXData.RSTReceived [2] := Entries [0] [1];
-                    2: IF ActiveMode = Phone THEN RXData.RSTReceived := Entries [0];
-                    3: IF ActiveMode = CW    THEN RXData.RSTReceived := Entries [0];
+                    2: IF RXData.Mode = Phone THEN RXData.RSTReceived := Entries [0];
+                    3: IF RXData.Mode = CW    THEN RXData.RSTReceived := Entries [0];
                     END;
 
                 RXData.QTHString := Entries [1];
@@ -3254,10 +3037,10 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 2 THEN
         BEGIN
-        IF LooksLikeRST (Entries [0], RXData.RSTReceived, ActiveMode) THEN
+        IF LooksLikeRST (Entries [0], RXData.RSTReceived, RXData.Mode) THEN
             RXData.Age := Entries [1]
         ELSE
-            IF LooksLikeRST (Entries [1], RXData.RSTReceived, ActiveMode) THEN
+            IF LooksLikeRST (Entries [1], RXData.RSTReceived, RXData.Mode) THEN
                 RXData.Age := Entries [0]
             ELSE
                 RXData.Age := Entries [1];
@@ -3268,10 +3051,10 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 3 THEN
         BEGIN
-        IF LooksLikeRST (Entries [1], RXData.RSTReceived, ActiveMode) THEN
+        IF LooksLikeRST (Entries [1], RXData.RSTReceived, RXData.Mode) THEN
             RXData.Age := Entries [2]
         ELSE
-            IF LooksLikeRST (Entries [2], RXData.RSTReceived, ActiveMode) THEN
+            IF LooksLikeRST (Entries [2], RXData.RSTReceived, RXData.Mode) THEN
                 RXData.Age := Entries [1]
             ELSE
                 RXData.Age := Entries [2];
@@ -3296,14 +3079,14 @@ VAR ExchangeString: Str20;
            END;
 
         4: BEGIN
-           IF ActiveMode <> Phone THEN Exit;
+           IF RXData.Mode <> Phone THEN Exit;
            RXData.RSTReceived := Copy (Exchange, 1, 2);
            RXData.Age := Copy (Exchange, 3, 2);
            ProcessRSTAndAgeExchange := True;
            END;
 
         5: BEGIN
-           IF ActiveMode <> CW THEN Exit;
+           IF RXData.Mode <> CW THEN Exit;
            RXData.RSTReceived := Copy (Exchange, 1, 3);
            RXData.Age := Copy (Exchange, 4, 2);
            ProcessRSTAndAgeExchange := True;
@@ -3346,10 +3129,10 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 2 THEN
         BEGIN
-        IF LooksLikeRST (Entries [0], RXData.RSTReceived, ActiveMode) THEN
+        IF LooksLikeRST (Entries [0], RXData.RSTReceived, RXData.Mode) THEN
             RXData.QTHString := 'p' + Entries [1]
         ELSE
-            IF LooksLikeRST (Entries [1], RXData.RSTReceived, ActiveMode) THEN
+            IF LooksLikeRST (Entries [1], RXData.RSTReceived, RXData.Mode) THEN
                 RXData.QTHString := 'p' + Entries [0]
             ELSE
                 RXData.QTHString := 'p' + Entries [1];
@@ -3360,10 +3143,10 @@ VAR ExchangeString: Str20;
 
     IF NumberEntries = 3 THEN
         BEGIN
-        IF LooksLikeRST (Entries [1], RXData.RSTReceived, ActiveMode) THEN
+        IF LooksLikeRST (Entries [1], RXData.RSTReceived, RXData.Mode) THEN
             RXData.QTHString := 'p' + Entries [2]
         ELSE
-            IF LooksLikeRST (Entries [2], RXData.RSTReceived, ActiveMode) THEN
+            IF LooksLikeRST (Entries [2], RXData.RSTReceived, RXData.Mode) THEN
                 RXData.QTHString := 'p' + Entries [1]
             ELSE
                 RXData.QTHString := 'p' + Entries [2];
@@ -3388,14 +3171,14 @@ VAR ExchangeString: Str20;
            END;
 
         4: BEGIN
-           IF ActiveMode <> Phone THEN Exit;
+           IF RXData.Mode <> Phone THEN Exit;
            RXData.RSTReceived := Copy (Exchange, 1, 2);
            RXData.QTHString := 'p' + Copy (Exchange, 3, 2);
            ProcessRSTAndPrefectureExchange := FoundDomesticQTH (RXData);
            END;
 
         5: BEGIN
-           IF ActiveMode <> CW THEN Exit;
+           IF RXData.Mode <> CW THEN Exit;
            RXData.RSTReceived := Copy (Exchange, 1, 3);
            RXData.QTHString := 'p' + Copy (Exchange, 4, 2);
            ProcessRSTAndPrefectureExchange := FoundDomesticQTH (RXData);
@@ -3437,7 +3220,7 @@ VAR TempString: Str80;
             BEGIN
             IF Length (TempString) = 1 THEN
                 BEGIN
-                CASE ActiveMode OF
+                CASE RXData.Mode OF
                     CW:    RXData.RSTReceived := '5' + TempString + '9';
                     Phone: RXData.RSTReceived := '5' + TempString;
                     END;
@@ -3496,7 +3279,7 @@ VAR TempString: Str80;
             BEGIN
             IF Length (TempString) = 1 THEN
                 BEGIN
-                CASE ActiveMode OF
+                CASE RXData.Mode OF
                     CW:    RXData.RSTReceived := '5' + TempString + '9';
                     Phone: RXData.RSTReceived := '5' + TempString;
                     END;
@@ -3535,7 +3318,7 @@ FUNCTION ProcessRSTAndDomesticOrDXQTHExchange (Exchange: Str80; VAR RXData: Cont
         Exit;
         END;
 
-    IF NOT ValidRST (Exchange, RXData.RSTReceived, ActiveMode) THEN Exit;
+    IF NOT ValidRST (Exchange, RXData.RSTReceived, RXData.Mode) THEN Exit;
     ProcessRSTAndDomesticOrDXQTHExchange := True;
     END;
 
@@ -3676,7 +3459,7 @@ VAR xResult: INTEGER;
         ProcessRSTAndQSONumberExchange := True;
         END
     ELSE
-        IF ValidRST (Exchange, RXData.RSTReceived, ActiveMode) THEN
+        IF ValidRST (Exchange, RXData.RSTReceived, RXData.Mode) THEN
             BEGIN
             Exchange := RemoveFirstString (Exchange);
             Val (Exchange, RXData.NumberReceived, xResult);
@@ -3726,20 +3509,20 @@ VAR FirstString, SecondString, ThirdString: Str20;
 
     IF StringIsAllNumbers (ThirdString) AND (Length (ThirdString) <= 3) THEN
         BEGIN
-        IF NOT ValidRST (ThirdString, RXData.RSTReceived, ActiveMode) THEN Exit;
+        IF NOT ValidRST (ThirdString, RXData.RSTReceived, RXData.Mode) THEN Exit;
         END
     ELSE
         IF StringIsAllNumbers (SecondString) AND (Length (SecondString) <= 3) THEN
             BEGIN
-            IF NOT ValidRST (SecondString, RXData.RSTReceived, ActiveMode) THEN Exit;
+            IF NOT ValidRST (SecondString, RXData.RSTReceived, RXData.Mode) THEN Exit;
             END
         ELSE
             IF StringIsAllNumbers (FirstString) AND (Length (FirstString) <= 3) THEN
                 BEGIN
-                IF NOT ValidRST (FirstString, RXData.RSTReceived, ActiveMode) THEN Exit;
+                IF NOT ValidRST (FirstString, RXData.RSTReceived, RXData.Mode) THEN Exit;
                 END
             ELSE
-                IF ActiveMode = CW THEN
+                IF RXData.Mode = CW THEN
                     RXData.RSTReceived := '599'
                 ELSE
                     RXData.RSTReceived := '59';
@@ -4294,7 +4077,7 @@ VAR FirstString, SecondString, ThirdString: Str20;
 
     IF ThirdString <> '' THEN
         BEGIN
-        IF NOT ValidRST (FirstString, RXData.RSTReceived, ActiveMode) THEN Exit;
+        IF NOT ValidRST (FirstString, RXData.RSTReceived, RXData.Mode) THEN Exit;
         RXData.Zone      := SecondString;
         RXData.QTHString := ThirdString;
         END
@@ -4309,7 +4092,7 @@ VAR FirstString, SecondString, ThirdString: Str20;
                 END
             ELSE
                 BEGIN
-                IF NOT ValidRST (FirstString, RXData.RSTReceived, ActiveMode) THEN Exit;
+                IF NOT ValidRST (FirstString, RXData.RSTReceived, RXData.Mode) THEN Exit;
                 RXData.Zone := SecondString;
                 END;
             END
@@ -4323,7 +4106,9 @@ VAR FirstString, SecondString, ThirdString: Str20;
 
     IF Length (RXData.Zone) = 1 THEN RXData.Zone := '0' + RXData.Zone;
 
-    IF RXData.QTHString <> '' THEN
+    { +++ Maybe require FoundDomesticQTH if a domestic call? }
+
+    IF DomesticCountryCall (RXData.Callsign)  THEN
         ProcessRSTZoneAndPossibleDomesticQTHExchange := FoundDomesticQTH (RXData)
     ELSE
         ProcessRSTZoneAndPossibleDomesticQTHExchange := True;
@@ -4364,13 +4149,13 @@ VAR FirstString, SecondString, ThirdString: Str20;
         BEGIN
         IF NOT StringIsAllNumbers (SecondString) THEN  { SecondString = QTH }
             BEGIN
-            IF NOT ValidRST (FirstString, RXData.RSTReceived, ActiveMode) THEN Exit;
+            IF NOT ValidRST (FirstString, RXData.RSTReceived, RXData.Mode) THEN Exit;
             RXData.QTHString   := SecondString;
             ProcessRSTAndDomesticQTHOrZoneExchange := FoundDomesticQTH (RXData);
             END
         ELSE
             BEGIN
-            IF NOT ValidRST (SecondString, RXData.RSTReceived, ActiveMode) THEN Exit;
+            IF NOT ValidRST (SecondString, RXData.RSTReceived, RXData.Mode) THEN Exit;
             RXData.Zone := FirstString;
             ProcessRSTAndDomesticQTHOrZoneExchange := StringIsAllNumbers (FirstString) AND
                                                               (Length (FirstString) <= 2);
@@ -4401,6 +4186,7 @@ VAR FirstString, SecondString, ThirdString: Str20;
 
 FUNCTION ProcessRSTAndPowerExchange (Exchange:Str80; VAR RXData: ContestExchange): BOOLEAN;
 
+
 { Each entry of the exchange must be separated by spaces.  The following
   formats work:
 
@@ -4408,15 +4194,30 @@ FUNCTION ProcessRSTAndPowerExchange (Exchange:Str80; VAR RXData: ContestExchange
    ---------   ---------
    RS(T)       Power
    Power                     (RS(T) = default)
+   Power       Power          Will use the second entry
 
   You can enter just the strength of the RS(T) if you like.       }
+
+VAR TestString, FirstString, SecondString: Str40;
 
     BEGIN
     ProcessRSTAndPowerExchange := False;
 
     IF StringHas (Exchange, ' ') THEN
         BEGIN
-        IF NOT ValidRST (Exchange, RXData.RSTReceived, ActiveMode) THEN Exit;
+        TestString := Exchange;
+        FirstString := RemoveFirstString (TestString);
+        SecondString := RemoveFirstString (TestString);
+
+        IF FirstString = SecondString THEN
+            BEGIN
+            RXData.RSTReceived := DefaultRST;
+            RXData.Power := FirstString;
+            ProcessRSTAndPowerExchange := True;
+            Exit;
+            END;
+
+        IF NOT ValidRST (Exchange, RXData.RSTReceived, RXData.Mode) THEN Exit;
         GetRidOfPrecedingSpaces (Exchange);
         RXData.Power := Exchange;
         END
@@ -4449,11 +4250,17 @@ VAR FirstString, SecondString, ThirdString: Str20;
     BEGIN
     ProcessRSTAndZoneExchange := False;
     IF NOT StringIsAllNumbersOrSpaces (Exchange) THEN Exit;
-    RXData.RSTReceived := DefaultRST;
+
+    { No more RXData.RSTReceived := DefaultRST; }
+
+    IF RXData.Mode = PHONE THEN
+        RXData.RSTReceived := '59'
+    ELSE
+        RXData.RSTReceived := '599';
 
     IF StringHas (Exchange, ' ') THEN
         BEGIN
-        IF ActiveMode = CW THEN
+        IF RXData.Mode = CW THEN
             BEGIN
             ParseExchange (Exchange, FirstString, SecondString, ThirdString);
 
@@ -4468,7 +4275,7 @@ VAR FirstString, SecondString, ThirdString: Str20;
                 END;
             END;
 
-        IF NOT ValidRST (Exchange, RXData.RSTReceived, ActiveMode) THEN Exit;
+        IF NOT ValidRST (Exchange, RXData.RSTReceived, RXData.Mode) THEN Exit;
         GetRidOfPrecedingSpaces (Exchange);
         END;
 
@@ -4499,6 +4306,44 @@ VAR FirstString, SecondString, ThirdString: Str20;
            END;
 
         END;
+    END;
+
+FUNCTION ProcessRSTAndYearExchange (Exchange: Str80; VAR RXData: ContestExchange): BOOLEAN;
+
+{ Each entry of the exchange must be separated by spaces. Entries are all
+  numbers - three digits for RST and four digits for year.  If no RST is
+  entered, then 599 will be used.  Not expecting to use this on phone. }
+
+VAR FirstString, SecondString, ThirdString: Str20;
+
+    BEGIN
+    ProcessRSTAndYearExchange := False;
+    IF NOT StringIsAllNumbersOrSpaces (Exchange) THEN Exit;
+
+    IF RXData.Mode = PHONE THEN Exit;  { Not expecting to be here for SSB }
+    RXData.RSTReceived := '599';       { Default }
+
+    ParseExchange (Exchange, FirstString, SecondString, ThirdString);
+
+    IF Length (ThirdString) = 3 THEN
+        RXData.RSTReceived := ThirdString
+    ELSE
+        IF Length (SecondString) = 3 THEN
+            RXData.RSTReceived := SecondString
+        ELSE
+            IF Length (FirstString) = 3 THEN
+                RXData.RSTReceived := FirstString;
+
+    IF Length (ThirdString) = 4 THEN
+        RXData.Year := ThirdString
+    ELSE
+        IF Length (SecondString) = 4 THEN
+            RXData.Year := SecondString
+        ELSE
+            IF Length (FirstString) = 4 THEN
+                RXData.Year := FirstString;
+
+    ProcessRSTAndYearExchange := Length (RXData.Year) = 4;
     END;
 
 
@@ -4564,6 +4409,8 @@ PROCEDURE RestoreRadioFrequency (Radio: RadioType);
 
 
 FUNCTION GetCorrectedCallFromExchangeString (VAR ExchangeString: Str80): Str80;
+
+{ Returns with nothing if no callsign found }
 
 VAR PotentialCall, TempString: Str40;
 
@@ -5013,7 +4860,7 @@ PROCEDURE RememberSentMessage (MultMessage: STRING);
       up to the high level program to notice that QSONumberForthisQSO is equal
       to zero sometime after the request and do a retry.  }
 
-  IF ThisIsAQSONumberRequest (MultMessage) THEN Exit;
+    IF ThisIsAQSONumberRequest (MultMessage) THEN Exit;
 
     { We are going to put this entry in the remember buffer at the address of
       the "Head" of the buffer }
@@ -5126,6 +4973,8 @@ PROCEDURE StuffInit;
     LogBadQSOString            := '';
     LookingForCQExchange       := False;
 
+    MarkTime (LastAutoSpotTime);
+
     MultiMessageHead     := 0;
     MultiMessageTail    := 0;
 
@@ -5140,6 +4989,7 @@ PROCEDURE StuffInit;
     RadioSetFreq               := 0;
     RateDisplay                := QSOs;
     ReadInLogFileOpen          := False;
+    ReceivedData.LeftOverQTH   := '';
 
     SendExchangeKeyWhenCWHasStopped := NullKey;
 
@@ -5371,7 +5221,7 @@ VAR NumberContacts: LONGINT;
 
 
 
-PROCEDURE WriteLogEntry (Entry: Str80);
+PROCEDURE WriteLogEntry (Entry: STRING);
 
 VAR FileWrite: TEXT;
 
@@ -5414,67 +5264,6 @@ VAR FileWrite: TEXT;
 
 
 
-PROCEDURE PrintLogHeader;
-
-VAR LogString, UnderLine: Str80;
-//    PageNumber: INTEGER;
-    BEGIN
-//    PageNumber := (QSOTotals [All, Both] DIV 50) + 1;
-
-    WriteLogEntry (ContestTitle);
-    WriteLogEntry (LogSubTitle);
-    WriteLogEntry ('');
-
-    BandModeDateTimeNumberCallNameSentHeader (LogString, Underline);
-
-    { These are hacks when the very nice way just isn't efficient enough }
-
-    { Note that the RSTQTHNameAndFistsNumberOrPowerExchange has the
-      multiplier header and stamp functions wired to do nothing }
-
-    {KK1L: 6.70 Changed spacing slightly to line up with output}
-    IF ActiveExchange = RSTQTHNameAndFistsNumberOrPowerExchange THEN
-        BEGIN
-        LogString := LogString + ' TXR  RXR QTH NAME      NUM/PWR';
-        UnderLine := Underline + ' ---  --- --- ----      -------';
-        END
-    ELSE
-        BEGIN
-        { Very nice generic way of doing things }
-
-        WITH ExchangeInformation DO
-            BEGIN
-            IF RST THEN
-                BEGIN
-                RSTSentHeader     (LogString, Underline);
-                RSTReceivedHeader (LogString, Underline);
-                END;
-
-
-            IF Classs       THEN ClassReceivedHeader      (LogString, UnderLine);
-            IF QSONumber   THEN QSONumberReceivedHeader  (LogString, UnderLine);
-            IF PostalCode  THEN PostalCodeReceivedHeader (LogString, UnderLine);
-            IF RandomChars THEN RandomCharsSentAndReceivedHeader (LogString, Underline);
-            IF Power       THEN PowerReceivedHeader      (LogString, Underline);
-            IF Name        THEN NameReceivedHeader       (LogString, Underline);
-            IF Chapter     THEN ChapterReceivedHeader    (LogString, Underline);
-            IF Age         THEN AgeReceivedHeader        (LogString, Underline);
-            IF Precedence  THEN PrecedenceReceivedHeader (LogString, UnderLine);
-            IF Check       THEN CheckReceivedHeader      (LogString, UnderLine);
-            IF Zone        THEN ZoneReceivedHeader       (LogString, UnderLine);
-            IF TenTenNum   THEN TenTenNumReceivedHeader  (LogString, UnderLine);
-            IF QTH         THEN QTHReceivedHeader        (LogString, UnderLine);
-            END;
-        END;
-
-    MultiplierHeader (LogString, UnderLine);
-    QSOPointHeader (LogString, UnderLine);
-    WriteLogEntry (LogString);
-    WriteLogEntry (Underline);
-    END;
-
-
-
 FUNCTION MakeLogString (RXData: ContestExchange): Str80;
 
 { This function will take the information in the contest exchange record
@@ -5496,6 +5285,8 @@ VAR TempString, LogString: STRING;
             RSTReceivedStamp (RXData, LogString);
             END;
 
+        { I don't know why this is here - disabled 1-Nov-2024
+
         IF LogBadQSOString <> '' THEN
             BEGIN
             LogString := LogString + LogBadQSOString;
@@ -5503,7 +5294,7 @@ VAR TempString, LogString: STRING;
             QSOPointStamp   (RXData, LogString);
             MakeLogString := LogString;
             Exit;
-            END;
+            END;  }
 
         {KK1L: 6.70 Sometimes there is just not a pretty way to do it!!}
 
@@ -5515,8 +5306,6 @@ VAR TempString, LogString: STRING;
                 IF QSONumber   THEN QSONumberReceivedStamp  (RXData, LogString);
                 IF Power       THEN PowerReceivedStamp      (RXData, LogString);
                 END;
-
-            { N6TR decided to give in for the CWT }
 
             ELSE
                 BEGIN
@@ -5534,6 +5323,7 @@ VAR TempString, LogString: STRING;
                 IF Zone        THEN ZoneReceivedStamp       (RXData, LogString);
                 IF TenTenNum   THEN TenTenNumReceivedStamp  (RXData, LogString);
                 IF QTH         THEN QTHReceivedStamp        (RXData, LogString);
+                IF Year        THEN YearReceivedStamp       (RXData, LogString);
                 END;
 
             END; { of case ActiveExchange }
@@ -5829,9 +5619,6 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                 Band6:             RXData.QSOPoints := 1; {KK1L: 6.73 new rules for 2002}
                 ELSE               RXData.QSOPoints := 0;
                 END;
-
-            IF (RXData.Mode = CW) AND (RXData.QSOPoints > 0) THEN
-                Inc (RXData.QSOPoints);
             END;
 
         CQWPXQSOPointMethod:
@@ -6161,6 +5948,12 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     END;
             END;
 
+        K1USNQSOPointMethod:
+            IF RXData.Callsign = 'K1USN' THEN
+                RXData.QSOPoints := 50
+            ELSE
+                RXData.QSOPoints := 1;
+
         KCJQSOPointMethod:
             IF MyCountry = 'JA' THEN
                 BEGIN
@@ -6170,10 +5963,10 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
                     RXData.QSOPoints := 5;
                 END
             ELSE
-                BEGIN
                 IF (RXCtyID = 'JA') OR (RXCtyID = 'JD1') THEN
-                    RXData.QSOPoints := 1
-                END;
+                    RXData.QSOPoints := 2
+                ELSE
+                    RXData.QSOPoints := 1; { New in 2025 }
 
         MMCQSOPointMethod:
            IF RXData.QTH.Continent <> MyContinent THEN
@@ -6288,7 +6081,7 @@ VAR MyZoneValue, RXDataZoneValue: INTEGER;
         SalmonRunQSOPointMethod:
             BEGIN
             IF RXData.Mode = CW THEN
-                RXData.QSOPoints := 4
+                RXData.QSOPoints := 3
             ELSE
                 RXData.QSOPoints := 2;
             END;
@@ -6666,6 +6459,9 @@ FUNCTION ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BO
         RSTAndQSONumberOrDomesticQTHExchange:
             ProcessExchange := ProcessRSTAndQSONumberOrDomesticQTHExchange (ExchangeString, RData);
 
+        RSTAndYearExchange:
+            ProcessExchange := ProcessRSTAndYearExchange (ExchangeString, RData);
+
         RSTDomesticQTHExchange:
             ProcessExchange := ProcessRSTAndDomesticQTHExchange (ExchangeString, RData);
 
@@ -6686,6 +6482,12 @@ FUNCTION ProcessExchange (ExchangeString: Str80; VAR RData: ContestExchange): BO
                 ProcessExchange := ProcessRSTAndDomesticQTHExchange (ExchangeString, RData)
             ELSE
                 ProcessExchange := ProcessRSTAndQSONumberExchange (ExchangeString, RData);
+
+        RSTDomesticQTHOrZoneExchange:
+            IF DomesticCountryCall (RData.Callsign) THEN
+                ProcessExchange := ProcessRSTAndDomesticQTHExchange (ExchangeString, RData)
+            ELSE
+                ProcessExchange := ProcessRSTAndZoneExchange (ExchangeString, RData);
 
         RSTNameAndQTHExchange:
             ProcessExchange := ProcessRSTNameAndQTHExchange (ExchangeString, RData);
@@ -6841,7 +6643,7 @@ VAR TempString, NumberString: Str80;
     END;
 
 
-FUNCTION GetSentRSTFromExchangeString (VAR ExchangeString: Str40): Str20;
+FUNCTION GetSentRSTFromExchangeString (Mode: ModeType; VAR ExchangeString: Str40): Str20;
 
 VAR PotentialRSTSent, TempString: Str40;
     RSTString: Str20;
@@ -6857,12 +6659,14 @@ VAR PotentialRSTSent, TempString: Str40;
         BEGIN
         PotentialRSTSent := RemoveLastString (TempString);
 
+        { A sent RST in the exchange window is preceded with an S }
+
         IF Copy (PotentialRSTSent, 1, 1) = 'S' THEN
             BEGIN
             Delete (PotentialRSTSent, 1, 1);
 
             IF StringIsAllNumbers (PotentialRSTSent) THEN
-                IF LooksLikeRST (PotentialRSTSent, RSTString, ActiveMode) THEN
+                IF LooksLikeRST (PotentialRSTSent, RSTString, Mode) THEN
                     BEGIN
                     GetSentRSTFromExchangeString := RSTString;
 
@@ -7069,7 +6873,9 @@ FUNCTION ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
 
   We will set the QSONumberForThisQSO to minus one in any case, indicating
   that we no longer have a QSO number assigned for the next QSO to be made
-  in the classic interface. }
+  in the classic interface.
+
+  It seems this rountine also gets called by the TBSIQ stuff as well }
 
 VAR TempString: STRING;
 
@@ -7086,6 +6892,7 @@ VAR TempString: STRING;
 
     QNumber.ReturnQSONumber (Band, QSONumber);
     QSONumberForThisQSO := -1;
+    ReturnQSONumber := True;
     END;
 
 

@@ -232,6 +232,7 @@ TYPE EntryArrayType = ARRAY [0..300] OF CHAR;
         PROCEDURE ASCIIFileEditor;
         FUNCTION  BestTwoLetters (Partial: CallString): Str20;
         FUNCTION  BuildNewDatabaseFromASCIIFile (Ignore: CHAR): BOOLEAN;
+        FUNCTION  CallsignIsInDatabase (Call: CallString): BOOLEAN;
         PROCEDURE CheckDTAFile;
         PROCEDURE ClearDataEntry (VAR Data: DatabaseEntryRecord);
         PROCEDURE ClearField;
@@ -4125,6 +4126,34 @@ VAR EntryString: STRING;
 
         END;
    END;
+
+
+
+FUNCTION CallDatabase.CallsignIsInDatabase (Call: CallString): BOOLEAN;
+
+VAR PartialCall: CallString;
+
+{ Returns TRUE if the callsign appears in the SCP database }
+
+    BEGIN
+    IF NOT PartialCallSetup (Call) THEN
+        BEGIN
+        CallsignIsInDatabase := False;
+        Exit;
+        END;
+
+    REPEAT
+        PartialCall := GetNextPartialCall;
+
+        IF PartialCall = Call THEN
+            BEGIN
+            CallsignIsInDatabase := True;
+            Exit;
+            END;
+    UNTIL PartialCall = '';
+
+    CallsignIsInDatabase := False;
+    END;
 
 
 

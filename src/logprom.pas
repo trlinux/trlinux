@@ -620,8 +620,11 @@ VAR Contests: ARRAY [0..80] OF Str20;
         Contests [76] := 'MARCONI MEMORIAL';
         Contests [77] := 'NYQP';
         Contests [78] := 'MST';
+        Contests [79] := 'SST';
+        Contests [80] := 'NS LADDER';
+        Contests [81] := 'SCRY';
 
-        NumberContests := 79;  { One more than last index value }
+        NumberContests := 82;  { One more than last index value }
         END;
 
     StartY := WhereY;

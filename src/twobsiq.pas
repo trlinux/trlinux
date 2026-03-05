@@ -411,8 +411,6 @@ CHANGE LOG - this is really mostly 2BSIQ - see TR.PAS for everything else
   - MAde it harder to spot garbage - like something that does not look like a
     call or a double callsign
 
-
-
 22-Oct-2022
 
  - In S&P - made new band map entry when calling station.
@@ -769,7 +767,9 @@ PROCEDURE TwoBandSIQ;
 
 IMPLEMENTATION
 
-USES TBSIQ_Subs;
+USES Logqsonr, TBSIQ_Subs;
+
+
 
 PROCEDURE Initialize2BSIQOperatorInterface;
 
@@ -781,7 +781,9 @@ PROCEDURE Initialize2BSIQOperatorInterface;
 
     { We need to trick the QSONumber generator into giving us the last QSO
       Number given out again.  NextQSONumberToGiveOut should be at least
-      equal to 2, but we check just in case }
+      equal to 2, but we check just in case.  NOTE - this global appears
+      to never be used anywhere else in the code - even though it appears
+      in the ControlJ menu.  We should get rid of it as some point. }
 
     IF NextQSONumberToGiveOut > 1 THEN
         Dec (NextQSONumberToGiveOut);
@@ -831,6 +833,9 @@ PROCEDURE Initialize2BSIQOperatorInterface;
     SetUpToSendOnActiveRadio;
     TBSIQ_CW_Engine.ShowActiveRadio;
     TBSIQ_BandMapFocus := RadioOne;
+
+    MarkTime (Radio1QSOMachine.LastAutoSpotTime);
+    MarkTime (Radio2QSOMachine.LastAutoSpotTime);
     END;
 
 
@@ -841,8 +846,9 @@ PROCEDURE Do2BSIQ;
 
     BEGIN
     REPEAT
-        MilliSleep;     { This seems necessary or radio display doesn't work }
+        MilliSleep;  { Make sure TimerInterrupt has oxygen }
         TBSIQ_UpdateTimeAndrateDisplays;
+
         Radio1QSOMachine.CheckQSOStateMachine;
 
         { This probably works for SSB }

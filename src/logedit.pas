@@ -95,7 +95,9 @@ TYPE
 
         FUNCTION  PushLogEntry (NewEntry: STRING): STRING;
         PROCEDURE ProcessMultipliers (VAR RXData: ContestExchange);
-        PROCEDURE PutLogEntryIntoSheet (VAR LogEntry: STRING);
+
+        PROCEDURE PutLogEntryIntoSheet (VAR LogEntry: STRING;
+                                        VAR TempRXData: ContestExchange);
 
         PROCEDURE SearchLog (InitialString: Str20);
         PROCEDURE SetUpEditableLog;
@@ -811,6 +813,8 @@ FUNCTION EditableLog.CallIsADupe (Call: CallString; Band: BandType; Mode: ModeTy
     BEGIN
     CallIsADupe := False;
 
+    IF NOT Sheet.DupesheetEnable THEN Exit;
+
     IF (ActiveDomesticMult = GridSquares) AND RoverCall (Call) THEN
         Exit;
 
@@ -1181,10 +1185,22 @@ VAR CallsThisDistrict, CallDistrict, NumberDistrictsOver25: INTEGER;
             IF (Mode = GetLogEntryMode (LogEntries [Entry])) OR NOT QSOByMode THEN
                 Sheet.AddCallToVisibleDupeSheet (RootCall (GetLogEntryCall (LogEntries [Entry])));
 
+    SaveAndSetActiveWindow (DupeSheetWindow);
+    ClrScr;
+
+    { Write the band/mode of the dupesheet }
+
+    IF SuperDupeSheet THEN
+        GoToXY (70, 25)
+    ELSE
+        GoToXY (70, 17);
+
+    TextColor (Yellow);
+    Write (BandString [Band], ModeString [Mode]);
+    GoToXY (1, 1);
+
     IF NumberVDCalls = 0 THEN
         BEGIN
-        SaveAndSetActiveWindow (DupeSheetWindow);
-        ClrScr;
         Write ('No QSOs on this band/mode!');
         RestorePreviousWindow;
         Exit;
@@ -1223,9 +1239,6 @@ VAR CallsThisDistrict, CallDistrict, NumberDistrictsOver25: INTEGER;
         END
     ELSE
         DoingColumnDupeSheet := False;
-
-    SaveAndSetActiveWindow (DupeSheetWindow);
-    ClrScr;
 
     CallDistrict := 0;
 
@@ -1477,7 +1490,6 @@ PROCEDURE EditableLog.ProcessMultipliers (VAR RXData: ContestExchange);
     IF RXData.InhibitMults THEN Exit;
 
     Sheet.SetMultFlags (RXData);
-
     CancelOutMultsThatAreInEditableWindow (RXData);
 
     IF MultiplierAlarm THEN
@@ -1503,7 +1515,8 @@ VAR NewMultString: Str80;
     END;
 
 
-PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: STRING);
+PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: STRING;
+                                            VAR TempRXData: ContestExchange);
 
 { This procedure will look at the log entry string passed to it and
   see if any multiplier flags need to be set.  It will not erase any
@@ -1512,9 +1525,10 @@ PROCEDURE EditableLog.PutLogEntryIntoSheet (VAR LogEntry: STRING);
   correct string is returned.  This procedure should only be used for
   entries that have been popped off the editable log stack as it does
   not look for any mults in the editable log.  Use the ProcessMultipliers
-  procedure for new entries into the editable log.                        }
+  procedure for new entries into the editable log.
 
-VAR TempRXData: ContestExchange;
+  New for May 2025, I pass a copy of the TempRXData structure back so it
+  can be sent to N1MM if appropriate. }
 
     BEGIN
     ParseLogEntryIntoContestExchange (LogEntry, TempRXData);
@@ -3276,7 +3290,10 @@ VAR CustomString, Exchange, Command, TempString: STRING;
 
                 IF Command = 'CHECK' THEN
                     IF CD.GetEntry (Call, Data) AND (Data.Check <> '') THEN
-                        Exchange := Exchange + Data.Check + ' ';
+                        IF Length (Data.Check) = 1 THEN
+                            Exchange := Exchange + '0' + Data.Check
+                        ELSE
+                            Exchange := Exchange + Data.Check;
 
                 IF Command = 'OLDCALL' THEN
                     IF CD.GetEntry (Call, Data) AND (Data.OldCall <> '') THEN
@@ -3346,8 +3363,16 @@ VAR CustomString, Exchange, Command, TempString: STRING;
 
         CheckSectionInitialExchange:
             IF CD.GetEntry (Call, Data) THEN
-                IF (Data.Check   <> '') AND (Data.Section <> '') THEN
-                    TempString := Data.Check + Data.Section + ' ';
+                BEGIN
+                { Am I just giving both and never one? }
+
+                IF (Data.Check <> '') AND (Data.Section <> '') THEN
+                    IF Length (Data.Check) = 1 THEN
+                        TempString := '0' + Data.Check + Data.Section + ' '
+                    ELSE
+                        TempString := Data.Check + Data.Section + ' ';
+                END;
+
 
         SectionInitialExchange:
             IF CD.GetEntry (Call, Data) THEN
@@ -3487,7 +3512,6 @@ VAR Heading, CharPosition, Distance: INTEGER;
         TempString := GetInitialExchangeFromTRMASTER (Call);
 
     InitialExchangeEntry := TempString;
-    Exit;  { testing }
 
     IF TempString <> '' THEN
         BEGIN

@@ -325,9 +325,6 @@ VAR CodeSpeed:  BYTE;
     PROCEDURE IncrementASCIIInteger (VAR ASCIIString: Str80);
     PROCEDURE IncrementMinute (VAR DateString: Str20; VAR TimeString: Str80);
 
-    FUNCTION  WordValueFromCharacter (Character: CHAR): WORD;
-
-
     FUNCTION  KeyId (Key: CHAR): Str80;
 
     FUNCTION  LastLetter (InputString: Str160): CHAR;
@@ -401,7 +398,6 @@ VAR CodeSpeed:  BYTE;
     FUNCTION  StringHasLetters (InputString: Str160): BOOLEAN;
 
     FUNCTION  StringWithFirstWordDeleted (InputString:Str160): Str160;
-    FUNCTION  WordAfter(LongString: Str160; SearchString: Str80): Str160;
 
     FUNCTION  Tan(X: REAL): REAL;
 
@@ -413,7 +409,8 @@ VAR CodeSpeed:  BYTE;
     PROCEDURE WaitForKeyPressed;
 
     FUNCTION  WhiteSpaceCharacter (InputChar: CHAR): BOOLEAN;
-
+    FUNCTION  WordAfter(LongString: Str160; SearchString: Str80): Str160;
+    FUNCTION  WordValueFromCharacter (Character: CHAR): WORD;
     PROCEDURE WriteColor (Prompt: Str80; FColor: INTEGER; BColor: INTEGER);
 
 //    PROCEDURE setupkeyboard;cdecl;
@@ -2193,12 +2190,22 @@ VAR TempString: Str80;
     BEGIN
     TempString := Copy (LogEntry, LogEntryPointsAddress, LogEntryPointsWidth);
 
-    Address := LogEntryPointsAddress + LogEntryPointsWidth;
+    { This appears to be a hack to read in any integers that come after the two
+      character field.  In Sept 2024, I added the test of the length to see if
+      there is anything there before doing it and changed the WHILE to not go
+      beyond the length of the string }
 
-    WHILE (Copy (LogEntry, Address, 1) >= '0') AND (Copy (LogEntry, Address, 1) <= '9') DO
+    IF Length (LogEntry) > (LogEntryPointsAddress + LogEntryPointsWidth - 1) THEN
         BEGIN
-        TempString := TempString + LogEntry [Address];
-        Inc (Address);
+        Address := LogEntryPointsAddress + LogEntryPointsWidth;
+
+        WHILE Address < Length (LogEntry) DO
+            BEGIN
+            IF (Copy (LogEntry, Address, 1) >= '0') AND (Copy (LogEntry, Address, 1) <= '9') THEN
+                TempString := TempString + LogEntry [Address];
+
+            Inc (Address);
+            END;
         END;
 
     GetRidOfPrecedingSpaces (TempString);
@@ -4331,7 +4338,7 @@ VAR  RSTString, DefaultRST: Str20;
     GetRidOfPrecedingSpaces (Ex);
     RSTString := '';
 
-    WHILE (Copy (Ex, 1, 1) >= '0') AND (Copy (Ex, 1, 1) <='9') DO
+    WHILE (Copy (Ex, 1, 1) >= '1') AND (Copy (Ex, 1, 1) <='9') DO
         BEGIN
         RSTString := RSTString + Copy (Ex, 1, 1);
         Delete (Ex, 1, 1);

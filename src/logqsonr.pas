@@ -31,12 +31,12 @@ TYPE
     QSONumberObject = OBJECT
         QSONumberByBand: BOOLEAN;
         QSONumberMatrix: ARRAY [BandType] OF INTEGER;
+        QSONumberUpdate: ARRAY [BandType] OF BOOLEAN;
         FUNCTION  GetCurrentQSONumber (Band: BandType): INTEGER;  { Don't think anyone uses this }
         PROCEDURE Init;
         FUNCTION  InitializeQSONumbersFromLogFile (FileName: STRING): BOOLEAN;
         FUNCTION  ReserveNewQSONumber (Band: BandType): INTEGER;
         FUNCTION  ReturnQSONumber (Band: BandType; QSONumber: INTEGER): BOOLEAN;
-
         PROCEDURE SetCurrentQSONumber (Band: BandType; QSONumber: INTEGER);
         END;
 
@@ -51,7 +51,10 @@ FUNCTION QSONumberObject.InitializeQSONumbersFromLogFile (FileName: STRING): BOO
 { Will read in the log file (either a LOG.DAT or LOG.TMP type file) and update the
   QSONumberMatrix with the highest sent QSO numbers found.  This is intended to be
   done only once at the start of the program.  It is up to the code to keep the
-  values up to date. }
+  values up to date.
+
+  New in Aug-2024, if the QSO number field has a decimal in it - indicating it is
+  frequency data - we will just count up the QSOs }
 
 VAR FileRead: TEXT;
     BandModeString, QSONumberString, FileString: STRING;
@@ -89,6 +92,14 @@ VAR FileRead: TEXT;
 
                 IF QSONumber > QSONumberMatrix [LogEntryBand] THEN
                     QSONumberMatrix [LogEntryBand] := QSONumber;
+                END
+            ELSE
+                BEGIN
+                { It appears someone used the QSO number field for frequency data.
+                  In this case - we will just increment the QSO numbers by one }
+
+                Inc (QSONumberMatrix [All]);
+                Inc (QSONumberMatrix [LogEntryBand]);
                 END;
             END;
         END;
@@ -105,7 +116,10 @@ VAR Band: BandType;
 
     BEGIN
     FOR Band := Band160 TO NoBand DO
+        BEGIN
         QSONumberMatrix [Band] := 0;
+        QSONumberUpdate [Band] := False;
+        END;
     END;
 
 
@@ -132,11 +146,21 @@ PROCEDURE QSONumberObject.SetCurrentQSONumber (Band: BandType; QSONumber: INTEGE
 
 { Used to set the QSO number to a specific value.  Used when we are getting
   our QSO numbers from someone else - but want to keep the local copy of
-  the QSONumberMatrix up to date for some unknown reason }
+  the QSONumberMatrix up to date for some unknown reason.  Note that the
+  value is originally the # of QSOs on the band/mode - and gets incremented
+  by one when it is reserved.
+
+  NEW in May 2025.  If someone executes this command - a boolean will be set
+  to indicate that someone might need to display a new QSO number as a result.
+
+  This boolean shall be called "QSONumberUpdate [Band]".
+
+  }
 
     BEGIN
     IF NOT QSONumberByBand THEN Band := All;
     QSONumberMatrix [Band] := QSONumber;
+    QSONumberUpdate [Band] := True;  { Someone will perhaps notice this and clear it }
     END;
 
 
@@ -145,18 +169,18 @@ FUNCTION QSONumberObject.ReserveNewQSONumber (Band: BandType): INTEGER;
 
 { Used to be GetNextQSONumber - but now clearly indicates that the number
   returned will be reserved - and thus never given out again.  This new
-  procedure requires the band and mode that are to be used to generate
+  procedure requires the band that will be used to generate
   the number.  This was done to support requests over the network and
   also to make 2BSIQ operation more understandable.
 
-  The global QSONumberByMode and QSONumberByBand are both used to determine
-  if the band or mode needs to be factored into the process.
+  The global QSONumberByBand is used to determine
+  if the band needs to be factored into the process.
 
   The initial contents of the array used to keep track of QSO numbers is
   all zeros with a new log.  If a log is loaded in, the highest QSO number
   for each "slot" is computed looking at the sent QSO numbers in the log
   and set to the last QSO number sent on each band/mode.  If you are not
-  using QSOByBand or QSOByMode - you will look at All (for band) and Both
+  using QSONumberByBand - you will look at All (for band) and Both
   (for mode) }
 
 

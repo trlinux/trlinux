@@ -29,7 +29,7 @@ INTERFACE
 USES SlowTree, Tree, LogStuff, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogGrid, LogDom, FContest, Country9, LogEdit, LogDDX,
      LogHP, LogWAE, LogPack, LogK1EA, DOS, LogHelp, LogProm, trCrt,
-     logqsonr, N1MM, communication, linuxsound, N4OGW, LogUDP;
+     KeyerArd, Radio,logqsonr, N1MM, communication, linuxsound, N4OGW, LogUDP,scorereporter;
 
 
     FUNCTION  ProcessConfigInstruction (FileString: STRING; VAR FirstCommand: BOOLEAN): BOOLEAN;
@@ -251,8 +251,14 @@ VAR xResult, Speed, TempValue: INTEGER;
 
     IF ID = 'AUTO SIDETONE CONTROL' THEN
         BEGIN
-        AutoSideToneControl := UpCase (CMD [1]) = 'T';
+        AutoSideToneLevel := 50;
         ProcessConfigInstructions1 := True;
+        END;
+
+    IF ID = 'AUTO SIDETONE LEVEL' THEN
+        BEGIN
+        Val (CMD, AutoSidetoneLevel, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
         END;
 
     IF ID = 'AUTO TIME INCREMENT' THEN
@@ -383,6 +389,27 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'BAND OUTPUT UDP IP' THEN
+        BEGIN
+        BandOutputUDPIP := CMD;
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'BAND OUTPUT UDP PORT' THEN
+        BEGIN
+        Val (Cmd, BandOutputUDPPort, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'BAND OUTPUT UPDATE SECONDS' THEN
+        BEGIN
+        Val (Cmd, BandOutputUpdateSeconds, xResult);
+        ProcessConfigInstructions1 := xResult = 0;
+        Exit;
+        END;
+
     IF ID = 'BEEP SOUNDCARD ENABLE' THEN
        BEGIN
        BeepSoundCardEnable := UpCase (CMD [1]) = 'T';
@@ -424,14 +451,44 @@ VAR xResult, Speed, TempValue: INTEGER;
 
     IF (ID = 'CALL OK NOW MESSAGE') OR (ID = 'CALL OK NOW CW MESSAGE') THEN
         BEGIN
-        CorrectedCallMessage := UpperCase (CMD);
+        CorrectedCallMessageR1 := UpperCase (CMD);
+        CorrectedCallMessageR2 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF (ID = 'CALL OK NOW MESSAGE RADIO1') OR (ID = 'CALL OK NOW CW MESSAGE RADIO1') THEN
+        BEGIN
+        CorrectedCallMessageR1 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF (ID = 'CALL OK NOW MESSAGE RADIO2') OR (ID = 'CALL OK NOW CW MESSAGE RADIO2') THEN
+        BEGIN
+        CorrectedCallMessageR2 := UpperCase (CMD);
         ProcessConfigInstructions1 := True;
         Exit;
         END;
 
     IF ID = 'CALL OK NOW SSB MESSAGE' THEN
         BEGIN
-        CorrectedCallPhoneMessage := UpperCase (CMD);
+        CorrectedCallPhoneMessageR1 := UpperCase (CMD);
+        CorrectedCallPhoneMessageR2 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'CALL OK NOW SSB MESSAGE RADIO1' THEN
+        BEGIN
+        CorrectedCallPhoneMessageR1 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'CALL OK NOW SSB MESSAGE RADIO2' THEN
+        BEGIN
+        CorrectedCallPhoneMessageR2 := UpperCase (CMD);
         ProcessConfigInstructions1 := True;
         Exit;
         END;
@@ -455,6 +512,94 @@ VAR xResult, Speed, TempValue: INTEGER;
         BEGIN
         CallsignUpdateEnable := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'CATEGORY ASSISTED' THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        IF CMD = 'NO CATEGORY ASSISTED' THEN Category.CategoryAssisted := NoCategoryAssistedType
+        ELSE IF CMD = 'ASSISTED'        THEN Category.CategoryAssisted := AssistedType
+        ELSE IF CMD = 'NON-ASSISTED'    THEN Category.CategoryAssisted := NonAssistedType
+        ELSE ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF ID = 'CATEGORY BAND' THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        IF CMD = 'NO CATEGORY BAND' THEN Category.CategoryBand := NoCategoryBandType
+        ELSE IF CMD = 'ALL'         THEN Category.CategoryBand := AllBandType
+        ELSE IF CMD = '160M'        THEN Category.CategoryBand := SingleBand160Type
+        ELSE IF CMD = '80M'         THEN Category.CategoryBand := SingleBand80Type
+        ELSE IF CMD = '40M'         THEN Category.CategoryBand := SingleBand40Type
+        ELSE IF CMD = '20M'         THEN Category.CategoryBand := SingleBand20Type
+        ELSE IF CMD = '15M'         THEN Category.CategoryBand := SingleBand15Type
+        ELSE IF CMD = '10M'         THEN Category.CategoryBand := SingleBand10Type
+        ELSE ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF ID = 'CATEGORY MODE' THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        IF CMD = 'NO CATEGORY MODE' THEN Category.CategoryMode := NoCategoryModeType
+        ELSE IF CMD = 'CW'          THEN Category.CategoryMode := CWModeType
+        ELSE IF CMD = 'DIGI'        THEN Category.CategoryMode := DigiModeType
+        ELSE IF CMD = 'RTTY'        THEN Category.CategoryMode := RTTYModeType
+        ELSE IF CMD = 'SSB'         THEN Category.CategoryMode := SSBModeType
+        ELSE IF CMD = 'PSK'         THEN Category.CategoryMode := PSKModeType
+        ELSE IF CMD = 'FT8'         THEN Category.CategoryMode := FT8ModeType
+        ELSE IF CMD = 'FT4'         THEN Category.CategoryMode := FT4ModeType
+        ELSE IF CMD = 'MIXED'       THEN Category.CategoryMode := MixedModeType
+        ELSE ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF ID = 'CATEGORY OPERATOR' THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        IF CMD = 'NO CATEGORY OPERATOR' THEN Category.CategoryOperator := NoCategoryOperatorType
+        ELSE IF CMD = 'SINGLE-OP'       THEN Category.CategoryOperator := SingleOperatorType
+        ELSE IF CMD = 'MULTI-ONE'       THEN Category.CategoryOperator := MultiOneOperatorType
+        ELSE IF CMD = 'MULTI-TWO'       THEN Category.CategoryOperator := MultiTwoOperatorType
+        ELSE IF CMD = 'MULTI-OP'        THEN Category.CategoryOperator := MultiMultiOperatorType
+        ELSE IF CMD = 'MULTI-MULTI'     THEN Category.CategoryOperator := MultiMultiOperatorType
+        ELSE ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF ID = 'CATEGORY POWER' THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        IF CMD = 'NO CATEGORY POWER' THEN Category.CategoryPower := NoCategoryPowerType
+        ELSE IF CMD = 'HIGH POWER'   THEN Category.CategoryPower := HighPowerType
+        ELSE IF CMD = 'LOW POWER'    THEN Category.CategoryPower := LowPowerType
+        ELSE IF CMD = 'QRP'          THEN Category.CategoryPower := QRPPowerType
+        ELSE ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF ID = 'CATEGORY TRANSMITTER' THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        IF CMD = 'NO CATEGORY TRANSMITTER' THEN Category.CategoryTransmitter := NoCategoryTransmitterType
+        ELSE IF CMD = 'ONE'                THEN Category.CategoryTransmitter := OneTransmitterType
+        ELSE IF CMD = 'TWO'                THEN Category.CategoryTransmitter := TwoTransmitterType
+        ELSE IF CMD = 'UNLIMITED'          THEN Category.CategoryTransmitter := UnlimitedTransmitterType
+        ELSE ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF ID = 'CATEGORY OVERLAY' THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        IF CMD = 'NO CATEGORY OVERLAY' THEN Category.CategoryOverlay := NoCategoryOverlayType
+        ELSE IF CMD = 'CLASSIC'        THEN Category.CategoryOverlay := ClassicOverlayType
+        ELSE IF CMD = 'ROOKIE '        THEN Category.CategoryOverlay := RookieOverlayType
+        ELSE IF CMD = 'TB-WIRES'       THEN Category.CategoryOverlay := TBWiresOverlayType
+        ELSE IF CMD = 'WIRE-ONLY'      THEN Category.CategoryOverlay := WireOnlyOverlayType
+        ELSE ProcessConfigInstructions1 := False;
         Exit;
         END;
 
@@ -544,28 +689,88 @@ VAR xResult, Speed, TempValue: INTEGER;
 
     IF (ID = 'CQ EXCHANGE') OR (ID = 'CQ CW EXCHANGE') THEN
         BEGIN
-        CQExchange := UpperCase (CMD);
+        CQExchangeR1 := UpperCase (CMD);
+        CQExchangeR2 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF (ID = 'CQ EXCHANGE RADIO1') OR (ID = 'CQ CW EXCHANGE RADIO1') THEN
+        BEGIN
+        CQExchangeR1 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF (ID = 'CQ EXCHANGE RADIO2') OR (ID = 'CQ CW EXCHANGE RADIO2') THEN
+        BEGIN
+        CQExchangeR2 := UpperCase (CMD);
         ProcessConfigInstructions1 := True;
         Exit;
         END;
 
     IF ID = 'CQ SSB EXCHANGE' THEN
         BEGIN
-        CQPhoneExchange := UpperCase (CMD);
+        CQPhoneExchangeR1 := UpperCase (CMD);
+        CQPhoneExchangeR2 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'CQ SSB EXCHANGE RADIO1' THEN
+        BEGIN
+        CQPhoneExchangeR1 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'CQ SSB EXCHANGE RADIO2' THEN
+        BEGIN
+        CQPhoneExchangeR2 := UpperCase (CMD);
         ProcessConfigInstructions1 := True;
         Exit;
         END;
 
     IF (ID = 'CQ EXCHANGE NAME KNOWN') OR (ID = 'CQ CW EXCHANGE NAME KNOWN') THEN
         BEGIN
-        CQExchangeNameKnown := UpperCase (CMD);
+        CQExchangeNameKnownR1 := UpperCase (CMD);
+        CQExchangeNameKnownR2 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF (ID = 'CQ EXCHANGE NAME KNOWN RADIO1') OR (ID = 'CQ CW EXCHANGE NAME KNOWN RADIO1') THEN
+        BEGIN
+        CQExchangeNameKnownR1 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF (ID = 'CQ EXCHANGE NAME KNOWN RADIO2') OR (ID = 'CQ CW EXCHANGE NAME KNOWN RADIO2') THEN
+        BEGIN
+        CQExchangeNameKnownR2 := UpperCase (CMD);
         ProcessConfigInstructions1 := True;
         Exit;
         END;
 
     IF ID = 'CQ SSB EXCHANGE NAME KNOWN' THEN
         BEGIN
-        CQPhoneExchangeNameKnown := UpperCase (CMD);
+        CQPhoneExchangeNameKnownR1 := UpperCase (CMD);
+        CQPhoneExchangeNameKnownR2 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'CQ SSB EXCHANGE NAME KNOWN RADIO1' THEN
+        BEGIN
+        CQPhoneExchangeNameKnownR1 := UpperCase (CMD);
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
+    IF ID = 'CQ SSB EXCHANGE NAME KNOWN RADIO2' THEN
+        BEGIN
+        CQPhoneExchangeNameKnownR2 := UpperCase (CMD);
         ProcessConfigInstructions1 := True;
         Exit;
         END;
@@ -588,6 +793,52 @@ VAR xResult, Speed, TempValue: INTEGER;
         IF ID = '10' THEN BEGIN SetCQMemoryString (CW, F10, CMD); Exit; END;
         IF ID = '11' THEN BEGIN SetCQMemoryString (CW, F11, CMD); Exit; END;
         IF ID = '12' THEN BEGIN SetCQMemoryString (CW, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'CQ MEMORY RADIO1 F') OR StringHas (ID, 'CQ CW MEMORY RADIO1 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'RADIO1 F');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'CQ MEMORY RADIO2 F') OR StringHas (ID, 'CQ CW MEMORY RADIO2 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'RADIO2 F');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, F12, CMD); Exit; END;
 
         ProcessConfigInstructions1 := False;
         Exit;
@@ -616,6 +867,52 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'CQ MEMORY RADIO1 ALTF') OR StringHas (ID, 'CQ CW MEMORY RADIO1 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'CQ MEMORY RADIO2 ALTF') OR StringHas (ID, 'CQ CW MEMORY RADIO2 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
     IF StringHas (ID, 'CQ MEMORY CONTROLF') OR StringHas (ID, 'CQ CW MEMORY CONTROLF') THEN
         BEGIN
         ProcessConfigInstructions1 := True;
@@ -634,6 +931,52 @@ VAR xResult, Speed, TempValue: INTEGER;
         IF ID = '10' THEN BEGIN SetCQMemoryString (CW, ControlF10, CMD); Exit; END;
         IF ID = '11' THEN BEGIN SetCQMemoryString (CW, ControlF11, CMD); Exit; END;
         IF ID = '12' THEN BEGIN SetCQMemoryString (CW, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'CQ MEMORY RADIO1 CONTROLF') OR StringHas (ID, 'CQ CW MEMORY RADIO1 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioOne, CW, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'CQ MEMORY RADIO2 CONTROLF') OR StringHas (ID, 'CQ CW MEMORY RADIO2 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, CW, ControlF12, CMD); Exit; END;
 
         ProcessConfigInstructions1 := False;
         Exit;
@@ -662,6 +1005,52 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'CQ SSB MEMORY RADIO1 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'RADIO1 F');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'CQ SSB MEMORY RADIO2 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'RADIO2 F');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
     IF StringHas (ID, 'CQ SSB MEMORY ALTF') THEN
         BEGIN
         ProcessConfigInstructions1 := True;
@@ -685,6 +1074,52 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'CQ SSB MEMORY RADIO1 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone,AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'CQ SSB MEMORY RADIO2 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone,AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
     IF StringHas (ID, 'CQ SSB MEMORY CONTROLF') THEN
         BEGIN
         ProcessConfigInstructions1 := True;
@@ -703,6 +1138,52 @@ VAR xResult, Speed, TempValue: INTEGER;
         IF ID = '10' THEN BEGIN SetCQMemoryString (Phone, ControlF10, CMD); Exit; END;
         IF ID = '11' THEN BEGIN SetCQMemoryString (Phone, ControlF11, CMD); Exit; END;
         IF ID = '12' THEN BEGIN SetCQMemoryString (Phone, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'CQ SSB MEMORY RADIO1 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioOne, Phone, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'CQ SSB MEMORY RADIO2 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetCQMemoryStringRadio (RadioTwo, Phone, ControlF12, CMD); Exit; END;
 
         ProcessConfigInstructions1 := False;
         Exit;
@@ -826,6 +1307,13 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF ID = 'DISPLAY DUPE QTHS' THEN
+        BEGIN
+        DisplayDupeQTHs := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions1 := True;
+        Exit;
+        END;
+
     IF ID = 'DISPLAY MODE' THEN
         BEGIN
         IF UpperCase (CMD) = 'COLOR' THEN
@@ -913,14 +1401,29 @@ VAR xResult, Speed, TempValue: INTEGER;
             SetEXMemoryString (Phone,  F9, '');
             SetCQMemoryString (Phone, F10, 'DVK0');
 
-            CorrectedCallPhoneMessage          := '';
-            CQPhoneExchange                    := '';
-            CQPhoneExchangeNameKnown           := '';
-            QSLPhoneMessage                    := '';
-            QSOBeforePhoneMessage              := '';
-            QuickQSLPhoneMessage               := '';
-            RepeatSearchAndPouncePhoneExchange := '';
-            SearchAndPouncePhoneExchange       := '';
+            CorrectedCallPhoneMessageR1        := '';
+            CorrectedCallPhoneMessageR2        := '';
+
+            CQPhoneExchangeR1                  := '';
+            CQPhoneExchangeR2                  := '';
+
+            CQPhoneExchangeNameKnownR1         := '';
+            CQPhoneExchangeNameKnownR2         := '';
+
+            QSLPhoneMessageR1                  := '';
+            QSLPhoneMessageR2                  := '';
+
+            QSOBeforePhoneMessageR1            := '';
+            QSOBeforePhoneMessageR2            := '';
+
+            QuickQSLPhoneMessageR1             := '';
+            QuickQSLPhoneMessageR2             := '';
+
+            RepeatSearchAndPouncePhoneExchangeR1 := '';
+            RepeatSearchAndPouncePhoneExchangeR2 := '';
+
+            SearchAndPouncePhoneExchangeR1     := '';
+            SearchAndPouncePhoneExchangeR2     := '';
 
             SetEXMemoryString (Phone, AltF1,  '');
             SetEXMemoryString (Phone, AltF2,  '');
@@ -1078,7 +1581,7 @@ VAR xResult, Speed, TempValue: INTEGER;
         BEGIN
         ProcessConfigInstructions1 := True;
         SniffOutControlCharacters (CMD);
-        ID := PostcedingString (ID, 'MEMORY F');
+        ID := PostcedingString (ID, ' F');
 
         IF ID = '3'  THEN BEGIN SetExMemoryString (CW, F3,  CMD); Exit; END;
         IF ID = '4'  THEN BEGIN SetExMemoryString (CW, F4,  CMD); Exit; END;
@@ -1095,7 +1598,49 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'EX MEMORY RADIO1 F') OR StringHas (ID, 'EX CW MEMORY RADIO1 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, ' F');
 
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX MEMORY RADIO2 F') OR StringHas (ID, 'EX CW MEMORY RADIO2 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, ' F');
+
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+
 
     IF StringHas (ID, 'EX MEMORY ALTF') OR StringHas (ID, 'EX CW MEMORY ALTF') THEN
         BEGIN
@@ -1115,6 +1660,52 @@ VAR xResult, Speed, TempValue: INTEGER;
         IF ID = '10' THEN BEGIN SetExMemoryString (CW, AltF10, CMD); Exit; END;
         IF ID = '11' THEN BEGIN SetExMemoryString (CW, AltF11, CMD); Exit; END;
         IF ID = '12' THEN BEGIN SetExMemoryString (CW, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX MEMORY RADIO1 ALTF') OR StringHas (ID, 'EX CW MEMORY RADIO1 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX MEMORY RADIO2 ALTF') OR StringHas (ID, 'EX CW MEMORY RADIO2 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, AltF12, CMD); Exit; END;
 
         ProcessConfigInstructions1 := False;
         Exit;
@@ -1143,6 +1734,52 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'EX MEMORY RADIO1 CONTROLF') OR StringHas (ID, 'EX CW MEMORY RADIO1 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioOne, CW, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX MEMORY RADIO2 CONTROLF') OR StringHas (ID, 'EX CW MEMORY RADIO2 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioTwo, CW, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
     IF StringHas (ID, 'EX SSB MEMORY F') THEN
         BEGIN
         ProcessConfigInstructions1 := True;
@@ -1166,7 +1803,51 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'EX SSB MEMORY RADIO1 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'MEMORY F');
 
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX SSB MEMORY RADIO2 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'MEMORY F');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
 
     IF StringHas (ID, 'EX SSB MEMORY ALTF') THEN
         BEGIN
@@ -1191,6 +1872,54 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'EX SSB MEMORY RADIO1 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX SSB MEMORY RADIO2 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+
+
     IF StringHas (ID, 'EX SSB MEMORY CONTROLF') THEN
         BEGIN
         ProcessConfigInstructions1 := True;
@@ -1213,6 +1942,54 @@ VAR xResult, Speed, TempValue: INTEGER;
         ProcessConfigInstructions1 := False;
         Exit;
         END;
+
+    IF StringHas (ID, 'EX SSB MEMORY RADIO1 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioOne, Phone, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX SSB MEMORY RADIO2 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Phone, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+
 
     IF StringHas (ID, 'EX DIGITAL MEMORY F') THEN
         BEGIN
@@ -1237,6 +2014,54 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'EX DIGITAL MEMORY RADIO1 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, ' F');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX DIGITAL MEMORY RADIO2 F') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, ' F');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, F12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+
+
     IF StringHas (ID, 'EX DIGITAL MEMORY ALTF') THEN
         BEGIN
         ProcessConfigInstructions1 := True;
@@ -1260,6 +2085,54 @@ VAR xResult, Speed, TempValue: INTEGER;
         Exit;
         END;
 
+    IF StringHas (ID, 'EX DIGITAL MEMORY RADIO1 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX DIGITAL MEMORY RADIO2 ALTF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'ALTF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, AltF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+
+
     IF StringHas (ID, 'EX DIGITAL MEMORY CONTROLF') THEN
         BEGIN
         ProcessConfigInstructions1 := True;
@@ -1282,6 +2155,54 @@ VAR xResult, Speed, TempValue: INTEGER;
         ProcessConfigInstructions1 := False;
         Exit;
         END;
+
+    IF StringHas (ID, 'EX DIGITAL MEMORY RADIO1 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioOne, Digital, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+    IF StringHas (ID, 'EX DIGITAL MEMORY RADIO2 CONTROLF') THEN
+        BEGIN
+        ProcessConfigInstructions1 := True;
+        SniffOutControlCharacters (CMD);
+        ID := PostcedingString (ID, 'CONTROLF');
+
+        IF ID = '1'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF1,  CMD); Exit; END;
+        IF ID = '2'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF2,  CMD); Exit; END;
+        IF ID = '3'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF3,  CMD); Exit; END;
+        IF ID = '4'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF4,  CMD); Exit; END;
+        IF ID = '5'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF5,  CMD); Exit; END;
+        IF ID = '6'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF6,  CMD); Exit; END;
+        IF ID = '7'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF7,  CMD); Exit; END;
+        IF ID = '8'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF8,  CMD); Exit; END;
+        IF ID = '9'  THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF9,  CMD); Exit; END;
+        IF ID = '10' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF10, CMD); Exit; END;
+        IF ID = '11' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF11, CMD); Exit; END;
+        IF ID = '12' THEN BEGIN SetExMemoryStringRadio (RadioTwo, Digital, ControlF12, CMD); Exit; END;
+
+        ProcessConfigInstructions1 := False;
+        Exit;
+        END;
+
+
 
     IF ID = 'EX MENU' THEN
         BEGIN
@@ -1943,6 +2864,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'KY CW ENABLE' THEN
+        BEGIN
+        KYCWEnable := Upcase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'LEADING ZEROS' THEN
         BEGIN
         CMD := UpperCase (CMD);
@@ -2085,12 +3013,6 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
-    IF ID = 'MULTI MULTS ONLY' THEN
-        BEGIN
-        MultiMultsOnly := UpCase (CMD [1]) = 'T';
-        ProcessConfigInstructions2 := True;
-        Exit;
-        END;
 
     IF ID = 'MULTI PORT' THEN
         BEGIN
@@ -2374,6 +3296,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'PACKET DISPLAY SPOTS' THEN
+        BEGIN
+        Packet.DisplaySpots := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'PACKET FT8 SPOTS' THEN
         BEGIN
         Packet.FT8SpotEnable := UpCase (CMD [1]) = 'T';
@@ -2406,6 +3335,13 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'PACKET PORT COMMAND' THEN
+        BEGIN
+        Packet.PacketPortCommand := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'PACKET PORT BAUD RATE' THEN
         BEGIN
         Val (CMD, Packet.PacketBaudRate, xResult);
@@ -2413,10 +3349,24 @@ VAR xResult,tempint: INTEGER;
         Exit;
         END;
 
+    IF ID = 'PACKET RECEIVE SPOTS' THEN
+        BEGIN
+        Packet.ReceiveSpots := UpCase (CMD [1]) = 'T';
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
     IF ID = 'PACKET RETURN PER MINUTE' THEN
         BEGIN
         Val (CMD, PacketReturnPerMinute, xResult);
         ProcessConfigInstructions2 := xResult = 0;
+        Exit;
+        END;
+
+    IF ID = 'PACKET SPOT COMMENT' THEN
+        BEGIN
+        PacketSpotComment := CMD;
+        ProcessConfigInstructions2 := True;
         Exit;
         END;
 
@@ -2673,14 +3623,44 @@ VAR xResult,tempint: INTEGER;
 
     IF (ID = 'QSL MESSAGE') OR (ID = 'QSL CW MESSAGE') THEN
         BEGIN
-        QSLMessage := CMD;
+        QSLMessageR1 := CMD;
+        QSLMessageR2 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF (ID = 'QSL MESSAGE RADIO1') OR (ID = 'QSL CW MESSAGE RADIO1') THEN
+        BEGIN
+        QSLMessageR1 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF (ID = 'QSL MESSAGE RADIO2') OR (ID = 'QSL CW MESSAGE RADIO2') THEN
+        BEGIN
+        QSLMessageR2 := CMD;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
 
     IF ID = 'QSL SSB MESSAGE' THEN
         BEGIN
-        QSLPhoneMessage := CMD;
+        QSLPhoneMessageR1 := CMD;
+        QSLPhoneMessageR2 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'QSL SSB MESSAGE RADIO1' THEN
+        BEGIN
+        QSLPhoneMessageR1 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'QSL SSB MESSAGE RADIO2' THEN
+        BEGIN
+        QSLPhoneMessageR2 := CMD;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
@@ -2702,14 +3682,44 @@ VAR xResult,tempint: INTEGER;
 
     IF (ID = 'QSO BEFORE MESSAGE') OR (ID = 'QSO BEFORE CW MESSAGE') THEN
         BEGIN
-        QSOBeforeMessage := CMD;
+        QSOBeforeMessageR1 := CMD;
+        QSOBeforeMessageR2 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF (ID = 'QSO BEFORE MESSAGE RADIO1') OR (ID = 'QSO BEFORE CW MESSAGE RADIO1') THEN
+        BEGIN
+        QSOBeforeMessageR1 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF (ID = 'QSO BEFORE MESSAGE RADIO2') OR (ID = 'QSO BEFORE CW MESSAGE RADIO2') THEN
+        BEGIN
+        QSOBeforeMessageR2 := CMD;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
 
     IF ID = 'QSO BEFORE SSB MESSAGE' THEN
         BEGIN
-        QSOBeforePhoneMessage := CMD;
+        QSOBeforePhoneMessageR1 := CMD;
+        QSOBeforePhoneMessageR2 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'QSO BEFORE SSB MESSAGE RADIO1' THEN
+        BEGIN
+        QSOBeforePhoneMessageR1 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'QSO BEFORE SSB MESSAGE RADIO2' THEN
+        BEGIN
+        QSOBeforePhoneMessageR2 := CMD;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
@@ -2796,24 +3806,72 @@ VAR xResult,tempint: INTEGER;
        (ID = 'QUICK QSL MESSAGE 1') OR
        (ID = 'QUICK QSL CW MESSAGE 1') THEN
             BEGIN
-            QuickQSLMessage1 := CMD;
+            QuickQSLMessage1R1 := CMD;
+            QuickQSLMessage1R2 := CMD;
+            ProcessConfigInstructions2 := True;
+            Exit;
+            END;
+
+    IF (ID = 'QUICK QSL MESSAGE RADIO1') OR
+       (ID = 'QUICK QSL CW MESSAGE RADIO1') OR
+       (ID = 'QUICK QSL MESSAGE 1 RADIO1') OR
+       (ID = 'QUICK QSL CW MESSAGE 1 RADIO1') THEN
+            BEGIN
+            QuickQSLMessage1R1 := CMD;
+            ProcessConfigInstructions2 := True;
+            Exit;
+            END;
+
+    IF (ID = 'QUICK QSL MESSAGE RADIO2') OR
+       (ID = 'QUICK QSL CW MESSAGE RADIO2') OR
+       (ID = 'QUICK QSL MESSAGE 1 RADIO2') OR
+       (ID = 'QUICK QSL CW MESSAGE 1 RADIO2') THEN
+            BEGIN
+            QuickQSLMessage1R2 := CMD;
             ProcessConfigInstructions2 := True;
             Exit;
             END;
 
     IF ID = 'QUICK QSL MESSAGE 2' THEN
         BEGIN
-        QuickQSLMessage2 := CMD;
+        QuickQSLMessage2R1 := CMD;
+        QuickQSLMessage2R2 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'QUICK QSL MESSAGE 2 RADIO1' THEN
+        BEGIN
+        QuickQSLMessage2R1 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'QUICK QSL MESSAGE 2 RADIO2' THEN
+        BEGIN
+        QuickQSLMessage2R2 := CMD;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
 
     IF ID = 'QUICK QSL SSB MESSAGE' THEN
         BEGIN
-        QuickQSLPhoneMessage := CMD;
+        QuickQSLPhoneMessageR1 := CMD;
+        QuickQSLPhoneMessageR2 := CMD;
         ProcessConfigInstructions2 := True;
         END;
 
+    IF ID = 'QUICK QSL SSB MESSAGE RADIO1' THEN
+        BEGIN
+        QuickQSLPhoneMessageR1 := CMD;
+        ProcessConfigInstructions2 := True;
+        END;
+
+    IF ID = 'QUICK QSL SSB MESSAGE RADIO2' THEN
+        BEGIN
+        QuickQSLPhoneMessageR2 := CMD;
+        ProcessConfigInstructions2 := True;
+        END;
 
     IF ID = 'RADIO ONE BAND OUTPUT PORT' THEN
         BEGIN
@@ -3532,14 +4590,44 @@ VAR xResult,tempint: INTEGER;
 
     IF (ID = 'REPEAT S&P EXCHANGE') OR (ID = 'REPEAT S&P CW EXCHANGE') THEN
         BEGIN
-        RepeatSearchAndPounceExchange := CMD;
+        RepeatSearchAndPounceExchangeR1 := CMD;
+        RepeatSearchAndPounceExchangeR2 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF (ID = 'REPEAT S&P EXCHANGE RADIO1') OR (ID = 'REPEAT S&P CW EXCHANGE RADIO1') THEN
+        BEGIN
+        RepeatSearchAndPounceExchangeR1 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF (ID = 'REPEAT S&P EXCHANGE RADIO2') OR (ID = 'REPEAT S&P CW EXCHANGE RADIO2') THEN
+        BEGIN
+        RepeatSearchAndPounceExchangeR2 := CMD;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
 
     IF ID = 'REPEAT S&P SSB EXCHANGE' THEN
         BEGIN
-        RepeatSearchAndPouncePhoneExchange := CMD;
+        RepeatSearchAndPouncePhoneExchangeR1 := CMD;
+        RepeatSearchAndPouncePhoneExchangeR2 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'REPEAT S&P SSB EXCHANGE RADIO1' THEN
+        BEGIN
+        RepeatSearchAndPouncePhoneExchangeR1 := CMD;
+        ProcessConfigInstructions2 := True;
+        Exit;
+        END;
+
+    IF ID = 'REPEAT S&P SSB EXCHANGE RADIO2' THEN
+        BEGIN
+        RepeatSearchAndPouncePhoneExchangeR2 := CMD;
         ProcessConfigInstructions2 := True;
         Exit;
         END;
@@ -3626,14 +4714,44 @@ VAR xResult: INTEGER;
 
     IF (ID = 'S&P EXCHANGE') OR (ID = 'S&P CW EXCHANGE') THEN
         BEGIN
-        SearchAndPounceExchange := CMD;
+        SearchAndPounceExchangeR1 := CMD;
+        SearchAndPounceExchangeR2 := CMD;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF (ID = 'S&P EXCHANGE RADIO1') OR (ID = 'S&P CW EXCHANGE RADIO1') THEN
+        BEGIN
+        SearchAndPounceExchangeR1 := CMD;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF (ID = 'S&P EXCHANGE RADIO2') OR (ID = 'S&P CW EXCHANGE RADIO2') THEN
+        BEGIN
+        SearchAndPounceExchangeR2 := CMD;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
 
     IF ID = 'S&P SSB EXCHANGE' THEN
         BEGIN
-        SearchAndPouncePhoneExchange := CMD;
+        SearchAndPouncePhoneExchangeR1 := CMD;
+        SearchAndPouncePhoneExchangeR2 := CMD;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'S&P SSB EXCHANGE RADIO1' THEN
+        BEGIN
+        SearchAndPouncePhoneExchangeR1 := CMD;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'S&P SSB EXCHANGE RADIO2' THEN
+        BEGIN
+        SearchAndPouncePhoneExchangeR2 := CMD;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
@@ -3655,17 +4773,30 @@ VAR xResult: INTEGER;
 
     IF ID = 'SCORE REPORT ENABLE' then
         BEGIN
-        scorerpt.setenable(UpCase (CMD [1]) = 'T');
+        scorerpt.setenable (UpCase (CMD [1]) = 'T');
         ProcessConfigInstructions3 := True;
         Exit;
         END;
 
     IF ID = 'SCORE REPORT DEBUG ENABLE' then
         BEGIN
-        scorerpt.setdebugenable(UpCase (CMD [1]) = 'T');
+        scorerpt.setdebugenable (UpCase (CMD [1]) = 'T');
         ProcessConfigInstructions3 := True;
         Exit;
         END;
+
+    { So there is a bit of a difference between the Cabrillo definition of the
+      contest and what the score reporter is expecting.  The main difference is
+      when the mode if part of the score reporter.  For example, Cabrillo is
+      happy with CQ WW as a contest - but score reporter wants either CQ WW CW,
+      CQ WW SSB or CQ WW RTTY.  We will put some code in the score reporter
+      that will set the contest from the Cabrillo contest and take a look at
+      active mode.
+
+      This command - if used - will override anything that is derived from the
+      Cabrillo contest and mode - so only use this if you really want to force
+      the contest to something different than what Cabrillo and ActiveMode will
+      get you }
 
     IF ID = 'SCORE REPORT CONTEST' then
         BEGIN
@@ -3673,6 +4804,10 @@ VAR xResult: INTEGER;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
+
+    { These next entries will get set by the Cabrillo setting.  Only use them
+      if you want to override the Cabrillo defaults.  Make sure the config
+      instruction is after your Cabrillo instruction }
 
     IF ID = 'SCORE REPORT CLASS OPS' then
         BEGIN
@@ -3722,6 +4857,8 @@ VAR xResult: INTEGER;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
+
+    { End of items that get over written by the Cabrillo stuff }
 
     IF ID = 'SCORE REPORT CLUB' then
         BEGIN
@@ -3794,7 +4931,6 @@ VAR xResult: INTEGER;
         Exit;
         END;
 
-
     IF ID = 'SCP COUNTRY STRING' THEN
         BEGIN
         CD.CountryString := UpperCase (CMD);
@@ -3819,6 +4955,13 @@ VAR xResult: INTEGER;
             SCPMinimumLetters := 0;
             ProcessConfigInstructions3 := True;
             END;
+
+    IF ID = 'SELF SPOT ENABLE' THEN
+        BEGIN
+        SelfSpotEnable := UpCase (CMD [1]) = 'T';
+        ProcessConfiginstructions3 := True;
+        Exit;
+        END;
 
     IF ID = 'SEND ALT-D SPOTS TO PACKET' THEN
         BEGIN
@@ -3993,6 +5136,13 @@ VAR xResult: INTEGER;
         Exit;
         END;
 
+    IF ID = 'STOP TRANSMISSION PULSE LENGTH' THEN
+        BEGIN
+        Val (CMD, StopTransmissionPulseLength, xResult);
+        ProcessConfigInstructions3 := (xResult = 0) AND (StopTransmissionPulseLength >= 0) AND (StopTransmissionPulseLength <= 63);
+        Exit;
+        END;
+
     IF ID = 'SWAP PACKET SPOT RADIOS' THEN
         BEGIN
         SwapPacketSpotRadios := UpCase (CMD [1]) = 'T';
@@ -4038,14 +5188,44 @@ VAR xResult: INTEGER;
 
     IF (ID = 'TAIL END MESSAGE') OR (ID = 'TAIL END CW MESSAGE') THEN
         BEGIN
-        TailEndMessage := CMD;
+        TailEndMessageR1 := CMD;
+        TailEndMessageR2 := CMD;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF (ID = 'TAIL END MESSAGE RADIO1') OR (ID = 'TAIL END CW MESSAGE RADIO1') THEN
+        BEGIN
+        TailEndMessageR1 := CMD;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF (ID = 'TAIL END MESSAGE RADIO2') OR (ID = 'TAIL END CW MESSAGE RADIO2') THEN
+        BEGIN
+        TailEndMessageR2 := CMD;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
 
     IF ID = 'TAIL END SSB MESSAGE' THEN
         BEGIN
-        TailEndPhoneMessage := CMD;
+        TailEndPhoneMessageR1 := CMD;
+        TailEndPhoneMessageR2 := CMD;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'TAIL END SSB MESSAGE RADIO1' THEN
+        BEGIN
+        TailEndPhoneMessageR1 := CMD;
+        ProcessConfigInstructions3 := True;
+        Exit;
+        END;
+
+    IF ID = 'TAIL END SSB MESSAGE RADIO2' THEN
+        BEGIN
+        TailEndPhoneMessageR2 := CMD;
         ProcessConfigInstructions3 := True;
         Exit;
         END;
@@ -4219,13 +5399,6 @@ VAR xResult: INTEGER;
         CPUKeyer.setWeight(tempreal);
         Winkey.setWeight(tempreal);
         Yccckey.setWeight(tempreal);
-        ProcessConfigInstructions3 := True;
-        Exit;
-        END;
-
-    IF ID = 'WIDE FREQUENCY DISPLAY' THEN
-        BEGIN
-        WideFreqDisplay := UpCase (CMD [1]) = 'T';
         ProcessConfigInstructions3 := True;
         Exit;
         END;

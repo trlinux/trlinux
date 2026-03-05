@@ -782,79 +782,6 @@ VAR StartY: INTEGER;
 
 
 
-PROCEDURE ProcessLongLogEntry (LongLogFileString: STRING; VAR CabrilloString: STRING);
-
-VAR NumberSentString, FrequencyString: Str80;
-
-    BEGIN
-    NumberSentString := BracketedString (LongLogFileString, 'NumberSent=', ' ');
-
-    { So the issue here is that we have the NumberSent field even if we
-      are not using QSO Numbers.  We now rely on SentQSONumberFieldLocation
-      being something valid
-
-    IF NumberSentString <> '' THEN  }
-
-    IF SentQSONumberFieldLocation >= 1 THEN
-        BEGIN
-        WHILE Length (NumberSentString) < SentQSONumberLength DO
-            NumberSentString := ' ' + NumberSentString;
-
-        Delete (CabrilloString, SentQSONumberFieldLocation, SentQSONumberLength);
-        Insert (NumberSentString, CabrilloString, SentQSONumberFieldLocation)
-        END;
-
-    FrequencyString := BracketedString (LongLogFileString, 'Frequency=', ' ');
-
-    IF Length (FrequencyString) <= 8 THEN  { Below 100 Mhz }
-        BEGIN
-        { Remove the last 3 digits in the FreqeuencyString so we only have integer kHz }
-
-        Delete (FrequencyString, Length (FrequencyString) - 2, 3);
-
-        { Ignore anything above 10 meters }
-
-        IF Length (FrequencyString) = 5 THEN
-            IF Copy (FrequencyString, 1, 1) > '2' THEN
-                Exit;
-
-        WHILE Length (FrequencyString) < 5 DO
-            FrequencyString := ' ' + FrequencyString;
-
-        Delete (CabrilloString, 6, 5);
-        Insert (FrequencyString, CabrilloString, 6);
-        END;
-    END;
-
-
-
-PROCEDURE CheckLongLog (VAR LongLogFileRead: TEXT; OriginalFileString: STRING; VAR CabrilloString: STRING);
-
-{ Will suck any information that is in the LongLog for the LOG.DAT QSO in OriginalFileString
-  into the Cabrillo string.  Please only call if LongLgFileRead is open. }
-
-VAR LongLogFileString: STRING;
-
-    BEGIN
-    { Ideally, we will have a 1:1 relationship between LOG.DAT and LONGLOG.DAT entries }
-
-    ReadLn (LongLogFileRead, LongLogFileString);
-
-    IF Pos (OriginalFileString, LongLogFileString) = 1 THEN  { We have a match }
-        BEGIN
-        ProcessLongLogEntry (LongLogFileString, CabrilloString);
-        Exit;
-        END;
-
-    WriteLn ('Your LONGLOG file is out of sync with your LOG.DAT file - please fix');
-
-    WriteLn ('.DAT file = ', OriginalFileString);
-    WriteLn ('LONGLOG.DAT file = ', LongLogFileString);
-    Halt;
-    END;
-
-
-
 FUNCTION GenerateSummaryPortionOfCabrilloFile (CabrilloFileName: Str80;
                                                VAR FileWrite: TEXT): BOOLEAN;
 
@@ -1159,6 +1086,11 @@ VAR Key:             CHAR;
             SentInformation := '$ ' + Age;
             END;
 
+        KCJ:
+            BEGIN
+            SentInformation := '$ ' + GetResponse ('Enter sent information (zone or pref): ');
+            RSTIsPartOfTheExchange := True;
+            END;
 
         NAQSO:       { Doesn't comply with field length for name }
             BEGIN
@@ -1334,6 +1266,7 @@ VAR Key:             CHAR;
             IARU:        WriteLn (FileWrite, 'CONTEST: IARU-HF',Chr(13));
             IntSprint:   WriteLn (FileWrite, 'CONTEST: INTERNET-SPRINT',Chr(13));
             JARTS:       WriteLn (FileWrite, 'CONTEST: JARTS-WW-RTTY', Chr (13));
+            KCJ:         WriteLn (FileWrite, 'CONTEST: KCJ', Chr (13));
             NAQSO:       WriteLn (FileWrite, 'CONTEST: NAQP-', ModeString,Chr(13));
             NEQSO:       WriteLn (FileWrite, 'CONTEST: New England QSO Party',Chr(13));
             OceaniaVKZL: WriteLn (FileWrite, 'CONTEST: OCEANIA',Chr(13));
@@ -1520,8 +1453,7 @@ END-OF-LOG:
 }
 
 FUNCTION GenerateLogPortionOfCabrilloFile (CabrilloFileName: Str80;
-                                           VAR FileWrite: TEXT;
-                                           UseLongLog: BOOLEAN): BOOLEAN;
+                                           VAR FileWrite: TEXT): BOOLEAN;
 
 { This function relies on some global variables defined by the previous
   routines.  It does not know specifically which contest it is processing
@@ -1538,8 +1470,6 @@ FUNCTION GenerateLogPortionOfCabrilloFile (CabrilloFileName: Str80;
   SniffForTransmitter: BOOLEAN;
   SuppressRST: BOOLEAN;
 
-  New for 2023 is the support for the new LONGLOG.DAT which has more exact frequency
-  information.
 
 }
 
@@ -1557,9 +1487,6 @@ VAR QTCFileRead, FileRead: TEXT;
     Count, QSONumberSent, NumberReceived, CursorPosition: INTEGER;
     RSTReceived, RSTSentString, CallReceivedString, QSONumberSentString: Str20;
     Transmitter0Char, ComputerID: CHAR;
-
-    LongLogFileRead: TEXT;
-    LongLogFileOpen: BOOLEAN;
 
     QTCIndexNumberString, QTCNumber, QTCCall, QTCDate, QTCTime: CallString;
     QTCBandModeString: CallString;
@@ -1593,11 +1520,6 @@ VAR QTCFileRead, FileRead: TEXT;
     IF QTCEnable THEN New (QTCList);
 
     { See if the long log file is present and if so - open it }
-
-    IF UseLongLog THEN
-        LongLogFileOpen := OpenFileForRead (LongLogFileRead, LongLogFilename)
-    ELSE
-        LongLogFileOpen := False;
 
     IF OpenFileForRead (FileRead, LogFileName) THEN
         BEGIN
@@ -1787,7 +1709,7 @@ Call fields end here for length=12                                
                 BEGIN
                 IF (FileString [1] = ';') THEN Continue;
 
-                IF Length (FileString) < 60 THEN Continue;
+                IF Length (FileString) < 40 THEN Continue;
                 IF Copy (FileString, 1, 1) = LineFeed THEN Continue;
 
                 ExpandTabs (FileString);
@@ -1827,9 +1749,7 @@ Call fields end here for length=12                                
                     BEGIN
                     NumberReceived := RemoveFirstLongInteger (ExchangeString);
                     GetRidOfPrecedingSpaces (ExchangeString);
-
-                    Str (NumberReceived:ReceivedQSONumberLength, TempString);
-
+                    Str (NumberReceived, TempString);
                     ExchangeString := TempString + ' ' + ExchangeString;
                     END;
 
@@ -1927,13 +1847,10 @@ Call fields end here for length=12                                
                         { If = -2 then someone clobbered the sent QSO number with frequency data }
 
                         IF QSONumberSent = -2 THEN
-                            IF NOT LongLogFileOpen THEN  { If no long log available - do this }
-                                BEGIN
-                                Inc (Qnumber);
-                                QSONumberSent := Qnumber;
-                                END
-                            ELSE
-                                QSONumberSent := 0;  { Long log will fix it }
+                            BEGIN
+                            Inc (Qnumber);
+                            QSONumberSent := Qnumber;
+                            END;
 
                         SentQSONumberFieldLocation := CursorPosition + 44;  { Tell LongLog where to find sent # }
 
@@ -2004,9 +1921,6 @@ Call fields end here for length=12                                
                   to see if there is some information there that we should incorporate into
                   the data for this QSO. }
 
-                IF LongLogFileOpen THEN
-                    CheckLongLog (LongLogFileRead, OriginalFileString, CabrilloString);
-
                 WriteLn (FileWrite, CabrilloString,Chr(13));
 
                 Inc (NumberQSOs);
@@ -2035,7 +1949,6 @@ PROCEDURE CreateCabrilloFile;
 
 VAR CabrilloFileName: Str40;
     CabrilloFileWrite: TEXT;
-    UseLongLogFile: BOOLEAN;
 
     BEGIN
     ClearScreenAndTitle ('CREATE CABRILLO FILE');
@@ -2048,31 +1961,6 @@ VAR CabrilloFileName: Str40;
     WriteLn ('will be saved with the active file name prefix and .CBR as the suffix.');
     WriteLn;
 
-    IF FileExists ('LONGLOG.DAT') THEN
-        BEGIN
-        WriteLn ('You have the file LONGLOG.DAT available.  This file has frequency');
-        WriteLn ('information that can be used in your Cabrilllo log.  You can try to fold');
-        WriteLn ('that information in now - but if there is a mismatch in the QSO data');
-        WriteLn ('between the LONGLOG and normal .DAT file, the process will abort and');
-        WriteLn ('require you to resolve the conflight.');
-        WriteLn;
-        WriteLn ('There is also the option to fold the frequency into the Cabrillo file');
-        WriteLn ('after it is generated using the POST U P command.  This proccess can be');
-        WriteLn ('used multiple times to merge in the data from multiple LONGLOG.DAT files,');
-        WriteLn ('one from each of the computers used.');
-        WriteLn;
-
-        REPEAT
-            Key := UpCase (GetKey ('Use it frequency information now? (Y/N or escape) : '));
-            IF Key = EscapeKey THEN Exit;
-        UNTIL (Key = 'Y') OR (Key = 'N');
-        WriteLn;
-
-        UseLongLogFile := Key = 'Y';
-        END
-    ELSE
-        IF NOT OkayToProceed THEN Exit;
-
     CabrilloFileName := PrecedingString (LogFileName, '.') + '.CBR';
 
     IF FileExists (CabrilloFileName) THEN
@@ -2084,7 +1972,7 @@ VAR CabrilloFileName: Str40;
     IF NOT GenerateSummaryPortionOfCabrilloFile (CabrilloFileName, CabrilloFileWrite) THEN
         Exit;
 
-    IF NOT GenerateLogPortionOfCabrilloFile (CabrilloFileName, CabrilloFileWrite, UseLongLogFile) THEN
+    IF NOT GenerateLogPortionOfCabrilloFile (CabrilloFileName, CabrilloFileWrite) THEN
         BEGIN
         Close (CabrilloFileWrite);
         Exit;

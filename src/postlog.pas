@@ -30,6 +30,7 @@ Uses Tree,
      PostSubs,
      Country9,
      LogDupe,
+     LogSCP,
      LogWind,
      trCrt,
      ZoneCont;
@@ -42,7 +43,17 @@ IMPLEMENTATION
 uses keycode;
 
 
-TYPE WorkedArrayType = ARRAY [BandType, CW..Both, 0..400] OF BOOLEAN;
+TYPE QSORecordPointer = ^QSORecord;
+
+    QSORecord = RECORD
+         LogString: STRING;
+         DayOfYear: INTEGER; { Use the function ComputeDayOfYear to get this }
+         Time: INTEGER;      { Use GetLogEntryIntegerTime from tree.pas }
+         PreviousQSOPointer: QSORecordPointer;
+         NextQSOPointer: QSORecordPointer;
+         END;
+
+     WorkedArrayType = ARRAY [BandType, CW..Both, 0..400] OF BOOLEAN;
      WorkedArrayPtr  = ^WorkedArrayType;
 
      PrefixArrayType = ARRAY [0..2000] OF FourBytes;
@@ -54,7 +65,13 @@ TYPE WorkedArrayType = ARRAY [BandType, CW..Both, 0..400] OF BOOLEAN;
          NumberPrefixes: INTEGER;
          END;
 
-VAR PrefixLists: ARRAY [BandType, CW..Both] OF PrefixArrayRecordType;
+    NonSCPCallListArray = ARRAY [0..1000] OF CallString;
+    NonSCPCallListArrayPointer = ^NonSCPCallListArray;
+
+VAR
+    NonSCPCallList: NonSCPCallListArrayPointer;
+    PrefixLists: ARRAY [BandType, CW..Both] OF PrefixArrayRecordType;
+
 
 
 
@@ -396,157 +413,6 @@ VAR Key: CHAR;
 
             END;  { of case }
     UNTIL False;
-    END;
-
-
-
-PROCEDURE ARRLCompatibleLog;
-
-VAR ARRLString, LogString, DateString, TimeString, OutputFileName: STRING;
-    NumberString: Str20;
-    FileRead, FileWrite: TEXT;
-    Band: BandType;
-    Mode: ModeType;
-    QSONumber: INTEGER;
-    ExchangeString, SentInformation: Str40;
-
-    BEGIN
-    ClrScr;
-    TextColor (Yellow);
-    WriteLnCenter ('PRODUCE ARRL DISK LOG');
-    TextColor (Cyan);
-    WriteLn;
-    WriteLn ('This procedure will produce an ARRL compatible disk log from the active log ');
-    WriteLn ('file.  This file can be submitted along with a summary sheet to the ARRL for');
-    WriteLn ('any of their contests.  It also can be used for the CQ WPX contests.');
-
-    WriteLn;
-
-    OutputFileName := GetResponse ('Enter file name for output : ');
-    IF OutputFileName = '' THEN Exit;
-
-    IF NOT OpenFileForRead (FileRead, LogFileName) THEN
-        BEGIN
-        ReportError (LogFileName + 'not found!!');
-        WaitForKeyPressed;
-        Exit;
-        END;
-
-    IF NOT OpenFileForWrite (FileWrite, OutputFileName) THEN
-        BEGIN
-        ReportError ('Unable to open ' + OutputFileName);
-        WaitForKeyPressed;
-        Exit;
-        END;
-
-    TextColor (Cyan);
-
-    WriteLn ('The ARRL log checkers like to have all of your exchange sent on each log');
-    WriteLn ('entry.  Your log already has your QSO number and RS(T) sent.');
-    WriteLn;
-
-    SentInformation := GetResponse ('Enter additional exchange information to print : ');
-
-    QSONumber := 0;
-    Write (QSONumber);
-
-    REPEAT
-        REPEAT
-            ReadLn (FileRead, LogString);
-            Band := GetLogEntryBand (LogString);
-        UNTIL (Band <> NoBand) OR EOF (FileRead);
-
-        IF Band <> NoBand THEN
-            BEGIN
-            IF (LogString [1] = ';') THEN Continue;
-
-            ExpandTabs (LogString);
-
-            IF LogString [42] = '*' THEN LogString [42] := ' ';
-
-            { Save the exchange part for later }
-
-            ExchangeString := Copy (LogString, 44, Length (LogString) - 43);
-
-            { Get rid of any S&P indicator }
-
-            IF Pos ('$', LogString) > 0 THEN LogString [Pos ('$', LogString)] := ' ';
-
-            Mode := GetLogEntryMode (LogString);
-
-            TimeString := Copy (LogString, LogEntryHourAddress, 2) +
-                          Copy (LogString, LogEntryMinuteAddress, 2);
-
-            DateString := UpperCase (Copy (LogString, LogEntryMonthAddress, 3));
-
-            IF DateString = 'JAN' THEN DateString := '01';
-            IF DateString = 'FEB' THEN DateString := '02';
-            IF DateString = 'MAR' THEN DateString := '03';
-            IF DateString = 'APR' THEN DateString := '04';
-            IF DateString = 'MAY' THEN DateString := '05';
-            IF DateString = 'JUN' THEN DateString := '06';
-            IF DateString = 'JUL' THEN DateString := '07';
-            IF DateString = 'AUG' THEN DateString := '08';
-            IF DateString = 'SEP' THEN DateString := '09';
-            IF DateString = 'OCT' THEN DateString := '10';
-            IF DateString = 'NOV' THEN DateString := '11';
-            IF DateString = 'DEC' THEN DateString := '12';
-
-            DateString := Copy (LogString, LogEntryDayAddress, 2) + '/' + DateString;
-            DateString := DateString + '/' + Copy (LogString, LogEntryYearAddress, 2);
-
-            ARRLString := Copy (LogString, LogEntryBandAddress, LogEntryBandWidth);
-
-            IF ARRLString = '  6' THEN
-                ARRLString := '50 '
-            ELSE
-                IF ARRLString = '  2' THEN
-                    ARRLString := '144'
-                ELSE
-                    BEGIN
-                    GetRidOfPrecedingSpaces (ARRLString);
-                    WHILE Length (ARRLString) < 3 DO
-                        ARRLString := ARRLString + ' ';
-                    END;
-
-            IF Mode = CW THEN
-                ARRLString := ARRLString + ' CW'
-            ELSE
-                ARRLString := ARRLString + ' PH';
-
-            ARRLString := ARRLString + ' ' + DateString + ' ' + TimeString + ' ';
-
-            Delete (LogString, 1, LogEntryQSONumberAddress - 1);
-
-            NumberString := RemoveFirstString (LogString);
-
-{ Took this out so two xmtr multi-mutil works
-
-            IF Copy (NumberString, Length (NumberString), 1) > '9' THEN
-                Delete (NumberString, Length (NumberString), 1);
-}
-
-            WHILE Length (NumberString) < 6 DO
-                NumberString := NumberString + ' ';
-
-            ARRLString := ARRLString + ' ' + NumberString;
-
-            Call := RemoveFirstString (LogString);
-
-            WHILE Length (Call) < 12 DO Call := Call + ' ';
-
-            ARRLString := ARRLString + ' ' + Call;
-            ARRLString := ARRLString + ' ' + SentInformation +  ' ' + ExchangeString;
-
-            GetRidOfPrecedingSpaces (ARRLString);
-            WriteLn (FileWrite, ARRLString);
-            Inc (QSONumber);
-            GoToXY (1, WhereY);
-            Write (QSONumber);
-            END;
-    UNTIL Eof (FileRead);
-    Close (FileRead);
-    Close (FileWrite);
     END;
 
 
@@ -1505,127 +1371,6 @@ VAR FileOneName, FileTwoName, OutputFileName: Str80;
                         END;
 
     UNTIL False;
-    END;
-
-
-
-PROCEDURE MakeKCJLog;
-
-VAR KCJString, LogString, TimeString, TempString, OutputFileName: Str80;
-    FileRead, FileWrite: TEXT;
-    Band: BandType;
-    DayNumber, QSONumber: INTEGER;
-    BandChar: CHAR;
-    Call: CallString;
-    LastTime, RSTSent, RSTReceived, QTHReceived: Str20;
-
-    BEGIN
-    ClrScr;
-    TextColor (Yellow);
-    WriteLnCenter ('PRODUCE KCJ DISK FILE');
-    TextColor (Cyan);
-    WriteLn;
-    WriteLn ('This procedure will produce a disk file in the format used by the KCJ contest');
-    WriteLn ('log checkers.  Submission of this file does not excuse you from sending in a');
-    WriteLn ('printed log.  It is just a nice thing to do, so they don''t have to manually');
-    WriteLn ('enter your log.');
-    WriteLn;
-
-    OutputFileName := GetResponse ('Enter file name for output : ');
-    IF OutputFileName = '' THEN Exit;
-
-    IF NOT OpenFileForRead (FileRead, LogFileName) THEN
-        BEGIN
-        ReportError (LogFileName + 'not found!!');
-        WaitForKeyPressed;
-        Exit;
-        END;
-
-    IF NOT OpenFileForWrite (FileWrite, OutputFileName) THEN
-        BEGIN
-        ReportError ('Unable to open ' + OutputFileName);
-        WaitForKeyPressed;
-        Exit;
-        END;
-
-    QSONumber := 0;
-    Write (QSONumber);
-    DayNumber := 0;
-    LastTime := '0000';
-
-    REPEAT
-        REPEAT
-            ReadLn (FileRead, LogString);
-            Band := GetLogEntryBand (LogString);
-        UNTIL (Band <> NoBand) OR EOF (FileRead);
-
-        IF Band <> NoBand THEN
-            BEGIN
-            CASE Band OF
-                Band160: BandChar := 'A';
-                Band80:  BandChar := 'B';
-                Band40:  BandChar := 'C';
-                Band20:  BandChar := 'D';
-                Band15:  BandChar := 'E';
-                Band10:  BandChar := 'F';
-                Band6:   BandChar := 'G';
-                ELSE     BandChar := '?';
-                END;
-
-            ExpandTabs (LogString);
-
-            TimeString := Copy (LogString, LogEntryHourAddress, 2) +
-                          Copy (LogString, LogEntryMinuteAddress, 2);
-
-            IF LastTime > TimeString THEN
-                Inc (DayNumber);
-
-            IF DayNumber > 0 THEN
-                BEGIN
-                TimeString [1] := Chr (Ord (TimeString [1]) + 2);
-                TimeString [2] := Chr (Ord (TimeString [2]) + 4);
-
-                IF TimeString [2] > '9' THEN
-                    BEGIN
-                    TimeString [2] := Chr (Ord (TimeString [2]) - 10);
-                    TimeString [1] := Chr (Ord (TimeString [1]) + 1);
-                    END;
-                END;
-
-            LastTime := TimeString;
-
-            Call := GetLogEntryCall (LogString);
-
-            WHILE Length (Call) < 11 DO
-                Call := Call + ' ';
-
-            TempString := GetLogEntryExchangeString (LogString);
-            RSTSent := RemoveFirstString (TempString);
-            RSTReceived := RemoveFirstString (TempString);
-            QTHReceived := UpperCase (RemoveFirstString (TempString));
-
-            KCJString := TimeString + BandChar + Call + RSTSent +
-                         RSTReceived + QTHReceived;
-
-            IF GetLogEntryQSOPoints (LogString) = 0 THEN
-                KCJString := KCJString + ' '
-            ELSE
-                IF GetLogEntryMultString (LogString) <> '' THEN
-                    KCJString := KCJString + ':'
-                ELSE
-                    KCJString := KCJString + '.';
-
-            KCJString := KCJString + '     ';
-            WriteLn (FileWrite, KCJString);
-
-            Inc (QSONumber);
-            GoToXY (1, WhereY);
-            Write (QSONumber);
-            END;
-
-    UNTIL Eof (FileRead);
-    Close (FileRead);
-    Close (FileWrite);
     END;
 
 
@@ -2728,6 +2473,461 @@ VAR Key, ComputerID: CHAR;
     WaitForKeyPressed;
     END;
 
+
+
+FUNCTION ComputeDayOfYear (DateString: Str20): INTEGER;
+
+{ Counts Jan 1 as day one - always assumes leap yaer.  Date is in format
+  of 17-Feb-24 }
+
+VAR Day: INTEGER;
+    DayString: Str20;
+
+    BEGIN
+    DateString := UpperCase (DateString);
+
+    DayString := PrecedingString (DateString, '-');
+    Val (DayString, Day);
+
+    IF StringHas (DateString, 'JAN') THEN
+        BEGIN
+        ComputeDayOfYear := Day;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'FEB') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 31;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'MAR') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 60;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'APR') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 91;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'MAY') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 121;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'JUN') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 152;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'JUL') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 182;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'AUG') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 213;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'SEP') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 244;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'OCT') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 274;
+        Exit;
+        END;
+
+    IF StringHas (DateString, 'NOV') THEN
+        BEGIN
+        ComputeDayOfYear := Day + 305;
+        Exit;
+        END;
+
+    { We must be in December }
+
+    ComputeDayOfYear := Day + 335;
+    END;
+
+
+
+PROCEDURE SortLog;
+
+{ Well - here we are in February 2025 with a nice ARRL DX CW effort with two
+  computers where we didn't send QSOs across the network until they popped of
+  the editable log window - so we have non-monotonic times for the combined
+  log.  This routine is written to sort the QSOs into date/time order.  Yeah,
+  excel could do this in a heartbeat, but can't output the data in exactly the
+  .DAT format...  and it's been awhile since I have programmed a linked list,
+  so here we go.
+
+  The idea is to create a linked list (with forward and backward pointers) and
+  start at the end of the list for each QSO we find.  Hopefully, that minimizes
+  the amount of data we look at and makes it execute quickly in one pass. }
+
+VAR FirstQSORecord, ActiveQSORecord, LastQSORecord: ^QSORecord;
+    NextRecord, NewEntry: ^QSORecord;
+    FileRead, FileWrite: TEXT;
+    InputFileName, OutputFileName: Str80;
+    FileString: STRING;
+    NumberQSOsFound, NumberQSOsSaved: INTEGER;
+    LogEntryDay, LogEntryTime: INTEGER;
+
+    BEGIN
+    FirstQSORecord := nil;
+    NumberQSOsFound := 0;
+
+    { We need to make sure we have an open file and get the very first QSO
+      record into the linked list.  Once we have that done, we can start
+      looping until the end of the file }
+
+    InputFileName := GetResponse ('Log filename to sort (none to abort) : ');
+    IF InputFileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (FileRead, InputFileName) THEN
+        BEGIN
+        WriteLn (InputFileName, ' not found.');
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    OutputFileName := GetResponse ('Filename to save sorted file to (none to abort) : ');
+    IF OutputFileName = '' THEN Exit;
+
+    { This first loop will only run until the very first QSO is found in the
+      log file - or if one is never found - it will exit }
+
+    WHILE NOT Eof (FileRead) DO
+        BEGIN
+        ReadLn (FileRead, FileString);
+
+        IF GetLogEntryBand (FileString) <> NoBand THEN
+            IF GetLogEntryMode (FileString) <> NoMode THEN  { Valid QSO entry }
+                BEGIN
+                GetMem (FirstQSORecord, SizeOf (QSORecord));
+
+                WITH FirstQSORecord^ DO
+                    BEGIN
+                    LogString := FileString;
+                    DayOfYear := ComputeDayOfYear (GetLogEntryDateString (FileString));
+                    Time := GetLogEntryIntegerTime (FileString);
+                    PreviousQSOPointer := nil;
+                    NextQSOPointer := nil;
+                    END;
+
+                LastQSORecord := FirstQSORecord;
+                NumberQSOsFound := 1;
+
+                Break;  { Done with this loop }
+                END;
+        END;
+
+    IF NumberQSOsFound = 0 THEN  { We never found a QSO }
+        BEGIN
+        WriteLn ('No QSOs found in ', InputFileName);
+        Close (FileRead);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    { Okay - we have the first QSO setup in the linked list - now read
+      in the rest of the log inserting each QSO into the proper place
+      of the linked list.  Note - we start looking at the end of the
+      list. }
+
+    WHILE NOT Eof (FileRead) DO
+        BEGIN
+        ReadLn (FileRead, FileString);
+
+        IF GetLogEntryBand (FileString) <> NoBand THEN
+            IF GetLogEntryMode (FileString) <> NoMode THEN  { Valid QSO entry }
+                BEGIN
+                Inc (NumberQSOsFound);
+
+                LogEntryDay := ComputeDayOfYear (GetLogEntryDateString (FileString));
+                LogEntryTime := GetLogEntryIntegerTime (FileString);
+
+                { Does this QSO just go at the end of the list? }
+
+                WITH LastQSORecord^ DO
+                    IF (LogEntryDay > DayOfYear) OR
+                       ((LogEntryDay = DayOfYear) AND (LogEntryTime >= Time)) THEN
+                            BEGIN
+                            GetMem (NextQSOPointer, SizeOf (QSORecord));
+
+                            WITH NextQSOPointer^ DO  { Pointing at new record }
+                                BEGIN
+                                LogString := FileString;
+                                DayOfYear := LogEntryDay;
+                                Time := LogEntryTime;
+                                PreviousQSOPointer := LastQSORecord;
+                                NextQSOPointer := nil;
+                                END;
+
+                            LastQSORecord := NextQSOPointer;
+                            Continue;
+                            END;
+
+                { Let's make sure it isn't going near the front - or at the
+                  first entry }
+
+                { Is it at the same time as the first entry? }
+
+                IF ((LogEntryDay = FirstQSORecord^.DayOfYear) AND (LogEntryTime = FirstQSORecord^.Time)) THEN
+                    BEGIN
+                    { We want to put it after all of the entries with this same
+                      time and date }
+
+                    ActiveQSORecord := FirstQSORecord;  { Where we are looking }
+
+                    REPEAT
+                        { First - check to make sure we aren't at the last entry }
+
+                        IF ActiveQSORecord^.NextQSOPointer = nil THEN  { No more entries }
+                            BEGIN
+                            { BTW - we have to be at the LastQSORecord }
+
+                            GetMem (ActiveQSORecord^.NextQSOPointer, SizeOf (QSORecord));
+
+                            ActiveQSORecord := ActiveQSORecord^.NextQSOPointer;
+
+                            WITH ActiveQSORecord^ DO
+                                BEGIN
+                                LogString := FileString;
+                                DayOfYear := LogEntryDay;
+                                Time := LogEntryTime;
+                                PreviousQSOPointer := LastQSORecord;
+                                NextQSOPointer := nil;
+                                END;
+
+                            LastQSORecord := ActiveQSORecord;  { new last entry }
+
+                            Continue;  { All done - get the next log entry }
+                            END;
+
+                        { Point to the next entry in the linked list }
+
+                        ActiveQSORecord := ActiveQSORecord^.NextQSOPointer;
+
+                    { See if we are there yet }
+
+                    UNTIL (LogEntryDay < ActiveQSORecord^.DayOfYear) OR
+                           ((LogEntryDay = ActiveQSORecord^.DayOfYear) AND (LogEntryTime < ActiveQSORecord^.Time));
+
+                    { Okay - ActiveQSORecord is pointing to a QSO that takes place
+                      after the log entry - so we need to squeeze it in }
+
+                    { Create the new entry }
+
+                    GetMem (NewEntry, SizeOf (QSORecord));
+
+                    { Splice in the new record }
+
+                    ActiveQSORecord^.PreviousQSOPointer^.NextQSOPointer := NewEntry;
+                    ActiveQSORecord^.PreviousQSOPointer := NewEntry;
+
+                    WITH NewEntry^ DO
+                        BEGIN
+                        LogString := FileString;
+                        DayOfYear := LogEntryDay;
+                        Time := LogEntryTime;
+                        PreviousQSOPointer := ActiveQSORecord^.PreviousQSOPointer;
+                        NextQSOPointer := ActiveQSORecord;
+                        END;
+
+                    Continue;  { onto the next LogEntry }
+                    END;
+
+                { And now for the case where the LogEntry is before the first
+                  entry in the linked list }
+
+                WITH FirstQSORecord^ DO
+                    IF (LogEntryDay < DayOfYear) OR
+                       ((LogEntryDay = DayOfYear) AND (LogEntryTime <= Time)) THEN
+                        BEGIN
+                        { Put this QSO in the first entry }
+
+
+                        Continue;  { onto the next LogEntry }
+                        END;
+
+                { Okay - this QSO takes place after the first QSO in the linked
+                  list and before the last QSO in the linked list.  We need to
+                  find the record that needs to have this QSO inserted before.  }
+
+                ActiveQSORecord := LastQSORecord;
+
+                WHILE (ActiveQSORecord^.PreviousQSOPointer^.DayOfYear > LogEntryDay) OR
+                      ((ActiveQSORecord^.PreviousQSOPointer^.DayOfYear = LogEntryDay) AND
+                       (ActiveQSORecord^.PreviousQSOPointer^.Time > LogEntryTime)) DO
+                            BEGIN
+                            ActiveQSORecord := ActiveQSORecord^.PreviousQSOPointer;
+
+                            { This should not happen - but just in case }
+
+                            IF ActiveQSORecord = nil THEN
+                                BEGIN
+                                Writeln ('Oh my - this is bad!! - W7RM error');
+                                Halt;
+                                END;
+                            END;
+
+                { We have backed up to the place we need to squeeze in the new
+                  QSO - before ActiveQSORecord }
+
+                GetMem (NewEntry, SizeOf (QSORecord));
+
+                { Splice in the new record }
+
+                ActiveQSORecord^.PreviousQSOPointer^.NextQSOPointer := NewEntry;
+                ActiveQSORecord^.PreviousQSOPointer := NewEntry;
+
+                WITH NewEntry^ DO
+                    BEGIN
+                    LogString := FileString;
+                    DayOfYear := LogEntryDay;
+                    Time := LogEntryTime;
+                    PreviousQSOPointer := ActiveQSORecord^.PreviousQSOPointer;
+                    NextQSOPointer := ActiveQSORecord;
+                    END;
+
+                END;
+        END;
+
+    Close (FileRead);
+
+    { We are done reading in the log - now spit out the sorted log to
+      the OutputFile }
+
+    OpenFileForWrite (FileWrite, OutputFileName);
+
+    ActiveQSORecord := FirstQSORecord;
+    NumberQSOsSaved := 0;
+
+    WHILE ActiveQSORecord <> nil DO
+        BEGIN
+        WriteLn (FileWrite, ActiveQSORecord^.LogString);
+        NextRecord := ActiveQSORecord^.NextQSOPointer;
+
+        FreeMem (ActiveQSORecord , SizeOf (QSORecord));
+        ActiveQSORecord := NextRecord;
+
+        Inc (NumberQSOsSaved);
+        END;
+
+    Close (FileWrite);
+
+    WriteLn ('There were ', NumberQSOsFound, ' QSOs found in ', InputFileName);
+    WriteLn ('There were ', NumberQSOsSaved, ' QSOs saved in ', OutputFileName);
+
+    IF NumberQSOsFound = NumberQSOsSaved THEN
+        WriteLn ('It is good that they are the same number!!')
+    ELSE
+        WriteLn ('Oops - not sure why they are different.  Contact N6TR.');
+
+    WaitForKeyPressed;
+    END;
+
+
+
+PROCEDURE VerifyCallsAreInSCP;
+
+{ Will generate a list of callsigns in a .DAT file that are not in the SCP
+  database. }
+
+VAR InputFileName, OutputFileName: Str80;
+    FileString: STRING;
+    Callsign: Str20;
+    FileRead, FileWrite: TEXT;
+    SortCount, Address, NumberCallsProcessed, NumberCallsNotInSCP: INTEGER;
+
+    BEGIN
+    NumberCallsProcessed := 0;
+    NumberCallsNotInSCP := 0;
+
+    InputFileName := GetResponse ('Log filename to sort (none to abort) : ');
+    IF InputFileName = '' THEN Exit;
+
+    IF NOT OpenFileForRead (FileRead, InputFileName) THEN
+        BEGIN
+        WriteLn ('Unable to open ', InputFileName);
+        WaitForKeyPressed;
+        Exit;
+        END;
+
+    OutputFileName := GetResponse ('Enter file to save list to (none to abort) : ');
+
+    IF OutputFileName = '' THEN
+        BEGIN
+        Close (FileRead);
+        Exit;
+        END;
+
+    New (NonSCPCallList);
+    NumberCallsNotInSCP := 0;
+
+    { Look through the log and build a list of the non SCP callsigns }
+
+    WHILE NOT Eof (FileRead) DO
+        BEGIN
+        ReadLn (FileRead, FileString);
+
+        IF GetLogEntryBand (FileString) <> NoBand THEN
+            IF GetLogEntryMode (FileString) <> NoMode THEN  { Valid QSO entry }
+                BEGIN
+                Inc (NumberCallsProcessed);
+
+                Callsign := GetLogEntryCall (FileString);
+
+                IF NOT CD.CallsignIsInDatabase (Callsign) THEN
+                    BEGIN
+                    NonSCPCallList^ [NumberCallsNotInSCP] := Callsign;
+                    Inc (NumberCallsNotInSCP);
+                    END;
+                END;
+        END;
+
+    Close (FileRead);
+
+    { Sort the list }
+
+    IF NumberCallsNotInSCP > 1 THEN
+        FOR SortCount := 0 TO NumberCallsNotInSCP - 1 DO
+            FOR Address := 0 TO NumberCallsNotInSCP - 2 DO
+                IF NonSCPCallList^ [Address] > NonSCPCallList^ [Address + 1] THEN
+                    BEGIN
+                    Callsign := NonSCPCallList^ [Address];
+                    NonSCPCallList^ [Address] := NonSCPCallList^ [Address + 1];
+                    NonSCPCallList^ [Address + 1] := Callsign;
+                    END;
+
+    { Save the list }
+
+    OpenFileForWrite (FileWrite, OutputFileName);
+
+    IF NumberCallsNotInSCP > 0 THEN
+        FOR Address := 0 TO NumberCallsNotInSCP -1 DO
+            WriteLn (FileWrite, NonSCPCallList^ [Address]);
+
+    Close (FileWrite);
+
+    WriteLn ('There were ', NumberCallsProcessed, ' log entries processed.');
+    WriteLn ('There were ', NumberCallsNotInSCP, ' calls not in SCP saved in ', OutputFileName);
+    WaitForKeyPressed;
+    END;
+
+
 
 FUNCTION LogProcedureMenu: BOOLEAN;
 
@@ -2740,16 +2940,15 @@ VAR Key: CHAR;
     WriteLnCenter ('LOG PROCEDURE MENU');
     WriteLn;
     TextColor (Cyan);
-    WriteLn ('  A - Create copy of log in the ARRL suggested format.');
     WriteLn ('  C - Create final logs (By band or mode and with running totals).');
     WriteLn ('  D - Dupe log (marks any dupes that may be left in the log).');
     WriteLn ('  E - Edit log (simple line editor to change specific lines).');
     WriteLn ('  F - Filter log (create new log including or excluding desired countries).');
     WriteLn ('  G - Merge two log files together, checking for dupes/mults.');
-    WriteLn ('  J - Create log check file for KCJ contest.');
     WriteLn ('  M - Multiplier check.  Complete check of all multiplier types.');
     WriteLn ('  P - Pull out log for one specific computer ID in a multi-multi.');
-    WriteLn ('  V - View log segments.');
+    WriteLn ('  S - Sort log.  Generate new log with QSOs in date/time order.');
+    WriteLn ('  V - Verify callsigns appear in SCP database.');
     WriteLn ('  X - Exit log procedure menu.');
     WriteLn;
 
@@ -2762,16 +2961,15 @@ VAR Key: CHAR;
         Key := UpCase (ReadKey);
 
         CASE Key OF
-            'A': BEGIN ARRLCompatibleLog;       Exit; END;
             'C': BEGIN CreateFinalLog;          Exit; END;
             'D': BEGIN DupeLog;                 Exit; END;
             'E': BEGIN EditLog;                 Exit; END;
             'F': BEGIN FilterLog;               Exit; END;
             'G': BEGIN Merge;                   Exit; END;
-            'J': BEGIN MakeKCJLog;              Exit; END;
             'M': BEGIN MultCheck;               Exit; END;
             'P': BEGIN PullSpecificComputerLog; Exit; END;
-            'V': BEGIN ViewLog;                 Exit; END;
+            'S': BEGIN SortLog;                 Exit; END;
+            'V': BEGIN VerifyCallsAreInSCP;     Exit; END;
 
             'X', EscapeKey:
                      BEGIN

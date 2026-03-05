@@ -19,6 +19,7 @@
 //
 
 {$V-}
+
 PROCEDURE CreateAndSendPacketSpot (PacketSpotCall: CallString;
                                    PacketSpotFreq: LONGINT);
 
@@ -203,9 +204,13 @@ VAR SpeedString, MultString: Str20;
     END;
 
 
-PROCEDURE PutContactIntoLogFile (LogString: Str80);
+PROCEDURE PutContactIntoLogFile (VAR LogString: STRING;
+                                 VAR TempRXData: ContestExchange);
 
-VAR Time, QSONumber: INTEGER;
+{ Takes a logstring that popped off the top of the editable log window and gets it
+  into the log file and dupe/mult sheets. }
+
+VAR CharacterPosition, Time, QSONumber: INTEGER;
     Call, Exchange, LoggedCallsign: Str20;
     FileWrite: TEXT;
 
@@ -226,7 +231,13 @@ VAR Time, QSONumber: INTEGER;
         IF LogString [LogEntryNameSentAddress] = '*' THEN
             Inc (TotalNamesSent);
 
-        VisibleLog.PutLogEntryIntoSheet (LogString);
+        { We are going to recalculate what multipliers are there.  Let's clear
+          out the part of the log string that has multiplier info - Aug 2024 }
+
+        FOR CharacterPosition := LogEntryMultAddress TO LogEntryPointsAddress - 1 DO
+            LogString [CharacterPosition] := ' ';
+
+        VisibleLog.PutLogEntryIntoSheet (LogString, TempRXData);  { Sets mults too }
         WriteLogEntry                   (LogString);
 
         IF UnknownCountryFileEnable THEN
@@ -270,33 +281,32 @@ VAR Time, QSONumber: INTEGER;
 
 
 
-PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80;
-                                                      MyQSO: BOOLEAN);
+PROCEDURE PushLogStringIntoEditableLogAndLogPopedQSO (LogString: Str80);
 
-VAR RData: ContestExchange;
-
+VAR TempRXData: ContestExchange;
 
     BEGIN
     { If this is a QSO made on this instance of the program - send it off to the network
       if and only if we are sending QSOs immediately }
 
-    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND SendQSOImmediately AND MyQSO THEN
+    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
         BEGIN
-        GetRidOfPostcedingSpaces (LogString);
+        IF SendQSOImmediately THEN
+            BEGIN
+            GetRidOfPostcedingSpaces (LogString);
 
-        IF ((LogString <> '') AND NOT MultiMultsOnly) OR
-           (GetLogEntryMultString (LogString) <> '') THEN
-               SendMultiCommand (MultiBandAddressArray [ActiveBand],
+            IF LogString <> '' THEN
+                SendMultiCommand (MultiBandAddressArray [ActiveBand],
                                  $FF, MultiQSOData, LogString);
-        END;
+            END;
 
-    { We do this so people can see what we worked without it being in the editable window }
+        { We do this always so people can see what we worked }
 
-    IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
         SendMultiCommand (MultiBandAddressArray [ActiveBand],
                           $FF,
                           MultiInstantQSOMessage,
                           Copy (LogString, 1, 68));
+        END;
 
     LogString := VisibleLog.PushLogEntry (LogString);
 
@@ -306,24 +316,15 @@ VAR RData: ContestExchange;
 
     IF LogString <> '' THEN
         BEGIN
-        PutContactIntoLogFile (LogString);
+        PutContactIntoLogFile (LogString, TempRXData);  { This will set mult flags and log the QSO }
 
-        IF ParseLogEntryIntoContestExchange (LogString, RData) THEN
-            BEGIN
-            IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
-                BEGIN
-                IF (NOT MultiMultsOnly) OR
-                   (GetLogEntryMultString (LogString) <> '') THEN
-                       SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                         $FF, MultiQSOData, LogString);
-                END;
-            END
+        { If we didn't send this QSO Immediately - we should send it now }
 
-        ELSE  { QSO doesn't make sense - probably a note }
+        IF NOT SendQSOImmediately THEN
+            IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) THEN
+                SendMultiCommand (MultiBandAddressArray [ActiveBand],
+                                  $FF, MultiQSOData, LogString);
 
-            IF ((ActiveMultiPort <> nil) OR (MultiUDPPort > -1)) AND (NOT SendQSOImmediately) THEN
-                   SendMultiCommand (MultiBandAddressArray [ActiveBand],
-                                     $FF, MultiQSOData, LogString);
         END;
     END;
 
@@ -352,7 +353,7 @@ VAR QSOCount: INTEGER;
     FOR QSOCount := 1 TO NumberEditableLines DO
         BEGIN
         TempString := '';
-        PushLogStringIntoEditableLogAndLogPopedQSO (TempString, True);
+        PushLogStringIntoEditableLogAndLogPopedQSO (TempString);
         END;
 
     DeleteFile (LogTempFileName);
@@ -370,21 +371,17 @@ VAR TimeString, MultiString, MessageString: STRING;
     Points: INTEGER;
     Freq, QSX: LONGINT;
     Time, ReturnedQSONumber, ReservedQSONumber: INTEGER;
-    MessageOriginator: BYTE;
     ControlByte: BYTE;
     Year, Month, Day, Hour, Minute, Second: WORD;
     Dupe, Mult, FirstCommand, NewMult: BOOLEAN;
     FileWrite: TEXT;
+    TempRXData: ContestExchange;
 
     BEGIN
     { K1EA network support removed in May 2024 }
 
     MultiString := GetMultiPortCommand;
     IF MultiString = '' THEN Exit;
-
-    { Save who sent this message in case we need to respond just to them }
-
-    MessageOriginator := Ord (Multistring [1]);
 
     { Unpack the message }
 
@@ -465,8 +462,12 @@ VAR TimeString, MultiString, MessageString: STRING;
         MultiPacketReceivedMessage:
             Packet.ProcessPacketMessageFromNetWork (MessageString);
 
-        MultiInstantQSOMessage:
+        MultiInstantQSOMessage:  { Used to show a QSO in the QuickDisplayWindow }
             BEGIN
+            LastMultiInstantQSOMessageCallsign := GetLogEntryCall (MessageString);
+            LastMultiInstantQSOMessageBand := GetLogEntryBand (MessageString);
+            LastMultiInstantQSOMessageMode := GetLogEntryMode (MessageString);
+
             MessageString := BandString [MultiMessageSourceBand (Ord (MultiString [1]))] + ': ' + MessageString;
             QuickDisplay (MessageString);
             Tone.DoABeep (BeepCongrats);
@@ -492,11 +493,11 @@ VAR TimeString, MultiString, MessageString: STRING;
 
             NewMult := GetLogEntryMultString (MessageString) <> '';
 
-            IF SendQSOImmediately THEN
-                PushLogStringIntoEditableLogAndLogPopedQSO (MessageString, False)
-            ELSE
-                PutContactIntoLogFile (MessageString);
+            { New in May 2025 - any QSO coming in over the TRLog network
+              will be logged without going through the editable log window
+              regardless of the setting of SendQSOImmediately }
 
+            PutContactIntoLogFile (MessageString, TempRXData);  { Will set mult flags }
             Inc (NumberContactsThisMinute);
             NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + Points;
 
@@ -705,7 +706,7 @@ VAR Frequency: LONGINT;
             UpdateTimeAndRateDisplays (True, True);
             CWStillBEingSent;
             Packet.CheckPacket;
-            IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+            CheckN1MMPort;
             millisleep;
         UNTIL ElaspedSec100 (RememberTime) >= 50;
 
@@ -1018,7 +1019,7 @@ VAR Key: CHAR;
         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
 
         UpdateTimeAndRateDisplays (True, True);
-        IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+        CheckN1MMPort;
         CWStillBeingSent;
 
         IF NewKeyPressed THEN
@@ -1271,7 +1272,7 @@ VAR Key: CHAR;
                     AltP: BEGIN
                           RITEnable := False;
                           shiftchange(0);
-                          MemoryProgram;
+                          MemoryProgram (ActiveRadio, ActiveMode);
                           if (shiftkeyenable = shift) then shiftchange(1);
                           if (shiftkeyenable = altshift) then shiftchange(2);
                           RITEnable := True;
@@ -1315,7 +1316,7 @@ VAR Key: CHAR;
 
                     ControlEnd:
                         BEGIN
-                        EditBandMap;
+                        EditBandMap (NoRadio);
                         SaveSetAndClearActiveWindow (QuickCommandWindow);
                         END;
 
@@ -1388,7 +1389,7 @@ VAR Key: CHAR;
                     WHILE Length (AddedNoteString) > 79 DO
                         Delete (AddedNoteString, Length (AddedNoteString), 1);
 
-                    PushLogStringIntoEditableLogAndLogPopedQSO (AddedNoteString, True);
+                    PushLogStringIntoEditableLogAndLogPopedQSO (AddedNoteString);
                     END;
 
                 RITEnable := True;
@@ -1452,6 +1453,13 @@ VAR CQMemory, SendChar: CHAR;
         CQMemory := AutoCQMemory;
 
         REPEAT
+            IF SelfSpotEnable AND (ActivePacketPort <> nil) THEN
+                IF ElaspedSec100 (LastAutoSpotTime) > 30000 THEN
+                    BEGIN
+                    MarkTime (LastAutoSpotTime);
+                    CreateAndSendPacketSpot (MyCall, LastDisplayedFreq [RadioOne]);
+                    END;
+
             {KK1L: 6.68 Set LastCQ stuff when calling CQ using auto CQ}
             IF FrequencyDisplayed THEN
                 BEGIN
@@ -1475,12 +1483,12 @@ VAR CQMemory, SendChar: CHAR;
                         3: CQMemory := F4;
                         END;
 
-                UNTIL (GetCQMemoryString (ActiveMode, CQMemory) <> '') OR (Count > 1000); {KK1L: 6.73 Added mode}
+                UNTIL (GetCQMemoryString (ActiveRadio, ActiveMode, CQMemory) <> '') OR (Count > 1000); {KK1L: 6.73 Added mode}
                 END;
 
             IF ActiveMode <> Phone THEN
                 BEGIN
-                TempString := GetCQMemoryString (ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
+                TempString := GetCQMemoryString (ActiveRadio, ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
 
                 IF NOT SkipFirstMessage THEN
                     FOR CharacterCount := 1 TO Length (TempString) DO
@@ -1497,7 +1505,7 @@ VAR CQMemory, SendChar: CHAR;
                 END
             ELSE  {KK1L: NOTE Phone mode}
                 BEGIN
-                TempString := GetCQMemoryString (ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
+                TempString := GetCQMemoryString (ActiveRadio, ActiveMode, CQMemory); {KK1L: 6.73 Added mode}
 
                 IF (NOT SkipFirstMessage) AND DVKEnable THEN
                     SendDVKMessage (TempString)
@@ -1556,7 +1564,7 @@ VAR CQMemory, SendChar: CHAR;
                 {KK1L: 6.72 NOTE Timing delays can occur if there are radio communcations problems due to    }
                 {                various timeouts, etc in the polling called from UpdateTimeAndRateDisplays. }
                 UpdateTimeAndRateDisplays (True, True);
-                IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+                CheckN1MMPort;
                 CWStillBeingSent;
 
                 IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
@@ -1868,7 +1876,7 @@ VAR Result: INTEGER;
             IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
             UpdateTimeAndRateDisplays (True, True);
             Packet.CheckPacket;
-            IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+            CheckN1MMPort;
             CWSTillBeingSent;
         UNTIL (NOT CWStillBeingSent) OR NewKeyPressed;
 
@@ -1946,7 +1954,7 @@ VAR Result: INTEGER;
             DualSendingQSL, SendingDupeMessage:
                 BEGIN
                 SwapRadios;
-                SendCrypticMessage (GetCQMemoryString (ActiveMode, AltF1)); {KK1L: 6.73 Added mode}
+                SendCrypticMessage (GetCQMemoryString (ActiveRadio, ActiveMode, AltF1)); {KK1L: 6.73 Added mode}
                 DualingCQState := DualSendingCQ;
                 InactiveRigCallingCQ := False;
                 QuickDisplay ('Dualing CQ mode active.  Use Control-Dash to cancel');
@@ -1954,10 +1962,10 @@ VAR Result: INTEGER;
 
             DualSendingExchange:
                 BEGIN
-                IF GetCQMemoryString (ActiveMode, AltF2) <> '' THEN {KK1L: 6.73 Added mode}
+                IF GetCQMemoryString (ActiveRadio, ActiveMode, AltF2) <> '' THEN {KK1L: 6.73 Added mode}
                     BEGIN
                      {KK1L: 6.73 Added mode}
-                    SendCrypticMessage (ControlA + ControlB + GetCQMemoryString (ActiveMode, AltF2));
+                    SendCrypticMessage (ControlA + ControlB + GetCQMemoryString (ActiveRadio, ActiveMode, AltF2));
                     QuickDisplay ('Dualing CQ mode active.  Sending dummy CQ on inactive radio');
                     END
                 ELSE
@@ -1965,7 +1973,6 @@ VAR Result: INTEGER;
 
                 DualingCQState := DualGettingExchange;
                 END;
-
 
             DualSendingCQ:
                 IF (WindowString = '') AND (ActiveWindow = CallWindow) THEN
@@ -2165,133 +2172,11 @@ VAR Result: INTEGER;
     { Done with bandmap stuff }
 
     UpdateTimeAndRateDisplays (True, True);
-    IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+    CheckN1MMPort;
     CWStillBeingSent;
     END;
 
 
-
-PROCEDURE GoToLastCQFrequency;
-
-    BEGIN
-    IF LastCQFrequency > 0 THEN
-        BEGIN
-        IF CommandUseInactiveRadio THEN {KK1L: 6.73}
-            BEGIN
-            SetRadioFreq (InactiveRadio, LastCQFrequency, LastCQMode, 'A');
-            CASE InactiveRadio OF
-                RadioOne:
-                    BEGIN
-                    PreviousRadioOneFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    END;
-                RadioTwo:
-                    BEGIN
-                    PreviousRadioTwoFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    END;
-                END;
-            END
-        ELSE
-            BEGIN
-            SetRadioFreq (ActiveRadio, LastCQFrequency, LastCQMode, 'A');
-            CASE ActiveRadio OF {KK1L: 6.69 Keeps LASTCQFREQ from changing to S&P Mode}
-                RadioOne:
-                    BEGIN
-                    PreviousRadioOneFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    END;
-                RadioTwo:
-                    BEGIN
-                    PreviousRadioTwoFreq := LastCqFrequency; {KK1L: 6.73 Forces CQ mode for AutoSAPEnable}
-                    END;
-                END;
-            END;
-        END;
-    END;
-
-
-PROCEDURE GoToNextBandMapFrequency;
-    BEGIN
-    {KK1L: 6.73}
-    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
-       (NextNonDupeEntryInBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
-            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
-    ELSE
-        IF NextNonDupeEntryInBandMap (ActiveBand, ActiveMode) THEN
-            BEGIN
-            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
-
-            IF ActiveWindow = ExchangeWindow THEN
-                BEGIN
-                ClrScr;
-                ExchangeWindowString := '';
-                RestorePreviousWindow;
-                END;
-            END;
-    END;
-
-
-{KK1L: 6.68}
-PROCEDURE GoToNextMultBandMapFrequency;
-    BEGIN
-    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
-       (NextMultiplierEntryInBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
-            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
-    ELSE
-        IF NextMultiplierEntryInBandMap (ActiveBand, ActiveMode) THEN
-            BEGIN
-            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
-
-            IF ActiveWindow = ExchangeWindow THEN
-                BEGIN
-                ClrScr;
-                ExchangeWindowString := '';
-                RestorePreviousWindow;
-                END;
-            END;
-    END;
-
-
-
-PROCEDURE GoToNextDisplayedBandMapFrequency;
-    BEGIN
-    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
-       (NextNonDupeEntryInDisplayedBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
-            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
-    ELSE
-        IF NextNonDupeEntryInDisplayedBandMap (ActiveBand, ActiveMode) THEN
-            BEGIN
-            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
-
-            IF ActiveWindow = ExchangeWindow THEN
-                BEGIN
-                ClrScr;
-                ExchangeWindowString := '';
-                RestorePreviousWindow;
-                END;
-            END;
-    END;
-
-
-{KK1L: 6.68}
-PROCEDURE GoToNextMultDisplayedBandMapFrequency;
-    BEGIN
-    IF (CommandUseInactiveRadio) AND  {KK1L: 6.73}
-       (NextMultiplierEntryInDisplayedBandMap (BandMemory[InactiveRadio], ModeMemory[InactiveRadio])) THEN
-            SetUpBandMapEntry (BandMapCursorData, InactiveRadio)
-    ELSE
-        IF NextMultiplierEntryInDisplayedBandMap (ActiveBand, ActiveMode) THEN
-            BEGIN
-            SetUpBandMapEntry (BandMapCursorData, ActiveRadio); {KK1L: Added ActiveRadio}
-
-            IF ActiveWindow = ExchangeWindow THEN
-                BEGIN
-                ClrScr;
-                ExchangeWindowString := '';
-                RestorePreviousWindow;
-                END;
-            END;
-    END;
-
-
 
 FUNCTION FoundCommand (VAR SendString: Str160): BOOLEAN;
 
@@ -2570,6 +2455,10 @@ VAR FileName, CommandString: Str40;
             END;
 
         IF CommandString = 'TOGGLECW'        THEN ToggleCW (False);
+
+        IF CommandString = 'TOGGLEHEADPHONESWITCHING' THEN
+            EnableHeadphoneSwitching := NOT EnableHeadphoneSwitching;
+
         IF CommandString = 'TOGGLEMODES'     THEN ToggleModes;
         IF CommandString = 'TOGGLESTEREOPIN' THEN ToggleStereoPin; {KK1L: 6.71}
         END;
@@ -2615,7 +2504,7 @@ PROCEDURE DoAltZ (VAR WindowString: Str80; VAR KeyChar: CHAR);
         ELSE
             ExchangeWindowString := InitialExchangeEntry (CallWindowString);
 
-        {TR6.74 - because InitialExchangeEntry no longer does this }
+        { TR6.74 - because InitialExchangeEntry no longer does this }
 
         IF InitialExchangeOverwrite THEN
             InitialExchangePutUp := ExchangeWindowString <> '';
@@ -3203,7 +3092,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   WHILE Length (AddedNoteString) > 79 DO
                       Delete (AddedNoteString, Length (AddedNoteString), 1);
 
-                  PushLogStringIntoEditableLogAndLogPopedQSO (AddedNoteString, True);
+                  PushLogStringIntoEditableLogAndLogPopedQSO (AddedNoteString);
                   END;
 
               RITEnable := True;
@@ -3244,7 +3133,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   IF QTCNote <> '' THEN
                       BEGIN
-                      PushLogStringIntoEditableLogAndLogPopedQSO ('; ' + QTCNote, True);
+                      PushLogStringIntoEditableLogAndLogPopedQSO ('; ' + QTCNote);
                       QTCNote := '';
                       END;
                   END;
@@ -3363,7 +3252,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
           ControlZ: Exit;
 
-          ControlDash: IF GetCQMemoryString (ActiveMode, AltF1) = '' THEN {KK1L: 6.73 Added mode}
+          ControlDash: IF GetCQMemoryString (ActiveRadio, ActiveMode, AltF1) = '' THEN {KK1L: 6.73 Added mode}
                            QuickDisplay ('No CQ message programmed into CQ MEMORY AltF1.')
                        ELSE
                            BEGIN
@@ -3726,7 +3615,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   AltP: BEGIN
                         RITEnable := False;
                         shiftchange(0);
-                        MemoryProgram;
+                        MemoryProgram (ActiveRadio, ActiveMode);
                         if (shiftkeyenable = shift) then shiftchange(1);
                         if (shiftkeyenable = altshift) then shiftchange(2);
                         RITEnable := True;
@@ -3865,7 +3754,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
 
                   ControlInsert: {KK1L: 6.65 Insert BM place holder entry}
                       BEGIN
-                      AddBandMapPlaceHolder;
+                      { AddBandMapPlaceHolder; }
                       END;
 
                   ControlDelete: {KK1L: 6.65 Delete BM entry while logging}
@@ -3885,7 +3774,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   ControlEnd:
                       IF BandMapEnable THEN
                           BEGIN
-                          EditBandMap;
+                          EditBandMap (NoRadio);
 
                           {KK1L: 6.65 Added NOT EscapeFromEditBandMap to not display call in window on escape}
                           IF (BandMapCursorData <> nil) AND (NOT EscapeFromEditBandMap) THEN
@@ -4101,7 +3990,7 @@ VAR Number, xResult, CursorPosition, CharPointer, InsertCursorPosition: INTEGER;
                   Exit;
                   END;
 
-              IF (KeyChar = PacketSpotKey) AND (ActivePacketPort <> nil) OR (ActiveMultiPort <> nil) OR (MultiUDPPOrt > -1) THEN
+              IF (KeyChar = PacketSpotKey) AND ((ActivePacketPort <> nil) OR (ActiveMultiPort <> nil) OR (MultiUDPPOrt > -1)) THEN
                   IF NOT PacketSpotDisable THEN
                       BEGIN
                       IF ActiveWindow = CallWindow THEN
@@ -4348,7 +4237,7 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                         END
                     ELSE
                         IF ActiveMode = Digital THEN
-                            SendCrypticDigitalString (GetEXMemoryString (Digital, F1))
+                            SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F1))
                         ELSE
                             SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
 
@@ -4367,27 +4256,57 @@ PROCEDURE ProcessExchangeFunctionKey (ExtendedKey: CHAR);
                     BEGIN
                     IF NOT AllCWMessagesChainable THEN FlushCWBufferAndClearPTT;
 
-                    IF ExchangeHasBeenSent AND (RepeatSearchAndPounceExchange <> '') THEN
-                        SendCrypticMessage (RepeatSearchAndPounceExchange)
+                    IF ExchangeHasBeenSent AND
+                       (((ActiveRadio = RadioOne) AND (RepeatSearchAndPounceExchangeR1 <> '')) OR
+                        ((ActiveRadio = RadioTwo) AND (RepeatSearchAndPounceExchangeR2 <> ''))) THEN
+                        BEGIN
+                        CASE ActiveRadio OF
+                            RadioOne: SendCrypticMessage (RepeatSearchAndPounceExchangeR1);
+                            RadioTwo: SendCrypticMessage (RepeatSearchAndPounceExchangeR2);
+                            END;
+                        END
                     ELSE
                         BEGIN
                         IF (ActiveWindow = CallWindow) AND
                            (CallWindowString = '') AND (ExchangeWindowString = '') THEN
                                BEGIN
-                               IF RepeatSearchAndPounceExchange <> '' THEN
-                                   SendCrypticMessage (RepeatSearchAndPounceExchange)
+                               IF ((ActiveRadio = RadioOne) AND (RepeatSearchAndPounceExchangeR1 <> '')) OR
+                                  ((ActiveRadio = RadioTwo) AND (RepeatSearchAndPounceExchangeR2 <> '')) THEN
+                                   BEGIN
+                                   CASE ActiveRadio OF
+                                       RadioOne: SendCrypticMessage (RepeatSearchAndPounceExchangeR1);
+                                       RadioTwo: SendCrypticMessage (RepeatSearchAndPounceExchangeR2);
+                                       END;
+                                   END
                                ELSE
-                                   SendCrypticMessage (SearchAndPounceExchange);
+                                   CASE ActiveRadio OF
+                                       RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                       RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                       END;
 
                                KeyStamp (ExtendedKey);
                                Exit;
                                END
                            ELSE
-                               SendCrypticMessage (SearchAndPounceExchange);
+                               CASE ActiveRadio OF
+                                   RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                   RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                   END;
+
                         END;
                     END
                 ELSE
-                    SendFunctionKeyMessage (F2, SearchAndPounceOpMode);
+                    { New - CQWWRTTY 2025 }
+
+                    IF ActiveMode = Digital THEN
+                        BEGIN
+                        CASE ActiveRadio OF
+                            RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                            RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                            END;
+                        END
+                    ELSE
+                        SendFunctionKeyMessage (F2, SearchAndPounceOpMode);
 
                 ExchangeHasBeenSent := True;
                 END;
@@ -4414,12 +4333,24 @@ PROCEDURE LogContact (VAR RXData: ContestExchange);
 
 { This procedure will log the contact just completed.  It will be
   pushed onto the editable log and the log entry popped off the editable
-  log will be examined and written to the LOG.DAT file.                 }
+  log will be examined and written to the LOG.DAT file.
+
+  New for October 2024 is the ability to have two (or more) domestic
+  QTHs separated with /'s and generate multiple QSO entries.  }
 
 VAR LogString: Str80;
-    Address: INTEGER;
+    FirstSlashPosition, Address: INTEGER;
 
     BEGIN
+    IF Pos ('/', RXData.QTHString) > 0 THEN  { Someone is sending multiple counties }
+        BEGIN
+        FirstSlashPosition := Pos ('/', RXData.QTHString);
+        RXData.LeftOverQTH := Copy (RXData.QTHString,
+                                    FirstSlashPosition + 1,
+                                    Length (RXData.QTHString) - FirstSlashPosition);
+        RXData.QTHString := Copy (RXData.QTHString, 1, FirstSlashPosition - 1);
+        END;
+
     RXData.NumberSent := QSONumberForThisQSO;
     QSONumberForThisQSO := -1;
 
@@ -4454,125 +4385,165 @@ VAR LogString: Str80;
 
     IF NOT TailEnding THEN RemoveWindow (PossibleCallWindow);
 
-    IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) OR
-       ((ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) AND (NumberGridSquaresInList > 0)) THEN
-        IF NOT (ActiveQSOPointMethod = AlwaysOnePointPerQSO) THEN
-            BEGIN
-            IF Trace THEN Write ('#');
 
-            IF (ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) THEN
+  { We now go into a loop that will log the QSO - and also take a peek at the
+    LeftOverQTH string to see if more QSOs can be logged }
+
+  REPEAT
+
+      { Special weirdness to deal with dupes or rovers in new grids }
+
+      IF VisibleLog.CallIsADupe (RXData.Callsign, RXData.Band, RXData.Mode) OR
+           ((ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) AND (NumberGridSquaresInList > 0)) THEN
+            IF NOT (ActiveQSOPointMethod = AlwaysOnePointPerQSO) THEN  { Used for like internet sprints? }
                 BEGIN
-                IF NumberGridSquaresInList > 0 THEN
-                    FOR Address := 0 TO NumberGridSquaresInList - 1 DO
-                        IF RXData.DomesticQTH = GridSquareList [Address] THEN
-                            BEGIN
-                            RXData.QSOPoints := 0;
+                IF Trace THEN Write ('#');
 
-                            IF ReminderPostedCount = 0 THEN
-                                BEGIN
-                                QuickDisplay ('You already worked ' + RXData.Callsign + ' in ' + RXData.DomesticQTH + '!!');
-
-                                IF DupeCheckSound <> DupeCheckNoSound THEN Tone.DoABeep (ThreeHarmonics);
-
-                                ReminderPostedCount := 60;
-                                END;
-                            Break;
-                            END;
-                END
-            ELSE
-                BEGIN
-                IF ReminderPostedCount = 0 THEN
+                IF (ActiveDomesticMult = GridSquares) AND RoverCall (RXData.Callsign) THEN
                     BEGIN
-                    QuickDisplay (RXData.Callsign + ' is a dupe and will be logged with zero QSO points.');
-                    IF DupeCheckSound <> DupeCheckNoSound THEN  Tone.DoABeep (ThreeHarmonics);
-                    END;
+                    IF NumberGridSquaresInList > 0 THEN
+                        FOR Address := 0 TO NumberGridSquaresInList - 1 DO
+                            IF RXData.DomesticQTH = GridSquareList [Address] THEN
+                                BEGIN
+                                RXData.QSOPoints := 0;
 
-                RXData.QSOPoints := 0;
+                                IF ReminderPostedCount = 0 THEN
+                                    BEGIN
+                                    QuickDisplay ('You already worked ' + RXData.Callsign + ' in ' + RXData.DomesticQTH + '!!');
+
+                                    IF DupeCheckSound <> DupeCheckNoSound THEN Tone.DoABeep (ThreeHarmonics);
+
+                                    ReminderPostedCount := 60;
+                                    END;
+                                Break;
+                                END;
+                    END
+                ELSE
+                    BEGIN
+                    IF ReminderPostedCount = 0 THEN
+                        BEGIN
+                        QuickDisplay (RXData.Callsign + ' is a dupe and will be logged with zero QSO points.');
+                        IF DupeCheckSound <> DupeCheckNoSound THEN  Tone.DoABeep (ThreeHarmonics);
+                        END;
+
+                    RXData.QSOPoints := 0;
+                    END;
                 END;
+
+        IF Trace THEN Write ('+');
+
+        VisibleLog.ProcessMultipliers (RXData);
+
+        IF Trace THEN Write ('%');
+
+        LogString := MakeLogString (RXData);
+
+        CheckBand (RXData.Band);
+
+        IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
+            Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
+
+        PushLogStringIntoEditableLogAndLogPopedQSO (LogString);
+
+        IF Trace THEN Write ('&');
+
+        { RXData has the data from the QSO we just worked - not the one that
+          popped off the top of the editable window }
+
+        IF NOT TailEnding THEN ShowStationInformation (RXData.Callsign);
+
+        IF Trace THEN Write ('\');
+
+        IF DoingDomesticMults AND
+           (MultByBand OR MultByMode) AND
+           (RXData.DomesticQTH <> '') THEN
+               VisibleLog.ShowDomesticMultiplierStatus (RXData.DomMultQTH);
+
+        IF Trace THEN Write ('*');
+
+        Inc (NumberContactsThisMinute);
+        NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + RXData.QSOPoints;
+
+        DisplayTotalScore (TotalScore);
+
+        IF Trace THEN Write ('(');
+
+        IF FloppyFileSaveFrequency > 0 THEN
+            IF QSOTotals [All, Both] > 0 THEN
+                IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
+                    SaveLogFileToFloppy;
+
+        IF Trace THEN Write (')');
+
+        IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
+
+        BeSilent := False;
+        NameCallsignPutUp := '';
+
+        IF Trace THEN Write ('-');
+
+        IF CWSpeedFromDataBase AND (RememberCWSpeed <> 0) THEN
+            BEGIN
+            SetSpeed (RememberCWSpeed);
+            RememberCWSpeed := 0;
+            DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
             END;
 
-    IF Trace THEN Write ('+');
+        IF (DDXState <> Off) AND Debug AND (CWTone = 0) THEN
+            IF Random (100) = 0 THEN
+                BandUp;
 
-    VisibleLog.ProcessMultipliers (RXData);
+        IF BandMapEnable THEN
+            BEGIN
+            UpdateBandMapMultiplierStatus;
+            {KK1L: 6.64 Need to change dupe status for this contact as well - does the new display }
+            UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
+            END;
 
-    IF Trace THEN Write ('%');
+        { New for Jan 2023 - send QSO data to UDP port }
 
-    LogString := MakeLogString (RXData);
+        IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
+            BEGIN
+            RXData.Date := GetFullDateString;
+            SendQSOToUDPPort (RXData);
+            END;
 
-    CheckBand (RXData.Band);
+        { New for Mar 2024 - send to N1MM using WSJT port.  Note that
+          we always send N1MM QSOs immediately because it's the only
+          time we really have all of the information we need including
+          the exact frequency }
 
-    IF (RXData.Band >= Band160) AND (RXData.Band <= Band10) THEN
-        Inc (ContinentQSOCount [RXData.Band, RXData.QTH.Continent]);
+        IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
+            BEGIN
+            RXData.Date := GetFullDateString;
+            N1MM_QSO_Portal.SendQSOToN1MM (RXData);
+            END;
 
-    PushLogStringIntoEditableLogAndLogPopedQSO (LogString, True);
+        { See if we are done or if there are more QTHs to process }
 
-    IF Trace THEN Write ('&');
+        IF RXData.LeftOverQTH = '' THEN Exit;
 
-    IF NOT TailEnding THEN ShowStationInformation (RXData.Callsign);
+        RXData.QTHString := RXData.LeftOverQTH;
+        RXData.LeftOverQTH := '';
 
-    IF Trace THEN Write ('\');
+        { See if we still have multiple QTHs }
 
-    IF DoingDomesticMults AND
-       (MultByBand OR MultByMode) AND
-       (RXData.DomesticQTH <> '') THEN
-           VisibleLog.ShowDomesticMultiplierStatus (RXData.DomMultQTH);
+        IF Pos ('/', RXData.QTHString) > 0 THEN  { Still multiple counties }
+            BEGIN
+            FirstSlashPosition := Pos ('/', RXData.QTHString);
+            RXData.LeftOverQTH := Copy (RXData.QTHString,
+                                        FirstSlashPosition + 1,
+                                        Length (RXData.QTHString) - FirstSlashPosition);
+            RXData.QTHString := Copy (RXData.QTHString, 1, FirstSlashPosition - 1);
+            END;
 
-    IF Trace THEN Write ('*');
+        { Protect from a bad QTH }
 
-    Inc (NumberContactsThisMinute);
-    NumberQSOPointsThisMinute := NumberQSOPointsThisMinute + RXData.QSOPoints;
+        IF NOT FoundDomesticQTH (RXData) THEN Exit;
 
-    DisplayTotalScore (TotalScore);
+    UNTIL False;
 
-    IF Trace THEN Write ('(');
-
-    IF FloppyFileSaveFrequency > 0 THEN
-        IF QSOTotals [All, Both] > 0 THEN
-            IF QSOTotals [All, Both] MOD FloppyFileSaveFrequency = 0 THEN
-                SaveLogFileToFloppy;
-
-    IF Trace THEN Write (')');
-
-    IF UpdateRestartFileEnable THEN Sheet.SaveRestartFile;
-
-    BeSilent := False;
-    NameCallsignPutUp := '';
-
-    IF Trace THEN Write ('-');
-
-    IF CWSpeedFromDataBase AND (RememberCWSpeed <> 0) THEN
-        BEGIN
-        SetSpeed (RememberCWSpeed);
-        RememberCWSpeed := 0;
-        DisplayCodeSpeed (CodeSpeed, CWEnabled, False, ActiveMode);
-        END;
-
-    IF (DDXState <> Off) AND Debug AND (CWTone = 0) THEN
-        IF Random (100) = 0 THEN
-            BandUp;
-
-    IF BandMapEnable THEN
-        BEGIN
-        UpdateBandMapMultiplierStatus;
-        {KK1L: 6.64 Need to change dupe status for this contact as well - does the new display }
-        UpdateBandMapDupeStatus(RXData.Callsign, RXData.Band, RXData.Mode, True);
-        END;
-
-    { New for Jan 2023 - send QSO data to UDP port }
-
-    IF (QSO_UDP_IP <> '') AND (QSO_UDP_Port <> 0) THEN
-        BEGIN
-        RXData.Date := GetFullDateString;
-        SendQSOToUDPPort (RXData);
-        END;
-
-    { New for Mar 2024 - send to N1MM using WSJT port }
-
-    IF N1MM_QSO_Portal.Output_IPAddress <> '' THEN
-        BEGIN
-        RXData.Date := GetFullDateString;
-        N1MM_QSO_Portal.SendQSOToN1MM (RXData);
-        END;
+    DisplayBandMap;  { Update the bandmap with new dupe and mult data }
     END;
 
 
@@ -4801,7 +4772,7 @@ VAR Key, ExtendedKey: CHAR;
                             BEGIN
                             WindowDupeCheck;
 
-                            { See if this was a dupe and we want the same bahavior as above }
+                            { See if this was a dupe and we want the same behavior as above }
 
                             IF TwoVFOState = TwoVFOSwapped THEN
                                 IF CallWindowString = '' THEN
@@ -4993,13 +4964,13 @@ ControlEnterCommand1:
                                    ELSE
                                        IF ActiveMode = Digital THEN
                                            BEGIN
-                                           SendCrypticDigitalString (GetEXMemoryString (Digital, F1));
+                                           SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F1));
                                            END
                                        ELSE
                                            BEGIN
                                            IF DVKEnable AND NOT BeSilent THEN
                                                {KK1L: 6.73 Added mode to GetExMemoryString}
-                                               SendDVKMessage (GetEXMemoryString (ActiveMode, F1));
+                                               SendDVKMessage (GetEXMemoryString (ActiveRadio, ActiveMode, F1));
                                            END;
 
                                    DisplayGridSquareStatus (CallWindowString);
@@ -5064,9 +5035,17 @@ ControlEnterCommand1:
                             IF MessageEnable AND (NOT ExchangeHasBeenSent) AND (NOT BeSilent) AND MessageEnable THEN
                                 BEGIN
                                 CASE ActiveMode OF
-                                    CW:      SendCrypticMessage (SearchAndPounceExchange);
-                                    Phone:   SendCrypticMessage (SearchAndPouncePhoneExchange);
-                                    Digital: SendCrypticDigitalString (GetEXMemoryString (Digital, F2));
+                                    CW:      CASE ActiveRadio OF
+                                                 RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                                 RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                                 END;
+
+                                    Phone:   CASE ActiveRadio OF
+                                                 RadioOne: SendCrypticMessage (SearchAndPouncePhoneExchangeR1);
+                                                 RadioTwo: SendCrypticMessage (SearchAndPouncePhoneExchangeR1);
+                                                 END;
+
+                                    Digital: SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F2));
                                     END;
 
                                 ExchangeHasBeenSent := True;
@@ -5082,7 +5061,7 @@ ControlEnterCommand1:
                                            ReceivedData) THEN
                             BEGIN
                             ReceivedData.SearchAndPounce := True;
-                            LogContact (ReceivedData);
+                            LogContact (ReceivedData);   { This will log multiple domestic QTHs }
                             ShowStationInformation (ReceivedData.Callsign);
                             UpdateTotals;
 
@@ -5316,9 +5295,17 @@ ControlEnterCommand2:
                             BEGIN
                             IF MessageEnable AND NOT BeSilent THEN
                                 CASE ActiveMode OF
-                                    CW:      SendCrypticMessage (SearchAndPounceExchange);
-                                    Phone:   SendCrypticMessage (SearchAndPouncePhoneExchange);
-                                    Digital: SendCrypticDigitalString (GetEXMemoryString (Digital, F2));
+                                    CW:      CASE ActiveRadio OF
+                                                 RadioOne: SendCrypticMessage (SearchAndPounceExchangeR1);
+                                                 RadioTwo: SendCrypticMessage (SearchAndPounceExchangeR2);
+                                                 END;
+
+                                    Phone:   CASE ActiveRadio OF
+                                                 RadioOne: SendCrypticMessage (SearchAndPouncePhoneExchangeR1);
+                                                 RadioTwo: SendCrypticMessage (SearchAndPouncePhoneExchangeR2);
+                                                 END;
+
+                                    Digital: SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F2));
                                     END;
 
                             ExchangeHasBeenSent := True;
@@ -5332,8 +5319,7 @@ ControlEnterCommand2:
                                        ReceivedData) THEN
                         BEGIN
                         ReceivedData.SearchAndPounce := True;
-
-                        LogContact (ReceivedData);
+                        LogContact (ReceivedData);  { This will log multiple domestic QTHs }
                         ShowStationInformation (ReceivedData.Callsign);
                         UpdateTotals;
 
@@ -5489,7 +5475,8 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                 BEGIN
                 IF MessageEnable THEN
                     BEGIN
-                    AddStringToBuffer (CallWindowString, CWTone);
+                    IF NOT KYCWEnable THEN
+                        AddStringToBuffer (CallWindowString, CWTone);
 
                     { PTTForceOn;  Removed 4-May-2022 }
 
@@ -5499,7 +5486,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                       I was trying to fix by removing it - but I will try
                       to put it back in and see what happens.  03-Dec-2023 }
 
-                    IF CWEnabled THEN PTTForceOn;
+                    IF CWEnabled AND NOT KYCWEnable THEN PTTForceOn;
 
                     { Okay - so if I put this back in - I still have the
                       glitch - and then after sending the CQ exchange, I am
@@ -5824,7 +5811,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                             PutUpExchangeWindow;
                             DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                             ClearContestExchange (ReceivedData);
-                            QSONumberForthisQSO := -1;
+                            QSONumberForthisQSO := -1;    { Not sure this is right }
                             ExchangeHasBeenSent := False;
                             SearchAndPounceStatus := SearchAndPounce;
                         UNTIL (NOT SearchAndPounceStatus) OR (TwoRadioState = SendingExchange);
@@ -5907,7 +5894,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                             END
                         ELSE
                             IF ActiveMode = Digital THEN
-                                SendCrypticDigitalString (GetEXMemoryString (Digital, F1))
+                                SendCrypticDigitalString (GetEXMemoryString (ActiveRadio, Digital, F1))
                             ELSE
                                 SendFunctionKeyMessage (F1, SearchAndPounceOpMode);
                         END;
@@ -5918,7 +5905,6 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                         PutUpExchangeWindow;
                         DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                         ClearContestExchange (ReceivedData);
-                        QSONumberForThisQSO := -1;
                         ExchangeHasBeenSent := False;
                     UNTIL NOT SearchAndPounce;
 
@@ -5988,6 +5974,7 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                         SendFunctionKeyMessage (ExtendedKey, CQOpMode);
 
                         IF (ExtendedKey = F1) OR (ExtendedKey = F2) THEN
+                            BEGIN
                             IF FrequencyDisplayed THEN
                                 BEGIN
                                 LastCQFrequency := DisplayedFrequency;
@@ -5995,6 +5982,9 @@ VAR Key, TempKey, ExtendedKey : CHAR;
                                 END
                             ELSE
                                 LastCQFrequency := 0;
+
+                            CallAlreadySent := False;  { New in Dec 2024 }
+                            END;
 
                         IF CWMessageCommand = CWCommandSAPMode THEN
                             BEGIN
@@ -6771,13 +6761,14 @@ VAR MTotals: MultTotalArrayType;
         { If we are on CW and need to send the call - then do it }
 
         IF (ActiveMode = CW) AND (NOT TailEnding) AND (NOT CallAlreadySent) THEN
-            BEGIN
-            IF MessageEnable AND NOT BeSilent THEN
-                IF NOT (Debug AND (CWTone = 0)) THEN
-                    AddStringToBuffer (CallsignICameBackTo, CWTone);
+            IF NOT KYCWEnable THEN
+                BEGIN
+                IF MessageEnable AND NOT BeSilent THEN
+                    IF NOT (Debug AND (CWTone = 0)) THEN
+                        AddStringToBuffer (CallsignICameBackTo, CWTone);
 
-            CallAlreadySent := True;
-            END;
+                CallAlreadySent := True;
+                END;
 
         { We used to start a RTTY tranmission here - but now we use the function key
           memory and send it during AddOnCQExchange }
@@ -6821,26 +6812,41 @@ VAR MTotals: MultTotalArrayType;
                             END
                         ELSE
                             IF MessageEnable AND NOT BeSilent THEN
-                                SendCrypticMessage (QSOBeforeMessage);
+                                CASE ActiveRadio OF
+                                    RadioOne: SendCrypticMessage (QSOBeforeMessageR1);
+                                    RadioTwo: SendCrypticMessage (QSOBeforeMessageR2);
+                                    END;
                         END
                     ELSE
                         IF MessageEnable AND NOT BeSilent THEN
-                            SendCrypticMessage (QSOBeforeMessage);
+                            CASE ActiveRadio OF
+                                RadioOne: SendCrypticMessage (QSOBeforeMessageR1);
+                                RadioTwo: SendCrypticMessage (QSOBeforeMessageR2);
+                                END;
                     END
                 ELSE
                     IF MessageEnable AND NOT BeSilent THEN
-                        SendCrypticMessage (QSOBeforeMessage);
+                        CASE ActiveRadio OF
+                            RadioOne: SendCrypticMessage (QSOBeforeMessageR1);
+                            RadioTwo: SendCrypticMessage (QSOBeforeMessageR2);
+                            END;
 
                 IF DualingCQState <> NoDualingCQs THEN
                     DualingCQState := SendingDupeMessage;
                 END;
 
             IF ActiveMode = Digital THEN
-                FinishRTTYTransmission (QSOBeforeMessage);
+                CASE ActiveRadio OF
+                    RadioOne: FinishRTTYTransmission (QSOBeforeMessageR1);
+                    RadioTwo: FinishRTTYTransmission (QSOBeforeMessageR2);
+                    END;
 
             IF ActiveMode = Phone THEN
                 BEGIN
-                SendCrypticMessage (QSOBeforePhoneMessage);
+                CASE ActiveRadio OF
+                    RadioOne: SendCrypticMessage (QSOBeforePhoneMessageR1);
+                    RadioTwo: SendCrypticMessage (QSOBeforePhoneMessageR2);
+                    END;
 
                 Write (' DUPE!!');
                 EscapeDeletedCallEntry := CallWindowString;
@@ -6855,7 +6861,7 @@ VAR MTotals: MultTotalArrayType;
                     REPEAT
                         IF (ActiveMultiPort <> nil) OR (MultiUDPPort > -1) THEN CheckMultiState;
                         UpdateTimeAndRateDisplays (True, True);
-                        IF N1MM_UDP_Port > 0 THEN N1MM_QSO_Portal.Heartbeat;
+                        CheckN1MMPort;
                         Packet.CheckPacket;
                         CWStillBeingSent;
                     UNTIL ElaspedSec100 (RememberTime) >= 30;
@@ -6873,7 +6879,7 @@ VAR MTotals: MultTotalArrayType;
             IF TailEnding THEN
                 BEGIN
                 ReceivedData.SearchAndPounce := False;
-                LogContact (PreviousQSOReceivedData);
+                LogContact (PreviousQSOReceivedData);  { This will log multiple domestic QTHs }
                 TailEnding := False;
                 END;
 
@@ -6926,7 +6932,7 @@ VAR MTotals: MultTotalArrayType;
             IF TailEnding THEN
                 BEGIN
                 ReceivedData.SearchAndPounce := False;
-                LogContact (PreviousQSOReceivedData);
+                LogContact (PreviousQSOReceivedData);  { This will log multiple domestic QTHs }
                 TailEnding := False;
                 END;
 
@@ -6935,8 +6941,13 @@ VAR MTotals: MultTotalArrayType;
                 IF TailEnding THEN
                     BEGIN
                     TailEndCallString := '';
+
                     SendCorrectCallIfNeeded;
-                    IF MessageEnable THEN AddStringToBuffer (TailEndMessage + ' ', CWTone);
+                    IF MessageEnable THEN
+                        CASE ActiveRadio OF
+                            RadioOne: AddStringToBuffer (TailEndMessageR1 + ' ', CWTone);
+                            RadioTwo: AddStringToBuffer (TailEndMessageR2 + ' ', CWTone);
+                            END;
 
                     REPEAT
                         REPEAT millisleep UNTIL NewKeyPressed;
@@ -6955,7 +6966,7 @@ VAR MTotals: MultTotalArrayType;
                         BEGIN
                         TailEnding := False;
                         ReceivedData.SearchAndPounce := False;
-                        LogContact (ReceivedData);
+                        LogContact (ReceivedData);  { This will log multiple domestic QTHs }
                         END;
                     END
                 ELSE
@@ -6964,7 +6975,7 @@ VAR MTotals: MultTotalArrayType;
                         BEGIN
                         RememberInactiveCQ := InactiveRigCallingCQ;
 
-                        SendCorrectCallIfNeeded;
+                        SendCorrectCallIfNeeded;  { Won't happen if KYCWEnable = TRUE }
 
                         IF NOT (Debug AND (CWTone = 0)) THEN
                             BEGIN
@@ -6972,9 +6983,17 @@ VAR MTotals: MultTotalArrayType;
                                 IF QuickQSL <> NoQuickQSLKey THEN
                                     BEGIN
                                     IF QuickQSL = QuickKey1 THEN
-                                        SendCrypticMessage (QuickQSLMessage1)
+                                        BEGIN
+                                        CASE ActiveRadio OF
+                                            RadioOne: SendCrypticMessage (QuickQSLMessage1R1);
+                                            RadioTwo: SendCrypticMessage (QuickQSLMessage1R2);
+                                            END;
+                                        END
                                     ELSE
-                                        SendCrypticMessage (QuickQSLMessage2);
+                                        CASE ActiveRadio OF
+                                            RadioOne: SendCrypticMessage (QuickQSLMessage2R1);
+                                            RadioTwo: SendCrypticMessage (QuickQSLMessage2R2);
+                                            END;
                                     END
                                 ELSE
                                     IF ExchangeInformation.Age THEN
@@ -6995,7 +7014,12 @@ VAR MTotals: MultTotalArrayType;
                         IF MessageEnable AND NOT BeSilent THEN
                             BEGIN
                             IF QuickQSL <> NoQuickQSLKey THEN
-                                SendCrypticMessage (QuickQSLPhoneMessage)
+                                BEGIN
+                                CASE ActiveRadio OF
+                                    RadioOne: SendCrypticMessage (QuickQSLPhoneMessageR1);
+                                    RadioTwo: SendCrypticMessage (QuickQSLPhoneMessageR2);
+                                    END;
+                                END
                             ELSE
                                 Send73Message;
                             END;
@@ -7008,7 +7032,7 @@ VAR MTotals: MultTotalArrayType;
                     IF NOT TailEnding THEN
                         BEGIN
                         ReceivedData.SearchAndPounce := False;
-                        LogContact (ReceivedData);
+                        LogContact (ReceivedData);  { This will log multiple domestic QTHs }
                         QSONumberForThisQSO := ReserveNewQSONumber (ActiveBand);
                         DisplayQSONumber (QSONumberForThisQSO, ActiveBand);
                         END;

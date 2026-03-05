@@ -52,7 +52,7 @@ PROCEDURE SetConfigurationDefaultValues;
     AutoSAPEnable          := False;
     AutoSAPEnableRate      := 1000; {KK1L 6.72}
     AutoSendCharacterCount := 0;
-    AutoSidetoneControl    := False;
+    AutoSidetoneLevel      := 0;
     AutoTimeIncrementQSOs  := 0;
 
     BandMapAllBands         := False;
@@ -62,10 +62,10 @@ PROCEDURE SetConfigurationDefaultValues;
     BandMapDisplayCQ        := True;
 
     BandMapModeCutoffFrequency [Band160] :=   1840000;
-    BandMapModeCutoffFrequency [Band80]  :=   3700000;
-    BandMapModeCutoffFrequency [Band40]  :=   7100000;
+    BandMapModeCutoffFrequency [Band80]  :=   3650000;
+    BandMapModeCutoffFrequency [Band40]  :=   7125000;
     BandMapModeCutoffFrequency [Band30]  :=  10150000;
-    BandMapModeCutoffFrequency [Band20]  :=  14100000;
+    BandMapModeCutoffFrequency [Band20]  :=  14150000;
     BandMapModeCutoffFrequency [Band17]  :=  18110000;
     BandMapModeCutoffFrequency [Band15]  :=  21200000;
     BandMapModeCutoffFrequency [Band12]  :=  24930000;
@@ -73,12 +73,16 @@ PROCEDURE SetConfigurationDefaultValues;
     BandMapModeCutoffFrequency [Band6]   :=  50100000;
     BandMapModeCutoffFrequency [Band2]   := 144200000;
 
-
     BandMapDecayTime        := 60;
     BandMapDecayValue       := 60; {KK1L: 6.65}
     BandMapDecayMultiplier  := 1; {KK1L: 6.65}
     BandMapDupeDisplay      := True;
     BandMapGuardBand        := 200;
+
+    BandOutputUDPIP := '';
+    BandOutputUDPPort := -1;
+    BandOutputUpdateSeconds := 5;
+
     Tone.SetBeepEnable(True);
     BeepSoundCardEnable     := False;
     BeepEvery10QSOs         := False;
@@ -86,6 +90,8 @@ PROCEDURE SetConfigurationDefaultValues;
     BandMapSplitMode        := ByCutoffFrequency; {KK1L: 6.64}
 
     Packet.BroadcastAllPacketData  := True;
+    Packet.DisplaySpots            := True;
+    Packet.ReceiveSpots            := True;
 
     CallsignUpdateEnable    := False;
     CallWindowPosition      := NormalCallWindowPosition;
@@ -98,13 +104,19 @@ PROCEDURE SetConfigurationDefaultValues;
     ConfirmEditChanges      := True;
     ContestTitle            := '';
     ContinentString         := '';
-    CorrectedCallMessage    := '} OK %';
+
+    CorrectedCallMessageR1  := '} OK %';
+    CorrectedCallMessageR2  := '} OK %';
 
     CountDomesticCountries    := False;
     CountryInformationFile    := '';
     CountryString   := '';
-    CQExchange          := '';
-    CQExchangeNameKnown := '';
+
+    CQExchangeR1          := '';
+    CQExchangeR2          := '';
+    CQExchangeNameKnownR1 := '';
+    CQExchangeNameKnownR2 := '';
+
     CQMenu := 'F1/2-CQ F3-Ex F4-73 F5-Call F6-DECall F7-WkdB4 F8-Agn F9-? F10-Keyboard CW';
     CustomInitialExchangeString := '';
     CustomUserString            := '';
@@ -118,6 +130,7 @@ PROCEDURE SetConfigurationDefaultValues;
     DDXState                := Off;
     DEEnable                := True;
     DigitalModeEnable       := False;
+    DisplayDupeQTHs         := False;
     DistanceMode            := NoDistanceDisplay;
     DoingColors             := False;
     DomesticQTHDataFileName := '';
@@ -215,6 +228,7 @@ PROCEDURE SetConfigurationDefaultValues;
     IntercomFileEnable       := False;
 
     KeyPadCWMemories        := False;
+    KYCWEnable              := False;
 
     LeaveCursorInCallWindow := False;
     LeadingZeros            := 0;
@@ -231,7 +245,6 @@ PROCEDURE SetConfigurationDefaultValues;
     MessageEnable          := True;
     ModemPortBaudRate      := 4800;
     MultiInfoMessage       := '';
-    MultiMultsOnly         := False;
     MultipleBandsEnabled   := True;
     MultipleModesEnabled   := True;
     MultiPortBaudRate      := 4800;
@@ -302,8 +315,12 @@ PROCEDURE SetConfigurationDefaultValues;
     Winkey.SetPTTEnable(True);
     YcccKey.SetPTTEnable(True);
 
-    QSLMessage             := '73 \ TEST';
-    QSOBeforeMessage       := ' SRI QSO B4 73 \ TEST';
+    QSLMessageR1           := '73 \ TEST';
+    QSLMessageR2           := '73 \ TEST';
+
+    QSOBeforeMessageR1     := ' SRI QSO B4 73 \ TEST';
+    QSOBeforeMessageR2     := ' SRI QSO B4 73 \ TEST';
+
     QTCMinutes             := False;
     QTCsEnabled            := False;
 
@@ -318,8 +335,11 @@ PROCEDURE SetConfigurationDefaultValues;
     QTCQRS                 := True;
     QuickQSLKey1           := '\';
     QuickQSLKey2           := '=';
-    QuickQSLMessage1       := 'TU';
-    QuickQSLMessage2       := 'EE';
+
+    QuickQSLMessage1R1     := 'TU';
+    QuickQSLMessage1R2     := 'TU';
+    QuickQSLMessage2R1     := 'EE';
+    QuickQSLMessage2R2     := 'EE';
 
     Radio1BaudRate := 4800;
     Radio2BaudRate := 4800;
@@ -348,7 +368,9 @@ PROCEDURE SetConfigurationDefaultValues;
     RelayControlPort := nil;
     RemainingMultDisplayMode := HiLight;
     RememberDDXCallsign := '';
-    RepeatSearchAndPounceExchange := '';
+
+    RepeatSearchAndPounceExchangeR1 := '';
+    RepeatSearchAndPounceExchangeR2 := '';
 
     RTTYReceiveString := ControlR;
     RTTYSendString    := ControlT;
@@ -360,7 +382,10 @@ PROCEDURE SetConfigurationDefaultValues;
     SCPDupeColor      := Red;
     SCPMinimumLetters := 0;
 
-    SearchAndPounceExchange      := '';
+    SearchAndPounceExchangeR1    := '';
+    SearchAndPounceExchangeR2    := '';
+
+    SelfSpotEnable               := False;
     SendAltDSpotsToPacket        := False;
     SendCompleteFourLetterCall   := False;
     SendQSOImmediately           := True;
@@ -430,7 +455,10 @@ PROCEDURE SetConfigurationDefaultValues;
 
     TabMode         := NormalTabMode;
     TailEndKey      := ']';
-    TailEndMessage  := 'R';
+
+    TailEndMessageR1  := 'R';
+    TailEndMessageR2  := 'R';
+
     TenMinuteRule   := NoTenMinuteRule;
     CPUKeyer.SetTuneWithDits(False);
     Winkey.SetTuneWithDits(False);

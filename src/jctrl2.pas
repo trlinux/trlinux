@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, N4OGW;
+     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, JCtrl1, N4OGW, scorereporter;
 
 PROCEDURE DisplayStatus (FirstEntryDisplayed: MenuEntryType; ActiveEntry: MenuEntryType);
 FUNCTION  GetActiveLineFromEntryString (EntryString: Str80): MenuEntryType;
@@ -60,6 +60,7 @@ VAR LastEntry, Entry: MenuEntryType;
         IF Entry > FirstEntryDisplayed THEN WriteLn;
         DisplayStatusLine (Entry, Entry = ActiveEntry);
 
+        IF WhereX >= 40 THEN GoToXY (39, WhereY);
         WHILE WhereX < 40 DO Write (' ');
 
         DisplayInfoLine   (Entry, Entry = ActiveEntry);
@@ -81,7 +82,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
     Changed [ActiveLine] := True;
 
     CASE ActiveLine OF
-      DMF, DVK, MCL, MCN, MCU, MZN, VER:
+      DMF, MCL, MCN, MCU, MZN, VER:
            BEGIN
            Tone.DoABeep (Single);
            QuickDisplay ('You can only change this in your config file.');
@@ -134,7 +135,11 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            DisplayAutoSendCharacterCount;
            END;
 
-      AST: AutoSidetoneControl := NOT AutoSidetoneControl;
+      AST: BEGIN
+           TempInt := QuickEditInteger ('Mon level (0=disable - 60) : ', 3);
+           IF (TempInt >= 0) AND (TempInt <= 60) THEN
+               AutoSideToneLevel := TempInt;
+           END;
 
       ATI: BEGIN
            Inc (AutoTimeIncrementQSOs);
@@ -152,10 +157,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            DisplayBandMap;
            END;
 
-     { BMO: BEGIN                                                         }
-     {      BandMapMultsOnly        := NOT BandMapMultsOnly; }{KK1L: 6.xx}
-     {      DisplayBandMap;                                               }
-     {      END;                                                          }
+      BMO: BEGIN
+           BandMapMultsOnly        := NOT BandMapMultsOnly;
+           DisplayBandMap;
+           END;
 
       BCW: BandMapCallWindowEnable := NOT BandMapCallWindowEnable;
 
@@ -225,6 +230,55 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       CAU: CallsignUpdateEnable := NOT CallsignUpdateEnable;
 
+      CatAss:
+          WITH Category DO
+              IF CategoryAssisted < NonAssistedType THEN
+                  Inc (CategoryAssisted)
+              ELSE
+                  CategoryAssisted := NoCategoryAssistedType;
+
+      CatBand:
+          WITH Category DO
+              IF CategoryBand < SingleBand10Type THEN
+                  Inc (CategoryBand)
+              ELSE
+                  CategoryBand := NoCategoryBandType;
+
+      CatMode:
+          WITH Category DO
+              IF CategoryMode < MixedModeType THEN
+                  Inc (CategoryMode)
+              ELSE
+                  CategoryMode := NoCategoryModeType;
+
+      CatOp:
+          WITH Category DO
+              IF CategoryOperator < MultiMultiOperatorType THEN
+                  Inc (CategoryOperator)
+              ELSE
+                  CategoryOperator := NoCategoryOperatorType;
+
+      CatPower:
+          WITH Category DO
+              IF CategoryPower < QRPPowerType THEN
+                  Inc (CategoryPower)
+              ELSE
+                  CategoryPower := NoCategoryPowerType;
+
+      CatTx:
+          WITH Category DO
+              IF CategoryTransmitter < UnlimitedTransmitterType THEN
+                  Inc (CategoryTransmitter)
+              ELSE
+                  CategoryTransmitter := NoCategoryTransmitterType;
+
+      CatOverLay:
+          WITH Category DO
+              IF CategoryOverlay < WireOnlyOverlayType THEN
+                  Inc (CategoryOverlay)
+              ELSE
+                  CategoryOverlay := NoCategoryOverlayType;
+
       CLF: CheckLogFileSize := NOT CheckLogFileSize;
 
       CDE: BEGIN
@@ -283,6 +337,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       DEE: DEEnable          := NOT DEEnable;
       DIG: DigitalModeEnable := NOT DigitalModeEnable;
+      DDQ: DisplayDupeQTHs   := NOT DisplayDupeQTHs;
 
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: DistanceMode := DistanceMiles;
@@ -297,8 +352,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                END;
 
       DSE: Sheet.DupeSheetEnable := NOT Sheet.DupeSheetEnable;
-
-      DVC: DVKControlKeyRecord := NOT DVKControlKeyRecord;
 
       EES: EscapeExitsSearchAndPounce := NOT EscapeExitsSearchAndPounce;
 
@@ -359,16 +412,16 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            IF FootSwitchMode <> PreviousFootSwitchMode THEN
                BEGIN
                IF FootSwitchMode = Normal THEN
-                   BEGIN
-                   ActiveKeyer.LetFootSwitchControlPTT;  { This does nothing for YCCC }
-
-                   IF ActiveKeyer = ArdKeyer THEN
-                       ArdKeyer.LetFootSwitchControlPTT;
-                   END;
+                   IF ActiveKeyer <> ArdKeyer THEN
+                       ActiveKeyer.LetFootSwitchControlPTT;  { This does nothing for YCCC }
 
                IF ActiveKeyer = ArdKeyer THEN
                    BEGIN
                    CASE FootSwitchMode OF
+                       Normal:   BEGIN
+                                 ArdKeyer.setCWGrant (false);
+                                 ArdKeyer.LetFootSwitchControlPTT;
+                                 END;
 
                        TBSIQSSB: BEGIN
                                  ArdKeyer.setCWGrant (false);
@@ -381,8 +434,7 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                                  END;
 
                        ELSE
-                           IF FootSwitchMode <> TBSIQSSB THEN
-                               ArdKeyer.ClearFootSwitchControlPTT;
+                           ArdKeyer.ClearFootSwitchControlPTT;
                        END;
                    END;
 
@@ -543,7 +595,6 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                CreateAndSendSAPMultiInfoMessage;
            END;
 
-      MMO: MultiMultsOnly        := NOT MultiMultsOnly;
       MRQ: MultiRequestQSONumber := NOT MultiRequestQSONumber;
 
       MRT: BEGIN
@@ -583,9 +634,12 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       PBS: Packet.PacketBandSpots       := NOT Packet.PacketBandSpots;
       PBP: Packet.PacketBeep            := NOT Packet.PacketBeep;
+      PDS: Packet.DisplaySpots          := NOT Packet.DisplaySpots;
       PF8: Packet.FT8SpotEnable         := NOT Packet.FT8SpotEnable;
 
       PLF: Packet.PacketLogFileName := QuickEditResponse ('Enter packet log file name (none to disable) : ', 20);
+
+      PRS: Packet.ReceiveSpots := NOT Packet.ReceiveSpots;
 
       PRM: BEGIN
            Inc (PacketReturnPerMinute);
@@ -813,6 +867,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
                SayHiRateCutoff := TempInt;
            END;
 
+      SCE: scorerpt.setenable (NOT scorerpt.enabled);
+
       SCS: BEGIN
            CD.CountryString := UpperCase (QuickEditResponse ('Enter new SCP Country String : ', 40));
 
@@ -878,6 +934,8 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
 
       SQR: SprintQSYRule        := NOT SprintQSYRule;
       SRP: SwapPacketSpotRadios := NOT SwapPacketSpotRadios;
+      SSE: SelfSpotEnable       := NOT SelfSpotEnable;
+
       SWP: ActiveKeyer.SetSwapPaddles(NOT ActiveKeyer.GetSwapPaddles);
       SWR: SwapRadioRelaySense  := NOT SwapRadioRelaySense;
 
@@ -926,10 +984,10 @@ VAR TempHour, TempMinute, TempInt, Result: INTEGER;
            ELSE
                TwoRadioState := TwoRadiosDisabled;
 
-      TVM: IF TwoVFOState = TwoVFOsDisabled THEN
-               TwoVFOState := TwoVFOIdle
-           ELSE
-               TwoVFOState := TwoVFOsDisabled;
+      SO2V, TVM: IF TwoVFOState = TwoVFOsDisabled THEN
+                     TwoVFOState := TwoVFOIdle
+                 ELSE
+                     TwoVFOState := TwoVFOsDisabled;
 
       URF: UpdateRestartFileEnable := NOT UpdateRestartFileEnable;
 
@@ -1012,12 +1070,12 @@ VAR FileWrite: TEXT;
       ASP: WriteLn (FileWrite, AutoSAPEnable);
       ASR: WriteLn (FileWrite, AutoSAPEnableRate); {KK1L: 6.72}
       ASC: WriteLn (FileWrite, AutoSendCharacterCount);
-      AST: WriteLn (FileWRite, AutoSidetoneControl);
+      AST: WriteLn (FileWrite, AutoSidetoneLevel);
       ATI: WriteLn (FileWrite, AutoTimeIncrementQSOs);
 
       BAB: WriteLn (FileWrite, BandMapAllBands);
       BAM: WriteLn (FileWrite, BandMapAllModes);
-      {BMO: WriteLn (FileWrite, BandMapMultsOnly);} {KK1L: 6.xx}
+      BMO: WriteLn (FileWrite, BandMapMultsOnly);
       BCW: WriteLn (FileWrite, BandMapCallWindowEnable);
       BDD: WriteLn (FileWrite, BandMapDupeDisplay);
       BMD: WriteLn (FileWrite, BandMapDecayValue);
@@ -1037,6 +1095,15 @@ VAR FileWrite: TEXT;
       BRL: WriteLn (FileWrite, BigRemainingList);
       BPD: WriteLn (FileWrite, Packet.BroadcastAllPacketData);
       CAU: WriteLn (FileWrite, CallsignUpdateEnable);
+
+      CatAss:     WriteLn (FileWrite, CategoryAssistedStringList [Category.CategoryAssisted]);
+      CatBand:    WriteLn (FileWrite, CategoryBandStringList [Category.CategoryBand]);
+      CatMode:    WriteLn (FileWrite, CategoryModeStringList [Category.CategoryMode]);
+      CatOp:      WriteLn (FileWrite, CategoryOperatorStringList [Category.CategoryOperator]);
+      CatPower:   WriteLn (FileWrite, CategoryPowerStringList [Category.CategoryPower]);
+      CatTx:      WriteLn (FileWrite, CategoryTransmitterStringList [Category.CategoryTransmitter]);
+      CatOverLay: WriteLn (FileWrite, CategoryOverlayStringList [Category.CategoryOverlay]);
+
       CLF: WriteLn (FileWrite, CheckLogFileSize);
       CDE: WriteLn (FileWrite, ColumnDupeSheetEnable);
       CID: WriteLn (FileWrite, ComputerID);
@@ -1058,6 +1125,7 @@ VAR FileWrite: TEXT;
       DEE: WriteLn (FileWrite, DEEnable);
 
       DIG: WriteLn (FileWrite, DigitalModeEnable);
+      DDQ: WriteLn (FileWrite, DisplayDupeQTHs);
 
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: WriteLn (Filewrite, 'NONE');
@@ -1072,8 +1140,6 @@ VAR FileWrite: TEXT;
                END;
 
       DSE: WriteLn (FileWrite, Sheet.DupeSheetEnable);
-
-      DVC: WriteLn (FileWrite, DVKControlKeyRecord);
 
       EES: WriteLn (FileWrite, EscapeExitsSearchAndPounce);
       EME: WriteLn (FileWrite, ExchangeMemoryEnable);
@@ -1167,7 +1233,6 @@ VAR FileWrite: TEXT;
       MRM: WriteLn (FileWrite, MultReportMinimumBands);
       MIM: WriteLn (FileWrite, MultiInfoMessage);
 
-      MMO: WriteLn (FileWrite, MultiMultsOnly);
       MRQ: WriteLn (FileWrite, MultiRequestQSONumber);
       MRT: WriteLn (FileWrite, MultiRetryTime);
       MUM: WriteLn (FileWrite, MultiUpdateMultDisplay);
@@ -1188,8 +1253,10 @@ VAR FileWrite: TEXT;
       PAS: WriteLn (FileWrite, Packet.AutoSpotEnable);
       PBS: WriteLn (FileWrite, Packet.PacketBandSpots);
       PBP: WriteLn (FileWrite, Packet.PacketBeep);
+      PDS: WriteLn (FileWrite, Packet.DisplaySpots);
       PF8: WriteLn (FileWrite, Packet.FT8SpotEnable);
       PLF: WriteLn (FileWrite, Packet.PacketLogFileName);
+      PRS: WriteLn (FileWrite, Packet.ReceiveSpots);
 
       PRM: WriteLn (FileWrite, PacketReturnPerMinute);
       PSC: WriteLn (FileWrite, PacketSpotComment); {KK1L: 6.71 Implimented what I started in 6.68}
@@ -1278,6 +1345,7 @@ VAR FileWrite: TEXT;
       SO2RM1: writeln(FileWrite,so2rbox.getrig1map);
       SO2RM2: writeln(FileWrite,so2rbox.getrig2map);
       SHC: WriteLn (FileWrite, SayHiRateCutoff);
+      SCE: WriteLn (FileWrite, scorerpt.enabled);
       SCS: WriteLn (FileWrite, CD.CountryString);
       SML: WriteLn (FileWrite, SCPMinimumLetters);
       SAD: WriteLn (FileWrite, SendAltDSpotsToPacket);
@@ -1301,6 +1369,7 @@ VAR FileWrite: TEXT;
       SBD: WriteLn (FileWrite, SpaceBarDupeCheckEnable);
       SQR: WriteLn (FileWrite, SprintQSYRule);
       SRP: WriteLn (FileWrite, SwapPacketSpotRadios);
+      SSE: WriteLn (FileWrite, SelfSpotEnable);
       SWP: WriteLn (FileWrite, ActiveKeyer.GetSwapPaddles);
       SWR: WriteLn (FileWrite, SwapRadioRelaySense);
 
@@ -1326,10 +1395,10 @@ VAR FileWrite: TEXT;
            ELSE
                WriteLn (FileWrite, 'FALSE');
 
-      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
-               WriteLn (FileWrite, 'TRUE')
-           ELSE
-               WriteLn (FileWrite, 'FALSE');
+      SO2V, TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
+                     WriteLn (FileWrite, 'TRUE')
+                 ELSE
+                     WriteLn (FileWrite, 'FALSE');
 
       URF: WriteLn (FileWrite, UpdateRestartFileEnable);
 
@@ -1393,12 +1462,12 @@ VAR TempString: Str40;
       ASP: IF AutoSAPEnable THEN TempString := 'TRUE';
       ASR: Str (AutoSAPEnableRate, TempString); {KK1L: 6.72}
       ASC: Str (AutoSendCharacterCount, TempString);
-      AST: IF AutoSideToneControl THEN TempString := 'TRUE';
+      AST: Str (AutoSidetoneLevel, TempString);
       ATI: Str (AutoTimeIncrementQSOs, TempString);
 
       BAB: IF BandMapAllBands THEN TempString := 'TRUE';
       BAM: IF BandMapAllModes THEN TempString := 'TRUE';
-      {BMO: IF BandMapMultsOnly THEN TempString := 'TRUE';} {KK1L: 6.xx}
+      BMO: IF BandMapMultsOnly THEN TempString := 'TRUE';
       BCW: IF BandMapCallWindowEnable THEN TempString := 'TRUE';
       BDD: IF BandMapDupeDisplay THEN TempString := 'TRUE';
       BMD: Str (BandMapDecayValue, TempString);
@@ -1419,6 +1488,15 @@ VAR TempString: Str40;
       BPD: IF Packet.BroadcastAllPacketData THEN TempString := 'TRUE';
 
       CAU: IF CallsignUpdateEnable THEN TempString := 'TRUE';
+
+      CatAss:     TempString := CategoryAssistedStringList [Category.CategoryAssisted];
+      CatBand:    TempString := CategoryBandStringList [Category.CategoryBand];
+      CatMode:    TempString := CategoryModeStringList [Category.CategoryMode];
+      CatOp:      TempString := CategoryOperatorStringList [Category.CategoryOperator];
+      CatPower:   TempString := CategoryPowerStringList [Category.CategoryPower];
+      CatTx:      TempString := CategoryTransmitterStringList [Category.CategoryTransmitter];
+      CatOverLay: TempString := CategoryOverlayStringList [Category.CategoryOverlay];
+
       CLF: IF CheckLogFileSize THEN TempString := 'TRUE';
       CDE: IF ColumnDupeSheetEnable THEN TempString := 'TRUE';
       CID: TempString := ComputerID;
@@ -1439,6 +1517,7 @@ VAR TempString: Str40;
 
       DEE: IF DEEnable THEN TempString := 'TRUE';
       DIG: IF DigitalModeEnable THEN TempString := 'TRUE';
+      DDQ: IF DisplayDupeQTHs THEN TempString := 'TRUE';
 
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: TempString := 'NONE';
@@ -1456,7 +1535,6 @@ VAR TempString: Str40;
 
       DSE: IF Sheet.DupeSheetEnable THEN TempString := 'TRUE';
 
-      DVC: IF DVKControlKeyRecord THEN TempString := 'TRUE';
       EES: IF EscapeExitsSearchAndPounce THEN TempString := 'TRUE';
       EME: IF ExchangeMemoryEnable THEN TempString := 'TRUE';
       FWE: IF ActiveKeyer.GetFarnsworthEnable THEN TempString := 'TRUE';
@@ -1543,7 +1621,6 @@ VAR TempString: Str40;
       MEN: IF MouseEnable THEN TempString := 'TRUE';
       MRM: Str (MultReportMinimumBands, TempString);
       MIM: TempString := MultiInfoMessage;
-      MMO: IF MultiMultsOnly THEN TempString := 'TRUE';
       MRQ: IF MultiRequestQSONumber THEN TempString := 'TRUE';
       MRT: Str (MultiRetryTime, TempString);
       MUM: IF MultiUpdateMultDisplay THEN TempString := 'TRUE';
@@ -1568,8 +1645,9 @@ VAR TempString: Str40;
       PAs: IF Packet.AutoSpotEnable THEN TempString := 'TRUE';
       PBS: IF Packet.PacketBandSpots THEN TempString := 'TRUE';
       PBP: IF Packet.PacketBeep THEN TempString := 'TRUE';
+      PDS: IF Packet.DisplaySpots THEN TempString := 'TRUE';
       PF8: IF Packet.FT8SpotEnable THEN TempString := 'TRUE';
-
+      PRS: IF Packet.ReceiveSpots THEN TempString := 'TRUE';
       PRM: Str (PacketReturnPerMinute, TempString);
       PSC: TempString := PacketSpotComment; {KK1L: 6.71 Implimented what I started in 6.68}
       PKD: IF PacketSpotDisable    THEN TempString := 'TRUE';
@@ -1638,6 +1716,7 @@ VAR TempString: Str40;
 
       SHE: IF SayHiEnable THEN TempString := 'TRUE';
       SHC: Str (SayHiRateCutoff, TempString);
+      SCE: IF scorerpt.enabled THEN TempString := 'TRUE';
       SCS: TempString := CD.CountryString;
       SML: Str (SCPMinimumLetters, TempString);
       SAD: IF SendAltDSpotsToPacket THEN TempString := 'TRUE';
@@ -1666,6 +1745,7 @@ VAR TempString: Str40;
 
       SQR: IF SprintQSYRule THEN TempString := 'TRUE';
       SRP: IF SwapPacketSpotRadios THEN TempString := 'TRUE';
+      SSE: IF SelfSpotEnable THEN TempString := 'TRUE';
       SWP: IF ActiveKeyer.GetSwapPaddles THEN TempString := 'TRUE';
       SWR: IF SwapRadioRelaySense THEN TempString := 'TRUE';
 
@@ -1690,7 +1770,7 @@ VAR TempString: Str40;
 
       TRM: IF TwoRadioState <> TwoRadiosDisabled THEN TempString := 'TRUE';
 
-      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN TempString := 'TRUE';
+      SO2V, TVM: IF TwoVFOState <> TwoVFOsDisabled THEN TempString := 'TRUE';
 
       URF: IF UpdateRestartFileEnable THEN TempString := 'TRUE';
 

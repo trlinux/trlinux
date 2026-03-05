@@ -26,7 +26,7 @@ INTERFACE
 
 USES Tree, LogStuff, LogGrid, LogSCP, LogCW, LogWind, LogDupe, ZoneCont,
      LogCfg, LogDom, Country9, LogEdit, trCrt, LogK1EA, DOS, LogHelp,
-     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, N4OGW;
+     Logqsonr, SlowTree, LogWAE, LogPack, LogDDX, N4OGW, scorereporter;
 
 
 TYPE MenuEntryType = (NoMenuEntry,
@@ -53,7 +53,7 @@ TYPE MenuEntryType = (NoMenuEntry,
                       BAM,
                       BCW,
                       BMD,
-                      {BMO, }{KK1L: 6.xx}
+                      BMO,
                       BCQ,
                       BDD,
                       BME,
@@ -66,6 +66,15 @@ TYPE MenuEntryType = (NoMenuEntry,
                       BPD,
                       SAS,
                       CAU,
+
+                      CatAss,     { Cabrillo category stuff in scorereporter.pas }
+                      CatBand,
+                      CatMode,
+                      CatOp,
+                      CatPower,
+                      CatTx,
+                      CatOverLay,
+
                       CLF,
                       CDE,
                       CID,
@@ -78,13 +87,11 @@ TYPE MenuEntryType = (NoMenuEntry,
                       CWT,
                       DEE,
                       DIG,
+                      DDQ,
                       DIS,
                       DMF,
                       DCS,
                       DSE,
-                      DVC,
-                      DVK,
-                      DVE,
                       EES,
                       EME,
                       FWE,
@@ -121,7 +128,6 @@ TYPE MenuEntryType = (NoMenuEntry,
                       MEN,
                       MRM,
                       MIM,
-                      MMO,
                       MRQ,
                       MRT,
                       MUM,
@@ -145,8 +151,10 @@ TYPE MenuEntryType = (NoMenuEntry,
                       PAS,
                       PBS,
                       PBP,
+                      PDS,
                       PF8,
                       PLF,
+                      PRS,
                       PRM,
                       PSC, {KK1L: 6.71 Coded for PacketSpotComment started in 6.68}
                       PKD,
@@ -186,17 +194,11 @@ TYPE MenuEntryType = (NoMenuEntry,
                       RT1,
                       RT2,
                       SHE,
-                      SO2RLM,
-                      SO2RHM,
-                      SO2RHS,
-                      SO2RBE,
-                      SO2RBV,
-                      SO2RMR,
-                      SO2RM1,
-                      SO2RM2,
-                      SHC,
-                      SCS,
-                      SML,
+                      SHC,   { Say hi rate cutoff }
+                      SCE,   { Score report enable }
+                      SCS,   { SCP Country String }
+                      SML,   { SCP Minimum Letters }
+                      SSE,   { Self Spot Enable }
                       SAD,
                       SCF,
                       SQI,
@@ -206,8 +208,19 @@ TYPE MenuEntryType = (NoMenuEntry,
                       SEN,
                       SRM,
                       SAB,
-                      SMC,
-                      SBD,
+                      SMC,  { Slash Mark Character }
+
+                      SO2RLM,  { SO2R stuff }
+                      SO2RHM,
+                      SO2RHS,
+                      SO2RBE,
+                      SO2RBV,
+                      SO2RMR,
+                      SO2RM1,
+                      SO2RM2,
+                      SO2V,
+
+                      SBD,  { Space Bar Dupe Enable }
                       SQR,
                       SPS, {KK1L: 6.71 StereoPinState}
                       SRP,
@@ -273,13 +286,14 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       ASP: Description := 'AUTO S&P ENABLE';
       ASR: Description := 'AUTO S&P ENABLE SENSITIVITY'; {KK1L: 6.72}
       ASC: Description := 'AUTO SEND CHARACTER COUNT';
-      AST: Description := 'AUTO SIDETONE CONTROL';
+      AST: Description := 'AUTO SIDETONE LEVEL';
       ATI: Description := 'AUTO TIME INCREMENT';
 
       BAB: Description := 'BAND MAP ALL BANDS';
       BAM: Description := 'BAND MAP ALL MODES';
       BCW: Description := 'BAND MAP CALL WINDOW ENABLE';
       BMD: Description := 'BAND MAP DECAY TIME';
+      BMO: Description := 'BAND MAP MULTS ONLY';
       BCQ: Description := 'BAND MAP DISPLAY CQ';
       BDD: Description := 'BAND MAP DUPE DISPLAY';
       BME: Description := 'BAND MAP ENABLE';
@@ -294,6 +308,15 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       {KK1L: 6.65}
       SAS: Description := 'CALL WINDOW SHOW ALL SPOTS';
       CAU: Description := 'CALLSIGN UPDATE ENABLE';
+
+      CatAss:     Description := 'CATEGORY ASSISTED';
+      CatBand:    Description := 'CATEGORY BAND';
+      CatMode:    Description := 'CATEGORY MODE';
+      CatOp:      Description := 'CATEGORY OPERATOR';
+      CatPower:   Description := 'CATEGORY POWER';
+      CatTx:      Description := 'CATEGORY TRANSMITTER';
+      CatOverLay: Description := 'CATEGORY OVERLAY';
+
       CLF: Description := 'CHECK LOG FILE SIZE';
       CDE: Description := 'COLUMN DUPESHEET ENABLE';
       CID: Description := 'COMPUTER ID';
@@ -307,12 +330,11 @@ FUNCTION Description (Line: MenuEntryType): Str80;
 
       DEE: Description := 'DE ENABLE';
       DIG: Description := 'DIGITAL MODE ENABLE';
+      DDQ: Description := 'DISPLAY DUPE QTHS';
       DIS: Description := 'DISTANCE MODE';
       DMF: Description := 'DOMESTIC FILENAME';
       DCS: Description := 'DUPE CHECK SOUND';
       DSE: Description := 'DUPE SHEET ENABLE';
-      DVK: Description := 'DVK PORT';
-      DVC: Description := 'DVK CONTROL KEY RECORD';
 
       EES: Description := 'ESCAPE EXITS SEARCH AND POUNCE';
       EME: Description := 'EXCHANGE MEMORY ENABLE';
@@ -358,7 +380,6 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       MEN: Description := 'MOUSE ENABLE';
       MRM: Description := 'MULT REPORT MINIMUM BANDS';
       MIM: Description := 'MULTI INFO MESSAGE';
-      MMO: Description := 'MULTI MULTS ONLY';
       MRQ: Description := 'MULTI REQUEST QSO NUMBER';
       MRT: Description := 'MULTI RETRY TIME';
       MUM: Description := 'MULTI UPDATE MULT DISPLAY';
@@ -384,8 +405,10 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       PAS: Description := 'PACKET AUTO SPOT ENABLE';
       PBS: Description := 'PACKET BAND SPOTS';
       PBP: Description := 'PACKET BEEP';
+      PDS: Description := 'PACKET DISPLAY SPOTS';
       PF8: Description := 'PACKET FT8 SPOTS';
       PLF: Description := 'PACKET LOG FILENAME';
+      PRS: Description := 'PACKET RECEIVE SPOTS';
       PRM: Description := 'PACKET RETURN PER MINUTE';
       PSC: Description := 'PACKET SPOT COMMENT'; {KK1L: 6.71 Implimented what I started in 6.68}
       PKD: Description := 'PACKET SPOT DISABLE';
@@ -435,8 +458,10 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       SO2RMR: Description := 'SO2R MICROPHONE RELAY ENABLE';
       SO2RM1: Description := 'SO2R RIG1 MAP';
       SO2RM2: Description := 'SO2R RIG2 MAP';
+
       SHE: Description := 'SAY HI ENABLE';
       SHC: Description := 'SAY HI RATE CUTOFF';
+      SCE: Description := 'SCORE REPORT ENABLE';
       SCS: Description := 'SCP COUNTRY STRING';
       SML: Description := 'SCP MINIMUM LETTERS';
       SAD: Description := 'SEND ALT-D SPOTS TO PACKET';
@@ -449,10 +474,12 @@ FUNCTION Description (Line: MenuEntryType): Str80;
       SRM: Description := 'SINGLE RADIO MODE';
       SAB: Description := 'SKIP ACTIVE BAND';
       SMC: Description := 'SLASH MARK CHAR';
+      SO2V: Description := 'SO2V MODE (AKA TWO VFO MODE)';
       SBD: Description := 'SPACE BAR DUPE CHECK ENABLE';
       SQR: Description := 'SPRINT QSY RULE';
       SPS: Description := 'STEREO PIN HIGH'; {KK1L: 6.71}
       SRP: Description := 'SWAP PACKET SPOT RADIOS';
+      SSE: Description := 'SELF SPOT ENABLE';
       SWP: Description := 'SWAP PADDLES';
       SWR: Description := 'SWAP RADIO RELAY SENSE';
 
@@ -518,12 +545,12 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       ASP: Write (AutoSAPEnable);
       ASR: Write (AutoSAPEnableRate); {KK1L: 6.72}
       ASC: Write (AutoSendCharacterCount);
-      AST: Write (AutoSidetoneControl);
+      AST: Write (AutoSidetoneLevel);
       ATI: Write (AutoTimeIncrementQSOs);
 
       BAB: Write (BandMapAllBands);
       BAM: Write (BandMapAllModes);
-      {BMO: Write (BandMapMultsOnly); }{KK1L: 6.xx}
+      BMO: Write (BandMapMultsOnly);
       BCW: Write (BandMapCallWindowEnable);
       BMD: Write (BandMapDecayValue);
       BCQ: Write (BandMapDisplayCQ);
@@ -544,6 +571,15 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       BPD: Write (Packet.BroadcastAllPacketData);
 
       CAU: Write (CallsignUpdateEnable);
+
+      CatAss:     Write (CategoryAssistedStringList [Category.CategoryAssisted]);
+      CatBand:    Write (CategoryBandStringList [Category.CategoryBand]);
+      CatMode:    Write (CategoryModeStringList [Category.CategoryMode]);
+      CatOp:      Write (CategoryOperatorStringList [Category.CategoryOperator]);
+      CatPower:   Write (CategoryPowerStringList [Category.CategoryPower]);
+      CatTx:      Write (CategoryTransmitterStringList [Category.CategoryTransmitter]);
+      CatOverLay: Write (CategoryOverlayStringList [Category.CategoryOverlay]);
+
       CLF: Write (CheckLogFileSize);
       CDE: Write (ColumnDupeSheetEnable);
       CID: Write (ComputerID);
@@ -564,6 +600,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       DEE: Write (DEEnable);
       DIG: Write (DigitalModeEnable);
+      DDQ: Write (DisplayDupeQTHs);
 
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: Write ('NONE');
@@ -580,21 +617,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
                END;
 
       DSE: Write (Sheet.DupeSheetEnable);
-      DVC: begin
-         if DVKControlKeyRecord then
-            write('ENABLED')
-         else
-            write('DISABLED');
-      end;
-      DVK: begin
-         if ActiveDVKPort = nil then
-            if DVKRadioEnable then
-               write ('Radio DVK')
-            else
-               write('No Port')
-         else
-            write(ActiveDVKPort.devname);
-      end;
 
       EES: Write (EscapeExitsSearchAndPounce);
       EME: Write (ExchangeMemoryEnable);
@@ -682,7 +704,6 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       MEN: Write (MouseEnable);
       MRM: Write (MultReportMinimumBands);
       MIM: Write (MultiInfoMessage);
-      MMO: Write (MultiMultsOnly);
       MRQ: Write (MultiRequestQSONumber);
       MRT: Write (MultiRetryTime);
       MUM: Write (MultiUpdateMultDisplay);
@@ -713,8 +734,10 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       PAS: Write (Packet.AutoSpotEnable);
       PBS: Write (Packet.PacketBandSpots);
       PBP: Write (Packet.PacketBeep);
+      PDS: Write (Packet.DisplaySpots);
       PF8: Write (Packet.FT8SpotEnable);
       PLF: Write (Packet.PacketLogFileName);
+      PRS: Write (Packet.ReceiveSpots);
 
       PRM: Write (PacketReturnPerMinute);
       PSC: Write (PacketSpotComment); {KK1L: 6.71 Implimented what I started in 6.68}
@@ -803,6 +826,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
 
       SHE: Write (SayHiEnable);
       SHC: Write (SayHiRateCutoff);
+      SCE: Write (scorerpt.enabled);
       SCS: Write (CD.CountryString);
       SML: Write (SCPMinimumLetters);
       SAD: Write (SendAltDSpotsToPacket);
@@ -825,6 +849,7 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
       SBD: Write (SpaceBarDupeCheckEnable);
       SQR: Write (SprintQSYRule);
       SRP: Write (SwapPacketSpotRadios);
+      SSE: Write (SelfSpotEnable);
       SWP: Write (ActiveKeyer.GetSwapPaddles);
       SWR: Write (SwapRadioRelaySense);
 
@@ -854,10 +879,10 @@ PROCEDURE DisplayStatusLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('FALSE');
 
-      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
-               Write ('TRUE')
-           ELSE
-               Write ('FALSE');
+      SO2V, TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
+                     Write ('TRUE')
+                 ELSE
+                     Write ('FALSE');
 
       URF: Write (UpdateRestartFileEnable);
 
@@ -982,8 +1007,8 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Char position where auto CW starts');
 
-      AST: IF AutoSidetoneControl THEN
-               Write ('Turn on K3/K4 sidetone for paddle CW')
+      AST: IF AutoSidetoneLevel > 0 THEN
+               Write ('K3/K4 sidetone level for paddle CW')
            ELSE
                Write ('No turn on sidetone for paddle CW');
 
@@ -1002,11 +1027,10 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Only active mode shown on band map');
 
-      {KK1L: 6.xx}
-      {BMO: IF BandMapMultsOnly THEN
+      BMO: IF BandMapMultsOnly THEN
                Write ('Only multipliers shown on band map')
            ELSE
-               Write ('Not only multipliers shown on band map');}
+               Write ('Not only multipliers shown on band map');
 
       BCW: IF BandMapCallWindowEnable THEN
                Write ('Band map blinking call in call window')
@@ -1074,6 +1098,14 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('No call updates looked for in exchange');
 
+      CatAss,
+      CatBand,
+      CatMode,
+      CatOp,
+      CatPower,
+      CatTx,
+      CatOverLay: Write ('Data for score reporter');
+
       CLF: IF CheckLogFileSize THEN
                Write ('Log file size checked after each QSO')
            ELSE
@@ -1085,7 +1117,7 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Visible sheet runs districts together');
 
       CID: IF ComputerID = Chr (0) THEN
-               Write ('No computer ID set (used for multi')
+               Write (' No computer ID set (used for multi')
            ELSE
                Write ('Computer ID as shown appears in log');
 
@@ -1128,6 +1160,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('CW and SSB modes enabled');
 
+      DDQ: IF DisplayDupeQTHs THEN
+               Write ('If station is a dupe - show the QTHs')
+           ELSE
+               Write ('Do not show QTHs of dupes');
+
       DIS: CASE DistanceMode OF
                NoDistanceDisplay: Write ('No display of distance');
                DistanceMiles:     Write ('Distance shown in miles');
@@ -1146,19 +1183,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Calls will be added to dupesheet')
            ELSE
                Write ('Calls will not be added to dupesheet');
-
-      DVC: IF DVKControlKeyRecord THEN
-               Write ('Control keys trigger recording on DVK')
-           ELSE
-               Write ('Control keys act normally');
-
-      DVK: IF ActiveDVKPort = nil THEN
-               IF DVKRadioEnable then
-                  Write('Radio DVK Enabled')
-               else
-                  Write ('No DVK port selected')
-           ELSE
-               Write ('DVK enabled on the port shown');
 
       EES: IF EscapeExitsSearchAndPounce THEN
                Write ('ESCAPE key will exit S&P mode')
@@ -1336,11 +1360,6 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
 
       MIM: Write ('Multi status msg - $=Freq/S&P %=Rate ');
 
-      MMO: IF MultiMultsOnly THEN
-               Write ('Only mult QSOs are passed to other stns')
-           ELSE
-               Write ('All QSOs are passed to other stns');
-
       MRQ: IF MultiRequestQSONumber THEN
                Write ('Request QSO numbers from other computer')
            ELSE
@@ -1421,6 +1440,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Display incoming spots without beep');
 
+      PDS: IF Packet.DisplaySpots THEN
+               Write ('Spots displayed when they come in')
+           ELSE
+               Write ('Spots are not displayed when they come');
+
       PF8: IF Packet.FT8SpotEnable THEN
                Write ('Spots on FT8 frequencies shown')
            ELSE
@@ -1430,6 +1454,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Packet log file disabled')
            ELSE
                Write ('Packet log file enabled to file shown');
+
+      PRS: IF Packet.ReceiveSpots THEN
+               Write ('Spots will be processed')
+           ELSE
+               Write ('Spots are ignored');
 
       PRM: IF PacketReturnPerMinute = 0 THEN
                Write ('Normal packet operation')
@@ -1657,6 +1686,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
 
       SHC: Write ('Rate above which name calling will stop');
 
+      SCE: IF scorerpt.enabled THEN
+               Write ('Score reporting enable')
+           ELSE
+               Write ('Score reporting disabled');
+
       SCS: IF CD.CountryString = '' THEN
                Write ('All SCP calls displayed')
            ELSE
@@ -1684,9 +1718,9 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
                Write ('Stereo Control Pin low');
 
       SQI: IF SendQSOImmediately THEN
-               Write ('QSO sent to Multi port when logged')
+               Write ('QSO sent to network when logged')
            ELSE
-               Write ('QSO sent when scrolled off edit window');
+               Write ('QSO sent after pop off edit window');
 
       SKE: IF ShiftKeyEnable = Shift THEN
                Write ('Shift keys enabled for RIT and S&P QSY')
@@ -1737,6 +1771,11 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Radio 1 is right of radio 2');
 
+      SSE: IF SelfSpotEnable THEN
+                Write ('Send self spot every 5 minutes')
+            ELSE
+                Write ('Self spotting disabled');
+
       SWP: IF ActiveKeyer.GetSwapPaddles THEN
                Write ('Swap dit and dah paddle connections')
            ELSE
@@ -1784,10 +1823,10 @@ PROCEDURE DisplayInfoLine (Line: MenuEntryType; Active: BOOLEAN);
            ELSE
                Write ('Special two radio mode is disabled');
 
-      TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
-               Write ('Special two VFO mode is enabled')
-           ELSE
-               Write ('Special two VFO mode is disabled');
+      SO2V, TVM: IF TwoVFOState <> TwoVFOsDisabled THEN
+                     Write ('Special two VFO mode is enabled')
+                 ELSE
+                     Write ('Special two VFO mode is disabled');
 
       URF: IF UpdateRestartFileEnable THEN
                Write ('RESTART.BIN updated after each QSO')
